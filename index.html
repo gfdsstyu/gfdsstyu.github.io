@@ -26,10 +26,14 @@
     <header class="text-center border-b pb-6 mb-6">
       <h1 class="text-3xl font-bold text-gray-800">AI 회계감사 암기 도우미 📝</h1>
       <p class="text-gray-600 mt-2">gemini-2.5-flash 모델로 기준서 암기/채점을 보조합니다.</p>
+      <button id="open-api-modal-btn" class="mt-3 text-sm text-blue-700 hover:underline">
+  API 키 설정
+</button>
+
     </header>
 
     <!-- API 키 -->
-    <div class="mb-6">
+    <div id="api-inline" class="mb-6 hidden">
       <label for="api-key-input" class="block text-sm font-medium text-gray-700 mb-1">🔑 Gemini API Key</label>
       <input type="password" id="api-key-input" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500" placeholder="Google AI Studio API 키를 붙여넣으세요." autocomplete="off" spellcheck="false" inputmode="text" />
       <div class="flex items-center gap-2 mt-2">
@@ -130,6 +134,32 @@
       <div id="score-summary" class="flex flex-wrap gap-2"></div>
     </div>
   </div>
+<!-- [추가] API 키 최초 인증 모달 -->
+<div id="api-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1000]">
+  <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
+    <h2 class="text-xl font-bold text-gray-800">Gemini API 키 인증</h2>
+    <p class="text-sm text-gray-600 mt-1">
+      최초 1회만 입력합니다. 로컬 저장을 체크하면 다음부터는 팝업이 뜨지 않습니다.
+    </p>
+
+    <label for="api-modal-input" class="block text-sm font-medium text-gray-700 mt-4">🔑 API Key</label>
+    <input type="password" id="api-modal-input"
+           class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500"
+           placeholder="Google AI Studio API 키" autocomplete="off" spellcheck="false" inputmode="text" />
+
+    <div class="flex items-center gap-2 mt-2">
+      <input type="checkbox" id="modal-remember" class="rounded border-gray-300" />
+      <label for="modal-remember" class="text-sm text-gray-700">이 브라우저에 키 저장(로컬저장)</label>
+    </div>
+
+    <div class="mt-5 flex justify-end gap-2">
+      <button id="api-cancel-btn" class="px-3 py-2 text-sm text-gray-600 hover:text-gray-900">취소</button>
+      <button id="api-save-btn" class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700">
+        저장
+      </button>
+    </div>
+  </div>
+</div>
 
   <!-- 내장 데이터(JSON) : 실제 배포시 ...중략... 부분을 실제 배열로 채워주세요 -->
 <script id="dataset-json" type="application/json">[
@@ -1345,6 +1375,15 @@
 
   // -------- DOM --------
   const el = {
+        toast: document.getElementById('toast'),
+    apiInline: document.getElementById('api-inline'),
+    openApiModalBtn: document.getElementById('open-api-modal-btn'),
+    apiModal: document.getElementById('api-modal'),
+    apiModalInput: document.getElementById('api-modal-input'),
+    apiModalRemember: document.getElementById('modal-remember'),
+    apiModalSaveBtn: document.getElementById('api-save-btn'),
+    apiModalCancelBtn: document.getElementById('api-cancel-btn'),
+
     apiKeyInput: document.getElementById('api-key-input'),
     rememberKey: document.getElementById('remember-key'),
     apiKeyStatus: document.getElementById('api-key-status'),
@@ -1382,6 +1421,40 @@
     if (!Number.isFinite(n)) return min;
     return Math.max(min, Math.min(max, n));
   };
+  // ===== API Key 최초 게이트 & 모달 =====
+function openApiModal(initial = false) {
+  if (initial) el.apiModalCancelBtn.classList.add('hidden');
+  else el.apiModalCancelBtn.classList.remove('hidden');
+
+  el.apiModal.classList.remove('hidden');
+  el.apiModal.classList.add('flex');
+
+  el.apiModalInput.value = geminiApiKey || '';
+  el.apiModalRemember.checked = !!localStorage.getItem('geminiApiKey');
+
+  setTimeout(() => el.apiModalInput.focus(), 0);
+}
+
+function closeApiModal() {
+  el.apiModal.classList.add('hidden');
+  el.apiModal.classList.remove('flex');
+}
+
+function ensureApiKeyGate() {
+  const savedSession = sessionStorage.getItem('geminiApiKey');
+  const savedLocal   = localStorage.getItem('geminiApiKey');
+  geminiApiKey = savedSession || savedLocal || '';
+
+  // 인라인 입력(숨김)과 상태 동기화
+  if (geminiApiKey) {
+    el.apiKeyInput.value = geminiApiKey;
+    el.rememberKey.checked = !!savedLocal;
+    return; // 이미 키 있음: 모달 띄우지 않음
+  }
+  // 키 없음: 최초 진입 모달 강제
+  openApiModal(true);
+}
+
   const sanitizeModelText = (t) => {
     let s = (t || '').trim();
     if (s.startsWith('```')) s = s.replace(/^```[\s\S]*?\n/, '').replace(/```$/, '').trim();
@@ -1409,6 +1482,7 @@
     loadData();
     loadScores();
     loadApiKey();
+    ensureApiKeyGate(); // 최초에만 모달 띄우기
   });
 
   function loadScores() {
@@ -1549,6 +1623,41 @@
     else showToast('전체 단원 보기');
   });
   el.filterSelect.addEventListener('change', handleLoadQuiz);
+  // ===== 모달 이벤트 =====
+if (el.openApiModalBtn) {
+  el.openApiModalBtn.addEventListener('click', () => openApiModal(false));
+}
+
+if (el.apiModalSaveBtn) {
+  el.apiModalSaveBtn.addEventListener('click', () => {
+    const key = (el.apiModalInput.value || '').trim();
+    if (!key) { showToast('API 키를 입력하세요.', 'error'); el.apiModalInput.focus(); return; }
+
+    geminiApiKey = key;
+    sessionStorage.setItem('geminiApiKey', key);
+    if (el.apiModalRemember.checked) localStorage.setItem('geminiApiKey', key);
+    else localStorage.removeItem('geminiApiKey');
+
+    // 숨겨둔 인라인 필드와도 동기화(유지보수 편의)
+    el.apiKeyInput.value = key;
+    el.rememberKey.checked = el.apiModalRemember.checked;
+
+    closeApiModal();
+    showToast('API 키 저장 완료');
+  });
+}
+
+if (el.apiModalCancelBtn) {
+  el.apiModalCancelBtn.addEventListener('click', () => closeApiModal());
+}
+
+// ESC로 닫기 (초기 강제 모달일 땐 취소 버튼 숨겨져 있어 닫히지 않음)
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !el.apiModalCancelBtn.classList.contains('hidden')) {
+    if (!el.apiModal.classList.contains('hidden')) closeApiModal();
+  }
+});
+
 
   // 필터 적용
   function handleLoadQuiz() {
@@ -2013,6 +2122,7 @@ ${userAnswer || '(미입력)'}
 
 </body>
 </html>
+
 
 
 
