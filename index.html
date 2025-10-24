@@ -16,12 +16,10 @@
     .summary-btn { width: 38px; height: 38px; font-size: 0.8rem; line-height: 1rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
     .summary-btn:hover { transform: scale(1.1); }
     pre { white-space: pre-wrap; word-wrap: break-word; }
-    /* 토스트 */
     #toast { position: fixed; top: 16px; right: 16px; z-index: 9999; }
   </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-  <!-- 토스트 컨테이너 -->
   <div id="toast" class="hidden"></div>
 
   <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-6 md:p-8">
@@ -30,7 +28,7 @@
       <p class="text-gray-600 mt-2">gemini-2.5-flash 모델로 기준서 암기/채점을 보조합니다.</p>
     </header>
 
-    <!-- API 키 영역 -->
+    <!-- API 키 -->
     <div class="mb-6">
       <label for="api-key-input" class="block text-sm font-medium text-gray-700 mb-1">🔑 Gemini API Key</label>
       <input type="password" id="api-key-input" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500" placeholder="Google AI Studio API 키를 붙여넣으세요." autocomplete="off" spellcheck="false" inputmode="text" />
@@ -41,7 +39,7 @@
       <p id="api-key-status" class="text-xs text-green-600 mt-1 hidden">API 키가 저장되었습니다.</p>
     </div>
 
-    <!-- 옵션 영역 -->
+    <!-- 옵션 -->
     <div class="flex flex-col md:flex-row gap-4 mb-6 items-center">
       <div class="flex-1 w-full">
         <label for="chapter-select" class="block text-sm font-medium text-gray-700 mb-1">단원 선택</label>
@@ -71,6 +69,16 @@
           <span id="question-counter" class="text-gray-500 font-medium">0 / 0</span>
         </div>
         <p id="question-text" class="text-gray-800 text-base md:text-lg leading-relaxed">문제를 불러오는 중입니다...</p>
+
+        <!-- 힌트 버튼 -->
+        <div class="mt-3 flex items-center justify-end">
+          <button id="hint-btn" class="text-sm bg-purple-600 text-white px-3 py-1.5 rounded-md shadow hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">
+            힌트
+          </button>
+        </div>
+
+        <!-- 힌트 박스 -->
+        <div id="hint-container" class="hidden mt-3 text-sm bg-purple-50 border border-purple-200 text-purple-800 rounded-lg p-3"></div>
       </div>
 
       <textarea id="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" rows="8" placeholder="여기에 정답을 입력하세요..."></textarea>
@@ -112,7 +120,6 @@
 
     <!-- 학습 현황판 -->
     <div id="summary-area" class="mt-8 pt-6 border-t hidden">
-      <!-- [개선됨] 버튼 영역 수정 -->
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-xl font-bold text-gray-800">학습 현황판 (클릭하여 이동)</h3>
         <div class="flex gap-4">
@@ -124,8 +131,8 @@
     </div>
   </div>
 
-  <!-- 내장 데이터(JSON) -->
-  <script id="dataset-json" type="application/json">[
+  <!-- 내장 데이터(JSON) : 실제 배포시 ...중략... 부분을 실제 배열로 채워주세요 -->
+<script id="dataset-json" type="application/json">[
   {
     "단원": 1,
     "물음번호": 1,
@@ -1321,7 +1328,6 @@
     "정답": "감사계약서 등 업무조건을 재합의한다.  이미 수행한 위험평가·추가절차·문서화의 적정성을 평가한다.  일반 기준서 요구를 충족하도록 필요한 추가 절차와 문서화를 수행·보완한다."
   }
 ]
-
 </script>
 
 <script type="module">
@@ -1333,22 +1339,11 @@
   let questionScores = {};
   let geminiApiKey = '';
 
-  // [개선됨] 점수 로드 함수 추가
-  function loadScores() {
-    const savedScores = localStorage.getItem('auditQuizScores');
-    if (savedScores) {
-      try {
-        questionScores = JSON.parse(savedScores);
-        console.log('Saved scores loaded.');
-      } catch (e) {
-        console.error('Failed to load saved scores:', e);
-        questionScores = {};
-        localStorage.removeItem('auditQuizScores'); // 깨진 데이터 삭제
-      }
-    }
-  }
+  // [중요] 힌트는 현재 화면의 문항에서만 일시적으로 적용 → 문항 이동 시 자동 해제
+  // 힌트가 켜진 "현재 문항"의 키(물음번호). 다른 문항으로 이동하면 null로 리셋.
+  let activeHintQuestionKey = null; // ← 새로 추가
 
-  // -------- DOM 캐시 --------
+  // -------- DOM --------
   const el = {
     apiKeyInput: document.getElementById('api-key-input'),
     rememberKey: document.getElementById('remember-key'),
@@ -1367,6 +1362,8 @@
     gradeBtn: document.getElementById('grade-btn'),
     gradeBtnText: document.getElementById('grade-btn-text'),
     gradeLoader: document.getElementById('grade-loader'),
+    hintBtn: document.getElementById('hint-btn'),
+    hintBox: document.getElementById('hint-container'),
     resultBox: document.getElementById('result-box'),
     score: document.getElementById('score'),
     progressBar: document.getElementById('progress-bar'),
@@ -1375,7 +1372,7 @@
     summaryArea: document.getElementById('summary-area'),
     scoreSummary: document.getElementById('score-summary'),
     clearFilterBtn: document.getElementById('clear-filter-btn'),
-    resetScoresBtn: document.getElementById('reset-scores-btn'), // [개선됨] 추가
+    resetScoresBtn: document.getElementById('reset-scores-btn'),
     toast: document.getElementById('toast')
   };
 
@@ -1385,28 +1382,17 @@
     if (!Number.isFinite(n)) return min;
     return Math.max(min, Math.min(max, n));
   };
-  
-  // [개선 안함] 사용자의 "잘 돌아가는" 버전의 함수를 그대로 사용
   const sanitizeModelText = (t) => {
     let s = (t || '').trim();
-    if (s.startsWith('```')) {
-      s = s.replace(/^```[\s\S]*?\n/, '').replace(/```$/, '').trim();
-    }
+    if (s.startsWith('```')) s = s.replace(/^```[\s\S]*?\n/, '').replace(/```$/, '').trim();
     s = s.replace(/^\uFEFF/, '');
-    const start = s.indexOf('{');
-    const end = s.lastIndexOf('}');
+    const start = s.indexOf('{'), end = s.lastIndexOf('}');
     if (start !== -1 && end !== -1 && end > start) s = s.slice(start, end + 1);
     return s;
   };
   const normId = (v) => String(v).trim();
   const toNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
-// [추가] 단원별 접기/펼치기 상태 저장
-function loadCollapsedMap() {
-  try { return JSON.parse(localStorage.getItem('auditCollapsedChapters') || '{}'); } catch { return {}; }
-}
-function saveCollapsedMap(map) {
-  try { localStorage.setItem('auditCollapsedChapters', JSON.stringify(map)); } catch {}
-}
+
   const showToast = (msg, type = 'info') => {
     const base = 'px-4 py-2 rounded shadow text-sm mb-2';
     const color = type === 'error' ? 'bg-red-600 text-white' : type === 'warn' ? 'bg-yellow-500 text-white' : 'bg-gray-900 text-white';
@@ -1421,11 +1407,19 @@ function saveCollapsedMap(map) {
   // -------- 초기화 --------
   document.addEventListener('DOMContentLoaded', () => {
     loadData();
-    loadScores(); // [개선됨] 저장된 점수 불러오기
+    loadScores();
     loadApiKey();
   });
 
-  // API 키 로드/저장
+  function loadScores() {
+    const savedScores = localStorage.getItem('auditQuizScores');
+    if (savedScores) {
+      try { questionScores = JSON.parse(savedScores); }
+      catch { questionScores = {}; localStorage.removeItem('auditQuizScores'); }
+    }
+  }
+
+  // API 키
   function loadApiKey() {
     const savedSession = sessionStorage.getItem('geminiApiKey');
     const savedLocal = localStorage.getItem('geminiApiKey');
@@ -1446,15 +1440,12 @@ function saveCollapsedMap(map) {
       el.apiKeyStatus.classList.remove('hidden');
     });
     el.rememberKey.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        if (geminiApiKey) localStorage.setItem('geminiApiKey', geminiApiKey);
-      } else {
-        localStorage.removeItem('geminiApiKey');
-      }
+      if (e.target.checked) { if (geminiApiKey) localStorage.setItem('geminiApiKey', geminiApiKey); }
+      else { localStorage.removeItem('geminiApiKey'); }
     });
   }
 
-  // ------- 데이터 로드 (내장 JSON 파싱) -------
+  // 데이터 로드
   function loadData() {
     try {
       const node = document.getElementById('dataset-json');
@@ -1466,7 +1457,6 @@ function saveCollapsedMap(map) {
       allData = parsed;
       selfTest();
       populateChapterSelect();
-      // 초기 상태: 전체 보기 요약 표시 (loadScores 이후이므로 저장된 점수 반영)
       updateSummary();
     } catch (err) {
       console.error(err);
@@ -1475,15 +1465,13 @@ function saveCollapsedMap(map) {
     }
   }
 
-  // ------- 단원 드롭다운 채우기 -------
+  // 단원 옵션 + 랜덤
   function populateChapterSelect() {
-    // 중복 방지: 기존 옵션 제거(placeholder 1개만 남김)
     while (el.chapterSelect.options.length > 1) el.chapterSelect.remove(1);
-      // [추가] 랜덤 옵션을 placeholder 다음에 삽입
-  const optRand = document.createElement('option');
-  optRand.value = 'random';
-  optRand.textContent = '랜덤(전체에서 무작위)';
-  el.chapterSelect.add(optRand);
+    const optRand = document.createElement('option');
+    optRand.value = 'random';
+    optRand.textContent = '랜덤(전체에서 무작위)';
+    el.chapterSelect.add(optRand);
 
     const chapters = [...new Set(allData.map(item => String(item.단원).trim()))];
     chapters.sort((a, b) => {
@@ -1501,109 +1489,92 @@ function saveCollapsedMap(map) {
     });
   }
 
-  // ------- 간단 self-test (런타임 테스트 케이스) -------
+  // self-test
   function selfTest() {
-    // 1) 필수 필드 검사
     const missing = [];
     allData.forEach((row, i) => {
       if (!(row && '단원' in row && '물음번호' in row && '물음' in row && '정답' in row)) missing.push(i + 1);
     });
-    if (missing.length) {
-      console.warn('필드 누락 인덱스:', missing);
-      showToast(`경고: 필수 필드 누락 ${missing.length}개`, 'warn');
-    }
-    // 2) 중복 물음번호 검사
-    const seen = new Set();
-    const dup = [];
+    if (missing.length) showToast(`경고: 필수 필드 누락 ${missing.length}개`, 'warn');
+
+    const seen = new Set(); const dup = [];
     for (const r of allData) {
       const key = String(r.물음번호).trim();
       if (seen.has(key)) dup.push(key); else seen.add(key);
     }
-    if (dup.length) {
-      console.warn('중복 물음번호:', dup);
-      showToast(`경고: 중복 물음번호 ${dup.length}개 발견`, 'warn');
-    }
-    // 3) 단원 데이터 존재 확인
+    if (dup.length) showToast(`경고: 중복 물음번호 ${dup.length}개 발견`, 'warn');
+
     const uniqChapterCount = new Set(allData.map(r => String(r.단원).trim())).size;
     if (uniqChapterCount === 0) throw new Error('단원 데이터가 없습니다.');
   }
 
-  // ------- 이벤트 바인딩 -------
+  // 이벤트
   el.loadQuizBtn.addEventListener('click', handleLoadQuiz);
-  el.prevBtn.addEventListener('click', handlePrev);
-  el.nextBtn.addEventListener('click', handleNext);
+  el.prevBtn.addEventListener('click', () => { handlePrev(); });
+  el.nextBtn.addEventListener('click', () => { handleNext(); });
   el.gradeBtn.addEventListener('click', handleGrade);
   el.userAnswer.addEventListener('input', () => el.errorMessage.classList.add('hidden'));
+
+  // 힌트: 힌트만 노출, 채점은 하지 않음. 같은 문항에서 바로 채점하면 감점.
+  el.hintBtn.addEventListener('click', () => {
+    if (currentQuizData.length === 0) return;
+    handleHint(currentQuizData[currentQuestionIndex]);
+  });
+
   el.clearFilterBtn.addEventListener('click', () => {
     el.filterSelect.value = 'all';
     el.chapterSelect.value = '';
     handleLoadQuiz();
     showToast('필터를 해제했습니다. 모든 문제를 표시합니다.');
   });
-  
-  // [개선됨] 학습 기록 초기화 이벤트
+
   el.resetScoresBtn.addEventListener('click', () => {
-    // confirm은 iframe 환경에서 작동하지 않을 수 있으므로, 
-    // 여기서는 confirm을 사용하되, 실제 환경에 따라 커스텀 모달로 대체하는 것을 권장합니다.
     if (confirm('정말로 모든 학습 기록을 초기화하시겠습니까?')) {
       questionScores = {};
       localStorage.removeItem('auditQuizScores');
-      updateSummary(); // 현황판 UI 갱신
+      updateSummary();
       if (currentQuizData.length > 0) {
-         // 현재 문제 UI 갱신 (점수/피드백 제거)
-        currentQuestionIndex = 0; // 첫 문제로 이동
-        handleLoadQuiz(); // 필터 재적용(중요)
+        currentQuestionIndex = 0;
+        handleLoadQuiz();
       }
       showToast('학습 기록이 초기화되었습니다.');
     }
   });
 
-  // 드롭다운/필터 바뀌면 즉시 재적용
   el.chapterSelect.addEventListener('change', () => {
     handleLoadQuiz();
-   const v = el.chapterSelect.value;
-if (v === 'random') {
-  showToast('랜덤(전체) 모드: 무작위 문제부터 시작');
-} else if (v) {
-  showToast(`단원 ${v}로 필터 적용`);
-} else {
-  showToast('전체 단원 보기');
-}
-
+    const v = el.chapterSelect.value;
+    if (v === 'random') showToast('랜덤(전체) 모드: 무작위 문제부터 시작');
+    else if (v) showToast(`단원 ${v}로 필터 적용`);
+    else showToast('전체 단원 보기');
   });
-  el.filterSelect.addEventListener('change', () => {
-    handleLoadQuiz();
-  });
+  el.filterSelect.addEventListener('change', handleLoadQuiz);
 
-  // ------- 학습 시작/필터 적용 -------
+  // 필터 적용
   function handleLoadQuiz() {
     const selectedChapter = el.chapterSelect.value;
     const selectedFilter = el.filterSelect.value;
 
-    // 1) 단원 필터
-let filtered = allData;
-// 'random'일 때는 단원 필터 적용하지 않음(전체에서 뽑기)
-if (selectedChapter && selectedChapter !== 'random') {
-  filtered = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
-}
-    // 2) 점수 필터
+    let filtered = allData;
+    if (selectedChapter && selectedChapter !== 'random') {
+      filtered = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
+    }
+
     filtered = filtered.filter(q => {
       const key = normId(q.물음번호);
       const saved = questionScores[key];
       if (selectedFilter === 'unanswered') return !saved;
       if (selectedFilter === '80') return !saved || Number(saved.score) < 80;
       if (selectedFilter === '60') return !saved || Number(saved.score) < 60;
-      return true; // all
+      return true;
     });
 
     currentQuizData = filtered;
-
-if (selectedChapter === 'random' && currentQuizData.length > 0) {
-  currentQuestionIndex = Math.floor(Math.random() * currentQuizData.length);
-} else {
-  currentQuestionIndex = 0;
-}
-
+    if (selectedChapter === 'random' && currentQuizData.length > 0) {
+      currentQuestionIndex = Math.floor(Math.random() * currentQuizData.length);
+    } else {
+      currentQuestionIndex = 0;
+    }
 
     if (currentQuizData.length > 0) {
       el.quizArea.classList.remove('hidden');
@@ -1611,24 +1582,25 @@ if (selectedChapter === 'random' && currentQuizData.length > 0) {
       displayQuestion();
     } else {
       el.quizArea.classList.add('hidden');
-      // 현황판은 보이도록 유지 (필터 해제 버튼 등을 위해)
-      el.summaryArea.classList.remove('hidden'); 
+      el.summaryArea.classList.remove('hidden');
       showToast('선택한 조건에 맞는 문제가 없습니다.', 'warn');
     }
-    updateSummary(); // 현황판은 항상 업데이트
+    updateSummary();
   }
 
-  // ------- 문제 표시/네비게이션 -------
+  // 문제 표시
   function displayQuestion() {
-    if (currentQuizData.length === 0) {
-      el.quizArea.classList.add('hidden');
-      return;
-    }
-    el.quizArea.classList.remove('hidden'); // [수정] 문제가 있을 경우 영역 표시
+    if (currentQuizData.length === 0) { el.quizArea.classList.add('hidden'); return; }
+    el.quizArea.classList.remove('hidden');
     const q = currentQuizData[currentQuestionIndex];
     el.questionNumber.textContent = `물음 ${q.물음번호}`;
     el.questionText.textContent = q.물음;
     el.questionCounter.textContent = `${currentQuestionIndex + 1} / ${currentQuizData.length}`;
+
+    // [핵심] 문항 이동 시 힌트 자동 해제
+    activeHintQuestionKey = null;                 // ← 여기서 리셋
+    el.hintBox.classList.add('hidden');
+    el.hintBox.innerHTML = '';
 
     el.resultBox.classList.add('hidden');
     el.userAnswer.value = '';
@@ -1640,7 +1612,7 @@ if (selectedChapter === 'random' && currentQuizData.length > 0) {
     }
 
     el.prevBtn.disabled = currentQuestionIndex === 0;
-    el.nextBtn.disabled = currentQuestionIndex === currentQuizData.length - 1;
+    el.nextBtn.disabled = currentQuizData.length - 1 === currentQuestionIndex;
 
     updateSummaryHighlight();
   }
@@ -1658,36 +1630,33 @@ if (selectedChapter === 'random' && currentQuizData.length > 0) {
     }
   }
 
-  // ------- 채점 -------
+  // 채점 (같은 문항에서 힌트 직후 채점 시 감점)
   async function handleGrade() {
-    if (!geminiApiKey) {
-      el.apiKeyInput.focus();
-      showToast('Gemini API 키를 입력해주세요.', 'error');
-      return;
-    }
+    if (!geminiApiKey) { el.apiKeyInput.focus(); showToast('Gemini API 키를 입력해주세요.', 'error'); return; }
     const answer = el.userAnswer.value.trim();
-    if (!answer) {
-      el.errorMessage.textContent = '답안을 입력해주세요.';
-      el.errorMessage.classList.remove('hidden');
-      el.userAnswer.focus();
-      return;
-    }
+    if (!answer) { el.errorMessage.textContent = '답안을 입력해주세요.'; el.errorMessage.classList.remove('hidden'); el.userAnswer.focus(); return; }
     el.errorMessage.classList.add('hidden');
 
     const q = currentQuizData[currentQuestionIndex];
+    const qKey = String(q.물음번호).trim();
+
     setLoading(true);
     try {
+      // 1) 원점수
       const result = await callGeminiAPI(answer, q.정답, geminiApiKey);
-      showResult(result.score, result.feedback, q.정답);
-      questionScores[normId(q.물음번호)] = { score: result.score, feedback: result.feedback, user_answer: answer };
-      
-      // [개선됨] 점수 변경 시 localStorage에 저장
-      try {
-        localStorage.setItem('auditQuizScores', JSON.stringify(questionScores));
-      } catch (e) {
-        console.error('Failed to save scores:', e);
-        showToast('점수 저장 실패 (localStorage 용량 초과 가능성)', 'error');
+      let finalScore = result.score;
+      let finalFeedback = result.feedback;
+
+      // 2) 같은 문항에서 힌트가 "켜져 있으면" 감점. (문항 이동하면 자동 해제되어 정상 채점)
+      if (activeHintQuestionKey === qKey) {
+        finalScore = Math.min(59, Math.max(0, Math.round(finalScore * 0.8)));
+        finalFeedback = `${finalFeedback ? finalFeedback + ' ' : ''}(힌트사용으로 감점입니다)`;
       }
+
+      // 3) 표시/저장
+      showResult(finalScore, finalFeedback, q.정답);
+      questionScores[qKey] = { score: finalScore, feedback: finalFeedback, user_answer: answer };
+      try { localStorage.setItem('auditQuizScores', JSON.stringify(questionScores)); } catch {}
 
       updateSummary();
     } catch (e) {
@@ -1714,13 +1683,11 @@ if (selectedChapter === 'random' && currentQuizData.length > 0) {
       el.gradeBtn.disabled = false;
     }
   }
-// ------- Gemini API -------
-  // [개선 안함] 사용자의 "잘 돌아가는" 버전을 그대로 사용
+
+  // ------- Gemini API: 채점 -------
   async function callGeminiAPI(userAnswer, correctAnswer, apiKey, retries = 3, delay = 1000) {
-    // v1beta + gemini-2.5-flash
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
 
-    // Structured output (camelCase)
     const generationConfig = {
       responseMimeType: 'application/json',
       responseSchema: {
@@ -1733,22 +1700,20 @@ if (selectedChapter === 'random' && currentQuizData.length > 0) {
       }
     };
 
-    // [수정됨] 채점 기준을 엄격하게 변경
     const systemInstruction = {
-      parts: [{
-        text: `당신은 매우 엄격한 회계감사 과목 채점 조교입니다.
+      parts: [{ text:
+`당신은 매우 엄격한 회계감사 과목 채점 조교입니다.
 - 사용자 답안을 모범답안과 비교해 0~100의 "score"(NUMBER)와 "feedback"(STRING, 한국어)을 JSON으로만 반환하세요.
 - 채점 기준을 매우 엄격하게(strictly) 적용합니다.
 
 [엄격한 채점 기준]
-1.  모범 답안의 **핵심 키워드**가 사용자 답안에 포함되었는지 확인합니다.
-2.  핵심 키워드가 **대부분 누락**되었다면 50점 미만을 부여합니다.
-3.  핵심 키워드가 **일부 포함**되었으나, 모범 답안의 **논리적 흐름이나 설명이 부족/부정확**하다면 50점~80점 사이를 부여합니다.
-4.  단순히 키워드만 나열한 것이 아니라, **모든 핵심 키워드**가 포함되고 모범 답안의 **논리적 의도까지 완벽하게 일치**할 경우에만 80점 이상을 부여합니다.
-5.  사소한 토씨 차이를 제외하고 모범 답안과 거의 동일해야 100점을 부여합니다.
+1. 모범 답안의 핵심 키워드 포함 여부
+2. 핵심 키워드 대부분 누락: 50점 미만
+3. 일부 포함이나 설명 부정확: 50~80점
+4. 모든 핵심 키워드 + 의도 일치: 80점 이상
+5. 거의 동일할 때만 100점
 
-- 불필요한 말/코드블록 금지. JSON 객체만 반환하세요.`
-      }]
+- 불필요한 말/코드블록 금지. JSON 객체만 반환.` }]
     };
 
     const userQuery = `[모범 답안]
@@ -1760,57 +1725,128 @@ ${userAnswer}
 [채점 요청]
 JSON으로 { "score": number, "feedback": string }만 반환`;
 
-    const payload = {
-      contents: [{ parts: [{ text: userQuery }] }],
-      systemInstruction,
-      generationConfig
-    };
+    const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction, generationConfig };
 
     try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!res.ok) {
-        // 상세 에러 노출
         const body = await res.json().catch(() => ({}));
         const msg = body?.error?.message || res.statusText;
-        if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) {
-          throw new Error(`모델/버전 불일치: ${msg}`);
-        }
+        if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) throw new Error(`모델/버전 불일치: ${msg}`);
         if (res.status === 429 || res.status >= 500) throw new Error(`API Error ${res.status}: 할당량/서버 오류`);
         throw new Error(msg);
       }
       const data = await res.json();
       const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
       const cleaned = sanitizeModelText(raw);
-      
-      // [개선됨] JSON.parse()를 try-catch로 감싸 안정성 확보
       let parsed;
-      try {
-         parsed = JSON.parse(cleaned);
-      } catch (parseError) {
-         console.error('JSON Parse Error:', parseError, 'Raw Text:', cleaned);
-         // 모델이 스키마를 따르지 않고 일반 텍스트를 반환한 경우
-         throw new Error(`API 응답 파싱 실패. (내용: ${cleaned.substring(0, 50)}...)`);
-      }
-
+      try { parsed = JSON.parse(cleaned); }
+      catch { throw new Error(`API 응답 파싱 실패. (내용: ${cleaned.substring(0, 50)}...)`); }
       const scoreNum = clamp(Number(parsed.score), 0, 100);
       const feedbackStr = String(parsed.feedback || '').trim();
       return { score: scoreNum, feedback: feedbackStr || '피드백 없음' };
     } catch (err) {
-      // 429(할당량) 또는 5xx(서버) 오류일 때만 재시도
-      if (retries > 0 && (err.message.includes('429') || err.message.includes('500'))) {
+      if (retries > 0 && (String(err.message).includes('429') || String(err.message).includes('500'))) {
         await new Promise(r => setTimeout(r, delay));
         return callGeminiAPI(userAnswer, correctAnswer, apiKey, retries - 1, delay * 2);
       }
-      throw err; // 파싱 오류 등 재시도 불가능한 오류는 그대로 throw
+      throw err;
     }
   }
 
+  // ------- Gemini API: 힌트 (정답 노출 없이 힌트만 생성) -------
+  async function callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, retries = 3, delay = 1000) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
 
-  // ------- 결과 표시 -------
+    const generationConfig = {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          hint: { type: 'STRING',  description: '정답을 직접 말하지 않는 2~4줄 한국어 힌트' }
+        },
+        required: ['hint']
+      }
+    };
+
+    const systemInstruction = {
+      parts: [{ text:
+`역할: 회계감사 학습 튜터.
+목표: 정답을 노출하지 않고 핵심 개념을 떠올리게 만드는 짧은 힌트 제공.
+규칙:
+- 정답/조합/목록을 그대로 쓰지 마세요.
+- 2~4줄 한글 힌트, 필요 시 핵심 키워드의 방향만 암시.
+- 출력은 JSON만.` }]
+    };
+
+    const userQuery =
+`[문제]
+${questionText}
+
+[모범 답안]
+${correctAnswer}
+
+[사용자 답안]
+${userAnswer || '(미입력)'}
+
+[요청]
+정답 노출 없이 학습을 돕는 힌트 2~4줄. JSON으로 {"hint": string }만 반환`;
+
+    const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction, generationConfig };
+
+    try {
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const msg = body?.error?.message || res.statusText;
+        if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) throw new Error(`모델/버전 불일치: ${msg}`);
+        if (res.status === 429 || res.status >= 500) throw new Error(`API Error ${res.status}: 할당량/서버 오류`);
+        throw new Error(msg);
+      }
+      const data = await res.json();
+      const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      const cleaned = sanitizeModelText(raw);
+      let parsed;
+      try { parsed = JSON.parse(cleaned); }
+      catch { throw new Error(`API 응답 파싱 실패. (내용: ${cleaned.substring(0, 50)}...)`); }
+
+      return String(parsed.hint || '').trim();
+    } catch (err) {
+      if (retries > 0 && (String(err.message).includes('429') || String(err.message).includes('500'))) {
+        await new Promise(r => setTimeout(r, delay));
+        return callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, retries - 1, delay * 2);
+      }
+      throw err;
+    }
+  }
+
+  // 힌트 처리: 힌트만 표시. 채점은 하지 않음. 같은 문항에서 바로 채점하면 감점.
+  async function handleHint(q) {
+    if (!geminiApiKey) { el.apiKeyInput.focus(); showToast('Gemini API 키를 입력해주세요.', 'error'); return; }
+    const userAns = el.userAnswer.value.trim();
+    const qKey = normId(q.물음번호);
+
+    setLoading(true);
+    try {
+      const hint = await callGeminiHintAPI(userAns, q.정답, q.물음, geminiApiKey);
+
+      // 힌트 표시
+      el.hintBox.innerHTML = `<strong class="font-semibold">힌트</strong><br>${String(hint || '').replace(/\n/g, '<br>')}`;
+      el.hintBox.classList.remove('hidden');
+
+      // 현재 문항에만 힌트 활성화 (문항 이동 시 자동 해제)
+      activeHintQuestionKey = qKey;
+
+      showToast('힌트를 표시했습니다. (이 문항에서 즉시 채점 시 감점)', 'warn');
+    } catch (e) {
+      console.error(e);
+      showToast(`힌트 생성 실패: ${e.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // 결과 표시
   function showResult(scoreVal, feedback, correctAnswer) {
     const s = clamp(Number(scoreVal), 0, 100);
     el.score.textContent = s.toFixed(1);
@@ -1827,161 +1863,139 @@ JSON으로 { "score": number, "feedback": string }만 반환`;
     el.resultBox.classList.remove('hidden');
   }
 
-  // ------- 현황판 -------
-  // [개선됨] loadScores()가 먼저 실행되므로, 
-  // 이 함수는 변경 없이도 자동으로 저장된 점수를 반영합니다.
- function updateSummary() {
-  el.scoreSummary.innerHTML = '';
-  const selectedChapter = el.chapterSelect.value;
+  // 현황판 (단원별 + 평균 + 접기/펼치기)
+  function updateSummary() {
+    el.scoreSummary.innerHTML = '';
+    const selectedChapter = el.chapterSelect.value;
 
-  // '랜덤'은 전체 기준, 그 외엔 해당 단원만
-  let base = allData;
-  if (selectedChapter && selectedChapter !== 'random') {
-    base = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
-  }
+    let base = allData;
+    if (selectedChapter && selectedChapter !== 'random') {
+      base = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
+    }
 
-  // 단원별 그룹핑
-  const groups = new Map();
-  for (const q of base) {
-    const ch = String(q.단원).trim();
-    if (!groups.has(ch)) groups.set(ch, []);
-    groups.get(ch).push(q);
-  }
+    const groups = new Map();
+    for (const q of base) {
+      const ch = String(q.단원).trim();
+      if (!groups.has(ch)) groups.set(ch, []);
+      groups.get(ch).push(q);
+    }
 
-  // 단원 정렬 (숫자 우선)
-  const chapters = [...groups.keys()].sort((a, b) => {
-    const na = Number(a), nb = Number(b);
-    if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
-    if (Number.isFinite(na)) return -1;
-    if (Number.isFinite(nb)) return 1;
-    return a.localeCompare(b, 'ko');
-  });
-
-  const collapsedMap = loadCollapsedMap();
-
-  // 색상 헬퍼
-  const colorByScore = (sc) => {
-    if (!Number.isFinite(sc)) return { bg:'bg-gray-100', txt:'text-gray-600', bd:'border-gray-300' };
-    if (sc < 60) return { bg:'bg-red-100', txt:'text-red-700', bd:'border-red-300' };
-    if (sc < 80) return { bg:'bg-yellow-100', txt:'text-yellow-700', bd:'border-yellow-300' };
-    return { bg:'bg-green-100', txt:'text-green-700', bd:'border-green-300' };
-  };
-  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-
-  // 단원 섹션 렌더
-  chapters.forEach(ch => {
-    const list = groups.get(ch) || [];
-
-    // 단원 내 문제 정렬(물음번호)
-    list.sort((a, b) => {
-      const na = Number(a.물음번호), nb = Number(b.물음번호);
+    const chapters = [...groups.keys()].sort((a, b) => {
+      const na = Number(a), nb = Number(b);
       if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
-      return String(a.물음번호).localeCompare(String(b.물음번호), 'ko');
+      if (Number.isFinite(na)) return -1;
+      if (Number.isFinite(nb)) return 1;
+      return a.localeCompare(b, 'ko');
     });
 
-    // 통계 계산(채점된 문제만 평균)
-    let sum = 0, cnt = 0;
-    list.forEach(q => {
-      const s = questionScores[String(q.물음번호)?.trim()];
-      if (s && Number.isFinite(Number(s.score))) { sum += Number(s.score); cnt++; }
-    });
-    const avg = cnt ? (sum / cnt) : null;
-    const ratioText = `${cnt}/${list.length} 완료`;
-    const avgText = (avg === null) ? '-' : avg.toFixed(1);
-    const barW = clamp(avg ?? 0, 0, 100);
-    const barCls = (avg === null) ? 'bg-gray-300'
-                 : avg < 60 ? 'bg-red-500'
-                 : avg < 80 ? 'bg-yellow-500'
-                 : 'bg-green-500';
+    const colorByScore = (sc) => {
+      if (!Number.isFinite(sc)) return { bg:'bg-gray-100', txt:'text-gray-600', bd:'border-gray-300' };
+      if (sc < 60) return { bg:'bg-red-100', txt:'text-red-700', bd:'border-red-300' };
+      if (sc < 80) return { bg:'bg-yellow-100', txt:'text-yellow-700', bd:'border-yellow-300' };
+      return { bg:'bg-green-100', txt:'text-green-700', bd:'border-green-300' };
+    };
+    const _clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-    // --- 헤더(단원명 + 평균 + 접기/펼치기 + 미니바) ---
-    const header = document.createElement('div');
-    header.className = 'flex items-center justify-between px-3 py-2 rounded-md border bg-gray-50 mb-2';
-
-    const left = document.createElement('div');
-    left.className = 'flex items-center gap-3';
-    const title = document.createElement('div');
-    title.className = 'font-semibold';
-    title.textContent = Number.isFinite(Number(ch)) ? `단원 ${ch}` : ch;
-
-    const meta = document.createElement('div');
-    meta.className = 'text-sm text-gray-700';
-    meta.textContent = `평균 ${avgText}점 · ${ratioText}`;
-
-    const mini = document.createElement('div');
-    mini.className = 'w-28 h-2 bg-gray-200 rounded-full overflow-hidden';
-    const miniFill = document.createElement('div');
-    miniFill.className = `h-2 ${barCls}`;
-    miniFill.style.width = `${barW}%`;
-    mini.appendChild(miniFill);
-
-    left.appendChild(title);
-    left.appendChild(meta);
-    left.appendChild(mini);
-
-    const toggleBtn = document.createElement('button');
-    const collapsed = !!collapsedMap[ch];
-    toggleBtn.className = 'text-xs text-blue-700 hover:underline';
-    toggleBtn.textContent = collapsed ? '펼치기' : '접기';
-
-    header.appendChild(left);
-    header.appendChild(toggleBtn);
-
-    // --- 문제 버튼 그리드 ---
-    const grid = document.createElement('div');
-    grid.className = 'flex flex-wrap gap-2 mt-2 mb-4';
-    if (collapsed) grid.classList.add('hidden');
-
-    list.forEach(q => {
-      const btn = document.createElement('button');
-      btn.textContent = q.물음번호;
-      btn.classList.add('summary-btn', 'font-medium', 'rounded-lg', 'border');
-
-      const saved = questionScores[String(q.물음번호)?.trim()];
-      const sc = saved ? Number(saved.score) : NaN;
-      const { bg, txt, bd } = colorByScore(sc);
-      btn.classList.add(bg, txt, bd);
-
-      btn.addEventListener('click', () => {
-        // '모든 문제'로 전환 후 해당 문항으로 이동
-        el.filterSelect.value = 'all';
-        // 단원 셀렉터를 현재 단원으로 맞추되, '랜덤' 모드면 그대로 유지
-        if (el.chapterSelect.value !== 'random' && el.chapterSelect.value !== ch) {
-          el.chapterSelect.value = ch;
-        }
-        handleLoadQuiz();
-        const idx = currentQuizData.findIndex(it => String(it.물음번호).trim() === String(q.물음번호).trim());
-        if (idx !== -1) {
-          currentQuestionIndex = idx;
-          displayQuestion();
-          showToast(`'${q.물음번호}'번으로 이동했습니다.`);
-        } else {
-          showToast('이 문항을 현재 목록에서 찾을 수 없습니다.', 'warn');
-        }
+    chapters.forEach(ch => {
+      const list = groups.get(ch) || [];
+      list.sort((a, b) => {
+        const na = Number(a.물음번호), nb = Number(b.물음번호);
+        if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+        return String(a.물음번호).localeCompare(String(b.물음번호), 'ko');
       });
 
-      grid.appendChild(btn);
+      let sum = 0, cnt = 0;
+      list.forEach(q => {
+        const s = questionScores[String(q.물음번호)?.trim()];
+        if (s && Number.isFinite(Number(s.score))) { sum += Number(s.score); cnt++; }
+      });
+      const avg = cnt ? (sum / cnt) : null;
+      const ratioText = `${cnt}/${list.length} 완료`;
+      const avgText = (avg === null) ? '-' : avg.toFixed(1);
+      const barW = _clamp(avg ?? 0, 0, 100);
+      const barCls = (avg === null) ? 'bg-gray-300'
+                   : avg < 60 ? 'bg-red-500'
+                   : avg < 80 ? 'bg-yellow-500'
+                   : 'bg-green-500';
+
+      // 헤더 (세로 배치)
+      const header = document.createElement('div');
+      header.className = 'px-3 py-2 rounded-md border bg-gray-50 mb-2';
+
+      const title = document.createElement('div');
+      title.className = 'font-semibold';
+      title.textContent = Number.isFinite(Number(ch)) ? `단원 ${ch}` : ch;
+
+      const meta = document.createElement('div');
+      meta.className = 'text-sm text-gray-700 mt-1';
+      meta.textContent = `평균 ${avgText}점 · ${ratioText}`;
+
+      const mini = document.createElement('div');
+      mini.className = 'w-28 h-2 bg-gray-200 rounded-full overflow-hidden mt-2';
+      const miniFill = document.createElement('div');
+      miniFill.className = `h-2 ${barCls}`;
+      miniFill.style.width = `${barW}%`;
+      mini.appendChild(miniFill);
+
+      const toggleWrap = document.createElement('div');
+      toggleWrap.className = 'mt-2 flex justify-end';
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'text-xs text-blue-700 hover:underline';
+      toggleBtn.textContent = '접기';
+      toggleWrap.appendChild(toggleBtn);
+
+      header.appendChild(title);
+      header.appendChild(meta);
+      header.appendChild(mini);
+      header.appendChild(toggleWrap);
+
+      // 문제 그리드
+      const grid = document.createElement('div');
+      grid.className = 'flex flex-wrap gap-2 mt-2 mb-4';
+
+      list.forEach(q => {
+        const btn = document.createElement('button');
+        btn.textContent = q.물음번호;
+        btn.classList.add('summary-btn', 'font-medium', 'rounded-lg', 'border');
+
+        const saved = questionScores[String(q.물음번호)?.trim()];
+        const sc = saved ? Number(saved.score) : NaN;
+        const { bg, txt, bd } = colorByScore(sc);
+        btn.classList.add(bg, txt, bd);
+
+        btn.addEventListener('click', () => {
+          el.filterSelect.value = 'all';
+          if (el.chapterSelect.value !== 'random' && el.chapterSelect.value !== ch) {
+            el.chapterSelect.value = ch;
+          }
+          handleLoadQuiz();
+          const idx = currentQuizData.findIndex(it => String(it.물음번호).trim() === String(q.물음번호).trim());
+          if (idx !== -1) {
+            currentQuestionIndex = idx;
+            displayQuestion();
+            showToast(`'${q.물음번호}'번으로 이동했습니다.`);
+          } else {
+            showToast('이 문항을 현재 목록에서 찾을 수 없습니다.', 'warn');
+          }
+        });
+
+        grid.appendChild(btn);
+      });
+
+      toggleBtn.addEventListener('click', () => {
+        const isHidden = grid.classList.toggle('hidden');
+        toggleBtn.textContent = isHidden ? '펼치기' : '접기';
+      });
+
+      const section = document.createElement('div');
+      section.className = 'w-full space-y-2 mb-3';
+      section.appendChild(header);
+      section.appendChild(grid);
+      el.scoreSummary.appendChild(section);
     });
 
-    // 접기/펼치기 토글 동작
-    toggleBtn.addEventListener('click', () => {
-      const isHidden = grid.classList.toggle('hidden');
-      toggleBtn.textContent = isHidden ? '펼치기' : '접기';
-      if (isHidden) collapsedMap[ch] = true; else delete collapsedMap[ch];
-      saveCollapsedMap(collapsedMap);
-    });
-
-    // DOM에 추가
-    const section = document.createElement('div');
-section.className = 'w-full space-y-2 mb-3';
-section.appendChild(header);
-section.appendChild(grid);
-el.scoreSummary.appendChild(section);
-
-  });
-
-  updateSummaryHighlight(); // 현재 문항 하이라이트 유지
-}
+    updateSummaryHighlight();
+  }
 
   function updateSummaryHighlight() {
     if (currentQuizData.length === 0) return;
@@ -1996,3 +2010,9 @@ el.scoreSummary.appendChild(section);
 
 </body>
 </html>
+
+
+
+
+
+
