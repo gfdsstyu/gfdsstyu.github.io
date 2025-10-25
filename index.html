@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="referrer" content="same-origin" />
-  <title>AI 회계감사 암기 도우미 (v3, 안정화 수정본)</title>
+  <title>감린이 - 회계감사 학습 도우미 v3.x</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -17,1379 +17,307 @@
     .summary-btn:hover { transform: scale(1.1); }
     pre { white-space: pre-wrap; word-wrap: break-word; }
     #toast { position: fixed; top: 16px; right: 16px; z-index: 9999; }
+
+    /* 다크모드 스타일 */
+    .dark { background-color: #1a202c; color: #e2e8f0; }
+    .dark .bg-white { background-color: #2d3748; }
+    .dark .bg-gray-100 { background-color: #1a202c; }
+    .dark .bg-gray-50 { background-color: #2d3748; }
+    .dark .text-gray-800 { color: #e2e8f0; }
+    .dark .text-gray-700 { color: #cbd5e0; }
+    .dark .text-gray-600 { color: #a0aec0; }
+    .dark .border-gray-200 { border-color: #4a5568; }
+    .dark .border-gray-300 { border-color: #4a5568; }
   </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+<body class="bg-gray-100 flex flex-col min-h-screen">
   <div id="toast" class="hidden"></div>
 
-  <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-6 md:p-8">
-    <header class="text-center border-b pb-6 mb-6">
-      <h1 class="text-3xl font-bold text-gray-800">AI 회계감사 암기 도우미 📝</h1>
-      <p class="text-gray-600 mt-2">gemini-2.5-flash 모델로 기준서 암기/채점을 보조합니다.</p>
-      <button id="open-api-modal-btn" class="mt-3 text-sm text-blue-700 hover:underline">
-  API 키 설정
-</button>
-
-    </header>
-
-    <!-- API 키 -->
-    <div id="api-inline" class="mb-6 hidden">
-      <label for="api-key-input" class="block text-sm font-medium text-gray-700 mb-1">🔑 Gemini API Key</label>
-      <input type="password" id="api-key-input" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500" placeholder="Google AI Studio API 키를 붙여넣으세요." autocomplete="off" spellcheck="false" inputmode="text" />
-      <div class="flex items-center gap-2 mt-2">
-        <input type="checkbox" id="remember-key" class="rounded border-gray-300" />
-        <label for="remember-key" class="text-sm text-gray-700">이 브라우저에 키 저장(로컬저장)</label>
+  <!-- ========== [A] 상단 네비게이션 바 (고정, 패치 스타일 우선) ========== -->
+  <header id="fixed-header" class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200 dark:bg-gray-900/80 dark:border-gray-800">
+    <div class="mx-auto max-w-4xl px-4 py-2 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-xl font-extrabold tracking-tight text-blue-700 dark:text-blue-400">감린이</span>
+        <span class="hidden sm:inline text-xs text-gray-500 dark:text-gray-400">회계 감사 암기 도우미 v3.x</span>
       </div>
-      <p id="api-key-status" class="text-xs text-green-600 mt-1 hidden">API 키가 저장되었습니다.</p>
+      <nav class="flex items-center gap-2">
+        <a id="help-button" href="README.html" target="_blank" class="hidden sm:inline text-sm text-gray-700 hover:text-blue-700 dark:text-gray-300 dark:hover:text-white">도움말</a>
+        <!-- id는 현행 스크립트에 맞춰 유지 -->
+        <button id="settings-btn" class="ml-1 inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600" aria-haspopup="dialog">
+          <span>설정</span><span aria-hidden>⚙️</span>
+        </button>
+        <button id="hamburger" class="sm:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600" aria-label="메뉴">≡</button>
+      </nav>
     </div>
+  </header>
+  <div class="h-14"></div><!-- 상단바 공간 확보 -->
 
-    <!-- 옵션 -->
-    <div class="flex flex-col md:flex-row gap-4 mb-6 items-center">
-      <div class="flex-1 w-full">
-        <label for="chapter-select" class="block text-sm font-medium text-gray-700 mb-1">단원 선택</label>
-        <select id="chapter-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition">
-          <option value="">-- 전체 단원 --</option>
-        </select>
-      </div>
-      <div class="flex-1 w-full">
-        <label for="filter-select" class="block text-sm font-medium text-gray-700 mb-1">문제 필터 (오답노트)</label>
-        <select id="filter-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition">
-          <option value="all">모든 문제 풀기</option>
-          <option value="unanswered">아직 안 푼 문제</option>
-          <option value="80">80점 미만 문제</option>
-          <option value="60">60점 미만 문제</option>
-        </select>
-      </div>
-      <div class="w-full md:w-auto md:self-end">
-        <button id="load-quiz-btn" class="w-full bg-blue-600 text-white font-bold p-3 rounded-lg shadow-md hover:bg-blue-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">학습 시작</button>
-      </div>
-    </div>
+  <!-- 메인 컨텐츠 -->
+  <div class="pt-2 flex-1 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-6 md:p-8">
 
-    <!-- 문제 영역 -->
-    <div id="quiz-area" class="hidden">
-      <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-4">
-        <div class="flex justify-between items-center mb-4">
-          <h2 id="question-number" class="text-xl font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-md">물음 1</h2>
-          <span id="question-counter" class="text-gray-500 font-medium">0 / 0</span>
+      <!-- 옵션 -->
+      <div class="flex flex-col md:flex-row gap-4 mb-6 items-center">
+        <div class="flex-1 w-full">
+          <label for="chapter-select" class="block text-sm font-medium text-gray-700 mb-1">단원 선택</label>
+          <select id="chapter-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition">
+            <option value="">-- 전체 단원 --</option>
+          </select>
         </div>
-        <p id="question-text" class="text-gray-800 text-base md:text-lg leading-relaxed">문제를 불러오는 중입니다...</p>
+        <div class="flex-1 w-full">
+          <label for="filter-select" class="block text-sm font-medium text-gray-700 mb-1">문제 필터</label>
+          <select id="filter-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition">
+            <option value="all">모든 문제 풀기</option>
+            <option value="unanswered">아직 안 푼 문제</option>
+            <option value="today-review">오늘의 복습 (추천)</option>
+            <option value="80">80점 미만 문제</option>
+            <option value="60">60점 미만 문제</option>
+          </select>
+        </div>
+        <div class="w-full md:w-auto md:self-end flex gap-2">
+          <button id="load-quiz-btn" class="flex-1 bg-blue-600 text-white font-bold p-3 rounded-lg shadow-md hover:bg-blue-700 transition duration-200">학습 시작</button>
+          <button id="random-quiz-btn" class="flex-1 bg-purple-600 text-white font-bold p-3 rounded-lg shadow-md hover:bg-purple-700 transition duration-200">랜덤 문제</button>
+        </div>
+      </div>
 
-        <!-- 힌트 버튼 -->
-        <div class="mt-3 flex items-center justify-end">
-          <button id="hint-btn" class="text-sm bg-purple-600 text-white px-3 py-1.5 rounded-md shadow hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">
-            힌트
+      <!-- 문제 영역 -->
+      <div id="quiz-area" class="hidden">
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-4">
+          <div class="flex justify-between items-center mb-4">
+            <h2 id="question-number" class="text-xl font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-md">문항</h2>
+            <span id="question-counter" class="text-gray-500 font-medium">0 / 0</span>
+          </div>
+          <p id="question-text" class="text-gray-800 text-base md:text-lg leading-relaxed">문제를 불러오는 중입니다...</p>
+
+          <!-- 힌트 버튼 -->
+          <div class="mt-3 flex items-center justify-end">
+            <button id="hint-btn" class="text-sm bg-purple-600 text-white px-3 py-1.5 rounded-md shadow hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">
+              힌트
+            </button>
+          </div>
+
+          <!-- 힌트 박스 -->
+          <div id="hint-container" class="hidden mt-3 text-sm bg-purple-50 border border-purple-200 text-purple-800 rounded-lg p-3"></div>
+        </div>
+
+        <div class="flex items-center justify-between mb-2">
+          <label for="user-answer" class="text-sm font-medium text-gray-700">답안 입력</label>
+          <button id="load-prev-answer-btn" class="text-xs text-blue-600 hover:underline">이전 답안 불러오기</button>
+        </div>
+        <textarea id="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" rows="8" placeholder="여기에 정답을 입력하세요..."></textarea>
+        <p id="error-message" class="text-red-500 text-sm mt-2 hidden">답안을 입력해주세요.</p>
+
+        <div class="flex justify-between items-center my-5">
+          <button id="prev-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed">이전</button>
+          <button id="grade-btn" class="bg-green-500 text-white font-bold py-2 px-8 rounded-lg shadow-md hover:bg-green-600 transition duration-200 relative min-w-[120px]">
+            <span id="grade-btn-text">채점하기</span>
+            <div id="grade-loader" class="loader absolute inset-0 m-auto hidden" aria-hidden="true"></div>
+          </button>
+          <button id="next-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed">다음</button>
+        </div>
+      </div>
+
+      <!-- 결과 영역 -->
+      <div id="result-box" class="hidden bg-gray-50 border border-gray-200 rounded-lg p-6 mt-6" aria-live="polite">
+        <h3 class="text-2xl font-bold text-gray-800 mb-4">채점 결과</h3>
+
+        <div id="score-display" class="mb-5">
+          <p class="text-lg font-medium text-gray-700">
+            유사도 점수: <span id="score" class="font-bold text-blue-600 text-2xl">0</span><span class="text-gray-600 text-lg">점</span>
+          </p>
+          <div class="w-full bg-gray-200 rounded-full h-4 mt-2 overflow-hidden shadow-inner">
+            <div id="progress-bar" class="h-4 rounded-full transition-all duration-500 ease-out" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="mb-5">
+          <h4 class="text-xl font-semibold text-gray-700 mb-2">🤖 AI 총평</h4>
+          <div id="ai-feedback" class="bg-white p-4 border border-gray-200 rounded-lg text-gray-600 leading-relaxed min-h-[50px]"></div>
+        </div>
+
+        <div>
+          <h4 class="text-xl font-semibold text-gray-700 mb-2">📘 모범 답안</h4>
+          <pre id="correct-answer" class="bg-white p-4 border border-gray-200 rounded-lg text-gray-600 text-sm font-sans leading-relaxed"></pre>
+        </div>
+      </div>
+
+      <!-- 학습 현황판 -->
+      <div id="summary-area" class="mt-8 pt-6 border-t hidden">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xl font-bold text-gray-800">학습 현황판 (클릭하여 이동)</h3>
+          <div class="flex gap-4">
+            <button id="clear-filter-btn" class="text-sm text-blue-700 hover:underline">필터 해제</button>
+            <button id="reset-scores-btn" class="text-sm text-red-600 hover:underline">학습 기록 초기화</button>
+          </div>
+        </div>
+        <div id="score-summary" class="flex flex-wrap gap-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== API 키 최초 인증 모달 (유지) ========== -->
+  <div id="api-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1000]">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
+      <h2 class="text-xl font-bold text-gray-800">Gemini API 키 인증</h2>
+      <p class="text-sm text-gray-600 mt-1">
+        최초 1회만 입력합니다. 로컬 저장을 체크하면 다음부터는 팝업이 뜨지 않습니다.
+      </p>
+
+      <label for="api-modal-input" class="block text-sm font-medium text-gray-700 mt-4">🔑 API Key</label>
+      <input type="password" id="api-modal-input"
+             class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500"
+             placeholder="Google AI Studio API 키" autocomplete="off" spellcheck="false" inputmode="text" />
+
+      <div class="flex items-center gap-2 mt-2">
+        <input type="checkbox" id="modal-remember" class="rounded border-gray-300" />
+        <label for="modal-remember" class="text-sm text-gray-700">이 브라우저에 키 저장</label>
+      </div>
+      <p class="text-xs text-yellow-600 mt-1">⚠️ 공용 PC에서는 체크 해제를 권장합니다.</p>
+
+      <div class="mt-5 flex justify-end gap-2">
+        <button id="api-cancel-btn" class="px-3 py-2 text-sm text-gray-600 hover:text-gray-900">취소</button>
+        <button id="api-save-btn" class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700">
+          저장
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== [B] 설정 모달 (패치 우선) ========== -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1001]">
+    <div role="dialog" aria-modal="true" aria-labelledby="settings-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-2xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-2">
+        <h2 id="settings-title" class="text-2xl font-bold">설정 ⚙️</h2>
+        <button id="settings-close-btn" class="text-gray-500 hover:text-gray-800 dark:hover:text-white" aria-label="닫기">✕</button>
+      </div>
+
+      <!-- API 키 설정 -->
+      <div class="mb-6 pb-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">API 키 설정</h3>
+        <button id="open-api-key-modal-btn" class="w-full bg-blue-50 border border-blue-300 text-blue-700 font-medium py-2 px-4 rounded-lg hover:bg-blue-100 transition">
+          API 키 변경/설정
+        </button>
+      </div>
+
+      <!-- AI 모델 선택 -->
+      <div class="mb-6 pb-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">AI 모델 선택</h3>
+        <select id="ai-model-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700">
+          <option value="gemini-2.5-flash">Gemini 2.5 Flash (기본)</option>
+          <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (경량)</option>
+        </select>
+        <p class="text-xs text-gray-500 mt-2">힌트 및 채점에 사용될 AI 모델을 선택하세요.</p>
+      </div>
+
+      <!-- 다크 모드 -->
+      <div class="mb-6 pb-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">다크 모드</h3>
+        <select id="dark-mode-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700">
+          <option value="system">시스템 설정 (기본)</option>
+          <option value="light">라이트 모드</option>
+          <option value="dark">다크 모드</option>
+        </select>
+      </div>
+
+      <!-- 데이터 Import/Export -->
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">데이터 관리</h3>
+        <div class="flex gap-3">
+          <button id="export-data-btn" class="flex-1 bg-green-50 border border-green-300 text-green-700 font-medium py-2 px-4 rounded-lg hover:bg-green-100 transition">
+            📥 데이터 내보내기
+          </button>
+          <button id="import-data-btn" class="flex-1 bg-yellow-50 border border-yellow-300 text-yellow-700 font-medium py-2 px-4 rounded-lg hover:bg-yellow-100 transition">
+            📤 데이터 가져오기
           </button>
         </div>
-
-        <!-- 힌트 박스 -->
-        <div id="hint-container" class="hidden mt-3 text-sm bg-purple-50 border border-purple-200 text-purple-800 rounded-lg p-3"></div>
+        <input type="file" id="import-file-input" accept=".json" class="hidden" />
+        <p class="text-xs text-gray-500 mt-2">학습 기록 및 설정을 백업하거나 복원할 수 있습니다.</p>
       </div>
 
-      <textarea id="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" rows="8" placeholder="여기에 정답을 입력하세요..."></textarea>
-      <p id="error-message" class="text-red-500 text-sm mt-2 hidden">답안을 입력해주세요.</p>
-
-      <div class="flex justify-between items-center my-5">
-        <button id="prev-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed">이전</button>
-        <button id="grade-btn" class="bg-green-500 text-white font-bold py-2 px-8 rounded-lg shadow-md hover:bg-green-600 transition duration-200 relative min-w-[120px]">
-          <span id="grade-btn-text">채점하기</span>
-          <div id="grade-loader" class="loader absolute inset-0 m-auto hidden" aria-hidden="true"></div>
+      <!-- 닫기 버튼 -->
+      <div class="flex justify-end">
+        <button id="settings-close-btn-bottom" class="px-6 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition">
+          닫기
         </button>
-        <button id="next-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed">다음</button>
       </div>
-    </div>
-
-    <!-- 결과 영역 -->
-    <div id="result-box" class="hidden bg-gray-50 border border-gray-200 rounded-lg p-6 mt-6" aria-live="polite">
-      <h3 class="text-2xl font-bold text-gray-800 mb-4">채점 결과</h3>
-
-      <div id="score-display" class="mb-5">
-        <p class="text-lg font-medium text-gray-700">
-          유사도 점수: <span id="score" class="font-bold text-blue-600 text-2xl">0</span><span class="text-gray-600 text-lg">점</span>
-        </p>
-        <div class="w-full bg-gray-200 rounded-full h-4 mt-2 overflow-hidden shadow-inner">
-          <div id="progress-bar" class="h-4 rounded-full transition-all duration-500 ease-out" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width: 0%"></div>
-        </div>
-      </div>
-
-      <div class="mb-5">
-        <h4 class="text-xl font-semibold text-gray-700 mb-2">🤖 AI 총평</h4>
-        <div id="ai-feedback" class="bg-white p-4 border border-gray-200 rounded-lg text-gray-600 leading-relaxed min-h-[50px]"></div>
-      </div>
-
-      <div>
-        <h4 class="text-xl font-semibold text-gray-700 mb-2">📘 모범 답안</h4>
-        <pre id="correct-answer" class="bg-white p-4 border border-gray-200 rounded-lg text-gray-600 text-sm font-sans leading-relaxed"></pre>
-      </div>
-    </div>
-
-    <!-- 학습 현황판 -->
-    <div id="summary-area" class="mt-8 pt-6 border-t hidden">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-xl font-bold text-gray-800">학습 현황판 (클릭하여 이동)</h3>
-        <div class="flex gap-4">
-          <button id="clear-filter-btn" class="text-sm text-blue-700 hover:underline">필터 해제(모든 문제 보기)</button>
-          <button id="reset-scores-btn" class="text-sm text-red-600 hover:underline">학습 기록 초기화</button>
-        </div>
-      </div>
-      <div id="score-summary" class="flex flex-wrap gap-2"></div>
     </div>
   </div>
-<!-- [추가] API 키 최초 인증 모달 -->
-<div id="api-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1000]">
-  <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
-    <h2 class="text-xl font-bold text-gray-800">Gemini API 키 인증</h2>
-    <p class="text-sm text-gray-600 mt-1">
-      최초 1회만 입력합니다. 로컬 저장을 체크하면 다음부터는 팝업이 뜨지 않습니다.
-    </p>
 
-    <label for="api-modal-input" class="block text-sm font-medium text-gray-700 mt-4">🔑 API Key</label>
-    <input type="password" id="api-modal-input"
-           class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500"
-           placeholder="Google AI Studio API 키" autocomplete="off" spellcheck="false" inputmode="text" />
-
-    <div class="flex items-center gap-2 mt-2">
-      <input type="checkbox" id="modal-remember" class="rounded border-gray-300" />
-      <label for="modal-remember" class="text-sm text-gray-700">이 브라우저에 키 저장(로컬저장)</label>
-    </div>
-
-    <div class="mt-5 flex justify-end gap-2">
-      <button id="api-cancel-btn" class="px-3 py-2 text-sm text-gray-600 hover:text-gray-900">취소</button>
-      <button id="api-save-btn" class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700">
-        저장
-      </button>
-    </div>
-  </div>
-</div>
-
-  <!-- 내장 데이터(JSON) : 실제 배포시 ...중략... 부분을 실제 배열로 채워주세요 -->
-<script id="dataset-json" type="application/json">[
+  <!-- ========== 내장 데이터(JSON) (questions.json 폴백) ========== -->
+  <script id="dataset-json" type="application/json">[
   {
+    "고유ID": "q_001",
+    "표시번호": "1",
+    "출처": "ISA 200-A54",
+    "problemTitle": "",
     "단원": 1,
     "물음번호": 1,
     "물음": "회계감사에는 고유한계가 존재하며, 감사인의 결론도출과 의견표명의 기초가 되는 대부분의 감사증거는 결정적 증거이기 보다는 설득적 증거이기 때문에 회계감사를 통해 재무제표에 부정이 나오류로 인한 중요한 왜곡표시가 없다는 절대적 확신은 얻을 수없다. 이러한 회계감사의 고유한계의 원인을 세가지만 기재하시오.",
     "정답": "① 재무보고의 성격 ② 감사절차의 성격 ③ 합리적인 시간 내에 합리적인 비용으로 감사가 수행될 필요성"
   },
   {
+    "고유ID": "q_002",
+    "표시번호": "2",
+    "출처": "ISA 200-A51",
+    "problemTitle": "",
     "단원": 1,
     "물음번호": 2,
     "물음": "회계감사기준은 감사를 계획하고 수행할 때재무보고의 적시성 및효익과 비용간의 균형을 고려할 것을 규정하고 있다. 따라서 감사인은 무한한 정도의 감사절차를 수행함으로써 절대적 확신을 제공하려는 감사절차를 수행하기 보다는 재무보고 이용자들의 요구수준을 충족할 수있는 정도의 감사절차를 수행할 수있다. 이와 같이 감사인이 재무보고의 적시성 및효익과 비용의 균형을 고려하여 채택하고 있는 감사절차에는 어떤 것이 있는지 세가지를 서술하시오.",
     "정답": "ISA 200-A51 ① 감사가 효과적으로 수행될 수있도록 계획함 ② 부정이나 오류로 인한 중요왜곡표시위험이 포함될 것으로 가장 높게 예상되는 분야에 감사노력을 집중하고, 그렇지 아니한 다른 분야에는 상대적으로 적은 노력을 기울임 ③ 모집단의 왜곡표시를 조사하기 위해 테스트나 기타 수단을 사용함"
-  },
-  {
-    "단원": 1,
-    "물음번호": 3,
-    "물음": "감사가 감사기준에 따라 적절하게 계획되고 수행되었어도, 감사의 고유한계 때문에 재무제표의 중요한 왜곡표시가 발견되지 않을 불가피한 위험이 존재한다. 따라서 부정이나 오류로 인한 재무제표의 중요한 왜곡표시가 차후에 발견되었다는 사실 자체만으로 감사기준에 따른 감사를 수행하지 못했다는 것을 의미하는 것은 아니다. 그러나 감사의 고유한계가 감사인이 설득력이 부족한 감사증거에 만족하는 것을 정당화시키지는 아니한다. 감사인이 감사기준에 따라 감사를 수행하였는지 여부를 판단할 수있는 요소 세가지를 서술하시오. 심화",
-    "정답": "ISA 200-A54 심화 ① 각상황에서 감사인이 수행한 감사절차 ② 이결과 입수된 감사증거의 충분성과 적합성 ③ 감사인의 전반적인 목적에 비추어 해당 감사증거에 대한 평가를 기초로 한감사보고서의 적합성"
-  },
-  {
-    "단원": 1,
-    "물음번호": 4,
-    "물음": "감사인은 재무제표를 중요하게 왜곡표시되게 하는 상황이 존재할 수있음을 인식하고, 전문가 적의구심을 가지고 감사를 계획하고 수행하여야 한다. 이러한 전문가적 의구심의 정의를 서술 하시오.",
-    "정답": "전문가적 의구심이란 부정이나 오류로 인한 왜곡표시 가능성을 나타는 것일 수있는 상황에 유의하면서, 의문을 갖는 마음과 감사증거에 대한 비판적인 평가를 포함하는 태도를 말한다."
-  },
-  {
-    "단원": 1,
-    "물음번호": 5,
-    "물음": "구체적으로 어떤 상황에서 전문가적 의구심을 견지하도록 요구되는지 예시를 세가지만 서술하시오. 12",
-    "정답": "① 이미 입수한 다른 감사증거와 상반되는 감사증거 ② 감사증거로 사용될 문서 및질의에 대한 답변의 신뢰성에 의문을 갖게 하는 정보 ③ 부정의 존재가능성을 나타내는 것일 수있는 상황 ④ 감사기준에서 요구하는 절차 외에 추가적인 감사절차의 필요성을 시사하는 상황"
-  },
-  {
-    "단원": 1,
-    "물음번호": 6,
-    "물음": "감사의 전과정에 걸쳐 전문가적 의구심을 유지함으로써 감소시킬 수있는 위험을 세가지 서술 하시오.",
-    "정답": "① 비경상적 상황을 간과할 위험 ② 감사상 관찰결과에서 결론을 도출할 때의 과도한 일반화 위험 ③ 감사절차의 성격, 시기 및범위를 결정하고 그결과를 평가할 때부적합한 가정을 이용할 위험 14"
-  },
-  {
-    "단원": 1,
-    "물음번호": 7,
-    "물음": "감사인은 원칙적으로 개별 감사기준서의 요구사항을 모두 준수하여야 한다. 그러나 예외적으로 준수하지 않아도 되는 감사 상황이 존재하는데 이러한 상황 두가지를 서술하시오. 심화",
-    "정답": " ① 개별 감사기준서 전체가 관련이 없는 경우 ② 요구사항이 조건부인데 해당 조건이 존재하지 않아 그요구사항이 관련이 없는 경우"
-  },
-  {
-    "단원": 1,
-    "물음번호": 8,
-    "물음": "예외적 상황에서, 감사인은 어떤 감사기준서의 관련 요구사항을 이탈할 필요가 있다고 판단할 수있다. 이러한 상황에서 감사인은 해당 요구사항의 목적을 달성하기 위한 대체적 감사절차를 수행하여야 한다. 이러한 판단의 경우는 어떤 경우를 의미하는지 서술하시오.",
-    "정답": "요구사항이 특정의 절차를 수행하는 것이고 구체적인 감사상황에서 이러한 절차가 해당 요구사항의 목적을 달성하는 데비효과적일 경우에만 발생될 것으로 예상되는 경우를 의미한다."
-  },
-  {
-    "단원": 1,
-    "물음번호": 9,
-    "물음": "예외적인 상황에서 감사인이 감사기준의 요구사항을 이탈할 필요성이 있다고 판단한 경우, 추가적으로 수행해야 할절차를 서술하시오. 13",
-    "정답": "감사인이 예외적인 상황에서 특정 감사기준서의 관련 요구사항으로부터 이탈할 필요가 있다고 판단한 경우, 해당 요구사항이 의도하는 목적을 달성하기 위해 수행한 대체적 감사절차가 그목적을 어떻게 달성하였는지 그리고 그러한 이탈의 이유를 문서화하여야 한다. 15"
-  },
-  {
-    "단원": 2,
-    "물음번호": 10,
-    "물음": "업무품질관리검토자는 업무팀이 내린 유의적 판단사항과 감사보고서의 형성 과정에서 도달된 결론들에 대하여 객관적인 평가를 수행하여야 한다. 이평가에 포함되어야 할사항중세가지 만서술하시오. 심화",
-    "정답": "심화 ① 유의적 사항을 업무수행이사와 논의 ② 재무제표와 감사보고서의 초안을 검토 ③ 업무팀이 내린 유의적 판단 및도달된 결론과 관련된 감사문서를 선정하여 검토 ④ 감사보고서를 작성할 때도달된 결론들을 평가하고 감사보고서 초안이 적합한지 여부를 고려"
-  },
-  {
-    "단원": 2,
-    "물음번호": 11,
-    "물음": "상장기업의 재무제표감사에 대하여, 업무품질관리검토자가 고려해야 할업무품질관리검토수행업무를 세가지 서술하시오. 심화",
-    "정답": "심화 ① 해당 감사업무와 관련, 회계법인의 독립성에 대한 업무팀의 평가 ② 의견의 차이가 있는 사항들 혹은 어렵거나 논쟁의 여지가 있는 사항들에 관하여 적합한 자문이 있었는지 여부, 그리고 그러한 자문으로부터 도출된 결론 ③ 검토를 위해 선정된 감사문서는 유의적 판단들과 관련된 업무를 반영하고 있으며 도달된 결론들을 뒷받침하는지 여부"
-  },
-  {
-    "단원": 2,
-    "물음번호": 12,
-    "물음": "인증업무 수임기간은 인증업무 착수일(인증업무 계약체결일과 실제 인증업무 착수일 중빠른 날)로부터 인증업무 종료일까지이다. 인증업무가 ① 비반복적인 경우와 ② 반복적인 경우로 구분하여 인증업무 종료일이 언제인지 서술하시오.",
-    "정답": "① 인증보고서 발행일 ② 관계 종료 통고일과 최종보고서 발행일 중늦은날"
-  },
-  {
-    "단원": 2,
-    "물음번호": 13,
-    "물음": "감사인은 감사업무를 수행할 때독립성을 충족하여야 한다. 감사인이 독립성 훼손사실을 알게 된경우 적절한 감사인의 대응조치를 그시기에 따라 ① 계약체결기한 이전, ② 계약체결기한 이후로 구분하여 각각 1줄 이내로 서술하시오(단, 독립성 위반사유를 단기간 내에 해소할 수없다고 가정함).",
-    "정답": "① 계약체결기한 이전: 계약체결 거부 ② 계약체결기한 이후: 증권선물위원회 보고 후계약 취소"
-  },
-  {
-    "단원": 2,
-    "물음번호": 14,
-    "물음": "외부감사법에서는 감사인은 해당 회사의 재무제표 작성 등에 응해서는 아니되며, 특히 회사가 감사인에게 이를 요구해서는 아니 된다고 규정하고 있다. 또한 동법 시행령에서 이를 구체화 하여 규정하고 있는 바, ① 재무제표 작성책임과 관련된 회사 및감사인의 세부 금지행위를 제시하고, ② 관련 독립성 훼손 위협을 기재하시오.",
-    "정답": "1. 세부 금지행위 ① 해당 회사의 재무제표를 대표이사와 회계담당 이사를 대신하여 작성하는 행위 ② 해당 회사의 재무제표 작성에 필요한 계산 또는 회계 분개를 대신하여 해주는 행위 ③ 해당 회사의 재무제표 작성과 관련된 회계처리방법의 결정에 관여하는 행위 ④ 해당 회사의 재무제표 작성과 관련된 회계처리에 대한 자문에 응하는 행위 2. 자기검토위협"
-  },
-  {
-    "단원": 2,
-    "물음번호": 15,
-    "물음": "이해상충이 발생하는 상황에서 적용해야 하는 기본적인 안전장치를 서술하시오. 16",
-    "정답": "<이해상충 기본적 안전장치> 사안에 관련된 모든 이해관계자에게 통보하고, 이러한 입장에 대하여 의뢰인의 동의를 얻어야 한다. (아래 윤리기준 원문 참고만) 윤리기준 220.3 ① 회계법인은 이해상충이 있을 수있는 사업적 이해관계나 영업활동 중의뢰인과 이해상충이될수있는 사항이 생긴 경우에는, 이를 의뢰인에게 통보하고 이러한 상황에 대하여 의뢰인의 동의를 얻어야 한다. ② 개업공인회계사는 어떤 사항에 관하여 이해관계가 서로 상충하고 있는 둘이상의 당사자들을 위하여 직무를 수행하는 경우, 이를 관련된 모든 이해관계자에게 통보하여야 하며 이러한 입장에 대한 동의를 얻어야 한다. ③ 개업공인회계사는 신규수임업무(예를 들어, 특정지역이나 특정직무와 관련됨)를 제공함에 있어서 어느 한의뢰인을 위해서만 배타적으로 활동하지 않는다는 점을 의뢰인에게 통보하여야 하며 이러한 입장에 대한 동의를 얻어야 한다."
-  },
-  {
-    "단원": 2,
-    "물음번호": 16,
-    "물음": "이해상충이 발생하는 상황에서 적용해야 하는 추가적인 안전장치를 서술하시오.",
-    "정답": "① 업무수행팀의 분리 운영 ② 정보에 대한 접근금지 ③ 업무수행팀 구성원에게 기밀유지와 보안문제에 대한 명확한 지침 제공 ④ 회계법인의 파트너와 직원에게 기밀유지약정서에 대한 서명 요구 ⑤ 안전장치의 적용상황에 대하여, 해당 의뢰인에 대한 업무에 참여하지 아니하는 상급자가 정기적으로 검토 실시"
-  },
-  {
-    "단원": 2,
-    "물음번호": 17,
-    "물음": "A 회계법인으로부터 감사를 받고 있는 ㈜가나다는 감사인과 회계처리에 관한 의견불일치가 발생하여, 해당 사항에 관련하여 B회계법인에 문의를해온상황이다. 이러한 상황에서 B회계법 인이 업무를 수임하면서 마련해야 할안전장치를 서술하시오.",
-    "정답": " ① 해당 회사에게 기존공인회계사와의 논의를 허용하여 줄것을 요청 ② 제2의견 표명의 한계를 설명 ③ 기존공인회계사에게 당해 제2의견의 사본을 제공"
-  },
-  {
-    "단원": 2,
-    "물음번호": 18,
-    "물음": "감사인의 책임은 다양한 법률에 규정되어 있다. 외부감사법은 감사인의 손해배상책임을 제3 자에 대한 손해배상책임과 감사대상회사에 대한 손해배상책임으로 구분하고 있다. 이 중감사 인의 회사에 대한 손해배상책임의 ① 책임사유, ② 면책사유, ③ 소멸시효를 각각 서술하시오 (단, 소멸시효의 경우 감사인 선임시 계약으로 기간을 연장하지 않는 경우를 가정함).",
-    "정답": "① 감사인이 그임무를 게을리하여 회사에 손해를 발생하게 한경우 그감사인은 회사에 손해를 배상할 책임이 있음 ② 감사인을 선임한 회사가 감사인이 그임무를 게을리하였음을 증명하여야 한다. ③ 청구권자가 해당 사실을 안날로부터 1년 이내, 감사보고서를 제출한 날부터 8년 이내에 청구권을 행사하지 아니하면 소멸한다."
-  },
-  {
-    "단원": 2,
-    "물음번호": 19,
-    "물음": "감사인의 책임은 다양한 법률에 규정되어 있다. 외부감사법은 감사인의 손해배상책임을 제3 자에 대한 손해배상책임과 감사대상회사에 대한 손해배상책임으로 구분하고 있다. 이 중감사 인의 제3자에 대한 손해배상책임의 ① 책임사유, ② 면책사유, ③ 소멸시효를 각각 서술하시오 17",
-    "정답": "① 감사인이 중요한 사항에 관하여 감사보고서에 적지 아니하거나 거짓으로 적음으로써 이를 믿고 이용한 제3자에게 손해를 발생하게 한경우에는 그감사인은 제3자에게 손해를 배상할 책임이 있다. ② 감사인이 손해배상책임을 면하기 위하여는 그임무를 게을리하지 아니하였음을 증명하여야 한다. ③ 청구권자가 해당 사실을 안날로부터 1년 이내, 감사보고서를 제출한 날부터 8년 이내에 청구권을 행사하지 아니하면 소멸한다. 19"
-  },
-  {
-    "단원": 3,
-    "물음번호": 20,
-    "물음": "① 유착위협으로 인한 감사품질 저하를 방지하기 위해 외감법에 규정된 제도 세가지와, ② 감사인 교체에 대한 압력위협으로 인한 감사품질 저하를 방지하기 위해 외감법에 규정된 제도 세가지를 서술하시오.",
-    "정답": "1. 유착위협 ① 감사인 지정제도 ② 감사(감사인선임)위원회를 통한 감사인 선임제도 ③ 감사업무팀 교체(순환)제도 2. 압력위협 ① 감사인 유지제도 ② 감사인 선임기한 ③ 전임감사인의 의견진술권"
-  },
-  {
-    "단원": 3,
-    "물음번호": 21,
-    "물음": "외부감사법에 따라 3개 사업연도의 범위에서 증권선물위원회가 지정하는 회계법인을 감사인 으로 선임하거나 변경 선임할 것을 요구할 수있는 경우(회사) 중 세가지만 서술하시오. 심화",
-    "정답": "심화 (아래중세가지 서술) ① 해당 사업연도 또는 다음 사업연도 중에 주권상장법인이 되려는 회사(코넥스 제외) ② 감 사또는 감사위원회(감사인선임위원회)의 승인을 받아 감사인의 선임기간 내에 증권선물위원회에 감사인 지정을 요청한 회사 ③ 감사인의 선임기간 내에 감사인을 선임하지 아니한 회사 ④ 법규를 위반하여 감사인을 선임하거나 증권선물위원회가 회사의 감사인 교체 사유가 부당하다고 인정한 회사 ⑤ 회계처리기준을 위반하여 재무제표를 작성한 사실이 확인된 회사 ⑥ 재무제표를 감사인이 대신하여 작성하거나, 재무제표 작성과 관련된 회계처리에 대한 자문을 요구하거나 받은 회사(자기검토위협) ⑦ 주권상장법인 중다음 각목의 어느 하나에 해당하는 회사 i. 3개 사업연도 연속 영업이익이 0보다 작은 회사 ii. 3개 사업연도 연속 영업현금흐름이 0보다 작은 회사 iii. 3개 사업연도 연속 이자보상배율이 1 미만인 회사 ⑧ 주권상장법인 중증권선물위원회가 공정한 감사가 필요하다고 인정하여 지정하는 회사 ⑨ 주채권은행 또는 특정 주주가 대통령령으로 정하는 방법에 따라 증권선물위원회에 감사인 지정을 요청하는 경우의 해당 회사 ⑩ 독립성 요건 등을 위반하여 감사계약의 해지 또는 감사인의 해임을 하지 아니하거나 새로운 감사인을 선임하지 아니한 회사 ⑪ 표준 감사시간보다 현저히 낮은 수준이라고 증권선물위원회가 인정한 회사 ⑫ 직전 사업연도를 포함하여 과거 3년간 최대주주의 변경이 2회 이상 발생하거나 대표이사의 교체가 3회 이상 발생한 주권상장법인 (위 내용 중일부만 암기하는 것을 추천하고, 정보이용자가 많아지는 경우 (①,⑧), 회사의 요청(②,⑨), 회사의 귀책,④,⑤,⑥,⑩,⑫), 회사의 실적악화(⑦)의 카테고리 구분하여 암기하면 용이하다.) 22"
-  },
-  {
-    "단원": 3,
-    "물음번호": 22,
-    "물음": "회사와 감사인 간의 유착위협을 낮추어 독립성을 강화시키기 위해 감사업무팀 교체(순환)제도 를실시하고 있다. 회사의 분류에 따른 업무수행이사와 감사업무보조자의 교체주기를 서술하 시오.",
-    "정답": "[감사업무팀 교체(순환)제도] 2023 2021 2014 2012 연속하여 감사계약 선임 시회계법인 내감사업무팀을 일정 주기마다 교체하여야 한다. 이때 업무담당이사 (파트너)와 소속공인회계사(감사업무의 보조자)의 교체주기가 다르다. 감사업무팀 교체(순환)제도는 회사 와감사인 간의 유착위협을 낮추어 독립성을 강화(장점)시키는 제도이다. 단점으로 감사업무팀 교체시회사에 대한 이해가 낮아져 적격성이 감소(단점)할 수있다. 업무담당이사 소속공인회계사 구분 교체주기 (업무수행이사, 파트너) (감사업무보조자) 주권상장법인 2/3 이상 교체 3개 사업연도 교체후3개 사업연도 감사 금지 대형비상장 주식회사 금융회사 별도 규정 없음 일반비상장법인 5개 사업연도 교체후1개 사업연도 감사 금지 (감사반은 감사인 교체(순환)제도를 적용하지 않는다.)"
-  },
-  {
-    "단원": 3,
-    "물음번호": 23,
-    "물음": "회사의 분류에 따라 외감법에서 규정하고 있는 감사인선임권자를 서술하시오.",
-    "정답": "[감사인 선임기한] 2020 2019 과거에는 사업연도 개시후4개월 안에 감사계약을 체결하였다. 이경우 감사보고서(감사의견 포함) 발행 후감사계약을 체결한다(감사보고서는 일반적으로 3월에 발행). 그래서 회사가 당기 감사의견에 따라 차기 감사계약 수임을 결정할 수있어, 감사인 교체 압력위협에 노출되었다. 이러한 문제점들로 인하여 외감법이 개정되어, 현재는 감사보고서 발행 전시점에 감사계약S을 체결해야 한다. 구체적인 기한은 아래와 같다. 구분 감사인 선임권자 감사인 선임기한 감사위원회 ○ 감사위원회 최초 사업연도 개시일 이전 주권상장법인 (자산총액 2조↑) 대형비상장주식회사 감사 금융회사 감사위원회 X 최초 사업연도 개시일 ~ 45일 (감사인선임위원회 승인) 일반비상장법인 매사업연도 개시일 ~ 45일 감사 또는 감사위원회 직전연도 감사받지 않은 법인 최초 사업연도 개시일 ~ 4개월"
-  },
-  {
-    "단원": 3,
-    "물음번호": 24,
-    "물음": "외부감사법에 따라 외부감사계약 체결 후회사가 증권선물위원회에 체결보고를 생략해도되는경우 세가지를 서술하시오. 심화",
-    "정답": "심화 ① 회사의 요청에 따라 증권선물위원회가 지정한 자를 감사인으로 선임한 경우(지정감사) ② 증권선물위원회의 요구에 따라 감사인을 선임 또는 변경선임하는 경우 ③ 기타비상장회사가 직전 사업연도의 감사인을 다시 선임한 경우(계속감사) 23"
-  },
-  {
-    "단원": 3,
-    "물음번호": 25,
-    "물음": "외부감사법에 따라 외부감사계약 체결 시감사 또는 감사위원회가 문서화 할사항 세가지를 서술하시오.",
-    "정답": "① 감사인의 감사보수 ② 감사시간 ③ 감사에 필요한 인력에 관한 사항"
-  },
-  {
-    "단원": 3,
-    "물음번호": 26,
-    "물음": "회계법인이 새로운 의뢰인으로부터 감사업무를 수임하기 전에, 그리고 기존 감사업무의 유지 여부를 결정할 때, 또기존 의뢰인으로부터 새로운 감사업무의 수임을 고려할 때필요하다고 판단되는 정보를 입수할 것을 요구한다. 감사업무의 수용과 유지 시감사기준서에서 언급한 고려사항 네가지를 서술하시오. 20",
-    "정답": "① 업무팀이 감사업무를 수행할 능력이 있으며 시간과 자원 등필요한 역량을 갖추었는지 여부(적격성) ② 회계법인과 업무팀이 관련 윤리적 요구사항을 준수할 수있는지 여부(독립성) ③ 주요 주주, 주요 경영진 및지배기구의 성실성(정직성) ④ 당기 또는 이전에 감사업무를 수행하는 중에 발생한 유의적 사항들과 그러한 사항들이 의뢰인과의 관계유지에 대하여 시사하는점(1~2번은 감사인, 3~4번은 회사에 대한 특성이다.)"
-  },
-  {
-    "단원": 3,
-    "물음번호": 27,
-    "물음": "외감법에서 주권상장법인, 대형비상장주식회사, 금융회사 등의 회사에게 감사인에게 제출하 는재무제표를 증권선물위원회에도 제출하도록 요구하고 있다. 이러한 규정의 목적에 대하여 서술하시오.",
-    "정답": "감사인이 회사를 대신하여 재무제표를 작성하면 자기검토위협으로 독립성이 훼손된다. 하지만 실무적으로 감사인이 회사의 재무제표(주석 포함)를 대신 작성해 주는 사례가 많아 감사 전재무제표를 증권선물위원회에도 제출하도록 요구하고 있다."
-  },
-  {
-    "단원": 3,
-    "물음번호": 28,
-    "물음": "감사계약 체결 시감사인이 감사를 위한 전제조건이 존재하는지 여부를 확인하기 위해 수행해야할절차를 서술하시오.",
-    "정답": "1. 재무제표 작성에 적용되는 재무보고체계가 수용가능한지 여부를 결정함 2. 경영진이 다음과 같은 책임을 인정하고 이해하고 있다는 점에 대하여 경영진의 동의를 받음 ① 해당 재무보고체계에 따라 재무제표를 작성할 책임 ② 부정이나 오류로 인한 중요한 왜곡표시가 없는 재무제표를 작성하기 위해 경영진이 필요하다고 결정한 내부통제에 대한 책임 ③ 감사인에게 다음 사항들을 제공할 책임 a. 기록, 문서, 기타사항 등재무제표의 작성과 관련하여 경영진이 알고 있는 모든 정보에 대한 접근 b. 감사인이 감사목적으로 경영진에게 요청하는 추가적인 정보 c. 감사인이 감사증거를 입수하기 위하여 필요하다고 판단한 기업 내부의 관계자들에 대한 제한없는 접근"
-  },
-  {
-    "단원": 3,
-    "물음번호": 29,
-    "물음": "감사인은 경영진 또는 적합한 경우 지배기구와 감사업무 조건에 합의하고 서면 감사계약을 체결하여야 한다. 이때 필수적으로 포함되어야 하는 사항을 네가지만 기재하시오.",
-    "정답": "① 재무제표감사의 목적과 범위(감사가 이감사기준서에 따라 수행된다는 사실 포함) ② 감사인의 책임 ③ 경영진의 책임 ④ 재무제표 작성을 위한 해당 재무보고체계의 식별 ⑤ 감사인에 의해 발행될 보고서의 예상되는 형태와 내용에 대한 언급 ⑥ 해당 보고서가 예상되는 형태와 내용과 다를 수있는 상황이 존재할 수있다는 기술 24"
-  },
-  {
-    "단원": 3,
-    "물음번호": 30,
-    "물음": "감사계약 체결 이후 경영진이 감사업무 조건의 변경을 요청할 수있다. 이때 감사업무 조건의 변경에 합리적 정당성이 없는 경우, 감사인은 그변경에 동의해서는 안된다. 감사업무 조건의 변경에 있어 ① 합리적 정당성이 있는 경우와 ② 합리적 정당성이 없는 경우를 각각 한가지씩 서술하시오.",
-    "정답": "1. 합리적 정당성이 있는 경우(다음중한가지 기재) ① 기업의 요구사항에 영향을 주는 상황의 변화 ② 당초 요청했던 감사의 성격에 대한 오해 2. 합리적 정당성이 없는 경우 ① 감사업무 조건의 변경이 부정확, 불완전 또는 불만족스러운 정보와 관련된 것으로 보이는 경우"
-  },
-  {
-    "단원": 3,
-    "물음번호": 31,
-    "물음": "감사인은 매보고기간마다 새로운 감사계약서 또는 기타 합의서를 발송하지는 않을 것이라고 결정할 수있을 것이다. 그러나 어떤 경우 감사업무의 조건을 갱신하거나 현행 조건을 기업에 알리는 것이 적합할 수있다. 이러한 상황을 세가지만 서술하시오.",
-    "정답": "(다음중세가지 기재) ① 기업이 감사의 목적과 범위를 오해하고 있다는 징후 ② 감사업무 조건의 변경 또는 특약의 존재 ③ 최근의 고위 경영진 교체 ④ 소유권의 유의적인 변동 ⑤ 기업의 사업 성격 또는 규모의 유의적인 변동 ⑥ 법규상 요구사항의 변경 ⑦ 재무제표 작성시 채택된 재무보고체계의 변경 ⑧ 기타의 보고 요구사항에서의 변경"
-  },
-  {
-    "단원": 3,
-    "물음번호": 32,
-    "물음": "감사계약의 해지는 감사인 뿐만 아니라 감사대상회사도할수있다. 외부감사법상 주권상장법 인이 3개 사업연도 중에 감사인을 해임할 수있는 경우를 세가지만 서술하시오.",
-    "정답": "(다음중세가지 기재) ① 공인회계사가 「공인회계사법」상 독립성을 위배한 경우 ② 회계법인(사원 포함)이 「공인회계사법」상 독립성을 위배한 경우 ③ 감사인이 회사의 기밀을 누설하는 등직무상 의무를 위반한 경우 ④ 감사인이 그임무를 게을리하여 회사에 손해를 발생하게 한경우 ⑤ 감사인이 회계감사와 관련하여 부당한 요구를 하거나 압력을 행사한 경우 ⑥ 외국투자가가 출자한 회사로서 그출자조건에서 감사인을 한정하고 있는 경우 ⑦ 지배회사 또는 종속회사가 그지배·종속의 관계에 있는 회사와 같은 지정감사인을 선임하여야 하는 경우"
-  },
-  {
-    "단원": 4,
-    "물음번호": 34,
-    "물음": "감사보고서의 “재무제표감사에 대한 감사인의 책임” 단락에서는 해당 재무보고체계에 따른 중요성의 정의를 언급할 것을 요구하고 있다. 이러한 중요성의 정의를 서술하시오. 심화",
-    "정답": "누락 등왜곡표시가 개별적으로 또는 집합적으로 재무제표에 기초한 이용자의 경제적 의사결정에 영향을 미칠 것으로 합리적으로 예상될 수있는 경우 중요하다고 간주한다."
-  },
-  {
-    "단원": 4,
-    "물음번호": 35,
-    "물음": "감사인의 중요성 결정은 전문가적 판단사항이며, 재무제표 이용자들의 재무정보 수요에 대한 감사인의 인식에 의해 영향을 받는다. 이때 감사인이 가정하는 재무제표 이용자들의 특성중세가지만 서술하시오.",
-    "정답": " ① 이용자는 사업과 경제활동 및회계에 대하여 합리적인 지식을 보유하고 있으며, 합리적인 주의를 기울여 재무제표에 담긴 정보를 연구하려는 의향을 가지고 있음 ② 이용자는 재무제표가 중요성 수준에서 작성, 표시되고 감사가 이루어지고 있다는 점을 이해하고 있음 ③ 이용자는 추정치의 사용, 판단 그리고 미래 사건들에 대한 고려에 기초한 금액 측정에 내재하는 불확실성을 인식하고 있음 ④ 이용자는 재무제표에 담긴 정보에 기초하여 합리적인 경제적 의사결정을함"
-  },
-  {
-    "단원": 4,
-    "물음번호": 36,
-    "물음": "중요성이란 재무제표에 포함된 왜곡표시가 개별적으로 또는 집합적으로 재무제표 이용자의 경제적 의사결정에 미치는 영향력의 크기를 말한다. 감사과정에서 중요성 개념이 적용되는경우(또는 시기) 세가지를 서술하시오.",
-    "정답": "① 감사인이 감사를 계획하고 수행할 때(전반감사전략 수립) ② 식별된 왜곡표시가 감사에 미치는 영향과 미수정왜곡표시가 재무제표에 미치는 영향을 평가할때③ 감사보고서에 표명할 의견을 형성할때"
-  },
-  {
-    "단원": 4,
-    "물음번호": 37,
-    "물음": "중요성의 결정에는 전문가적 판단이 수반된다. 재무제표 전체에 대한 중요성 결정의 출발점으 로, 백분율이 종종 특정의 선택된 벤치마크로 적용된다. 적합한 벤치마크의 식별에 영향을미칠 수있는 요인들중세가지만 서술하시오(단, 재무제표의 요소는 제외할 것). 심화",
-    "정답": " ① 기업의 성격, 기업 수명주기 상의 위치 그리고 기업이 속한 산업 및경제 환경 ② 기업의 소유구조와 자본조달방법 ③ 벤치마크의 상대적 변동성 ④ 특정 기업의 재무제표 이용자가 중점을 둘가능성이 높은 항목들이 존재하는지 여부"
-  },
-  {
-    "단원": 4,
-    "물음번호": 38,
-    "물음": "감사인이 감사계획단계에서 설정한 재무제표 전체에 대한 중요성보다 낮은 수준(after haircut)으로 수행중요성을 정하는 이유를 기술하시오(2줄 이내).",
-    "정답": "수행중요성은 재무제표의 미수정왜곡표시와 미발견왜곡표시의 합계가 재무제표 전체에 대한 중요성을 초과할 가능성을 적절하게 낮은 수준으로 감소시키기 위해 설정된다."
-  },
-  {
-    "단원": 4,
-    "물음번호": 39,
-    "물음": "감사인이 재무제표 전체에 대한 중요성 및수행중요성 외에도 특정 거래유형, 계정잔액및공시에 적용되는 중요성수준을 설정해야 하는 상황은 무엇인가?",
-    "정답": "해당 기업의 특정한 상황에서, 하나 이상의 특정 거래유형, 계정잔액 혹은 공시에 대하여 재무제표 전체에 대한 중요성보다 작은 왜곡표시가 재무제표에 기초한 이용자의 경제적 의사결정에 영향을 줄것이라고 합리적으로 예상되는 경우, 감사인은 이러한 특정 거래유형, 계정잔액 혹은 공시에 적용되는 중요성 수준도 결정하여야 한다."
-  },
-  {
-    "단원": 4,
-    "물음번호": 40,
-    "물음": "감사인은 최초에 설정한 중요성을 다르게 결정했을 정보를 감사 중에 알게 된경우, 재무제표 전체에 대한 중요성을 수정하여야 한다. 중요성의 수정을 발생시키는 요소(사항) 세가지를 서술하시오",
-    "정답": "① 감사 중에 발생된 상황의 변화 ② 새로운 정보 ③ 추가감사절차의 수행에 따른 기업과 사업에 대한 이해의 변화"
-  },
-  {
-    "단원": 4,
-    "물음번호": 41,
-    "물음": "감사인은 감사의견의 근거가 되는 합리적인 결론을 도출할 수있도록 충분하고 적합한 감사증거를 입수하여야 한다. 감사증거가 갖추어야 할속성인 ‘충분성’에 영향을 미치는 요소와 ‘적 합성’ 있는 감사증거가 되기 위한 요건을 회계감사기준에 근거하여 각각 두가지씩 제시하시오.",
-    "정답": "① 충분성에 영향을 미치는 요소: 중요왜곡표시위험, 중요성, 감사증거의질② 적합성 있는 감사증거가 되기 위한 요건: 재무제표에 대한 경영진의 주장과의 관련성(목적적합성)과 감사증거에 대한 신뢰성"
-  },
-  {
-    "단원": 4,
-    "물음번호": 42,
-    "물음": "회계감사의 모든 과정은 증거입수와 입수한 증거의 평가절차로 이루어진다. 따라서 감사인은 감사의견의 근거가 되는 합리적인 결론을 도출할 수있도록 충분하고 적합한 감사증거를 입수 하여야 한다. 감사증거가 갖추어야 할속성으로서 ‘적합성’은 감사증거의 질적 척도이다. 적합 한감사증거란 어떠한 감사증거를 의미하는지 서술하시오.",
-    "정답": "감사증거의 질적 척도로 감사의견의 근거가 되는 결론을 뒷받침하는 데있어 감사증거의 관련성과 신뢰성이 높은 감사증거를 말한다. 관련성은 재무제표에 대한 경영진의 주장과 관련 있는 감사증거를 말하며, 신뢰성은 감사증거에 대한 믿음의 정도가 높은 감사증거로 원천, 성격, 통제에 따라 결정된다."
-  },
-  {
-    "단원": 4,
-    "물음번호": 43,
-    "물음": "회계감사에서 질문은 다른 감사절차에 추가되어 감사의 전과정에 걸쳐 폭넓게 이용되며, 공식적인 서면질의에서 비공식적인 구두질문까지 망라된다. 이때 질문에 대한 답변을 평가하는 것은 질문 절차에서 필수적인 부분으로, 답변의 평가를 통하여 얻을 수있는 효과를 회계감사 기준에 근거하여 세가지 서술하시오.",
-    "정답": "① 이전에 갖지 못했던 정보나 확인적 감사증거를 입수할 수있다. ② 감사인이 입수한 다른 정보와 유의적으로 차이가 있는 정보가 입수되는 때도 있다. ③ 감사인이 감사절차를 변경하거나 추가적인 감사절차를 수행하는 근거가 제공되기도 한다."
-  },
-  {
-    "단원": 4,
-    "물음번호": 44,
-    "물음": "분석적절차는 재무자료 및비재무자료 간의 개연적인 관계를 분석하여 재무정보를 평가하는 절차이다. 회계감사기준상 분석적절차를 수행할 수있는 감사단계(세 가지)를 제시하고, 각 단계에서 분석적절차를 수행하는 이유(목적)를 서술하시오.",
-    "정답": "① 위험평가절차로 수행되는 분석적절차: 감사인이 알지 못한 기업의 측면들을 식별하게할수있고, 위험평가에 대한 대응을 설계하고 실행하는 근거를 제공하기 위해 중요왜곡표시위험을 평가하는 데도움을줄수있다. → 생략불가 ② 실증절차로서의 분석적절차: “경영진주장에 대한 감사위험을 수용가능한 낮은 수준으로 감소시키기 위해” 또는 “관련성이 있고 신뢰할 수있는 감사증거를 입수하여 감사목적을 달성하기 위해” → 생략가능 ③ 전반적인 결론을 내리기 위한 분석적절차: 감사인은 감사의 종료시점에 근접하여 기업에 대하여 이해한 바와 재무제표가 일관성이 있는지에 대하여 전반적인 결론을 내리기 위하여 분석적절차를 설계하고 수행하여야 한다. → 생략불가"
-  },
-  {
-    "단원": 4,
-    "물음번호": 45,
-    "물음": "감사인은 평가된 중요왜곡표시위험과 관계없이 중요한 각거래유형과 계정잔액 및공시에 대하여는 실증절차를 설계하고 수행해야 한다. 실증절차로서의 분석적절차를 단독으로 또는 세부테스트와 결합하여 설계하고 수행할 때준수해야 하는 절차를 서술하시오.",
-    "정답": "① 주어진 경영진주장에 대한 평가된 중요왜곡표시위험과 해당되는 경우 이러한 주장에 대한 세부테스트를 고려하여, 특정 실증적인 분석적절차가 적합한지를 결정함 ② 기록된 금액이나 비율에 대한 감사인의 기대치가 도출될 데이터의 신뢰성을 평가함. ③ 기록된 금액이나 비율에 대한 기대치를 도출하고, 그러한 기대치가 개별적으로 또는 다른 왜곡표시와 합쳐져서 재무제표를 중요하게 왜곡표시시킬 수있는 왜곡표시를 식별할 정도로 충분히 정확한지 여부를 평가함 ④ 추가적인 조사를 하지 않고 수용될 수있는, 기록된 금액과 기대치와의 차이금액을 결정함"
-  },
-  {
-    "단원": 4,
-    "물음번호": 46,
-    "물음": "외부조회 시감사증거의 신뢰성 확보를 위해 감사인이 직접 수행해야 하는 절차를 세가지만 서술하시오.",
-    "정답": "① 확인하거나 요청할 정보의 결정 ② 적합한 조회 대상자의 선택 ③ 조회서의 설계 ④ 조회처에 대한 조회요청서의 발송과 회수(필요시 후속 확인)"
-  },
-  {
-    "단원": 4,
-    "물음번호": 47,
-    "물음": "외부조회 시경영진이 감사인의 조회서 발송을 거부하는 경우 감사인이 의견변형 등을 고려하 기전에 수행해야 하는 절차를 두가지만 서술하시오.",
-    "정답": "① 경영진의 거부사유에 관하여 질문하고 그타당성과 합리성에 관해 감사증거를 구함 ② 경영진의 거부가 부정위험 등관련 중요왜곡표시위험에 대한 감사인의 평가와 다른 감사절차의 성격, 시기 및범위에 대하여 갖는 시사점을 평가함 ③ 관련성이 있고 신뢰할 수있는 감사증거를 입수할 수있도록 설계된 대체적 감사절차를 수행함"
-  },
-  {
-    "단원": 4,
-    "물음번호": 48,
-    "물음": "외부조회 시소극적 조회는 적극적 조회보다 설득력이 낮은 감사증거를 제공한다. 따라서, 감사인은 제한적 상황에서만 소극적 조회를 이용하여야 하는데 이러한 상황(사항)을 세가지만 서술하시오.",
-    "정답": "① 감사인은 중요왜곡표시위험이 낮다고 평가하였고, 경영진주장과 관련된 통제의 운영효과성에 대하여 충분하고 적합한 감사증거를 입수하였음 ② 소극적 조회절차의 대상이 되는 항목의 모집단이 다수의 동질적이며 소액인 계정잔액이나 거래 또는 조건들로 구성되어 있음. ③ 불일치사항의 발생률이 매우 낮을 것으로 예상됨. ④ 감사인은 소극적 조회의 수신자가 그러한 요청을 무시할 상황이나 조건에 대하여 알고 있지 아니함"
-  },
-  {
-    "단원": 4,
-    "물음번호": 49,
-    "물음": "외부조회 과정에서 조회서를 설계할 때고려할 요소를 두가지만 서술하시오.",
-    "정답": "① 관련 경영진주장 ② 부정위험을 포함하여 구체적으로 식별된 중요왜곡표시위험 ③ 조회서의 구성과 표시 ④ 해당 감사업무 또는 유사업무에 관한 사전 경험 ⑤ 커뮤니케이션의 방법 ⑥ 조회처가 감사인에게 회신해 주도록 하는 경영진의 승인이나 독려. 조회처는 경영진의 승인이 있는 조회서에 대해서만 회신하려고 할것이다. ⑦ 의도된 조회 대상자가 요청된 정보를 확인하거나 제공할 수있는 능력"
-  },
-  {
-    "단원": 4,
-    "물음번호": 50,
-    "물음": "외부조회 시적극적 조회의 회신이 반드시 필요한 경우 두가지를 서술하시오.",
-    "정답": "① 경영진주장을 확인하기 위해 이용가능한 정보가 오직 기업의 외부에서만 입수가능한 경우 ② 특정 부정위험요소로 인하여 감사인이 기업에서 입수한 증거를 신뢰할 수없는 경우"
-  },
-  {
-    "단원": 4,
-    "물음번호": 51,
-    "물음": "감사인이 감사문서를 작성하는 ① 주요한 목적과 ② 추가적인 목적을 각각 두가지씩 서술하 시오.",
-    "정답": "1. 주된 목적 ① 감사인의 전반적인 목적의 달성에 관한 결론의 근거를 제공 ② 감사가 감사기준과 관련 법규의 요구사항에 따라 계획되고 수행되었다는 사실을 제공 2. 추가 목적 ① 업무팀이 감사를 계획하고 수행하는 것을 지원함 ② 감독책임이 있는 업무팀원들이 감사업무를 지휘·감독하며 검토책임을 완수하도록 지원함 ③ 업무팀이 자신이 수행한 업무에 대하여 책임질 수있도록함④ 향후의 감사에 지속적으로 유의적인 사항에 대한 기록을 유지함 ⑤ 품질관리검토와 검사를 가능하게함⑥ 관련 법규 또는 기타 요구사항에 따른 외부 검사업무 수행을 가능하게함"
-  },
-  {
-    "단원": 4,
-    "물음번호": 52,
-    "물음": "감사인은 이전에 해당 감사에 관여되지 아니한 숙련된 감사인이 특정 사항을 충분히 이해할 수있도록 감사문서를 작성해야 한다. 이때의 특정 사항을 세가지 서술하시오.",
-    "정답": "① 감사인이 수행한 감사절차 ② 입수한 관련 감사증거 ③ 감사인이 도달한 결론 (감사문서의 정의와도 일치)"
-  },
-  {
-    "단원": 4,
-    "물음번호": 53,
-    "물음": "감사인은 최종감사파일의 취합 완료 후감사문서를 삭제하거나 폐기해서는 안된다. 다만 감사인은 최종감사파일의 취합 완료 후기존 감사문서를 수정하거나 새로운 감사문서를 추가할 필요성이 있을 수있다. 감사인이 기존 감사문서의 수정 또는 새로운 감사문서를 추가할 경우 문서화해야 할사항 두가지를 각각 1줄 이내로 서술하시오(단, 감사보고서일 후추가적 감사 절차를 수행하거나 새로운 결론을 도출한 사항은 없음).",
-    "정답": "① 감사문서를 수정하거나 추가하는 구체적 이유 ② 감사문서를 수정, 추가하고 이를 검토한 사람과 그시기"
-  },
-  {
-    "단원": 4,
-    "물음번호": 54,
-    "물음": "감사인은 최종감사파일의 취합 완료 후감사문서를 삭제하거나 폐기해서는 안된다. 다만 감사인은 최종감사파일의 취합 완료 후기존 감사문서를 수정하거나 새로운 감사문서를 추가할 필요성이 있을 수있다. 감사인이 감사보고서일 후추가적 감사절차를 수행한 경우 문서화해야하는 사항 세가지를 각각 1줄 이내로 서술하시오.",
-    "정답": "① 당면한 상황 → 후속사건의 내용과 이유(∵) ② 감사문서의 변경자와 검토자및그시기 → 누가·언제 ③ 수행한 새로운 감사절차 또는 추가적인 감사절차, 입수한 감사증거, 도달된 결론 및감사보고서에 미친 영향 → 후속사건에 대한 추가감사절차와 결론(∴)"
-  },
-  {
-    "단원": 4,
-    "물음번호": 55,
-    "물음": "감사위험(Audit Risk)의 정의를 서술하시오.",
-    "정답": "재무제표가 중요하게 왜곡표시되어 있을 경우에 감사인이 부적합한 감사의견을 표명할 위험. 감사위험은 중요왜곡표시위험과 적발위험의 함수이다."
-  },
-  {
-    "단원": 4,
-    "물음번호": 56,
-    "물음": "고유위험, 통제위험, 적발위험의 정의를 서술하시오.",
-    "정답": "① 고유위험: 모든 관련 통제를 고려하기 전에 거래유형, 계정잔액 혹은 공시에 대한 경영진의 주장이, 개별적으로 또는 다른 왜곡표시와 합칠 때중요하게 왜곡표시 될가능성 ② 통제위험: 거래유형, 계정잔액 혹은 공시에 대한 경영진의 주장에서 발생할 수있으며, 개별적으로 또는 다른 왜곡표시와 합쳐 중요할 수있는 왜곡표시가 기업의 내부통제에 의해 적시에 예방되거나 발견, 수정되지 못할 위험 ③ 적발위험: 감사위험을 수용가능한 낮은 수준으로 감소시키기 위해 감사인이 수행하는 절차가 개별적으로 또는 다른 왜곡표시와 합칠 경우 중요할 수있는 왜곡표시를 발견하지 못할 위험"
-  },
-  {
-    "단원": 4,
-    "물음번호": 57,
-    "물음": "중요왜곡표시위험의 정의와, 중요왜곡표시위험을 구성하는 두가지 요소를 서술하시오. (단, 구성요소에 관한 구체적인 설명은 제외한다)",
-    "정답": "감사의 착수 이전에 재무제표가 중요하게 왜곡표시 되어 있을 위험으로서 고유위험과 통제위험으로 구성되어 있다. (중요왜곡표시위험은 감사의 착수 이전에 존재하는 것이므로 감사인과 독립적인 기업측의 위험이며 감사인이 통제할 수없는 위험이므로 감사인은 이에 대하여 식별 및평가를 진행한다.)"
-  },
-  {
-    "단원": 4,
-    "물음번호": 58,
-    "물음": "적발위험은 감사위험을 수용가능한 낮은 수준으로 감소시키기 위하여 감사인이 결정하는 감사절차의 성격, 시기 및범위와 관계가 있다. 그러므로 적발위험은 감사절차와 그적용에 대한 효과성의 함수이다. 감사절차와 그적용의 효과성을 높이는데 도움이 되고 감사인이 부적합한 감사절차를 선택하거나, 적합한 감사절차를 잘못 적용하거나, 감사결과를 잘못 해석할 가능성 을감소시키는 데도움이 되는 사항을 두가지만 서술하시오.",
-    "정답": "① 업무팀원의 적절한 구성 ② 전문가적 의구심의 적용 ③ 수행된 감사업무의 감독과 검토 ④ 적절한 계획수립 → 구성된 팀원(①)들이 의구심(②)을 발휘할 수있게 감독·검토(③)하고 계획함(④)"
-  },
-  {
-    "단원": 4,
-    "물음번호": 59,
-    "물음": "경영진주장 수준의 평가된 중요왜곡표시위험이 높은 경우 추가감사절차의 성격, 시기 및범위 는어떻게 변형되어야 하는가?",
-    "정답": "① 성격: 신뢰할 수있거나 관련성이 있는 감사증거를 입수하고, 추가적인 확인적 정보를 입수하도록 추가감사절차의 성격을 변형한다. ② 시기: 기중보다는 보고기간말 또는 보고기간말에 근접한 시기에 실증절차를 수행하거나 불시에 또는 예측불가능한 시기에 감사절차를 수행 ③ 범 위: 표본규모를 늘리거나 보다 상세한 수준의 실증적 분석절차를 수행하는 것이 적합할 수있다. 그러나, 감사절차의 범위를 확대하는 것은 해당 감사절차 자체가 특정 위험과 관련성이 있는 경우에만 효과적이다."
-  },
-  {
-    "단원": 5,
-    "물음번호": 60,
-    "물음": "회계감사기준은 경영진주장수준의 평가된 중요왜곡표시위험과 관계없이 중요한 각거래유형, 계정잔액 및공시에 대하여 실증절차를 설계하고 수행할 것을 요구하고 있다. 이러한 요구사 항은 위험평가절차의 어떠한 한계점을 반영한 것인지 서술하시오.",
-    "정답": "① 감사인의 위험평가에는 판단이 수반되므로 모든 중요왜곡표시위험이 식별되지 않을 수있음 ② 경영진의 통제무력화 등내부통제에 고유한계가 존재함"
-  },
-  {
-    "단원": 5,
-    "물음번호": 61,
-    "물음": "계획수립은 감사업무에 대한 전반감사전략을 수립하고 감사계획을 개발하는 것과 관련된다. 적절한 계획수립은 재무제표감사에 다양하게 도움을 준다. 계획수립의 구체적인 효익을세가지만 서술하시오.",
-    "정답": "(다음중세가지 기재) ① 예상되는 위험에 대응하기 위해 적합한 수준의 역량과 적격성을 갖춘 업무팀원을 선정하고, 적절하게 업무를 배정하는 것을 도움 (경험이 많은 인력 배정) ② 감사인이 잠재적 문제를 적시에 식별하고 해결함 (이슈사항의 조기파악) ③ 감사인이 중요한 감사분야에 적합한 주의를 기울임 ④ 감사인이 감사업무를 적절히 조직화하고 관리함으로써 효율적이고 효과적인 감사가 수행되게함(감사의 효율성↑ 및효과성↑) ⑤ 업무팀원에 대한 지휘 및감독과 업무결과에 대한 검토가 용이하게 이루어지도록함⑥ (해당되는 경우) 부문감사인 및전문가가 수행한 업무의 조정을 도움 ⇒ 적합한 팀원 구성 → 잠재적 문제 식별 → 적합한 주의 → 효율적·효과적 감사 수행"
-  },
-  {
-    "단원": 5,
-    "물음번호": 62,
-    "물음": "전반감사전략 수립 시해당감사의 업무수행이사와 다른 주요업무팀원들은 업무팀원간의 토의 를계획하고 참여하는 등감사계획에 함께 참여한다. 감사계획의 수립시 업무수행이사와 다른 주요업무 팀원들이 참여하면 이들의 경험과 식견을 이용할 수있고, 이에 따라 계획수립의 과정의 효과성과 효율성이 높아진다. 기업의 재무제표가 중요하게 왜곡표시될 가능성에 대한 업무팀 내토의의 기능(효익)을 세가지만 서술하시오.",
-    "정답": "(다음중세가지 기재) ① 업무수행이사 등경험이 많은 업무팀원들이 기업에 대한 지식에 기초하여 가지고 있는 통찰을 서로 공유하는 기회를 제공함 ② 업무팀원들이 중요왜곡표시위험의 평가 또는 이러한 위험에 대처하기 위해 수행되는 감사절차에 영향을 미칠 수있는 새로운 정보를 감사의 전과정에 걸쳐 입수하는 경우, 이를 공유하고 커뮤니케이션할 수있는 기초를 제공함 ③ 업무팀원들이 기업에 영향을 미치는 사업위험에 대한 정보와 재무제표의 어느 부분이 부정과 오류에 의한 왜곡표시위험에 어떻게 취약한지에 대하여 정보를 교환할 수있게함④ 업무팀원들이 자신에게 배정된 특정 분야의 중요한 왜곡표시 가능성을더잘이해하게 하고, 업무팀원들이 수행하는 감사절차의 결과가 추가감사절차의 성격, 시기 및범위의 결정 등감사절차의 다른 측면에 어떻게 영향을 미칠 수있는지 이해하게함⇒ 과거(①) 및현재(②) 정보 공유 → 현재 왜곡표시 취약점 공유(③) → 미래 감사절차 이해(④)"
-  },
-  {
-    "단원": 5,
-    "물음번호": 63,
-    "물음": "업무팀 토의시 업무수행이사와 다른 주요업무팀원들이 논의할 사항은 무엇인가?",
-    "정답": "기업의 재무제표가 중요하게 왜곡표시될 가능성, 그리고 해당 재무보고체계를 기업의 실질과 상황에 맞게 적용하는 문제를 토의하여야 한다."
-  },
-  {
-    "단원": 5,
-    "물음번호": 64,
-    "물음": "전반감사전략을 수립하는 과정에서 도움이 되는 결정 사항(효익) 세가지를 서술하시오.",
-    "정답": "(다음중세가지 기재) ① 특정 감사분야에 배치할 자원(위험↑ → 경험↑CPA) ② 특정 감사분야에 할당할 자원의 양(중요왜곡표시위험↑분야 → 투입시간↑) ③ 자원의 배치시기(위험↑ → 재무제표일 근접 시점에 수행) ④ 자원을 관리, 지휘 및감독하는 방법(회의, 보고체계 등)"
-  },
-  {
-    "단원": 5,
-    "물음번호": 65,
-    "물음": "감사인은 전반감사전략에 이어 (세부)감사계획을 개발하여야 한다. 이때 세부감사계획에 포함 되어야 하는 사항 세가지를 서술하시오.",
-    "정답": "① 계획된 위험평가절차의 성격, 시기 및범위 ② 경영진주장 수준에서 계획된 추가감사절차의 성격, 시기 및범위 → 위험평가절차 이후 수행 ③ 해당 감사를 감사기준에 따라 수행하기 위해 요구되는 기타의 계획된 감사절차 → 향후 수행할 감사절차[위험평가절차(①)+추가감사절차(②)+기타(③)]의 성·시·범 결정"
-  },
-  {
-    "단원": 5,
-    "물음번호": 66,
-    "물음": "계획수립에서 감사인이 중요왜곡표시위험을 식별하고 평가하기 전에 고려하도록 요구하는사항다섯 가지를 서술하시오.",
-    "정답": "① 위험평가절차로서 적용될 분석적절차 ② 기업에 적용되는 법규 및기업이 그러한 법규를 어떻게 준수하는지에 대한 개괄적인 이해 ③ 중요성의 결정 ④ 전문가의 참여 ⑤ 기타 위험평가절차의 수행"
-  },
-  {
-    "단원": 5,
-    "물음번호": 67,
-    "물음": "감사인은 추가감사절차의 설계와 수행에 대한 근거를 제공하기 위하여 중요왜곡표시위험을 식별하고 평가하여야 한다. 이때 중요왜곡표시위험의 식별 및평가 절차를 서술하시오.",
-    "정답": "① 해당 위험과 관련된 통제 등기업과 기업환경을 이해하는 전과정에서, 그리고 재무제표의 거래유형, 계정잔액 및공시를 고려함으로써 위험을 식별함 ② 식별된 위험을 평가하며, 그러한 위험이 재무제표 전체에 더전반적으로 관련되어 있는지 여부와 다수의 경영진주장에 잠재적으로 영향을 미치는지 여부를 평가함 ③ 감사인이 테스트하려는 관련 통제를 고려하여 식별된 위험을 경영진주장 수준의 오류가능성과 연결시킴 ④ 복합적 왜곡표시의 가능성 등왜곡표시의 발생가능성과 그러한 잠재적 왜곡표시가 중요한 왜곡표시가 될만큼 규모가 큰것인지 여부를 고려함"
-  },
-  {
-    "단원": 5,
-    "물음번호": 68,
-    "물음": "유의적 위험이란 감사인이 판단할 때감사상 특별한 고려가 요구되는 것으로 식별되고 평가된 중요왜곡표시위험이다. 감사인이 어떤 위험이 유의적 위험에 해당되는지 판단할 때고려해야 할필수 사항을 네가지 서술하시오.",
-    "정답": "① 해당 위험이 부정위험인지 여부 ② 해당 위험이 최근의 유의적인 경제·회계 또는 기타의 변화와 관련되어 특별한 주의를 요하는지 여부 ③ 거래의 복잡성 ④ 해당 위험이 특수관계자들과의 유의적 거래와 관련된 것인지 여부. 식별된 유의적인 특수관계자 거래가 해당 기업의 정상적인 사업과정을 벗어난 경우에는, 감사인은 이를 유의적 위험으로 취급하여야 한다. ⑤ 해당 위험과 관련된 재무정보의 측정에 있어 주관성의 정도. 특히, 그러한 측정에 광범위한 불확실성이 내포되어 있는 경우 ⑥ 해당 위험이 그기업의 정상적 사업과정을 벗어나거나, 비경상적으로 보이는 유의적 거래와 관련되어 있는지 여부"
-  },
-  {
-    "단원": 5,
-    "물음번호": 69,
-    "물음": "감사인은 재무제표 수준의 평가된 중요왜곡표시위험에 대처하기 위한 전반적인 대응을 설계 하고 실행하여야 한다. 재무제표 수준의 평가된 중요왜곡표시위험에 대처하기 위한 전반적인 대응에 포함되어야 할사항 세가지를 서술하시오.",
-    "정답": "① 보다 경험이 풍부하거나 특수한 기술을 보유한 인력을 배정하거나, 전문가를 활용함 ② 업무팀이 전문가적 의구심을 유지할 필요성을 강조함 ③ 감독활동을 강화함 ④ 수행될 추가감사절차를 선택할 때예측불가능성 요소를 추가로 반영함 ⑤ 감사절차의 성격, 시기 또는 범위를 전반적으로 변경함 → 인력투입↑[물리적(①), 심리적(②, ③)] + 감사절차↑(④, ⑤)"
-  },
-  {
-    "단원": 5,
-    "물음번호": 70,
-    "물음": "감사절차 수행 시보고기간말 또는 그이후에만 수행될 수있는 특정 감사절차를 두가지만 서술하시오.",
-    "정답": "① 재무제표의 정보가 기초가 되는 회계기록과 일치하는지 확인하거나 차이를 조정하는 절차 ② 재무제표의 작성과정에서 발생된 조정사항을 검토하는 절차 ③ 보고기간말에 기업이 부적절한 판매계약을 체결하거나 거래가 완결되지 않을 위험에 대응하는 절차"
-  },
-  {
-    "단원": 5,
-    "물음번호": 71,
-    "물음": "감사절차 수행 시감사절차의 시기에 영향을 미치는 요인을 세가지만 기재하시오.",
-    "정답": "① 통제환경 ② 위험의 성격 ③ 감사증거가 관련되는 해당 기간이나 일자 ④ 관련된 정보의 이용 가능 시기 ⑤ 재무제표의 작성 시기, 특히 재무상태표, 포괄손익계산서, 자본변동표 또는 현금흐름표에 기록된 금액에 대한 설명을 제공하는 공시의 작성 시기"
-  },
-  {
-    "단원": 6,
-    "물음번호": 72,
-    "물음": "통제환경은 기업지배 및경영기능, 내부통제와 그중요성에 관한 지배기구 및경영진의 태도 와의식 및행동이 포함된다. 통제환경은 조직의 문화를 결정하며 통제에 대한 구성원들의 의식에 영향을 준다. 통제환경의 이해를 위한 감사인의 평가사항 세가지를 서술하시오.",
-    "정답": "① 경영진이 지배기구의 감시와 더불어 정직하고 윤리적으로 행동하는 문화를 창조하고 유지하는지 여부 ② 통제환경 요소들의 강점이 내부통제의 다른 구성요소들에 대하여 집합적으로 적절한 기반을 제공하고 있는지 여부 ③ 이들 내부통제의 구성요소들이 통제환경의 미비점에 의해 손상되고 있지 않은지 여부"
-  },
-  {
-    "단원": 6,
-    "물음번호": 73,
-    "물음": "기업의 위험평가절차는 경영진이 관리대상 위험을 어떻게 결정하는지에 대한 근거를 형성한 다. 그절차가 기업의 특성, 규모 및복잡성 등해당 상황에 적합한 경우, 이러한 절차는 감사 인이 중요왜곡표시위험을 식별하는 데도움을 준다. 감사인이 이해해야 할기업의 위험평가 절차 네가지를 서술하고, 감사인은 근원적 위험이라고 판단한 중요왜곡표시위험을 경영진이 식별하지 못한 상황에서 감사인이 수행해야 할절차를 서술하시오.",
-    "정답": "<기업의 위험평가 절차에 대해서 이해할 사항> ① 재무보고 목적에 관련된 사업위험의 식별 ② 해당 사업위험의 유의성(중요성)에 대한 추정 ③ 해당 사업위험의 발생가능성에 대한 평가 ④ 해당 사업위험에 대처하기 위한 행동의 결정 <근원적인 위험이 있다고 판단한 경우> ① 기업의 위험평가절차가 이를 식별하지 못한 이유를 이해 ② 해당 절차가 기업의 상황에 적합한지 여부를 평가 ③ 기업의 위험평가절차와 관련하여 유의적 내부통제 미비점이 존재하는지 여부를 결정"
-  },
-  {
-    "단원": 6,
-    "물음번호": 74,
-    "물음": "감사인은 평가된 중요왜곡표시위험에 대한 적합한 대응의 설계와 실행을 통해 이러한 위험에 관한 충분하고 적합한 감사증거를 입수해야 한다. 만약 위험평가절차와 관련하여 회사가 ① 임시방편의 절차만을 갖추고 있는 경우와 ② 문서화된 위험평가절차가 없는 경우 수행해야 할절차를 각각 서술하시오.",
-    "정답": "① 재무보고 목적에 관련된 사업위험이 식별되었는지 그리고, 이러한 위험에 대하여 어떻게 대처하였는지 경영진과 토의한다. ② 기업에 문서화된 위험평가절차가 없는 경우 이것이 해당 상황에 적합한지 여부를 평가하고, 유의적 내부통제 미비점을 나타내는 것인지 여부를 결정한다."
-  },
-  {
-    "단원": 6,
-    "물음번호": 75,
-    "물음": "감사인은 기업이 재무보고의 역할과 책임 및재무보고와 관련된 유의적 사항들을 어떻게 커뮤 니케이션하는지 이해하여야 한다. 감사인이 이해해야 할기업의 커뮤니케이션을 두가지 서술 하시오.",
-    "정답": "① 경영진과 지배기구간의 커뮤니케이션(내부) ② 규제기관과 같은 외부와의 커뮤니케이션(외부)"
-  },
-  {
-    "단원": 6,
-    "물음번호": 76,
-    "물음": "통제의 모니터링은 지속적으로 내부통제의 성과에 대한 효과성을 평가하는 절차다. 이는 적시 에통제의 효과성을 평가(일상적 또는 별도)하고 필요한 개선조치를 취하는 것을 포함한다. 감사인이 이해해야 할기업의 통제 모니터링 절차를 두가지 서술하시오.",
-    "정답": "① 기업이 재무보고 관련된 내부통제를 모니터링하기 위해 사용하는 주요 활동(모니터링을 위한 정보의 원천과 신뢰성 평가근거도 포함) ② 그러한 통제의 미비점에 대한 기업의 개선조치"
-  },
-  {
-    "단원": 6,
-    "물음번호": 77,
-    "물음": "감사인이 관련 통제의 운영효과성에 대한 충분하고 적합한 감사증거를 입수할 수있도록 통제 테스트를 설계하고 수행하여야 하는 경우 두가지를 서술하시오",
-    "정답": "① 감사인이 경영진주장 수준의 중요왜곡표시위험을 평가할 때통제가 효과적으로 운영되고 있다는 기대를 한경우 (즉, 감사인이 실증절차의 성격, 시기 및범위를 결정할 때통제의 운영효과성에 의존하려고 하는 경우) ② 실증절차만으로는 경영진주장 수준의 충분하고 적합한 감사증거를 제공할 수없는 경우"
-  },
-  {
-    "단원": 6,
-    "물음번호": 78,
-    "물음": "감사인이 통제테스트를 설계하고 수행하는 경우 준수해야 하는 절차를 서술하시오.",
-    "정답": "① 통제의 운영효과성에 대한 감사증거를 입수하기 위하여 다음과 같은 사항이 포함된 질문과 더불어 기타의 감사절차를 수행함 -감사대상 기간 중관련 시기에 해당 통제가 적용된 방법 -통제의 일관된 적용 -통제 적용의 수행자 또는 수단 ② 테스트할 통제가 다른 통제 (간접통제)에 의존하고 있는지 여부를 결정함. 만약 그렇다면 그러한 간접통제가 효과적으로 운영되고 있음을 뒷받침하는 감사증거를 입수할 필요가 있는지 여부를 결정하여야 한다."
-  },
-  {
-    "단원": 6,
-    "물음번호": 79,
-    "물음": "감사인은 통제테스트를 설계하고 수행할 때통제의 운영효과성에 대한 감사증거를 입수하기 위하여 질문과 더불어 수행해야 할감사절차를 세가지 서술하시오.",
-    "정답": "질문, 검사, 관찰, 재수행"
-  },
-  {
-    "단원": 6,
-    "물음번호": 80,
-    "물음": "감사인이 통제테스트를 설계하고 수행할 때사용될 수있는 감사기술을 신뢰성이 높은 순서부 터낮은 순서대로 나열하시오.",
-    "정답": "재수행 > 검사 > 관찰 > 질문"
-  },
-  {
-    "단원": 6,
-    "물음번호": 81,
-    "물음": "감사인이 통제의 효과성에 관해 더욱 설득력 있는 감사증거가 필요한 때는, 통제테스트의 범위를 확대하는 것이 적합할 것이다. 감사인이 통제에 대한 의존도와 통제테스트의 범위를 결정할 때고려할 사항중두가지만 서술하시오.",
-    "정답": "① 해당 기간 중기업이 통제를 수행한 빈도(↑) ② 감사대상 기간 중감사인이 통제의 운영효과성에 의존하는 기간(↑) ③ 통제로부터의 기대이탈율(↑) ④ 경영진주장 수준의 통제에 대한 운영효과성에 관하여 입수하고자 하는 감사증거의 관련성과 신뢰성(↓) ⑤ 해당 경영진주장과 관련하여 다른 통제테스트로부터 입수되는 감사증거의 범위(↓) ⇒ 통제테스트의 범위 확대(↑)"
-  },
-  {
-    "단원": 6,
-    "물음번호": 82,
-    "물음": "정보기술 처리에 내재된 일관성 때문에, 자동화된 통제는 일관성 있게 반복되므로, 이에 대하 여는 그테스트 범위를 확대하는 것이 불필요할 수있다. 이를 위해 필요한 요건을 세가지 서술하시오.",
-    "정답": "① 프로그램의 변경은 적절한 변경통제 없이 일어나지 아니함 ② 거래의 처리에는 승인된 프로그램이 사용됨 ③ 기타 관련 일반통제는 효과적임"
-  },
-  {
-    "단원": 6,
-    "물음번호": 83,
-    "물음": "한국회계법인은 1월부터 9월까지의 기간에 대한 매출통제의 운영효과성 테스트를 수행하였 다. 기말감사 시에 이미 테스트한 통제와 관련하여 가장 먼저 수행해야 하는 절차와, 중간기간 이후 잔여기간에 대한 추가적인 감사증거 입수 여부를 결정하기 위해 고려해야 할요소중세가지를 기재하시오.",
-    "정답": "1. 중간기간 이후 해당 통제에 유의적 변화가 있었는지에 대하여 감사증거를 입수함 2. 다음의 요소를 고려하여 잔여기간에 대하여 입수할 추가적인 감사증거를 결정함 ① 경영진주장 수준의 평가된 중요왜곡표시위험의 유의성(↑) ② 중간기간에 테스트하였던 특정 통제, 그리고 정보시스템·절차·담당자의 변경 등테스트 이후 특정 통제의 유의적 변경(↑) ③ (과거) 통제의 운영효과성에 대한 감사증거의 입수 정도(↓) ④ 잔여기간(통제테스트 시점 ~ 보고기간 말)의 정도(↑) ⑤ 감사인이 후속실증절차를 감소시키기 위해 통제에 의존하려는 정도(↑) ⑥ 통제환경(↓) ⇒ 잔여기간에 대한 추가적인 감사증거를 반드시 입수(입수 증거량↑)"
-  },
-  {
-    "단원": 6,
-    "물음번호": 84,
-    "물음": "X 회계법인의 김회계사는 내부통제의 설계를 이해한 후통제테스트를 수행하는 과정에서 이탈사항을 발견하였다. 김회계사는 이탈사항과 그잠재적인 영향을 이해하기 위해 경영진에게 질문하였다. 감사인이 의존하려고 계획하였던 통제에서 이탈을 발견하였을 때결정해야할사 항 세가지를 서술하시오.",
-    "정답": "① 통제테스트를 수행한 결과가 해당 통제에 의존하는 것에 대한 적절한 근거를 제공하는지 여부 ② 통제에 대한 추가적인 테스트가 필요한지 여부 ③ 왜곡표시에 대한 잠재적 위험에 대처하기 위하여 실증절차를 적용할 필요가 있는지 여부"
-  },
-  {
-    "단원": 6,
-    "물음번호": 85,
-    "물음": "감사인은 감사 중에 식별된 유의적 내부통제 미비점들을 지배기구 및경영진에게 적시에 서면 으로 커뮤니케이션하여야 한다. 이때 포함하여야 할사항을 서술하시오.",
-    "정답": "1. 미비점들에 대한 내역과 그러한 미비점들의 잠재적인 영향에 대한 설명 2. 지배기구와 경영진이 커뮤니케이션의 관점을 이해할 수있도록 하는 충분한 정보 ① 감사의 목적은 감사인이 재무제표에 대한 의견을 표명하는것② 감사는 내부통제의 효과성에 대한 의견표명이 목적이 아닌, 해당 상황에 적합한 감사절차를 설계하기 위하여 재무제표 작성과 관련된 내부통제에 대한 고려를 포함 ③ 보고할 사항은 감사인이 감사 중에 식별한 미비점들(모든 미비점)로서 감사인이 지배기구에 보고할 만큼 충분히 중요하다고 결정한 미비점들(유의적 미비점)로 제한됨"
-  },
-  {
-    "단원": 6,
-    "물음번호": 86,
-    "물음": "감사인은 매출채권연령분석표 등기업이 생산한 정보(IPE)를 이용할 때, 해당 정보가 감사인 의목적을 위해 충분히 신뢰할 수있는지 평가하여야 한다. 이때 수행해야 할절차를 두가지 서술하시오.",
-    "정답": "① 해당 정보의 정확성과 완전성에 대한 감사증거를 입수함 ② 정보가 감사인의 목적을 위해 충분히 정확하고 자세한지 여부를 평가함"
-  },
-  {
-    "단원": 6,
-    "물음번호": 87,
-    "물음": "이용자기업 감사인이 서비스조직을 이해할 때포함해야 하는 사항은 무엇인지 서술하시오.",
-    "정답": "① 서비스조직이 제공하는 서비스의 성격과 그러한 서비스가 이용자기업에 미치는 유의성 ② 서비스조직이 처리한 거래 또는 해당 조직에 의해 영향을 받는 계정이나 재무보고절차의 성격과 중요성 ③ 서비스조직이 수행하는 활동과 이용자기업이 수행하는 활동의 상호작용 정도 ④ 서비스조직이 수행하는 활동에 대한 관련 계약조건 등이용자기업과 서비스조직간 관계의 성격"
-  },
-  {
-    "단원": 6,
-    "물음번호": 88,
-    "물음": "감사인은 감사와 관련된 내부통제를 이해할 때, 서비스조직이 제공한 서비스와 관련된 이용자 기업의 관련 통제의 설계 및실행을 평가하여야 한다. 감사인은 중요왜곡표시위험의 식별과 평가의 근거를 제공하기 위하여, 서비스조직에 의해 제공된 서비스의 성격과 유의성 그리고 그러한 서비스가 이용자기업의 감사와 관련된 내부통제에 미치는 영향을 충분히 이해하였는 지여부를 결정하여야 한다. 만약 감사인이 이용자기업으로부터 충분한 이해를 얻을 수없는 경우, 수행해야 할절차중세가지만 서술하시오.",
-    "정답": "① 입수가능한 경우, 유형 1 또는 유형 2 보고서를 입수함 ② 특정 정보를 얻기 위하여 이용자기업을 통하여 서비스조직과 접촉함 ③ 서비스조직을 방문하여 서비스조직의 관련 통제에 대하여 필요한 정보를 제공할 절차를 수행함 ④ 타감사인이 수행한 업무를 활용하여 서비스조직의 관련 통제에 대하여 필요한 정보를 제공할 절차를 수행함"
-  },
-  {
-    "단원": 7,
-    "물음번호": 89,
-    "물음": "감사인이 기업의 재무제표 결산절차와 관련된 실증절차를 수행할 때필수적으로 수행해야 할감사절차를 두가지 서술하시오.",
-    "정답": "① 재무제표의 정보가 그기초가 되는 회계기록과 일치하는지를 확인하거나 차이를 조정함 ② 재무제표를 작성하는 과정에서 행한 중요한 분개 및기타 수정사항에 대하여 조사함"
-  },
-  {
-    "단원": 7,
-    "물음번호": 90,
-    "물음": "어 떤상황에서 감사인은 기중에 실증절차를 수행하고, 보고기간말 잔액에 관한 정보를 기중 일자의 비교가능한 정보와 비교하고 조정하는 것이 효과적이라고 결정할 수있다. 중간기간 중에 실증절차를 수행하는 목적을 두가지만 서술하시오.",
-    "정답": "① 비경상적으로 보이는 금액을 식별함 ② 해당 금액에 대하여 조사함 ③ 잔여기간에 대한 테스트를 위해 실증절차(실증적 분석적절차 또는 세부테스트)를 수행함"
-  },
-  {
-    "단원": 7,
-    "물음번호": 91,
-    "물음": "어 떤상황에서 감사인은 기중에 실증절차를 수행하고, 보고기간말 잔액에 관한 정보를 기중 일자의 비교가능한 정보와 비교하고 조정하는 것이 효과적이라고 결정할 수있다. 중간기간 중에 실증절차를 수행할지 여부에 대한 고려사항중두가지만 서술하시오.",
-    "정답": "(다음중두가지) ① 통제환경 및기타의 관련 통제 → 통제위험(CR)↓ ② 감사인이 수행할 절차에 필요한 정보가 이후 시점에 입수될 수있는지 여부(↓) ③ 실증절차의 목적 ④ 평가된 중요왜곡표시위험(↓) ⑤ 거래유형과 계정잔액의 성격 및관련 경영진주장 ⑥ 보고기간말에 존재할 수있으나 발견되지 않을 왜곡표시위험을 감소시키기 위해 감사인이 잔여기간에 대하여 적합한 실증절차 혹은 통제테스트와 실증절차를 결합하여 수행할 수있는지 여부(↑) → 기중에 실증절차 가능(↑)"
-  },
-  {
-    "단원": 7,
-    "물음번호": 92,
-    "물음": "실증절차가 기중의 일자를 기준으로 수행되면, 감사인이 기중 일자를 기준으로 얻은 감사결론 을보고기간말까지 확대하기 위한 합리적인 근거를 제공하기 위하여 잔여기간에 대하여 수행 해야 할감사절차를 서술하시오.",
-    "정답": "① 잔여기간에 대한 통제테스트를 수반한 실증절차를 수행 ② 만약 감사인이 충분하다고 결정한 경우에는 후속적인 실증절차만을 수행"
-  },
-  {
-    "단원": 7,
-    "물음번호": 93,
-    "물음": "초도감사를 수행할 때기초잔액과 관련하여 충분하고 적합한 감사증거를 입수해야 하는 사항 은무엇인가? (초도감사시 기초잔액에 대한 감사의 목적)",
-    "정답": "① 당기재무제표에 중요하게 영향을 미치는 왜곡표시가 기초잔액에 포함되었는지 여부 ② 기초잔액에 반영된 적합한 회계정책이 당기재무제표에 일관되게 적용되었는지 여부, 또는 회계정책이 변경되었다면 해당 재무보고체계에 따라 적절하게 처리되고 적절하게 표시 및공시되었는지 여부"
-  },
-  {
-    "단원": 7,
-    "물음번호": 94,
-    "물음": "실증절차 수행 시감사인은 최근의 재무제표 및이에 대한 전임감사인의 감사보고서, 그리고 공시 등기초잔액에 관한 정보가 존재하는 경우 이를 열람하여야 한다. 감사인이 기초잔액에 당기재무제표에 중요하게 영향을 미치는 왜곡표시가 포함되었는지 여부에 대하여 충분하고 적합한 감사증거를 입수하기 위해 수행해야 할절차를 서술하시오.",
-    "정답": "1. 전기의 마감잔액이 정확하게 당기로 이월되었는지(또는 재작성되었는지) 여부를 결정 2. 기초잔액에 적합한 회계정책이 반영되어 있는지 결정함 3. 다음 절차 중하나 이상을 수행함 ① 전기재무제표가 감사를 받은 경우, 기초잔액에 관한 증거를 입수하기 위해 전임감사인의 감사조서를 검토함(회사의 동의를 받아야 함) ② 당기에 수행된 감사절차가 기초잔액과 관련된 증거를 제공하는지 여부를 평가함 ③ 기초잔액에 관한 증거를 입수하기 위하여 특정의 감사절차를 수행함"
-  },
-  {
-    "단원": 7,
-    "물음번호": 95,
-    "물음": "기초잔액에 대한 실증절차 수행 시, 기초잔액에 대한 감사증거 입수하기 위한 감사절차의성격·범위에 영향을 미치는 사항중두가지를 서술하시오.",
-    "정답": "① 기업이 적용한 회계정책 ② 계정잔액, 거래유형 및공시의 성격과, 당기재무제표에서 중요왜곡표시위험 ③ 당기재무제표에 대한 기초잔액의 유의성 ④ 전기재무제표가 감사받았는지 여부, 그리고 감사받은 경우 전임감사인의 의견이 변형되었는지 여부"
-  },
-  {
-    "단원": 7,
-    "물음번호": 96,
-    "물음": "기초잔액에 대한 실증절차 수행 결과 기초잔액에 중요한 왜곡표시가 존재하는 경우 수행해야 할감사절차를 서술하시오.",
-    "정답": "① 적합한 수준의 경영진과 지배기구와 해당 왜곡표시를 커뮤니케이션함 → 재무제표 수정요청 ② 이러한 사실을 전임감사인에게 알리도록 요청(직접 알리지 않음) → 감사보고서 수정"
-  },
-  {
-    "단원": 7,
-    "물음번호": 97,
-    "물음": "감사인이 감사의견을 표명할 때감사의견의 분리가 허용되는 경우 두가지를 서술하시오.",
-    "정답": "① 초도감사 시충분하고 적합한 감사증거의 미입수로 영업결과와 현금흐름은 한정의견이나 의견거절, 그리고 재무상태는 적정의견을 표명하는 경우 ② 하나의 재무보고체계에 따라 작성된 재무제표에 대하여 적정의견을 표명하고, 동일 재무제표에 대하여 다른 재무보고체계에 따라서는 부적정의견을 표명하는 경우"
-  },
-  {
-    "단원": 7,
-    "물음번호": 98,
-    "물음": "재고자산에 대한 실증절차 시, 감사인이 재고자산 실사에 입회하여 수행해야 할절차를네가 지서술하시오.",
-    "정답": "① 재고자산 실사의 결과를 기록하고 통제하기 위한 경영진의 지시와 절차의 평가 ② 경영진이 수행하는 실사절차에 대한 관찰 ③ 재고자산에 대한 조사 ④ 테스트 실사의 수행"
-  },
-  {
-    "단원": 7,
-    "물음번호": 99,
-    "물음": "감사인이 재고자산 실사에 입회하여 수행하는 테스트실사 절차에 대해 서술하시오.",
-    "정답": "① 경영진의 실사기록에서 선정된 항목을 실제의 재고로 추적(List to Floor) → 정확성(실재성) 대응 ② 실제의 재고에서 선정된 항목을 경영진의 실사기록으로 추적(Floor to List) → 완전성 대응"
-  },
-  {
-    "단원": 7,
-    "물음번호": 100,
-    "물음": "재고자산에 대한 실사입회 계획 시고려사항중세가지만 서술하시오.",
-    "정답": "① 재고자산과 관련된 중요왜곡표시위험 ② 재고자산과 관련된 내부통제의 성격 ③ 재고자산의 실사를 위해 적절한 절차가 수립되고 적절한 지시가 전달될 것으로 예상되는지 여부 ④ 재고자산 실사의 시기 ⑤ 기업이 계속기록법을 유지하는지 여부 ⑥ 적절한 입회장소를 결정시 보관장소 ⑦ 감사인측 전문가의 도움이 필요한지 여부"
-  },
-  {
-    "단원": 7,
-    "물음번호": 101,
-    "물음": "재고자산에 대한 실사입회를 재무제표일이 아닌 일자에 수행할 계획인 경우 수행해야할절차와 고려사항을 서술하시오.",
-    "정답": "<수행해야 할 절차> 실사일과 재무제표일 사이의 재고자산 변동이 적절하게 기록되었는지를 확인하기 위한 감사절차 수행.  <고려사항> 계속기록법의 신뢰성, 실사일과 재무제표일 사이 이동·조정의 승인절차, 계속기록 조정의 적정성."
-  },
-  {
-    "단원": 7,
-    "물음번호": 102,
-    "물음": "㈜ A의 감사인은 회사의 재고자산 중에서 제3자가 보관하고 있는 재고자산이 재무제표에 중요하다고 판단하고 있다. 이런 경우에 감사인이 수행해야 하는 절차를 서술하시오.",
-    "정답": "제3자에게 보관 수량·상태·권리에 대한 직접 조회.  필요 시 제3자의 실사에 입회 또는 타감사인 입회.  제3자의 관련 통제 보고서 활용, 보관 관련 문서(창고보관증 등) 검사, 담보 제공 시 해당 당사자 조회."
-  },
-  {
-    "단원": 8,
-    "물음번호": 103,
-    "물음": "회계감사기준 상부정과 오류와의 차이와 그구분이 어려운 이유를 서술하시오.",
-    "정답": "왜곡표시를 초래한 기초행위가 의도적인지 비의도적인지에 따라 부정과 오류를 구분한다.  회계추정처럼 판단이 큰 영역은 부정인지 오류인지 판단이 어려워 구분이 곤란하다."
-  },
-  {
-    "단원": 8,
-    "물음번호": 104,
-    "물음": "회계감사기준 상감사인의 부정발견 능력에 영향을 미치는 요인을 두가지만 서술하시오.",
-    "정답": "부정을 저지르는 사람의 숙련도와 공모의 정도.  조작의 빈도·정도, 금액의 크기, 연루자의 조직 내 직위 등도 영향을 준다."
-  },
-  {
-    "단원": 8,
-    "물음번호": 105,
-    "물음": "[A]부정으로 인한 왜곡표시가 오류로 인한 왜곡표시보다 발견되지 못할 위험이 훨씬큰이 유, [B]경영진의 부정에 의한 중요한 왜곡표시가 종업원의 부정보다 훨씬 발견되기 힘든 이유를 서술하시오.",
-    "정답": "[A] 부정은 은폐를 위해 위조, 의도적 누락, 거짓 진술 등 정교한 수단이 사용되기 쉽다.  [B] 경영진은 회계기록 조작이나 허위 정보 제공이 가능하고, 통제절차를 무력화할 위치에 있는 경우가 많다."
-  },
-  {
-    "단원": 8,
-    "물음번호": 106,
-    "물음": "외감법에서 부정과 관련하여 감사인에게 요구하는 사항에 대하여 서술하시오.(감사인 외의 주체에게 요구하는 사항에 대해서는 고려할 필요 없다.)",
-    "정답": "감사인은 이사의 직무수행과 관련된 부정행위 또는 법령·정관 위반의 중대한 사실을 발견하면 감사(위원회)에 통보하고 주주총회에 보고해야 한다.  또한 그러한 사실을 발견하거나 통보받은 경우 증권선물위원회에 보고해야 한다."
-  },
-  {
-    "단원": 8,
-    "물음번호": 107,
-    "물음": "“ 부정으로 인해 재무제표가 중요하게 왜곡표시될 위험성”에 대한 업무팀원 간토의의세가 지효과중두가지를 서술하시오.",
-    "정답": "경험 많은 팀원의 통찰을 공유하여 어디에서 부정에 따른 왜곡표시가 발생하기 쉬운지 인식을 높인다.  위험에 대한 대응과 절차 배분, 결과 공유 방법과 부정 혐의 대응 방식을 정하는 데 도움을 준다."
-  },
-  {
-    "단원": 8,
-    "물음번호": 108,
-    "물음": "감사인은 재무제표 수준의 부정으로 인한 중요왜곡표시위험의 평가내용에 대한 전반적인 대응을 결정할 때, 수행해야 하는 절차를 서술하시오.",
-    "정답": "유의적 책임 부여·감독을 위험평가에 맞게 배정.  회계정책 선택·적용이 이익조정을 위한지 평가.  감사절차 설계 시 예측불가능성 요소를 포함한다."
-  },
-  {
-    "단원": 8,
-    "물음번호": 109,
-    "물음": "감사인은 감사대상회사의 경영진이 이익기대치를 달성하기 위한 압력을 받고 있다는 사실을 파악하였다. 따라서 감사인은 경영진주장 수준에서 부정으로 인한 중요왜곡표시위험이 높은 것으로 판단하여, 이에 대응할 수있도록 추가감사절차의 성격, 시기 및범위를 설계하고 감사절차를 수행하려고 한다. 감사인이 설계하고 수행해야 할추가감사절차(성격, 시기및범 위)를 서술하시오.",
-    "정답": "<성격> 더 신뢰도 높은 증거 또는 추가 확인적 정보 확보.  <시기> 기간말 또는 그에 근접한 시점에 수행, 불시·예측불가 시점 활용.  <범위> 표본 확대 또는 더 세분화된 분석적절차 수행."
-  },
-  {
-    "단원": 8,
-    "물음번호": 110,
-    "물음": "부정에 대한 감사절차 수행 시경영진의 추정치와 관련한 부정에 대한 구체적 대응절차를 서술하시오.",
-    "정답": "독립적인 추정치를 도출하기 위해 전문가를 활용한다.  회계추정치 수립 계획의 실행능력과 의도를 확인하기 위해 회계부서 외 관계자에게 질문을 확대한다."
-  },
-  {
-    "단원": 8,
-    "물음번호": 111,
-    "물음": "인차지(In-charge)인 김회계사는 기업과 그환경을 이해하는 과정에서 경영진과 지배기구 의성실성과 적격성이 매우 높아 통제무력화 위험이 낮다고 평가하였다. 하지만 업무수행이 사는 통제무력화 위험은 모든 기업에 존재하며 예측불가능하게 발생될 수있기 때문에 통제 무력화 위험에 대한 감사인의 평가결과와 관계없이 반드시 다음 세가지의 절차를 지켜야 한다고 말하고 있다. 다음 세가지의 절차를 서술하시오.",
-    "정답": "① 저널엔트리 테스트: 분개·조정의 적절성 테스트.  ② 회계추정치 감사: 편의 여부와 그 시사점 평가.  ③ 비경상적 거래 감사: 사업상 논리 부재 등 부정 징후 여부 평가."
-  },
-  {
-    "단원": 8,
-    "물음번호": 112,
-    "물음": "위 (물음 111)의 세가지 절차 중저널엔트리 테스트를 수행하는 절차에 대하여 서술하시오.",
-    "정답": "재무보고절차 관련자에게 부적합·비경상 행위 여부 질문.  기간말 분개·기타 조정사항을 추출.  기간 전체의 분개·조정을 추가 테스트할 필요성 검토."
-  },
-  {
-    "단원": 8,
-    "물음번호": 113,
-    "물음": "위 (물음 111)의 세가지 절차 중재고자산평가충당부채, 소송충당부채, 매출채권대손충당금 등의 계정과목과 관련하여 수행하는 절차에 대하여 서술하시오.",
-    "정답": "개별 판단은 합리적이어도 편의 가능성의 징후인지 평가하고, 필요 시 추정치를 전반적으로 재평가한다.  전기의 유의적 추정치 관련 판단과 가정을 소급 재검토한다."
-  },
-  {
-    "단원": 8,
-    "물음번호": 114,
-    "물음": "김회계사는 ㈜A의 외부감사업무를 수행하던 중왜곡표시를 식별하였으며 그러한 왜곡표시 가부정의 결과이거나 결과일 가능성이 있다고 판단하고 있다. 추가적인 정보를 입수한 결과 이러한 왜곡표시에 경영진이 연루되었다고 믿을 만한 이유가 있다면 감사인은 어떤 절차를 수행해야 하는가? (단, 감사인은 해당 왜곡표시의 금액적인 크기는 중요하지 않다고 판단했다.)",
-    "정답": "부정 위험 평가와 그에 대응한 절차의 성격·시기·범위에 미치는 영향을 재평가한다.  공모 가능성을 포함하여 이전 증거의 신뢰성을 다시 고려한다."
-  },
-  {
-    "단원": 8,
-    "물음번호": 115,
-    "물음": "감사인이 식별된 부정을 경영진이 연루된 부정이라고 의심하는 경우 수행해야 하는 절차를 서술하시오.",
-    "정답": "지배기구에 신속히 커뮤니케이션하고, 감사를 완료하기 위한 추가 절차의 성격·시기·범위를 논의한다."
-  },
-  {
-    "단원": 8,
-    "물음번호": 116,
-    "물음": "감사인이 부정으로 인하여 업무를 계속 수행할 수없는 예외적인 상황 세가지를 서술하시오.",
-    "정답": "기업이 부정에 대해 적절한 조치를 취하지 않는 경우.  중요하고 전반적인 부정 위험이 존재하는 것으로 판단되는 경우.  경영진 또는 지배기구의 적격성과 성실성에 심각한 우려가 있는 경우."
-  },
-  {
-    "단원": 8,
-    "물음번호": 117,
-    "물음": "김회계사는 ㈜A에 관련된 소송과 배상청구의 목록을 파악하려고 한다. 외부법률고문과직접커뮤니케이션 하기에 앞서, 소송과 배상청구를 파악하기 위해 수행할 수있는 절차세가지를 서술하시오.",
-    "정답": "경영진 및 내부 법무 등에게 질문.  지배기구 회의록과 대외 법무 문서 검토.  법률비용 계정 분석."
-  },
-  {
-    "단원": 8,
-    "물음번호": 118,
-    "물음": "감사인은 외부법률고문과의 직접적인 커뮤니케이션(변호사조회서 발송을 의미)을 통해 회사가 연관된 소송과 배상청구의 목록 및재무적 영향에 대한 추정치를 입수하였다. 감사인이 어떤 상황에서 기업의 외부 법률고문과 만날 필요가 있다고 판단할 수있는지 서술하시오.",
-    "정답": "유의적 위험이 있는 경우, 사안이 복잡한 경우, 경영진과 외부 법무 의견이 불일치하는 경우."
-  },
-  {
-    "단원": 8,
-    "물음번호": 119,
-    "물음": "기업의 내부통제 등기업과 기업환경을 이해하기 위하여 위험평가절차 및관련활동을 수행할때, 회계추정치의 중요왜곡표시위험을 식별하고 평가하는 데근거가될수있도록 이해해 야하는 사항을 서술하시오.",
-    "정답": "회계추정·공시 관련 요구사항.  추정을 필요로 하는 거래·사건의 식별 방법.  추정 도출 방법과 데이터, 관련 통제, 전문가 활용 여부, 가정, 전기 대비 변경 사유, 추정불확실성 대응 여부."
-  },
-  {
-    "단원": 8,
-    "물음번호": 120,
-    "물음": "회계추정치와 관련하여 평가된 중요왜곡표시위험에 대응할 때, 회계추정치의 성격을 고려하 여수행해야 하는 절차를 서술하시오.",
-    "정답": "후속 사건이 추정에 증거를 제공하는지 판단.  추정 도출 방법과 데이터 테스트(방법 적합성, 가정의 합리성).  필요 시 관련 통제의 운영효과성 테스트.  감사인 점추정치 또는 범위추정치 도출 및 합리적 범위로 축소."
-  },
-  {
-    "단원": 8,
-    "물음번호": 121,
-    "물음": "해 당회계추정치가 유의적인 위험을 초래하는 사항이라고 결정하였다면, (물음 120)의 절차 에추가하여 감사인이 수행해야 하는 절차를 서술하시오.",
-    "정답": "대체 가정·결과를 경영진이 어떻게 고려·기각했는지와 불확실성 대응을 확인.  유의적 가정의 합리성 평가.  경영진의 의도와 수행능력 평가."
-  },
-  {
-    "단원": 8,
-    "물음번호": 122,
-    "물음": "특수관계자의 경우에는 고유한계가 감사인의 중요한 왜곡표시를 발견하는 능력에 미치는 잠재적인 영향이 큰이유는 무엇인가?",
-    "정답": "경영진이 특수관계 및 거래를 모두 알지 못할 수 있다.  특수관계는 공모·은폐·조작의 기회를 확대할 수 있다."
-  },
-  {
-    "단원": 8,
-    "물음번호": 123,
-    "물음": "감사인은 감사 중에 기록이나 문서를 검사할 때, 경영진이 이전에 식별하지 못하였거나 감사 인에게 공개하지 않았던 특수관계나 특수관계자 거래의 존재를 나타내는 것일 수있는 약정 이나 기타정보에 대하여 주의를 유지하여야 한다. 감사인은 경영진이 이전에 식별하지 못하 였거나 감사인에게 공개하지 않았던 특수관계나 특수관계자 거래의 존재를 나타내는 것이 있는지에 대하여 특히 검사하여야 하는 사항 세가지를 서술하시오.",
-    "정답": "은행 확인서와 법률 쟁점 관련 확인서.  주주총회·지배기구 의사록.  필요하다고 판단되는 기타 기록·문서."
-  },
-  {
-    "단원": 8,
-    "물음번호": 124,
-    "물음": "만 약경영진이 이전에 식별하지 못하였거나 감사인에게 공개하지 않았던 특수관계자나 유의 적인 특수관계자 거래를 감사인이 식별하는 경우에 수행해야 하는 절차를 서술하시오.",
-    "정답": "업무팀에 신속 공유.  새로 식별된 특수관계자와 거래 전수 식별 요청 및 통제 실패 사유 질문.  해당 거래에 대한 적절한 실증절차 수행.  다른 미공개 특수관계자 존재 위험 재고려 및 추가 절차 수행.  고의 미공개 시 시사점 평가."
-  },
-  {
-    "단원": 8,
-    "물음번호": 125,
-    "물음": "감사인이 기업의 정상적인 사업과정을 벗어난 유의적인 특수관계자 거래를 식별한 경우 수행해야 하는 절차를 서술하시오.",
-    "정답": "계약·약정 검사로 사업상 이유의 부재 여부, 경영진 설명과의 일관성, 회계처리·공시의 적정성 평가.  적절한 권한·승인 증거 입수."
-  },
-  {
-    "단원": 8,
-    "물음번호": 126,
-    "물음": "감사인이 특수관계자 거래가 독립된 당사자간의 거래에 통용되는 것과 동일한 조건으로 수행되었다는 경영진의 주장의 근거를 평가하는 절차를 서술하시오.",
-    "정답": "경영진의 검증 절차의 적합성 검토.  내·외부 데이터의 원천 확인과 정확성·완전성·관련성 테스트.  근거가 되는 유의적 가정의 합리성 평가."
-  },
-  {
-    "단원": 8,
-    "물음번호": 127,
-    "물음": "부정이나 오류 여부에 관계없이 경영진이 특정의 특수관계자 거래를 해당 재무보고체계에 따라 적합하게 회계처리 또는 공시하지 아니하였을 유의적인 위험을 감사인이 평가하였을 때수행할 수있는 실증감사절차를 서술하시오.",
-    "정답": "가능하면 은행·법무법인·보증인 등 중개자에게 조회·토의.  특수관계자에게 거래 목적·조건·금액 조회.  특수관계자의 재무정보를 열람하여 상호 대사."
-  },
-  {
-    "단원": 8,
-    "물음번호": 128,
-    "물음": "감사인은 충분하고 적합한 감사증거를 입수하는 데도움이 되도록 감사인측 전문가를 활용 하기로 또는 활용하는 것이 필요하다고 결정할 수도 있다. 감사인이 감사인측 전문가의 활용 여부를 결정할 때고려할 수있는 사항을 서술하시오.",
-    "정답": "경영진이 전문가를 활용했는지 여부.  사안의 복잡성과 유의성.  해당 사안의 왜곡표시 위험.  감사인의 지식·경험과 대체 증거의 이용가능성."
-  },
-  {
-    "단원": 8,
-    "물음번호": 129,
-    "물음": "회계감사기준은 감사인이 감사인측 전문가의 해당 분야를 충분히 이해하도록 요구한다. 이러한 이유는 무엇인가?",
-    "정답": "전문가 업무의 성격·범위·목적을 감사목적에 맞게 결정하고, 그 업무의 적합성을 평가하기 위함이다."
-  },
-  {
-    "단원": 8,
-    "물음번호": 130,
-    "물음": "감사인이 감사인측 전문가 업무의 성격, 시기 및범위를 결정할 때고려할 수있는 사항을 서술하시오.",
-    "정답": "전문가 업무가 관련된 사항의 성격과 왜곡표시 위험.  감사 관점에서 해당 업무의 유의성.  이전 업무에 대한 지식·경험.  품질관리 체계 적용 여부."
-  },
-  {
-    "단원": 8,
-    "물음번호": 131,
-    "물음": "감사인이 감사인측 전문가와 (적합한 경우 문서로) 합의하여야 하는 사항에는 무엇이 있는가?",
-    "정답": "전문가 업무의 성격·범위·목적.  각자의 역할·책임.  보고서 형태 등 커뮤니케이션의 성격·시기·범위.  비밀유지 요구의 준수."
-  },
-  {
-    "단원": 8,
-    "물음번호": 132,
-    "물음": "감사인이 감사인측 전문가의 업무가 감사목적상 적합한지 평가할 때, 포함해야 할사항 세가지를 서술하시오.",
-    "정답": "발견사항·결론의 관련성·합리성과 다른 증거와의 일관성.  사용된 가정·방법의 관련성·합리성.  원천데이터의 관련성·완전성·정확성."
-  },
-  {
-    "단원": 8,
-    "물음번호": 133,
-    "물음": "감사증거로 사용될 정보가 경영진측 전문가가 수행한 업무를 이용하여 작성되었다면, 감사 인이 감사목적에 필요한 정도로 경영진측 전문가가 수행한 업무의 유의성과 관련하여 수행 하여야 하는 절차는?",
-    "정답": "전문가의 적격성·역량·객관성 평가.  수행한 업무의 이해.  관련 주장에 대한 감사증거로서 업무의 적합성 평가."
-  },
-  {
-    "단원": 8,
-    "물음번호": 134,
-    "물음": "감사인이 경영진측 전문가가 수행한 업무가 관련 경영진주장에 대한 감사증거로서 적합한지 여부를 평가할 때, 고려할 사항을 서술하시오.",
-    "정답": "발견사항·결론의 관련성·합리성 및 다른 증거와의 일관성, 재무제표 반영 여부.  유의적 가정·방법의 관련성·합리성.  원천데이터의 관련성·완전성·정확성."
-  },
-  {
-    "단원": 8,
-    "물음번호": 135,
-    "물음": "회계감사기준에 따르면 감사인은 감사관련 통제활동과 관계있는 활동 등기업이 재무보고에 대한 내부통제를 모니터링하기 위해 사용하는 주요 활동, 그리고 기업이 그러한 통제 미비점 에대해 어떻게 개선조치를 취하는지 이해해야 한다. 감사인은 A㈜가 내부감사기능을 가지 고있는 것으로 판단하였다. 내부감사기능이 감사와 관련되는지 여부를 결정하기 위해 감사 인이 이해해야 할사항을 서술하시오.",
-    "정답": "내부감사기능의 책임.  조직상태.  수행 활동의 성격."
-  },
-  {
-    "단원": 8,
-    "물음번호": 136,
-    "물음": "김회계사는 ㈜A에 내부감사기능이 존재하고, 내부감사기능이 수행한 업무가 감사목적을 위하여 활용될 수있는지 여부를 결정하려고 한다. 이경우 평가할 사항 세가지를 서술하시오.",
-    "정답": "조직 내 위상 및 독립성·객관성을 뒷받침하는 정책과 절차.  내부감사인의 적격성 수준.  품질관리 등 체계적·규율된 접근법 적용 여부."
-  },
-  {
-    "단원": 8,
-    "물음번호": 137,
-    "물음": "김회계사는 ㈜A의 내부감사기능의 업무를 활용하기로 결정하였다. 회계감사기준은 이러한 상황에서 감사인에게 감사목적에 대한 적절성을 결정하기 위해 활용하기로 계획한 내부감사 기능의 업무 전체에 대하여 충분한 감사절차를 수행할 것을 요구하고 있는데, 이때 감사인이 내부감사기능의 업무에 대하여 평가할 사항 세가지를 서술하시오.",
-    "정답": "업무의 계획·수행·감독·검토·문서화의 적정성.  충분하고 적합한 증거의 입수 여부.  결론의 적합성과 보고서의 일관성."
-  },
-  {
-    "단원": 8,
-    "물음번호": 138,
-    "물음": "회계감사기준은 일반적으로 재무제표의 중요한 금액과 공시의 결정에 직접적인 영향을 미칠 것으로 인식되는 법규조항의 준수에 관하여 충분하고 적합한 감사증거를 입수할 것을 요구 하는 것과 달리, 재무제표에 중요한 영향을 미칠 수있는 기타의 법규의 준수와 관련해서는 위반사례를 식별하는 데도움을줄수있는 특정의 감사절차만을 수행할 것을 요구하고있다. 이러한 특정의 감사절차를 서술하시오.",
-    "정답": "해당 법규 준수 여부를 경영진(필요 시 지배기구 포함)에게 질문.  인허가·규제기관과의 왕복문서가 있으면 검사한다."
-  },
-  {
-    "단원": 9,
-    "물음번호": 139,
-    "물음": "감사인이 테스트할 항목을 추출하는 데이용가능한 방법은 ① 모든 항목의 추출(전수조사), ② 특정 항목의 추출, ③ 표본감사 세가지가 있다. 통제테스트에서는 전수조사가 거의 이용 되지 않는 반면에, 세부테스트에서는 전수조사가 더일반적으로 사용된다. 전수조사가 적합 한경우에는 무엇이 있는가?",
-    "정답": "모집단이 소수의 고액 항목으로 구성된 경우.  유의적 위험이 있어 다른 방법으로 충분한 증거 확보가 어려운 경우.  시스템 자동 계산 등 반복적 처리는 전수조사가 효율적일 수 있다."
-  },
-  {
-    "단원": 9,
-    "물음번호": 140,
-    "물음": "감사인은 모집단으로부터 특정항목들을 추출하기로 결정할 수도 있다. 이러한 결정을할때관련성이 있는 요소로는 감사인의 기업에 대한 이해, 평가된 중요왜곡표시위험, 그리고 테스 트할 모집단의 특성이 포함된다. 특정 항목에 대한 판단적 추출은 비표본위험을 낳는데, 추출될 특정 항목에 대한 예시 세가지를 서술하시오.",
-    "정답": "금액이 크거나 주요한 항목.  일정 금액 이상 전부.  정보를 입수하기 유용한 항목."
-  },
-  {
-    "단원": 9,
-    "물음번호": 141,
-    "물음": "김회계사는 ㈜A의 매출채권 잔액과 관련하여 금액가중확률표본감사(PPS)를 적용하여 외부 조회를 실시하였다. 외부조회를 실시한 결과 투영된 왜곡표시와 변이왜곡표시를 합한 것이 허용왜곡표시를 초과하여, 표본은 테스트된 모집단에 관한 결론에 합리적인 근거를 제공하 지못한다고 결론을 내렸다. 이런 상황에서 취할 수있는 감사절차 두가지를 서술하시오.",
-    "정답": "경영진에게 식별된 왜곡표시 및 잠재 추가 왜곡표시에 대한 조사·수정을 요구한다.  필요한 확신을 달성하도록 추가 절차의 성격·시기·범위를 조정한다."
-  },
-  {
-    "단원": 10,
-    "물음번호": 142,
-    "물음": "감사인은 기업과 기업환경을 이해하는 과정에서 위험평가절차를 수행할 때계속기업으로서 의존속능력에 대하여 유의적 의문을 초래할 수있는 사건이나 상황이 존재하는지 여부를 고려하여야 한다. 이경우 감사인이 경영진이 이미 계속기업으로서의 존속능력에 대한 예비평 가를 수행했는지 여부에 따라 수행해야 할절차를 서술하시오.",
-    "정답": "경영진이 예비평가를 수행했다면 해당 평가와 가정을 토의한다.  수행하지 않았다면 의문을 초래할 사건·상황의 존재 여부를 질문하고, 식별 시 경영진의 계획을 확인한다.  감사 전 과정에서 관련 증거에 지속적으로 주의를 기울인다."
-  },
-  {
-    "단원": 10,
-    "물음번호": 143,
-    "물음": "회계감사기준은 감사인에게 계속기업으로서의 존속능력에 대한 경영진의 평가에 대하여, 감사인으로서 이를 평가할 것을 요구하고 있다. 감사인의 평가에 포함될 사항 네가지를 서술 하시오.",
-    "정답": "수행 절차, 기초 가정, 경영진의 향후 실행계획, 계획의 실행가능성 평가."
-  },
-  {
-    "단원": 10,
-    "물음번호": 144,
-    "물음": "계속기업으로서의 존속능력에 대하여 유의적 의문을 초래할 만한 사건이나 상황이 식별된 경우, 감사인은 계속기업으로서의 존속능력에 대하여 유의적 의문을 초래할 수있는 사건이 나상황과 관련된 중요한 불확실성이 존재하는지 여부를 결정하기 위해 추가적인 감사절차 를수행함으로써 충분하고 적합한 감사증거를 입수하여야 한다. 이러한 상황에서 회계감사 기준이 요구하고 있는 절차를 서술하시오.",
-    "정답": "경영진이 평가를 아직 하지 않았다면 평가를 수행하도록 요청한다.  경영진의 향후 실행계획이 상황을 개선할지와 실행가능성 평가.  현금흐름 예측의 데이터 신뢰성과 가정의 근거를 검토.  평가일 이후 추가 사실·정보 고려.  계획과 실행가능성에 대한 서면진술 요청."
-  },
-  {
-    "단원": 10,
-    "물음번호": 145,
-    "물음": "감사인은 해당 상황에서 경영진의 회계의 계속기업전제의 사용은 적합하나 중요한 불확실성 이존재한다고 결론을 내렸다. 이러한 상황에서 재무제표와 관련하여 결정할 사항 두가지를 서술하시오.",
-    "정답": "주요 사건·상황과 경영진의 계획이 적절히 공시되었는지 확인.  중요한 불확실성의 존재와 그 영향이 명확히 공시되었는지 확인한다."
-  },
-  {
-    "단원": 10,
-    "물음번호": 146,
-    "물음": "재무제표에 중요한 불확실성에 대한 적절한 공시가 이루어진 경우, 감사인은 적정의견을 표명한다. 이 때 “계속기업 관련 중요한 불확실성”이라는 제목의 별도 단락을 감사보고서에 포함하는 목적이자 준수할 사항을 두가지 서술하시오.",
-    "정답": "해당 주석에 이용자의 주의를 환기시키고, 중요한 불확실성이 존재함을 명시하되 의견은 변형되지 않았음을 밝힌다."
-  },
-  {
-    "단원": 10,
-    "물음번호": 147,
-    "물음": "지배기구의 모든 구성원이 그기업의 경영에 참여하고 있지 않는 한, 감사인은 계속기업으로 서의 존속능력에 유의적 의문을 초래할 수있다고 식별된 사건 또는 상황에 대하여 지배기구 와커뮤니케이션하여야 한다. 지배기구와 커뮤니케이션할 사항에 포함될 수있는 예시를 서술하시오.",
-    "정답": "중요한 불확실성 해당 여부.  계속기업 전제의 적합성.  공시의 적절성.  감사보고서에 대한 시사점."
-  },
-  {
-    "단원": 10,
-    "물음번호": 148,
-    "물음": "‘ 재무제표 승인일’, ‘재무제표 발행일’, ‘재무제표일’은 회계감사 전반에 걸쳐 매우 중요한 일자들이다. 이들의 개념에 대하여 서술하시오.",
-    "정답": "재무제표일: 보고기간 말일.  재무제표 승인일: 작성이 완료되고 책임 있는 기구가 승인한 날.  재무제표 발행일: 감사보고서와 재무제표가 제3자에게 이용 가능해진 날."
-  },
-  {
-    "단원": 10,
-    "물음번호": 149,
-    "물음": "감사인은 재무제표일과 감사보고서일 사이에 발생한 사건으로서 재무제표를 수정하거나 재무제표에 공시를 하여야 할사건들이 모두 식별되었다는 충분하고 적합한 감사증거를 입수할수있도록 설계된 감사절차를 수행하여야 한다. 회계감사기준이 감사인에게 재무제표일 부터 감사보고서일 또는 감사보고서일과 가장 가까운 실행가능한 일자까지의 기간에 대하여 요구하고 있는 절차를 서술하시오.",
-    "정답": "후속사건 식별 절차에 대한 경영진의 프로세스 이해.  영향 여부를 경영진(필요 시 지배기구 포함)에게 질문.  주주·경영진·지배기구 회의록 열람 또는 논의 사항 확인.  후속 중간재무정보 열람."
-  },
-  {
-    "단원": 10,
-    "물음번호": 150,
-    "물음": "감사인은 감사보고서일 후(혹은 재무제표 발행 후)에는 재무제표에 대하여 어떠한 감사절차 도수행할 의무가 없다. 그러나 감사인이 감사보고서일에 알았더라면 감사보고서를 수정할 원인이 될수도 있었던 사실을 감사보고서일 후재무제표 발행일 전(혹은 재무제표 발행일 후)에 알게 된경우, 감사인이 수행해야 하는 절차를 서술하시오.",
-    "정답": "경영진(필요 시 지배기구 포함)과 토의한다.  재무제표 수정 필요 여부를 결정한다.  수정 필요 시 경영진의 처리 계획을 확인한다."
-  },
-  {
-    "단원": 10,
-    "물음번호": 151,
-    "물음": "이미 감사보고서를 발행한 상태에서 수정을 요하는 후속사건이 발생하였다면, 새로운 재무제표에 대해 감사보고서를 다시 발행해야 한다. 이때 감사보고서일이 수정되어야 하며 크게 두가지 방식의 감사보고서 재발행 방식이 존재한다. 두가지 방식을 아래 양식에 맞게 기재 하시오.",
-    "정답": "(1) 단일 감사보고서일로 갱신하여 새로운 감사보고서일까지 후속사건 절차 수행.  (2) 이중 일자 방식으로 전체는 기존 일자, 특정 수정사항에 한정하여 후속 절차 종료일을 괄호로 병기."
-  },
-  {
-    "단원": 10,
-    "물음번호": 152,
-    "물음": "경영진으로부터 수령하는 서면진술의 서면진술일과 대상기간에 대하여 서술하시오.",
-    "정답": "서면진술일은 감사보고서일에 가능한 한 근접하되 늦어선 안 된다.  서면진술은 감사보고서에서 언급된 모든 재무제표와 기간을 대상으로 한다."
-  },
-  {
-    "단원": 10,
-    "물음번호": 153,
-    "물음": "경영진이 감사인이 요청한 서면진술을 하나 이상 제공하지 않는 경우 감사인이 수행하여야 하는 절차를 서술하시오.",
-    "정답": "경영진과 토의하고 성실성을 재평가한다.  경영진 진술 및 증거의 신뢰성에 미치는 영향을 고려하고, 의견에 대한 영향 포함 적절한 조치를 취한다."
-  },
-  {
-    "단원": 10,
-    "물음번호": 154,
-    "물음": "감사인은 재무제표 감사에서 지배기구와 양방향 커뮤니케이션을 수행한다. 회계감사기준에 서지배기구와 커뮤니케이션 하도록 요구되는 사항 네가지를 서술하시오.",
-    "정답": "감사인의 책임.  계획된 감사 범위와 시기.  유의적 발견사항.  감사인의 독립성(상장기업 한정)."
-  },
-  {
-    "단원": 11,
-    "물음번호": 155,
-    "물음": "감 사진행 중식별된 왜곡표시에 대하여 전반감사전략과 감사계획을 수정할 필요가 있는상황 두가지를 서술하시오.",
-    "정답": "식별된 왜곡표시가 다른 왜곡표시의 존재 가능성을 시사하고, 합산 시 중요할 수 있는 경우.  집계 왜곡표시 합계가 재무제표 전체 중요성에 근접하는 경우."
-  },
-  {
-    "단원": 11,
-    "물음번호": 156,
-    "물음": "경영진이 감사인이 커뮤니케이션한 왜곡표시의 일부 또는 전부에 대하여 수정을 거절하는 경우, 감사인이 수행해야 하는 절차를 서술하시오.",
-    "정답": "수정 거절 사유를 이해하고, 재무제표 전체의 중요한 왜곡표시 여부 평가 시 이를 고려한다."
-  },
-  {
-    "단원": 11,
-    "물음번호": 157,
-    "물음": "감사인이 감사보고서에 기재하는 ‘감사보고서일’의 정의를 서술하시오.",
-    "정답": "감사보고서일은 그 날까지 알고 있는 사건·거래의 영향을 고려했음을 알리는 날짜이며, 의견 형성에 필요한 충분하고 적합한 증거를 입수한 날보다 이를 앞당길 수 없다."
-  },
-  {
-    "단원": 11,
-    "물음번호": 158,
-    "물음": "감사인이 발행하는 감사보고서의 '감사의견근거' 단락에 기술되는 네가지 사항을 서술하시오.",
-    "정답": "감사가 기준에 따라 수행되었음을 기술.  기준에 따른 책임 단락을 언급.  독립성 및 윤리적 책임 이행을 명시.  입수한 증거가 의견의 근거로 충분·적합함을 기술."
-  },
-  {
-    "단원": 11,
-    "물음번호": 159,
-    "물음": "감사의견이 변형되는 경우에 감사의견, 감사의견근거 단락 등이 변형되는 것과 달리 '재무제 표에 대한 경영진과 지배기구의 책임' 단락은 변형되지 않는다. 이단락에 기술되는 네가지 사항을 서술하시오.",
-    "정답": "재무제표 작성 책임.  중요한 왜곡표시가 없도록 필요한 내부통제.  계속기업 평가 및 관련 공시, 계속기업 전제의 적합성 평가.  지배기구의 재무보고 감시 책임."
-  },
-  {
-    "단원": 11,
-    "물음번호": 160,
-    "물음": "핵심감사사항을 감사보고서에 커뮤니케이션함으로써 얻는 효익을 네가지 서술하시오.",
-    "정답": "감사 커뮤니케이션의 투명성 제고.  가장 유의적인 사항에 대한 추가 정보 제공.  재무제표의 유의적 경영진 판단 영역 이해에 도움.  이용자의 경영진·지배기구 관여를 촉진."
-  },
-  {
-    "단원": 11,
-    "물음번호": 161,
-    "물음": "감사인이 핵심감사사항을 결정하는 세가지 단계를 서술하시오.",
-    "정답": "지배기구와 커뮤니케이션한 사항에서 출발.  유의적 감사인 주의를 요구한 사항 결정.  그중 당기 감사에서 가장 유의적인 사항(핵심감사사항) 결정."
-  },
-  {
-    "단원": 11,
-    "물음번호": 162,
-    "물음": "감사인이 유의적감사인주의를 요구한 사항을 결정할 때, 고려해야 하는 요소 세가지를 서술 하시오.",
-    "정답": "높은 위험 또는 유의적 위험 영역.  추정불확실성이 높거나 유의적 판단이 수반된 분야.  유의적 사건·거래의 감사 영향."
-  },
-  {
-    "단원": 11,
-    "물음번호": 163,
-    "물음": "감사보고서에 핵심감사사항을 커뮤니케이션하는 경우 핵심감사사항 단락 도입문구에 포함 해야 하는 사항 두가지와 개별핵심감사사항에 기술해야 하는 사항 세가지를 서술하시오.",
-    "정답": "<도입> 핵심감사사항은 당기 감사에서 가장 유의적인 사항이며, 재무제표 전체에 대한 의견 형성 맥락에서 다루었고 별도 의견을 제공하지 않음을 명시.  <개별 기술> 관련 공시(주석) 언급, 핵심으로 결정된 이유, 감사에서 다룬 방법."
-  },
-  {
-    "단원": 11,
-    "물음번호": 164,
-    "물음": "핵심감사사항으로 결정된 사항이 감사보고서에 커뮤니케이션되지 않는 상황 두가지를 서술 하시오.",
-    "정답": "법규가 공시를 금지하는 경우.  극히 예외적으로 공익보다 부정적 결과가 훨씬 큰 경우."
-  },
-  {
-    "단원": 11,
-    "물음번호": 165,
-    "물음": "“ 감사보고서에서 핵심감사사항에 대하여 커뮤니케이션하는 것은 감사인이 재무제표 전체에 대하여 의견을 형성하는 맥락에서 이루어진다.”고 설명하며 감사보고서에서 핵심감사사항에 대하여 커뮤니케이션하는 것이 다음의 사항 네가지에 해당되는 것은 아니라고 명시하고있다. 다음의 네가지 사항을 서술하시오.",
-    "정답": "요구되는 재무제표 공시를 대체하지 않는다.  변형의견 표명을 대체하지 않는다.  계속기업 관련 중요한 불확실성 보고를 대체하지 않는다.  개별 사항에 대한 별도 의견이 아니다."
-  },
-  {
-    "단원": 11,
-    "물음번호": 166,
-    "물음": "강조사항문단, 기타사항문단의 정의를 서술하시오.",
-    "정답": "<강조사항문단> 재무제표에 표시·공시된, 이해에 근본적으로 중요한 사항에 대해 이용자 주의를 환기하기 위한 문단.  <기타사항문단> 재무제표에 표시·공시되지 않으나 해당 감사·책임·보고서 이해에 관련된 사항을 커뮤니케이션하기 위한 문단."
-  },
-  {
-    "단원": 11,
-    "물음번호": 167,
-    "물음": "강조사항문단으로 커뮤니케이션 되기 위한 두가지 전제조건을 서술하시오.",
-    "정답": "해당 사항으로 인해 의견 변형이 요구되지 않을 것.  핵심감사사항으로 결정되지 않았을 것."
-  },
-  {
-    "단원": 11,
-    "물음번호": 168,
-    "물음": "감사인이 강조사항문단을 포함시킬 필요가 있다고 고려할 수있는 상황의 예시를 네가지 서술하시오.",
-    "정답": "예외적 소송·규제의 미래 결과 불확실성.  재무제표일과 보고서일 사이 유의적 후속사건.  중요한 새 회계기준 조기 적용.  재무상태에 유의적 영향을 미친 주요 재해."
-  },
-  {
-    "단원": 11,
-    "물음번호": 169,
-    "물음": "감사인이 감사보고서에 강조사항문단을 포함시키는 경우 준수해야 할사항 세가지를 서술 하시오.",
-    "정답": "적합한 제목의 별도 단락 포함.  강조될 사항과 관련 공시 위치를 명확히 언급(주석 참조).  강조된 사항과 관련해 의견이 변형되지 않음을 명시."
-  },
-  {
-    "단원": 11,
-    "물음번호": 170,
-    "물음": "감사인이 감사보고서에 기타사항문단을 포함시키는 경우 준수해야 할사항 두가지를 서술 하시오.",
-    "정답": "적합한 제목의 별도 단락에 포함.  해당 사항이 재무제표 표시·공시 대상이 아님을 명확히 반영."
-  },
-  {
-    "단원": 11,
-    "물음번호": 171,
-    "물음": "재무제표에 계속기업 관련된 중요한 불확실성에 대한 적절한 공시가 이루어지지 않은 경우, 감사인이 수행해야 하는 절차를 서술하시오.",
-    "정답": "한정 또는 부적정 의견을 표명한다.  의견근거 단락에서 중요한 불확실성이 존재하지만 재무제표에 적절히 공시되지 않았음을 명시한다."
-  },
-  {
-    "단원": 12,
-    "물음번호": 172,
-    "물음": "그룹업무팀이 ① 그룹에 대한 개별적인 재무적 유의성으로 인하여 유의적인 부문과 ② 부문 의고유한 성격이나 환경으로 인하여 그룹재무제표에 대하여 유의적인 중요왜곡표시위험을 포함하고 있을 것같아서 유의적인 부문 그리고 ③ 유의적이지 않은 부문에 대하여 수행해야 하는 절차를 서술하시오.",
-    "정답": "재무적 유의 부문은 부문중요성을 사용해 감사를 수행.  고유 위험으로 유의적인 부문은 (a) 부문 재무정보 감사, (b) 위험 관련 특정 영역 감사, (c) 특정 절차 중 하나 이상 수행.  유의적이지 않은 부문은 그룹 수준 분석적 절차 수행."
-  },
-  {
-    "단원": 12,
-    "물음번호": 173,
-    "물음": "그룹업무팀이 중요성과 관련하여 직접 결정해야 하는 네가지 사항을 서술하시오.",
-    "정답": "그룹재무제표 전체 중요성.  특정 거래·계정·공시에 적용할 낮은 수준의 중요성.  부문중요성.  명백히 사소하지 않은 왜곡표시의 한도."
-  },
-  {
-    "단원": 12,
-    "물음번호": 174,
-    "물음": "부문감사인이 그룹감사의 목적으로 감사 또는 검토를 수행할 예정인 경우, 그룹업무팀은 부문중요성을 설정하여 부문감사인에게 커뮤니케이션 하도록 요구된다. 그룹업무팀이 이러한 부문중요성을 설정하는 목적이자, 부문중요성을 설정하는 효익은 무엇인가?",
-    "정답": "부문중요성을 그룹 전체 중요성보다 낮게 설정하여 미수정·미발견 왜곡표시의 합계가 그룹 전체 중요성을 초과할 확률을 충분히 낮춘다.  부문마다 기준은 달라질 수 있으며, 합계가 그룹 전체 중요성을 초과할 수 있다."
-  },
-  {
-    "단원": 12,
-    "물음번호": 175,
-    "물음": "부문이 법규 또는 기타의 이유로 감사를 받아야 하고 그룹업무팀이 그룹감사 목적의 감사증 거를 입수하기 위해 해당 부문 감사를 이용하기로 결정하는 경우, 그룹업무팀이 평가해야하는사항 두가지를 서술하시오.",
-    "정답": "부문재무제표 전체에 대한 중요성.  부문 수준 수행중요성."
-  },
-  {
-    "단원": 12,
-    "물음번호": 176,
-    "물음": "부문감사인이 부문중요성을 사용하는 목적에 대하여 서술하시오.",
-    "정답": "발견 왜곡표시의 중요성 평가뿐 아니라 위험 평가와 그에 대응하는 추가 절차 설계에 활용한다."
-  },
-  {
-    "단원": 12,
-    "물음번호": 177,
-    "물음": "감사인이 기본적인 그룹재무제표에 대한 감사절차를 수행한 결과 그룹감사의견의 근거가되는충분하고 적합한 감사증거를 그룹업무팀이 입수하지 못할 것이라고 생각한 경우, 추가적 으로 수행해야 하는 절차를 서술하시오.",
-    "정답": "유의적이지 않은 부문 중 일부를 추출하여 (a) 부문중요성으로 감사, (b) 부문중요성으로 검토, (c) 특정 영역 감사, (d) 특정 절차 중 하나 이상을 수행하도록 한다."
-  },
-  {
-    "단원": 12,
-    "물음번호": 178,
-    "물음": "그룹감사에서 그룹차원의 통제의 운영효과성을 테스트하는 경우 두가지를 서술하시오.",
-    "정답": "부문 업무의 성격·시기·범위를 그룹차원 통제의 효과적 운영 기대에 기초할 때.  실증절차만으로 충분한 증거가 어려운 경우."
-  },
-  {
-    "단원": 12,
-    "물음번호": 179,
-    "물음": "그룹업무팀이 부문감사인에게 부문재무정보에 대한 업무의 수행을 요청하기로 계획하는경우, 부문감사인에 대해 이해할 사항 네가지를 서술하시오.",
-    "정답": "윤리 요구와 독립성 준수 여부.  전문가적 적격성.  그룹업무팀이 필요한 만큼 관여 가능 여부.  적극적 감독 규제환경에서 업무 수행 여부."
-  },
-  {
-    "단원": 12,
-    "물음번호": 180,
-    "물음": "그룹업무팀이 부문감사인의 전문가적 적격성을 이해하는 과정에서 포함될 수있는 사항 세가지를 서술하시오.",
-    "정답": "적용되는 감사기준·기타 기준에 대한 지식.  산업 등 필요 전문기술 보유.  적용 재무보고체계에 대한 이해."
-  },
-  {
-    "단원": 12,
-    "물음번호": 181,
-    "물음": "그룹업무팀이 감사계획 단계에서 부문감사인과 커뮤니케이션해야 하는 사항을 서술하시오.",
-    "정답": "협조 확인 요청.  윤리·독립성 요구.  감사·검토 수행 시 부문중요성·한도기준.  식별된 유의적 위험.  특수관계자 목록 등 관련 정보."
-  },
-  {
-    "단원": 12,
-    "물음번호": 182,
-    "물음": "부문감사인이 유의적 부문의 재무정보에 대하여 감사를 수행하면, 그룹업무팀은 그룹재무제 표의 유의적인 중요왜곡표시위험을 식별하기 위하여 부문감사인의 위험평가에 관여하여야 한다. 그룹감사인의 이러한 관여의 성격, 시기 및범위는 부문감사인에 대한 이해 정도에 영향을 받아 달라지지만 최소한으로 포함해야 하는 사항을 서술하시오.",
-    "정답": "유의적 부문 활동에 대해 부문감사인·부문경영진과 토의.  부정·오류에 대한 취약성 토의.  식별된 유의적 위험에 관한 문서 검토."
-  },
-  {
-    "단원": 12,
-    "물음번호": 183,
-    "물음": "부문감사인이 업무를 수행하는 부문에서 그룹재무제표의 유의적인 중요왜곡표시위험이 식별된 경우, 그룹업무팀이 수행해야 하는 절차를 서술하시오.",
-    "정답": "해당 위험에 대응한 추가 절차의 적합성을 평가하고, 필요 시 그룹업무팀이 추가 절차에 직접 관여할지 여부를 결정한다."
-  },
-  {
-    "단원": 12,
-    "물음번호": 184,
-    "물음": "그룹업무팀이 감사종결 단계에서 그룹감사에 대한 그룹업무팀의 결론과 관련성이 있는 사항 을커뮤니케이션하도록 부문감사인에게 요청해야 하는 사항을 서술하시오.",
-    "정답": "윤리 요구(독립성·적격성) 준수 여부.  그룹 요구사항 준수 여부.  보고대상 부문재무정보의 식별.  법규 위반 정보.  미수정 왜곡표시 목록.  경영진 편의 징후.  유의적 내부통제 미비점.  지배기구와의 유의적 커뮤니케이션.  기타 관련 사항과 전반적 결론·의견."
-  },
-  {
-    "단원": 12,
-    "물음번호": 185,
-    "물음": "그룹업무팀은 감사종결 단계에서 그룹감사에 대한 그룹업무팀의 결론과 관련성이 있는 사항 을커뮤니케이션하고 그러한 커뮤니케이션 사항에 대해 평가해야 한다. 이경우 그룹업무팀 이수행해야 하는 절차를 서술하시오.",
-    "정답": "평가 결과 나타난 유의적 사항을 부문감사인·부문경영진·그룹경영진과 토의한다.  부문감사 문서의 관련 부분을 추가 검토할 필요성 여부를 결정한다."
-  },
-  {
-    "단원": 12,
-    "물음번호": 186,
-    "물음": "그룹업무팀이 감사종결 단계에서 부문감사인이 수행한 업무가 불충분 하다고 결정한 경우 수행해야 하는 절차를 서술하시오.",
-    "정답": "필요한 추가 절차를 결정하고, 이를 부문감사인이 수행할지 그룹업무팀이 수행할지 정한다."
-  },
-  {
-    "단원": 13,
-    "물음번호": 187,
-    "물음": "외감법에서는 일정 규모 이상의 회사에게 신뢰할 수있는 회계정보의 작성과 공시를 위하여 내부회계관리제도를 구축·운영할 것을 요구하고 있다. 내부회계관리제도와 관련하여 외감법 에서 회사의 대표자와 감사(위원회)에게 요구하고 있는 책임은 무엇이 있는지 서술하시오.",
-    "정답": "<대표이사> 내부회계관리제도의 관리·운영 책임.  내부회계관리자 지정.  매 사업연도 주총·이사회·감사(위원회)에 운영실태 보고.  <감사(위원회)> 운영실태 평가 후 이사회 보고 및 평가보고서 5년 비치, 필요 시 시정의견 포함."
-  },
-  {
-    "단원": 13,
-    "물음번호": 188,
-    "물음": "내부회계관리제도의 감사와 검토업무의 차이점을 대상회사, 확신의 수준, 의견의 종류 관점 에서 서술하시오.",
-    "정답": "감사: 일정 규모 상장·비상장에 적용, 합리적 확신, 적정·부적정·의견거절.  검토: 상대적으로 작은 상장법인, 제한적 확신, 한정·의견거절(중요 취약점 기술).  감사는 효과성에 대한 적극적(Positive) 의견, 검토는 소극적(Negative) 결론."
-  },
-  {
-    "단원": 13,
-    "물음번호": 189,
-    "물음": "감사인은 회사의 내부회계관리제도를 감사하고 「내부회계관리제도 설계 및운영 개념체계」 에따라 효과적으로 설계 및운영되는지에 관하여 의견을 표명한다. 개념체계에서 정의하는 효과적인 내부회계관리제도의 요건 두가지를 서술하시오.",
-    "정답": "각 구성요소와 관련 원칙이 존재하고 기능한다.  구성요소가 연계되어 통합적으로 운영된다."
-  },
-  {
-    "단원": 13,
-    "물음번호": 190,
-    "물음": "내부회계관리제도 감사의 전제조건이 존재하는지 여부를 확인하기 위해 감사인에게 수행하 도록 요구되는 절차를 서술하시오.",
-    "정답": "경영진이 책임을 인정·이해하고 있음을 확인(설계·운영·평가·문서화·자료 제공·접근 보장).  평가 기준일이 보고기간 말일과 일치하는지 결정."
-  },
-  {
-    "단원": 13,
-    "물음번호": 191,
-    "물음": "감사인이 잠재적 왜곡표시의 가능한 원천을 더많이 이해하기 위하여, 그리고 테스트 대상 통제를 선정하는 것의 일부로써 수행해야 하는 절차를 서술하시오.",
-    "정답": "거래 흐름(개시·승인·기록·처리·보고)을 이해.  왜곡표시 발생 지점 식별.  해당 지점에 대한 통제 식별.  자산의 승인되지 않은 취득·사용·처분을 예방·발견·수정하기 위한 통제 식별."
-  },
-  {
-    "단원": 13,
-    "물음번호": 192,
-    "물음": "내부회계관리제도 감사에서 감사인이 설계효과성 테스트, 운영효과성 테스트 수행 시사용 하는 감사기술을 서술하시오.",
-    "정답": "설계효과성: 검사, 관찰, 질문(재수행 제외).  운영효과성: 재수행, 검사, 관찰, 질문."
-  },
-  {
-    "단원": 13,
-    "물음번호": 193,
-    "물음": "내부회계관리제도 감사를 수행하고 있는 A회계법인은 발견된 통제미비점이 중요한 취약점 에해당되는지 여부에 대한 평가를 수행하고 있다. 통제미비점의 심각성을 평가하는데 영향 을미치는 요소 두가지를 서술하시오.",
-    "정답": "미비점에서 초래될 잠재적 왜곡표시의 크기.  왜곡표시의 예방 또는 발견·수정에 실패할 가능성이 낮지 않은지 여부."
-  },
-  {
-    "단원": 13,
-    "물음번호": 194,
-    "물음": "내부회계관리제도의 중요한 취약점을 나타내는 것일 수있는 상황을 서술하시오.",
-    "정답": "중요한 왜곡표시가 내부통제로 발견·수정되지 못했는데 감사 중 식별된 경우.  부정·오류로 인한 중요 왜곡표시로 재작성.  고위 경영진 부정 식별.  지배기구의 감시가 효과적이지 않음."
-  },
-  {
-    "단원": 13,
-    "물음번호": 195,
-    "물음": "감사인이 내부회계관리제도의 미비점이 중요한 취약점이 아니라고 결정하는 경우 고려해야 하는 사항을 서술하시오.",
-    "정답": "객관적인 숙련된 제3자도 동일 결론에 도달할지 고려한다.  그가 합리적 확신에 도달하지 못할 것으로 판단되면 중요한 취약점의 지표로 본다."
-  },
-  {
-    "단원": 13,
-    "물음번호": 196,
-    "물음": "내부회계관리제도 감사를 수행하며 내부회계관리제도에 대한 내부회계관리제도 운영실태보 고서의 필수 요소가 불완전하거나 부적절하게 표시되었다고 결정하는 경우(하나 이상의 중요한 취약점에 대하여 경영진에게 요구된 공시가 중요성의 관점에서 공정하게 표시되어있지않다고 결정하는 경우 포함), 감사인이 가장 먼저 취해야 하는 절차를 서술하시오.",
-    "정답": "경영진에게 내부회계관리제도 운영실태보고서의 수정을 요청한다."
-  },
-  {
-    "단원": 13,
-    "물음번호": 197,
-    "물음": "경영진이 내부회계관리제도를 설계·운영 및평가하고 감사인이 그러한 내부회계관리제도 를감사하는 데에는 다양한 기준들이 사용된다. ① 내부회계관리제도의 설계 및운영에 대한 준거기준, ② 경영진의 내부회계관리제도의 효과성을 평가하기 위한 준거기준, ③ 감사인이 내부회계관리제도의 설계 및운영의 효과성에 대한 감사를 수행하는 행위기준을 서술하시 오.(단, 각각의 기준에 대하여 구체적인 설명을 할필요는 없다.)",
-    "정답": "① 내부회계관리제도 설계 및 운영 개념체계.  ② 내부회계관리제도 평가 및 보고 모범규준.  ③ 회계감사기준(내부회계관리제도 감사)."
-  },
-  {
-    "단원": 13,
-    "물음번호": 198,
-    "물음": "감사기준서 1200(소규모기업 재무제표에 대한 감사)은 이해관계자가 많고 감사위험이 높은 상장예정 기업, 연결재무제표 작성 기업, 금융회사, 사업보고서 제출 대상 법인, 감사인 직권 지정 법인을 제외한 소규모기업에 적용하도록 하고 있다. 소규모기업 감사기준을 적용할 수있는 재무적 요건을 서술하시오.",
-    "정답": "개별(별도) 재무제표 기준 직전 연도말 자산 200억 미만 또는 직전 연도 매출 100억 미만."
-  },
-  {
-    "단원": 13,
-    "물음번호": 199,
-    "물음": "직 전회계연도 감사에서 소규모기업 감사기준을 적용하였으나 해당 회계연도 감사에서 일반 감사기준서를 적용하는 경우(그 반대의 경우 포함), 감사인이 기초잔액과 비교재무제표와 관련하여 추가 고려할 사항이나 추가 수행할 절차를 서술하시오.",
-    "정답": "기준서 변경은 해당 연도부터 전진 적용한다.  기준 변경만으로 기초잔액·비교재무제표에 대한 추가 고려나 절차는 필요하지 않다."
-  },
-  {
-    "단원": 13,
-    "물음번호": 200,
-    "물음": "소규모기업 감사기준서를 적용하여 감사를 수행하는 도중에 감사 대상 기업이 소규모기업의 재무적 요건을 충족하지 못하게 된경우, 감사인은 일반 감사기준서를 적용하여 감사를 수행 하여야 한다. 이러한 경우 감사인이 수행해야 하는 절차를 서술하시오.",
-    "정답": "감사계약서 등 업무조건을 재합의한다.  이미 수행한 위험평가·추가절차·문서화의 적정성을 평가한다.  일반 기준서 요구를 충족하도록 필요한 추가 절차와 문서화를 수행·보완한다."
   }
-]
-</script>
+]</script>
 
 <script type="module">
-  // -------- 상태 --------
+  /* ----------------------------------------------------
+   * 감린이 v3.x (머지본) - 패치 우선 반영
+   * - DB 로딩: questions.json 우선, 실패 시 dataset-json 폴백
+   * - 마이그레이션(v3 -> v3.x)
+   * - 모델 선택 / 다크 모드 / Import-Export
+   * - 랜덤 문제 / 오늘의 복습 / 이전 답안 불러오기
+   * - GA 이벤트 훅 / 에러 분기+리트라이
+   * - 현황판 확장(평균 회독/최근 학습일) + 하이라이트 안정화
+   * ---------------------------------------------------- */
+
+  // ====== 전역 상태 ======
   let allData = [];
   let currentQuizData = [];
   let currentQuestionIndex = 0;
-  // { [물음번호: string]: { score:number, feedback:string, user_answer:string } }
   let questionScores = {};
   let geminiApiKey = '';
+  let activeHintQuestionKey = null;
+  let selectedAiModel = 'gemini-2.5-flash'; // Final Draft 기본
+  let darkMode = 'system';
 
-  // [중요] 힌트는 현재 화면의 문항에서만 일시적으로 적용 → 문항 이동 시 자동 해제
-  // 힌트가 켜진 "현재 문항"의 키(물음번호). 다른 문항으로 이동하면 null로 리셋.
-  let activeHintQuestionKey = null; // ← 새로 추가
-
-  // -------- DOM --------
+  // ====== DOM 캐시 ======
   const el = {
-        toast: document.getElementById('toast'),
-    apiInline: document.getElementById('api-inline'),
-    openApiModalBtn: document.getElementById('open-api-modal-btn'),
+    toast: document.getElementById('toast'),
     apiModal: document.getElementById('api-modal'),
     apiModalInput: document.getElementById('api-modal-input'),
     apiModalRemember: document.getElementById('modal-remember'),
     apiModalSaveBtn: document.getElementById('api-save-btn'),
     apiModalCancelBtn: document.getElementById('api-cancel-btn'),
 
-    apiKeyInput: document.getElementById('api-key-input'),
-    rememberKey: document.getElementById('remember-key'),
-    apiKeyStatus: document.getElementById('api-key-status'),
+    // 헤더/설정
+    settingsBtn: document.getElementById('settings-btn'),
+    settingsModal: document.getElementById('settings-modal'),
+    settingsCloseBtn: document.getElementById('settings-close-btn'),
+    settingsCloseBtnBottom: document.getElementById('settings-close-btn-bottom'),
+    openApiKeyModalBtn: document.getElementById('open-api-key-modal-btn'),
+
+    // 설정 내 요소
+    aiModelSelect: document.getElementById('ai-model-select'),
+    darkModeSelect: document.getElementById('dark-mode-select'),
+    exportDataBtn: document.getElementById('export-data-btn'),
+    importDataBtn: document.getElementById('import-data-btn'),
+    importFileInput: document.getElementById('import-file-input'),
+
+    // 옵션/학습
     chapterSelect: document.getElementById('chapter-select'),
     filterSelect: document.getElementById('filter-select'),
     loadQuizBtn: document.getElementById('load-quiz-btn'),
+    randomQuizBtn: document.getElementById('random-quiz-btn'),
+
+    // 문제/결과
     quizArea: document.getElementById('quiz-area'),
     questionNumber: document.getElementById('question-number'),
     questionText: document.getElementById('question-text'),
@@ -1403,58 +331,26 @@
     gradeLoader: document.getElementById('grade-loader'),
     hintBtn: document.getElementById('hint-btn'),
     hintBox: document.getElementById('hint-container'),
+    loadPrevAnswerBtn: document.getElementById('load-prev-answer-btn'),
     resultBox: document.getElementById('result-box'),
     score: document.getElementById('score'),
     progressBar: document.getElementById('progress-bar'),
     aiFeedback: document.getElementById('ai-feedback'),
     correctAnswer: document.getElementById('correct-answer'),
+
+    // 현황판
     summaryArea: document.getElementById('summary-area'),
     scoreSummary: document.getElementById('score-summary'),
     clearFilterBtn: document.getElementById('clear-filter-btn'),
-    resetScoresBtn: document.getElementById('reset-scores-btn'),
-    toast: document.getElementById('toast')
+    resetScoresBtn: document.getElementById('reset-scores-btn')
   };
 
-  // -------- 유틸 --------
+  // ====== 유틸 ======
   const clamp = (v, min, max) => {
     const n = Number(v);
     if (!Number.isFinite(n)) return min;
     return Math.max(min, Math.min(max, n));
   };
-  // ===== API Key 최초 게이트 & 모달 =====
-function openApiModal(initial = false) {
-  if (initial) el.apiModalCancelBtn.classList.add('hidden');
-  else el.apiModalCancelBtn.classList.remove('hidden');
-
-  el.apiModal.classList.remove('hidden');
-  el.apiModal.classList.add('flex');
-
-  el.apiModalInput.value = geminiApiKey || '';
-  el.apiModalRemember.checked = !!localStorage.getItem('geminiApiKey');
-
-  setTimeout(() => el.apiModalInput.focus(), 0);
-}
-
-function closeApiModal() {
-  el.apiModal.classList.add('hidden');
-  el.apiModal.classList.remove('flex');
-}
-
-function ensureApiKeyGate() {
-  const savedSession = sessionStorage.getItem('geminiApiKey');
-  const savedLocal   = localStorage.getItem('geminiApiKey');
-  geminiApiKey = savedSession || savedLocal || '';
-
-  // 인라인 입력(숨김)과 상태 동기화
-  if (geminiApiKey) {
-    el.apiKeyInput.value = geminiApiKey;
-    el.rememberKey.checked = !!savedLocal;
-    return; // 이미 키 있음: 모달 띄우지 않음
-  }
-  // 키 없음: 최초 진입 모달 강제
-  openApiModal(true);
-}
-
   const sanitizeModelText = (t) => {
     let s = (t || '').trim();
     if (s.startsWith('```')) s = s.replace(/^```[\s\S]*?\n/, '').replace(/```$/, '').trim();
@@ -1465,8 +361,7 @@ function ensureApiKeyGate() {
   };
   const normId = (v) => String(v).trim();
   const toNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
-
-  const showToast = (msg, type = 'info') => {
+  function showToast(msg, type = 'info') {
     const base = 'px-4 py-2 rounded shadow text-sm mb-2';
     const color = type === 'error' ? 'bg-red-600 text-white' : type === 'warn' ? 'bg-yellow-500 text-white' : 'bg-gray-900 text-white';
     el.toast.classList.remove('hidden');
@@ -1475,78 +370,77 @@ function ensureApiKeyGate() {
     item.textContent = msg;
     el.toast.appendChild(item);
     setTimeout(() => { item.remove(); if (!el.toast.hasChildNodes()) el.toast.classList.add('hidden'); }, 3500);
-  };
-
-  // -------- 초기화 --------
-  document.addEventListener('DOMContentLoaded', () => {
-    loadData();
-    loadScores();
-    loadApiKey();
-    ensureApiKeyGate(); // 최초에만 모달 띄우기
-  });
-
-  function loadScores() {
-    const savedScores = localStorage.getItem('auditQuizScores');
-    if (savedScores) {
-      try { questionScores = JSON.parse(savedScores); }
-      catch { questionScores = {}; localStorage.removeItem('auditQuizScores'); }
-    }
   }
 
-  // API 키
-  function loadApiKey() {
-    const savedSession = sessionStorage.getItem('geminiApiKey');
-    const savedLocal = localStorage.getItem('geminiApiKey');
-    const savedKey = savedSession || savedLocal;
-    if (savedKey) {
-      el.apiKeyInput.value = savedKey;
-      geminiApiKey = savedKey;
-      el.apiKeyStatus.textContent = '저장된 API 키를 불러왔습니다.';
-      el.apiKeyStatus.classList.remove('hidden');
-      el.rememberKey.checked = !!savedLocal;
+  // ====== 다크 모드 ======
+  function applyDarkMode() {
+    const mode = localStorage.getItem('darkMode') || 'system';
+    darkMode = mode;
+    if (el.darkModeSelect) el.darkModeSelect.value = mode;
+
+    if (mode === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (mode === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else { // system
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
-    el.apiKeyInput.addEventListener('change', (e) => {
-      geminiApiKey = e.target.value.trim();
-      sessionStorage.setItem('geminiApiKey', geminiApiKey);
-      if (el.rememberKey.checked) localStorage.setItem('geminiApiKey', geminiApiKey);
-      else localStorage.removeItem('geminiApiKey');
-      el.apiKeyStatus.textContent = 'API 키가 저장되었습니다.';
-      el.apiKeyStatus.classList.remove('hidden');
-    });
-    el.rememberKey.addEventListener('change', (e) => {
-      if (e.target.checked) { if (geminiApiKey) localStorage.setItem('geminiApiKey', geminiApiKey); }
-      else { localStorage.removeItem('geminiApiKey'); }
+  }
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (darkMode === 'system') applyDarkMode();
     });
   }
 
-  // 데이터 로드
-  function loadData() {
+  // ====== 데이터 로딩: questions.json 우선, 폴백 dataset-json ======
+  async function loadData() {
+    // try fetch questions.json first
     try {
+      const res = await fetch('questions.json', { cache: 'no-store' });
+      if (!res.ok) throw new Error('questions.json not found');
+      const arr = await res.json();
+      if (!Array.isArray(arr)) throw new Error('questions.json 형식 오류');
+      allData = arr;
+    } catch (_) {
+      // fallback to embedded dataset-json
       const node = document.getElementById('dataset-json');
-      if (!node) throw new Error('내장 데이터 스크립트(#dataset-json)를 찾을 수 없습니다.');
+      if (!node) throw new Error('questions.json 로드 실패 & dataset-json 없음');
       const text = (node.textContent || '').trim();
       if (!text) throw new Error('내장 데이터가 비어 있습니다.');
       const parsed = JSON.parse(text);
       if (!Array.isArray(parsed)) throw new Error('내장 데이터 형식 오류(배열 아님)');
       allData = parsed;
-      selfTest();
-      populateChapterSelect();
-      updateSummary();
-    } catch (err) {
-      console.error(err);
-      el.questionText.textContent = '내장 JSON 데이터를 파싱하지 못했습니다. script#dataset-json 내용을 확인하세요.';
-      showToast(`JSON 파싱 실패: ${err.message}`, 'error');
     }
+
+    selfTest();
+    populateChapterSelect();
+    updateSummary();
   }
 
-  // 단원 옵션 + 랜덤
+  function selfTest() {
+    const missing = [];
+    allData.forEach((row, i) => {
+      if (!(row && '고유ID' in row && '단원' in row && '물음' in row && '정답' in row)) missing.push(i + 1);
+    });
+    if (missing.length) showToast(`경고: 필수 필드 누락 ${missing.length}개`, 'warn');
+
+    const seen = new Set(); const dup = [];
+    for (const r of allData) {
+      const key = String(r.고유ID).trim();
+      if (seen.has(key)) dup.push(key); else seen.add(key);
+    }
+    if (dup.length) showToast(`경고: 중복 고유ID ${dup.length}개 발견`, 'warn');
+
+    const uniqChapterCount = new Set(allData.map(r => String(r.단원).trim())).size;
+    if (uniqChapterCount === 0) throw new Error('단원 데이터가 없습니다.');
+  }
+
   function populateChapterSelect() {
     while (el.chapterSelect.options.length > 1) el.chapterSelect.remove(1);
-    const optRand = document.createElement('option');
-    optRand.value = 'random';
-    optRand.textContent = '랜덤(전체에서 무작위)';
-    el.chapterSelect.add(optRand);
-
     const chapters = [...new Set(allData.map(item => String(item.단원).trim()))];
     chapters.sort((a, b) => {
       const na = toNum(a), nb = toNum(b);
@@ -1563,127 +457,293 @@ function ensureApiKeyGate() {
     });
   }
 
-  // self-test
-  function selfTest() {
-    const missing = [];
-    allData.forEach((row, i) => {
-      if (!(row && '단원' in row && '물음번호' in row && '물음' in row && '정답' in row)) missing.push(i + 1);
-    });
-    if (missing.length) showToast(`경고: 필수 필드 누락 ${missing.length}개`, 'warn');
-
-    const seen = new Set(); const dup = [];
-    for (const r of allData) {
-      const key = String(r.물음번호).trim();
-      if (seen.has(key)) dup.push(key); else seen.add(key);
+  // ====== 로컬 상태 로딩 ======
+  function loadScores() {
+    const savedScores = localStorage.getItem('auditQuizScores');
+    if (savedScores) {
+      try { questionScores = JSON.parse(savedScores); }
+      catch { questionScores = {}; localStorage.removeItem('auditQuizScores'); }
     }
-    if (dup.length) showToast(`경고: 중복 물음번호 ${dup.length}개 발견`, 'warn');
-
-    const uniqChapterCount = new Set(allData.map(r => String(r.단원).trim())).size;
-    if (uniqChapterCount === 0) throw new Error('단원 데이터가 없습니다.');
+  }
+  function loadApiKey() {
+    const savedSession = sessionStorage.getItem('geminiApiKey');
+    const savedLocal = localStorage.getItem('geminiApiKey');
+    geminiApiKey = savedSession || savedLocal || '';
+  }
+  function loadSettings() {
+    selectedAiModel = localStorage.getItem('aiModel') || 'gemini-2.5-flash';
+    if (el.aiModelSelect) el.aiModelSelect.value = selectedAiModel;
   }
 
-  // 이벤트
-  el.loadQuizBtn.addEventListener('click', handleLoadQuiz);
-  el.prevBtn.addEventListener('click', () => { handlePrev(); });
-  el.nextBtn.addEventListener('click', () => { handleNext(); });
-  el.gradeBtn.addEventListener('click', handleGrade);
-  el.userAnswer.addEventListener('input', () => el.errorMessage.classList.add('hidden'));
+  // ====== 데이터 마이그레이션 (v3 → v3.x) ======
+  function migrateData() {
+    const version = localStorage.getItem('schemaVersion');
+    if (version === '2') return; // 이미 마이그레이션 완료
 
-  // 힌트: 힌트만 노출, 채점은 하지 않음. 같은 문항에서 바로 채점하면 감점.
-  el.hintBtn.addEventListener('click', () => {
-    if (currentQuizData.length === 0) return;
-    handleHint(currentQuizData[currentQuestionIndex]);
-  });
-
-  el.clearFilterBtn.addEventListener('click', () => {
-    el.filterSelect.value = 'all';
-    el.chapterSelect.value = '';
-    handleLoadQuiz();
-    showToast('필터를 해제했습니다. 모든 문제를 표시합니다.');
-  });
-
-  el.resetScoresBtn.addEventListener('click', () => {
-    if (confirm('정말로 모든 학습 기록을 초기화하시겠습니까?')) {
-      questionScores = {};
-      localStorage.removeItem('auditQuizScores');
-      updateSummary();
-      if (currentQuizData.length > 0) {
-        currentQuestionIndex = 0;
-        handleLoadQuiz();
+    try {
+      const oldScores = localStorage.getItem('auditQuizScores');
+      if (!oldScores) {
+        localStorage.setItem('schemaVersion', '2');
+        return;
       }
-      showToast('학습 기록이 초기화되었습니다.');
+
+      const parsed = JSON.parse(oldScores);
+      const newScores = {};
+      // 매핑 테이블 (표시번호/물음번호 → 고유ID)
+      const mapping = {};
+      allData.forEach(q => {
+        const disp = String(q.표시번호 ?? '').trim();
+        const num = String(q.물음번호 ?? '').trim();
+        if (disp) mapping[disp] = q.고유ID;
+        if (num) mapping[num] = q.고유ID;
+      });
+
+      // 키 변환 + 값 확장
+      Object.keys(parsed).forEach(oldKey => {
+        const newKey = mapping[oldKey] || oldKey;
+        const oldValue = parsed[oldKey] || {};
+        const hist = Array.isArray(oldValue.solveHistory) ? oldValue.solveHistory
+                    : (oldValue.score != null ? [{ date: Date.now(), score: Number(oldValue.score)||0 }] : []);
+        newScores[newKey] = {
+          score: Number(oldValue.score ?? 0),
+          feedback: String(oldValue.feedback ?? ''),
+          user_answer: String(oldValue.user_answer ?? ''),
+          hintUsed: Boolean(oldValue.hintUsed ?? false),
+          isSolved: Boolean(oldValue.isSolved ?? (oldValue.score != null)),
+          lastSolvedDate: Number(oldValue.lastSolvedDate ?? (hist.length ? hist[hist.length-1].date : Date.now())),
+          solveHistory: hist
+        };
+      });
+
+      localStorage.setItem('auditQuizScores', JSON.stringify(newScores));
+      localStorage.setItem('schemaVersion', '2');
+      questionScores = newScores;
+      showToast('데이터 마이그레이션 완료 (v3 → v3.x)', 'info');
+    } catch (err) {
+      console.error('마이그레이션 실패:', err);
+      showToast('데이터 마이그레이션 중 오류 발생', 'error');
     }
-  });
+  }
 
-  el.chapterSelect.addEventListener('change', () => {
-    handleLoadQuiz();
-    const v = el.chapterSelect.value;
-    if (v === 'random') showToast('랜덤(전체) 모드: 무작위 문제부터 시작');
-    else if (v) showToast(`단원 ${v}로 필터 적용`);
-    else showToast('전체 단원 보기');
-  });
-  el.filterSelect.addEventListener('change', handleLoadQuiz);
-  // ===== 모달 이벤트 =====
-if (el.openApiModalBtn) {
-  el.openApiModalBtn.addEventListener('click', () => openApiModal(false));
-}
+  // ====== API 키 모달 ======
+  function openApiModal(initial = false) {
+    if (initial) el.apiModalCancelBtn.classList.add('hidden');
+    else el.apiModalCancelBtn.classList.remove('hidden');
 
-if (el.apiModalSaveBtn) {
+    el.apiModal.classList.remove('hidden');
+    el.apiModal.classList.add('flex');
+
+    el.apiModalInput.value = geminiApiKey || '';
+    el.apiModalRemember.checked = !!localStorage.getItem('geminiApiKey');
+    setTimeout(() => el.apiModalInput.focus(), 0);
+  }
+  function closeApiModal() {
+    el.apiModal.classList.add('hidden');
+    el.apiModal.classList.remove('flex');
+  }
+  function ensureApiKeyGate() {
+    if (geminiApiKey) return;
+    openApiModal(true); // 최초 진입: 취소/ESC 비활성
+  }
   el.apiModalSaveBtn.addEventListener('click', () => {
     const key = (el.apiModalInput.value || '').trim();
     if (!key) { showToast('API 키를 입력하세요.', 'error'); el.apiModalInput.focus(); return; }
-
     geminiApiKey = key;
     sessionStorage.setItem('geminiApiKey', key);
     if (el.apiModalRemember.checked) localStorage.setItem('geminiApiKey', key);
     else localStorage.removeItem('geminiApiKey');
-
-    // 숨겨둔 인라인 필드와도 동기화(유지보수 편의)
-    el.apiKeyInput.value = key;
-    el.rememberKey.checked = el.apiModalRemember.checked;
-
     closeApiModal();
     showToast('API 키 저장 완료');
   });
-}
-
-if (el.apiModalCancelBtn) {
   el.apiModalCancelBtn.addEventListener('click', () => closeApiModal());
-}
+  document.addEventListener('keydown', (e) => {
+    // ESC로 API 모달 닫기: 최초 진입(initial=true)에서는 취소 버튼 hidden → 닫기 불가
+    if (e.key === 'Escape' && !el.apiModalCancelBtn.classList.contains('hidden')) {
+      if (!el.apiModal.classList.contains('hidden')) closeApiModal();
+    }
+    if (e.key === 'Escape' && !el.settingsModal.classList.contains('hidden')) {
+      closeSettingsModal();
+    }
+  });
 
-// ESC로 닫기 (초기 강제 모달일 땐 취소 버튼 숨겨져 있어 닫히지 않음)
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !el.apiModalCancelBtn.classList.contains('hidden')) {
-    if (!el.apiModal.classList.contains('hidden')) closeApiModal();
+  // ====== 설정 모달 ======
+  function openSettingsModal() {
+    el.settingsModal.classList.remove('hidden');
+    el.settingsModal.classList.add('flex');
+    // 현재 상태 반영
+    if (el.aiModelSelect) el.aiModelSelect.value = selectedAiModel;
+    if (el.darkModeSelect) el.darkModeSelect.value = darkMode;
   }
-});
+  function closeSettingsModal() {
+    el.settingsModal.classList.add('hidden');
+    el.settingsModal.classList.remove('flex');
+  }
+  el.settingsBtn.addEventListener('click', openSettingsModal);
+  el.settingsCloseBtn.addEventListener('click', closeSettingsModal);
+  el.settingsCloseBtnBottom.addEventListener('click', closeSettingsModal);
+  el.openApiKeyModalBtn.addEventListener('click', () => {
+    openApiModal(false);
+  });
 
+  // AI 모델 선택
+  el.aiModelSelect.addEventListener('change', (e) => {
+    selectedAiModel = e.target.value;
+    localStorage.setItem('aiModel', selectedAiModel);
+    showToast(`AI 모델 변경: ${selectedAiModel}`);
+  });
 
-  // 필터 적용
+  // 다크 모드 선택
+  el.darkModeSelect.addEventListener('change', (e) => {
+    localStorage.setItem('darkMode', e.target.value);
+    applyDarkMode();
+    showToast('다크 모드 설정 변경됨');
+  });
+
+  // ====== Import/Export ======
+  el.exportDataBtn.addEventListener('click', () => {
+    try {
+      const data = {
+        version: '3.x',
+        schemaVersion: Number(localStorage.getItem('schemaVersion') || 2),
+        exportDate: new Date().toISOString(),
+        auditQuizScores: questionScores,
+        geminiApiKey: localStorage.getItem('geminiApiKey') || '',
+        aiModel: selectedAiModel,
+        darkMode: darkMode
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gamlini_backup_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('데이터 내보내기 완료');
+    } catch (err) {
+      console.error(err);
+      showToast('데이터 내보내기 실패', 'error');
+    }
+  });
+  el.importDataBtn.addEventListener('click', () => el.importFileInput.click());
+  el.importFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        if (!data.auditQuizScores) throw new Error('올바른 백업 파일이 아닙니다.');
+        // 복원
+        if (data.auditQuizScores) {
+          localStorage.setItem('auditQuizScores', JSON.stringify(data.auditQuizScores));
+          questionScores = data.auditQuizScores;
+        }
+        if (data.geminiApiKey) {
+          localStorage.setItem('geminiApiKey', data.geminiApiKey);
+          geminiApiKey = data.geminiApiKey;
+        }
+        if (data.aiModel) {
+          localStorage.setItem('aiModel', data.aiModel);
+          selectedAiModel = data.aiModel;
+          el.aiModelSelect.value = data.aiModel;
+        }
+        if (data.darkMode) {
+          localStorage.setItem('darkMode', data.darkMode);
+          darkMode = data.darkMode;
+          applyDarkMode();
+        }
+        if (data.schemaVersion) {
+          localStorage.setItem('schemaVersion', String(data.schemaVersion));
+        }
+        showToast('데이터 가져오기 완료');
+        setTimeout(() => location.reload(), 800);
+      } catch (err) {
+        console.error(err);
+        showToast(`데이터 가져오기 실패: ${err.message}`, 'error');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  // ====== 필터 및 학습 시작 ======
+  el.chapterSelect.addEventListener('change', handleLoadQuiz);
+  el.filterSelect.addEventListener('change', handleLoadQuiz);
+  el.loadQuizBtn.addEventListener('click', handleLoadQuiz);
+
+  // 랜덤 문제 버튼
+  el.randomQuizBtn.addEventListener('click', () => {
+    const selectedChapter = el.chapterSelect.value;
+    const selectedFilter = el.filterSelect.value;
+
+    let filtered = allData;
+    if (selectedChapter) {
+      filtered = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
+    }
+
+    filtered = filtered.filter(q => {
+      const key = normId(q.고유ID);
+      const saved = questionScores[key];
+      if (selectedFilter === 'unanswered') return !saved;
+      if (selectedFilter === '80') return !saved || Number(saved.score) < 80;
+      if (selectedFilter === '60') return !saved || Number(saved.score) < 60;
+      if (selectedFilter === 'today-review') {
+        if (!saved) return true;
+        return Number(saved.score) < 60 || (saved.lastSolvedDate && (Date.now() - saved.lastSolvedDate > 7 * 24 * 60 * 60 * 1000));
+      }
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      showToast('선택한 조건에 맞는 문제가 없습니다.', 'warn');
+      return;
+    }
+
+    currentQuizData = filtered;
+    currentQuestionIndex = Math.floor(Math.random() * filtered.length);
+    el.quizArea.classList.remove('hidden');
+    el.summaryArea.classList.remove('hidden');
+    displayQuestion();
+    updateSummary();
+    showToast('랜덤 문제 시작!');
+  });
+
   function handleLoadQuiz() {
     const selectedChapter = el.chapterSelect.value;
     const selectedFilter = el.filterSelect.value;
 
     let filtered = allData;
-    if (selectedChapter && selectedChapter !== 'random') {
+    if (selectedChapter) {
       filtered = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
     }
 
     filtered = filtered.filter(q => {
-      const key = normId(q.물음번호);
+      const key = normId(q.고유ID);
       const saved = questionScores[key];
       if (selectedFilter === 'unanswered') return !saved;
       if (selectedFilter === '80') return !saved || Number(saved.score) < 80;
       if (selectedFilter === '60') return !saved || Number(saved.score) < 60;
+      if (selectedFilter === 'today-review') {
+        if (!saved) return true;
+        return Number(saved.score) < 60 || (saved.lastSolvedDate && (Date.now() - saved.lastSolvedDate > 7 * 24 * 60 * 60 * 1000));
+      }
       return true;
     });
 
-    currentQuizData = filtered;
-    if (selectedChapter === 'random' && currentQuizData.length > 0) {
-      currentQuestionIndex = Math.floor(Math.random() * currentQuizData.length);
-    } else {
-      currentQuestionIndex = 0;
+    if (selectedFilter === 'today-review') {
+      filtered.sort((a, b) => {
+        const aScore = questionScores[normId(a.고유ID)]?.score ?? 101;
+        const bScore = questionScores[normId(b.고유ID)]?.score ?? 101;
+        const aDate = questionScores[normId(a.고유ID)]?.lastSolvedDate ?? 0;
+        const bDate = questionScores[normId(b.고유ID)]?.lastSolvedDate ?? 0;
+        if (aScore !== bScore) return aScore - bScore;
+        return aDate - bDate;
+      });
+      filtered = filtered.slice(0, 10);
     }
+
+    currentQuizData = filtered;
+    currentQuestionIndex = 0;
 
     if (currentQuizData.length > 0) {
       el.quizArea.classList.remove('hidden');
@@ -1697,26 +757,25 @@ document.addEventListener('keydown', (e) => {
     updateSummary();
   }
 
-  // 문제 표시
+  // ====== 문제 표시 ======
   function displayQuestion() {
     if (currentQuizData.length === 0) { el.quizArea.classList.add('hidden'); return; }
     el.quizArea.classList.remove('hidden');
     const q = currentQuizData[currentQuestionIndex];
-    el.questionNumber.textContent = `물음 ${q.물음번호}`;
+    el.questionNumber.textContent = `문항 ${q.표시번호 || q.물음번호 || q.고유ID}`;
     el.questionText.textContent = q.물음;
     el.questionCounter.textContent = `${currentQuestionIndex + 1} / ${currentQuizData.length}`;
 
-    // [핵심] 문항 이동 시 힌트 자동 해제
-    activeHintQuestionKey = null;                 // ← 여기서 리셋
+    // 힌트 자동 해제
+    activeHintQuestionKey = null;
     el.hintBox.classList.add('hidden');
     el.hintBox.innerHTML = '';
 
     el.resultBox.classList.add('hidden');
-    el.userAnswer.value = '';
+    el.userAnswer.value = ''; // 항상 초기화
 
-    const saved = questionScores[normId(q.물음번호)];
-    if (saved) {
-      if (saved.user_answer) el.userAnswer.value = saved.user_answer;
+    const saved = questionScores[normId(q.고유ID)];
+    if (saved && saved.score !== undefined) {
       showResult(saved.score, saved.feedback, q.정답);
     }
 
@@ -1726,46 +785,87 @@ document.addEventListener('keydown', (e) => {
     updateSummaryHighlight();
   }
 
-  function handleNext() {
-    if (currentQuestionIndex < currentQuizData.length - 1) {
-      currentQuestionIndex++;
-      displayQuestion();
+  // ====== 이전 답안 불러오기 ======
+  el.loadPrevAnswerBtn.addEventListener('click', () => {
+    if (currentQuizData.length === 0) return;
+    const q = currentQuizData[currentQuestionIndex];
+    const saved = questionScores[normId(q.고유ID)];
+    if (saved && saved.user_answer) {
+      el.userAnswer.value = saved.user_answer;
+      showToast('이전 답안을 불러왔습니다.');
+    } else {
+      showToast('저장된 답안이 없습니다.', 'warn');
     }
-  }
-  function handlePrev() {
+  });
+
+  // ====== 네비게이션 ======
+  el.prevBtn.addEventListener('click', () => {
     if (currentQuestionIndex > 0) {
       currentQuestionIndex--;
       displayQuestion();
     }
-  }
+  });
+  el.nextBtn.addEventListener('click', () => {
+    if (currentQuestionIndex < currentQuizData.length - 1) {
+      currentQuestionIndex++;
+      displayQuestion();
+    }
+  });
+  el.userAnswer.addEventListener('input', () => el.errorMessage.classList.add('hidden'));
 
-  // 채점 (같은 문항에서 힌트 직후 채점 시 감점)
+  // ====== 채점 ======
+  el.gradeBtn.addEventListener('click', handleGrade);
+
   async function handleGrade() {
-    if (!geminiApiKey) { el.apiKeyInput.focus(); showToast('Gemini API 키를 입력해주세요.', 'error'); return; }
+    if (!geminiApiKey) {
+      openApiModal(false);
+      showToast('Gemini API 키를 입력해주세요.', 'error');
+      return;
+    }
     const answer = el.userAnswer.value.trim();
-    if (!answer) { el.errorMessage.textContent = '답안을 입력해주세요.'; el.errorMessage.classList.remove('hidden'); el.userAnswer.focus(); return; }
+    if (!answer) {
+      el.errorMessage.textContent = '답안을 입력해주세요.';
+      el.errorMessage.classList.remove('hidden');
+      el.userAnswer.focus();
+      return;
+    }
     el.errorMessage.classList.add('hidden');
 
     const q = currentQuizData[currentQuestionIndex];
-    const qKey = String(q.물음번호).trim();
+    const qKey = normId(q.고유ID);
 
     setLoading(true);
     try {
-      // 1) 원점수
       const result = await callGeminiAPI(answer, q.정답, geminiApiKey);
       let finalScore = result.score;
       let finalFeedback = result.feedback;
 
-      // 2) 같은 문항에서 힌트가 "켜져 있으면" 감점. (문항 이동하면 자동 해제되어 정상 채점)
+      // 힌트 사용 시 감점
       if (activeHintQuestionKey === qKey) {
         finalScore = Math.min(59, Math.max(0, Math.round(finalScore * 0.8)));
         finalFeedback = `${finalFeedback ? finalFeedback + ' ' : ''}(힌트사용으로 감점입니다)`;
       }
 
-      // 3) 표시/저장
       showResult(finalScore, finalFeedback, q.정답);
-      questionScores[qKey] = { score: finalScore, feedback: finalFeedback, user_answer: answer };
-      try { localStorage.setItem('auditQuizScores', JSON.stringify(questionScores)); } catch {}
+
+      // 학습 기록 저장 (v3.x 구조)
+      const existing = questionScores[qKey] || {};
+      const newHistory = [...(existing.solveHistory || [])];
+      newHistory.push({ date: Date.now(), score: finalScore });
+
+      questionScores[qKey] = {
+        score: finalScore,
+        feedback: finalFeedback,
+        user_answer: answer,
+        hintUsed: activeHintQuestionKey === qKey,
+        isSolved: true,
+        lastSolvedDate: Date.now(),
+        solveHistory: newHistory
+      };
+
+      try { localStorage.setItem('auditQuizScores', JSON.stringify(questionScores)); } catch (e) {
+        showToast('localStorage 저장 실패 (용량 초과 가능)', 'error');
+      }
 
       updateSummary();
     } catch (e) {
@@ -1793,9 +893,14 @@ document.addEventListener('keydown', (e) => {
     }
   }
 
-  // ------- Gemini API: 채점 -------
-  async function callGeminiAPI(userAnswer, correctAnswer, apiKey, retries = 3, delay = 1000) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+  // ====== Gemini API: 채점 (현행 고급 파서/리트라이 유지, 모델 동적 적용) ======
+  async function callGeminiAPI(userAnswer, correctAnswer, apiKey, retries = 2, delay = 1000) {
+    const modelMap = {
+      'gemini-2.5-flash': 'gemini-2.5-flash',
+      'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite'
+    };
+    const model = modelMap[selectedAiModel] || 'gemini-2.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
     const generationConfig = {
       responseMimeType: 'application/json',
@@ -1813,17 +918,17 @@ document.addEventListener('keydown', (e) => {
       parts: [{ text:
 `당신은 매우 엄격한 회계감사 과목 채점 교수님입니다.
 - 사용자 답안을 모범답안과 비교해 0~100의 "score"(NUMBER)와 "feedback"(STRING, 한국어)을 JSON으로만 반환하세요.
-- 채점 기준을 매우 엄격하게(strictly) 적용합니다. 
-- 대신 띄어쓰기나 맞춤법 실수 같은 단순한 타이핑실수는 봐줍니다. 또한 중요왜곡표시위험을 RMM으로 , 성격, 시기, 범위 를 성시범으로 공인회계사를 CPA로 줄여쓰는 정도의 어느정도 학습된 학습자들끼리의 수험상 합의된 언어는 봐줍니다.(대신 합의의 수준은 엄격하게, 높은 정도)
+- 채점 기준을 매우 엄격하게(strictly) 적용합니다.
+- 대신 띄어쓰기나 맞춤법 실수 같은 단순한 타이핑실수는 봐줍니다. 또한 중요왜곡표시위험을 RMM으로, 성격·시기·범위를 성시범으로, 공인회계사를 CPA로 줄여쓰는 정도의 수험상 합의된 언어는 봐줍니다.
 
 [채점 기준]
 1. 모범 답안의 핵심 키워드 포함 여부
 2. 핵심 키워드 대부분 누락: 50점 미만
 3. 일부 포함이나 설명 부정확: 50~80점
 4. 모든 핵심 키워드 + 의도 일치: 80점 이상
-5. 조사까지 동일할 때만 100점 유사도에 따라 점수 차등화. 모범 답안과 유사할수록 점수 높게
-6. 키워드는 모범답안에서 스스로 추출하되, 한국 회계감사관련 기준, 규정(한국회계감사기준(ISA보다도 우선),KSA 표준 용어,외부감사에관한법률, 공인회계사법, 자본시장법, 윤리기준)에 맞는 동의어·표현 변형을 허용한다.
-7. '물음'에서의 물음부분이 굳이 답변에 포함되지 않아도 됨. 예를들어 물음 139." 감사인이 테스트할 항목을 추출하는 데 이용가능한 방법은 ① 모든 항목의 추출(전수조사)~<중략> ~ 사용된다. 전수조사가 적합 한경우에는 무엇이 있는가?" 에서 모범답안에는 "...전수조사가 효율적일 수 있다." 로 나와 있는데 물음과 정답이 동어반복이 있으므로사용자 답안에 "전수조사가.." 정도는 빠져도 봐준다. 대신 100점은 5. 처럼 정확히 적어야 나온다.
+5. 조사까지 동일할 때만 100점
+6. 키워드는 모범답안에서 스스로 추출하되, 한국 회계감사 기준·규정(ISA, KSA, 외부감사법, 윤리기준)에 맞는 동의어·표현 변형을 허용
+7. 물음에서의 물음 부분이 굳이 답변에 포함되지 않아도 됨
 
 - 불필요한 말/코드블록 금지. JSON 객체만 반환.` }]
     };
@@ -1845,7 +950,8 @@ JSON으로 { "score": number, "feedback": string }만 반환`;
         const body = await res.json().catch(() => ({}));
         const msg = body?.error?.message || res.statusText;
         if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) throw new Error(`모델/버전 불일치: ${msg}`);
-        if (res.status === 429 || res.status >= 500) throw new Error(`API Error ${res.status}: 할당량/서버 오류`);
+        if (res.status === 429) throw new Error(`API 할당량 초과 (429)`);
+        if (res.status >= 500) throw new Error(`서버 오류 (${res.status})`);
         throw new Error(msg);
       }
       const data = await res.json();
@@ -1853,12 +959,12 @@ JSON으로 { "score": number, "feedback": string }만 반환`;
       const cleaned = sanitizeModelText(raw);
       let parsed;
       try { parsed = JSON.parse(cleaned); }
-      catch { throw new Error(`API 응답 파싱 실패. (내용: ${cleaned.substring(0, 50)}...)`); }
+      catch { throw new Error(`API 응답 파싱 실패`); }
       const scoreNum = clamp(Number(parsed.score), 0, 100);
       const feedbackStr = String(parsed.feedback || '').trim();
       return { score: scoreNum, feedback: feedbackStr || '피드백 없음' };
     } catch (err) {
-      if (retries > 0 && (String(err.message).includes('429') || String(err.message).includes('500'))) {
+      if (retries > 0 && (String(err.message).includes('429') || String(err.message).match(/^서버 오류/))) {
         await new Promise(r => setTimeout(r, delay));
         return callGeminiAPI(userAnswer, correctAnswer, apiKey, retries - 1, delay * 2);
       }
@@ -1866,16 +972,50 @@ JSON으로 { "score": number, "feedback": string }만 반환`;
     }
   }
 
-  // ------- Gemini API: 힌트 (정답 노출 없이 힌트만 생성) -------
-  async function callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, retries = 3, delay = 1000) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+  // ====== 힌트 ======
+  el.hintBtn.addEventListener('click', () => {
+    if (currentQuizData.length === 0) return;
+    handleHint(currentQuizData[currentQuestionIndex]);
+  });
+
+  async function handleHint(q) {
+    if (!geminiApiKey) {
+      openApiModal(false);
+      showToast('Gemini API 키를 입력해주세요.', 'error');
+      return;
+    }
+    const userAns = el.userAnswer.value.trim();
+    const qKey = normId(q.고유ID);
+
+    setLoading(true);
+    try {
+      const hint = await callGeminiHintAPI(userAns, q.정답, q.물음, geminiApiKey);
+      el.hintBox.innerHTML = `<strong class="font-semibold">힌트</strong><br>${String(hint || '').replace(/\n/g, '<br>')}`;
+      el.hintBox.classList.remove('hidden');
+      activeHintQuestionKey = qKey;
+      showToast('힌트를 표시했습니다. (이 문항에서 즉시 채점 시 감점)', 'warn');
+    } catch (e) {
+      console.error(e);
+      showToast(`힌트 생성 실패: ${e.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, retries = 2, delay = 1000) {
+    const modelMap = {
+      'gemini-2.5-flash': 'gemini-2.5-flash',
+      'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite'
+    };
+    const model = modelMap[selectedAiModel] || 'gemini-2.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
     const generationConfig = {
       responseMimeType: 'application/json',
       responseSchema: {
         type: 'OBJECT',
         properties: {
-          hint: { type: 'STRING',  description: '정답을 직접 말하지 않는 2~4줄 한국어 힌트' }
+          hint: { type: 'STRING', description: '정답을 직접 말하지 않는 2~4줄 한국어 힌트' }
         },
         required: ['hint']
       }
@@ -1887,7 +1027,7 @@ JSON으로 { "score": number, "feedback": string }만 반환`;
 목표: 정답을 노출하지 않고 핵심 개념을 떠올리게 만드는 힌트 제공.
 규칙:
 - 정답/조합/목록을 그대로 쓰지 마세요.
-- 2~4줄 한글 힌트, 필요 시 핵심 키워드의 방향만 암시. 
+- 2~4줄 한글 힌트, 필요 시 핵심 키워드의 방향만 암시.
 - 출력은 JSON만.` }]
     };
 
@@ -1912,7 +1052,8 @@ ${userAnswer || '(미입력)'}
         const body = await res.json().catch(() => ({}));
         const msg = body?.error?.message || res.statusText;
         if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) throw new Error(`모델/버전 불일치: ${msg}`);
-        if (res.status === 429 || res.status >= 500) throw new Error(`API Error ${res.status}: 할당량/서버 오류`);
+        if (res.status === 429) throw new Error(`API 할당량 초과 (429)`);
+        if (res.status >= 500) throw new Error(`서버 오류 (${res.status})`);
         throw new Error(msg);
       }
       const data = await res.json();
@@ -1920,11 +1061,10 @@ ${userAnswer || '(미입력)'}
       const cleaned = sanitizeModelText(raw);
       let parsed;
       try { parsed = JSON.parse(cleaned); }
-      catch { throw new Error(`API 응답 파싱 실패. (내용: ${cleaned.substring(0, 50)}...)`); }
-
+      catch { throw new Error(`API 응답 파싱 실패`); }
       return String(parsed.hint || '').trim();
     } catch (err) {
-      if (retries > 0 && (String(err.message).includes('429') || String(err.message).includes('500'))) {
+      if (retries > 0 && (String(err.message).includes('429') || String(err.message).match(/^서버 오류/))) {
         await new Promise(r => setTimeout(r, delay));
         return callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, retries - 1, delay * 2);
       }
@@ -1932,58 +1072,25 @@ ${userAnswer || '(미입력)'}
     }
   }
 
-  // 힌트 처리: 힌트만 표시. 채점은 하지 않음. 같은 문항에서 바로 채점하면 감점.
-  async function handleHint(q) {
-    if (!geminiApiKey) { el.apiKeyInput.focus(); showToast('Gemini API 키를 입력해주세요.', 'error'); return; }
-    const userAns = el.userAnswer.value.trim();
-    const qKey = normId(q.물음번호);
-
-    setLoading(true);
-    try {
-      const hint = await callGeminiHintAPI(userAns, q.정답, q.물음, geminiApiKey);
-
-      // 힌트 표시
-      el.hintBox.innerHTML = `<strong class="font-semibold">힌트</strong><br>${String(hint || '').replace(/\n/g, '<br>')}`;
-      el.hintBox.classList.remove('hidden');
-
-      // 현재 문항에만 힌트 활성화 (문항 이동 시 자동 해제)
-      activeHintQuestionKey = qKey;
-
-      showToast('힌트를 표시했습니다. (이 문항에서 즉시 채점 시 감점)', 'warn');
-    } catch (e) {
-      console.error(e);
-      showToast(`힌트 생성 실패: ${e.message}`, 'error');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // 결과 표시
+  // ====== 결과 표시 ======
   function showResult(scoreVal, feedback, correctAnswer) {
     const s = clamp(Number(scoreVal), 0, 100);
     el.score.textContent = s.toFixed(1);
     el.progressBar.style.width = `${s}%`;
     el.progressBar.setAttribute('aria-valuenow', String(Math.round(s)));
-
-    el.progressBar.classList.remove('bg-blue-600', 'bg-yellow-500', 'bg-red-500');
-    if (s < 60) el.progressBar.classList.add('bg-red-500');
-    else if (s < 80) el.progressBar.classList.add('bg-yellow-500');
-    else el.progressBar.classList.add('bg-blue-600');
-
+    el.progressBar.className = 'h-4 rounded-full transition-all duration-500 ease-out ' + (s < 60 ? 'bg-red-500' : s < 80 ? 'bg-yellow-500' : 'bg-blue-600');
     el.aiFeedback.textContent = String(feedback || '');
     el.correctAnswer.textContent = String(correctAnswer || '');
     el.resultBox.classList.remove('hidden');
   }
 
-  // 현황판 (단원별 + 평균 + 접기/펼치기)
+  // ====== 현황판 ======
   function updateSummary() {
     el.scoreSummary.innerHTML = '';
     const selectedChapter = el.chapterSelect.value;
 
     let base = allData;
-    if (selectedChapter && selectedChapter !== 'random') {
-      base = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
-    }
+    if (selectedChapter) base = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
 
     const groups = new Map();
     for (const q of base) {
@@ -2000,47 +1107,70 @@ ${userAnswer || '(미입력)'}
       return a.localeCompare(b, 'ko');
     });
 
-    const colorByScore = (sc) => {
-      if (!Number.isFinite(sc)) return { bg:'bg-gray-100', txt:'text-gray-600', bd:'border-gray-300' };
-      if (sc < 60) return { bg:'bg-red-100', txt:'text-red-700', bd:'border-red-300' };
-      if (sc < 80) return { bg:'bg-yellow-100', txt:'text-yellow-700', bd:'border-yellow-300' };
-      return { bg:'bg-green-100', txt:'text-green-700', bd:'border-green-300' };
-    };
     const _clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
     chapters.forEach(ch => {
       const list = groups.get(ch) || [];
       list.sort((a, b) => {
-        const na = Number(a.물음번호), nb = Number(b.물음번호);
+        const na = Number(a.물음번호 || a.표시번호), nb = Number(b.물음번호 || b.표시번호);
         if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
-        return String(a.물음번호).localeCompare(String(b.물음번호), 'ko');
+        return String(a.표시번호 || a.물음번호).localeCompare(String(b.표시번호 || b.물음번호), 'ko');
       });
 
       let sum = 0, cnt = 0;
+      let totalRounds = 0, roundCnt = 0;
+      let latestDate = 0;
+
       list.forEach(q => {
-        const s = questionScores[String(q.물음번호)?.trim()];
+        const s = questionScores[String(q.고유ID)?.trim()];
         if (s && Number.isFinite(Number(s.score))) { sum += Number(s.score); cnt++; }
+        if (s && s.solveHistory && s.solveHistory.length > 0) {
+          totalRounds += s.solveHistory.length; roundCnt++;
+        }
+        if (s && s.lastSolvedDate && s.lastSolvedDate > latestDate) latestDate = s.lastSolvedDate;
       });
+
       const avg = cnt ? (sum / cnt) : null;
-      const ratioText = `${cnt}/${list.length} 완료`;
+      const avgRounds = roundCnt ? (totalRounds / roundCnt) : null;
+
+      let recentText = '';
+      if (latestDate > 0) {
+        const daysDiff = Math.floor((Date.now() - latestDate) / (24 * 60 * 60 * 1000));
+        if (daysDiff === 0) recentText = '오늘';
+        else if (daysDiff === 1) recentText = '어제';
+        else recentText = `${daysDiff}일 전`;
+      } else {
+        recentText = '학습 기록 없음';
+      }
+
+      const ratioText = `응시 ${cnt}/${list.length}`;
       const avgText = (avg === null) ? '-' : avg.toFixed(1);
+      const avgRoundsText = avgRounds ? avgRounds.toFixed(1) : '-';
+
       const barW = _clamp(avg ?? 0, 0, 100);
       const barCls = (avg === null) ? 'bg-gray-300'
                    : avg < 60 ? 'bg-red-500'
                    : avg < 80 ? 'bg-yellow-500'
                    : 'bg-green-500';
 
-      // 헤더 (세로 배치)
+      // 헤더(세로배치)
       const header = document.createElement('div');
       header.className = 'px-3 py-2 rounded-md border bg-gray-50 mb-2';
 
       const title = document.createElement('div');
-      title.className = 'font-semibold';
+      title.className = 'font-semibold text-lg';
       title.textContent = Number.isFinite(Number(ch)) ? `단원 ${ch}` : ch;
 
       const meta = document.createElement('div');
-      meta.className = 'text-sm text-gray-700 mt-1';
-      meta.textContent = `평균 ${avgText}점 · ${ratioText}`;
+      meta.className = 'text-sm text-gray-700 mt-1 space-y-1';
+
+      const line1 = document.createElement('div');
+      line1.textContent = `평균 ${avgText}점 · ${ratioText}`;
+      const line2 = document.createElement('div');
+      line2.textContent = `평균 ${avgRoundsText}회독 · 최근 ${recentText}`;
+
+      meta.appendChild(line1);
+      meta.appendChild(line2);
 
       const mini = document.createElement('div');
       mini.className = 'w-28 h-2 bg-gray-200 rounded-full overflow-hidden mt-2';
@@ -2067,25 +1197,30 @@ ${userAnswer || '(미입력)'}
 
       list.forEach(q => {
         const btn = document.createElement('button');
-        btn.textContent = q.물음번호;
+        btn.textContent = q.표시번호 || q.물음번호 || q.고유ID;
         btn.classList.add('summary-btn', 'font-medium', 'rounded-lg', 'border');
 
-        const saved = questionScores[String(q.물음번호)?.trim()];
+        const saved = questionScores[String(q.고유ID)?.trim()];
         const sc = saved ? Number(saved.score) : NaN;
-        const { bg, txt, bd } = colorByScore(sc);
+        const { bg, txt, bd } =
+          !Number.isFinite(sc) ? { bg:'bg-gray-100', txt:'text-gray-600', bd:'border-gray-300' }
+          : sc < 60 ? { bg:'bg-red-100', txt:'text-red-700', bd:'border-red-300' }
+          : sc < 80 ? { bg:'bg-yellow-100', txt:'text-yellow-700', bd:'border-yellow-300' }
+                    : { bg:'bg-green-100', txt:'text-green-700', bd:'border-green-300' };
         btn.classList.add(bg, txt, bd);
+        btn.dataset.qid = String(q.고유ID).trim();
 
         btn.addEventListener('click', () => {
           el.filterSelect.value = 'all';
-          if (el.chapterSelect.value !== 'random' && el.chapterSelect.value !== ch) {
+          if (el.chapterSelect.value !== ch) {
             el.chapterSelect.value = ch;
           }
           handleLoadQuiz();
-          const idx = currentQuizData.findIndex(it => String(it.물음번호).trim() === String(q.물음번호).trim());
+          const idx = currentQuizData.findIndex(it => String(it.고유ID).trim() === String(q.고유ID).trim());
           if (idx !== -1) {
             currentQuestionIndex = idx;
             displayQuestion();
-            showToast(`'${q.물음번호}'번으로 이동했습니다.`);
+            showToast(`'${q.표시번호 || q.물음번호}'번으로 이동했습니다.`);
           } else {
             showToast('이 문항을 현재 목록에서 찾을 수 없습니다.', 'warn');
           }
@@ -2111,24 +1246,66 @@ ${userAnswer || '(미입력)'}
 
   function updateSummaryHighlight() {
     if (currentQuizData.length === 0) return;
-    const currentQ = String(currentQuizData[currentQuestionIndex].물음번호).trim();
-    const buttons = el.scoreSummary.getElementsByTagName('button');
-    for (const b of buttons) {
-      b.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2');
-      if (String(b.textContent).trim() === currentQ) b.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
+    const currentQ = String(currentQuizData[currentQuestionIndex].고유ID).trim();
+    const buttons = el.scoreSummary.querySelectorAll('button.summary-btn');
+    buttons.forEach(b => b.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2'));
+    buttons.forEach(b => {
+      if (b.dataset.qid === currentQ) {
+        b.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
+      }
+    });
+  }
+
+  // ====== 필터 해제 및 초기화 ======
+  el.clearFilterBtn.addEventListener('click', () => {
+    el.filterSelect.value = 'all';
+    el.chapterSelect.value = '';
+    handleLoadQuiz();
+    showToast('필터를 해제했습니다. 모든 문제를 표시합니다.');
+  });
+  el.resetScoresBtn.addEventListener('click', () => {
+    if (confirm('정말로 모든 학습 기록을 초기화하시겠습니까?')) {
+      questionScores = {};
+      localStorage.removeItem('auditQuizScores');
+      localStorage.removeItem('schemaVersion');
+      updateSummary();
+      if (currentQuizData.length > 0) {
+        currentQuestionIndex = 0;
+        handleLoadQuiz();
+      }
+      showToast('학습 기록이 초기화되었습니다.');
+    }
+  });
+
+  // ====== Google Analytics (선택사항) ======
+  /*
+  function trackEvent(category, action, label) {
+    if (typeof gtag !== 'undefined') {
+      gtag('event', action, {
+        'event_category': category,
+        'event_label': label
+      });
     }
   }
+  */
+
+  // ====== 초기화 ======
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      await loadData();        // questions.json → fallback dataset-json
+    } catch (err) {
+      console.error(err);
+      el.questionText.textContent = '문제 데이터 로드 실패 (questions.json 또는 dataset-json를 확인하세요).';
+      showToast(`문제 데이터 로드 실패: ${err.message}`, 'error');
+    }
+    loadScores();
+    loadApiKey();
+    loadSettings();
+    applyDarkMode();
+    migrateData();
+    ensureApiKeyGate();
+  });
 </script>
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
