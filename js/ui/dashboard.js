@@ -27,7 +27,15 @@ export function mountDashboard(store){
     const strategy = document.getElementById('v4-strategy').value;
     const list = recommend(store.get().scores, N, strategy);
     const ul = document.getElementById('v4-reco-list');
-    ul.innerHTML = list.map(it=>`<li>• ${it.id} <span class="text-gray-500">(fi:${it.fi.toFixed(2)})</span></li>`).join('');
+    ul.innerHTML = list.map(it=>`<li>• <button class="v4-reco-item underline hover:no-underline" data-id="${it.id}" title="fi:${it.fi.toFixed(2)}">${it.id}</button> <span class="text-gray-500">(fi:${it.fi.toFixed(2)})</span></li>`).join('');
+    ul.querySelectorAll('.v4-reco-item').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = btn.getAttribute('data-id');
+        // selection 갱신 (깊은 경로 생성 방지 위해 객체 전체 교체)
+        const prev = store.get().selection||{};
+        store.set('selection', { ...prev, currentId: id });
+      });
+    });
   });
 }
 
