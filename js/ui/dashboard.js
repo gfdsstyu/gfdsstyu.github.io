@@ -1,10 +1,6 @@
-// js/ui/dashboard.js
 import { recommend } from '../engine/recommend.js';
 
-export function mountDashboard(store){
-  // --- hotfix: dedupe duplicated v3.2 blocks from accidental 'accept both' merges ---
-  try{ dedupeDuplicateIds(); }catch(_){}
-
+export function mountDashboard(store) {
   const left = ensure('#v4-left');
   left.innerHTML = `
     <section class="p-4 rounded-xl border bg-white dark:bg-gray-900 dark:border-gray-800">
@@ -34,12 +30,12 @@ export function mountDashboard(store){
 
   renderCalendarMini(store.get().cache.dailyActivity, document.querySelector('#v4-cal'));
 
-  document.getElementById('v4-reco').addEventListener('click', ()=>{
-    const N = Number(document.getElementById('v4-N').value)||10;
+  document.getElementById('v4-reco').addEventListener('click', () => {
+    const N = Number(document.getElementById('v4-N').value) || 10;
     const strategy = document.getElementById('v4-strategy').value;
     const list = recommend(store.get().scores, N, strategy);
     const ul = document.getElementById('v4-reco-list');
-    if(!list || list.length===0){
+    if (!list || list.length === 0) {
       ul.innerHTML = '<li class="text-xs text-gray-500 dark:text-gray-400">학습 기록이 없거나 추천 항목이 없습니다.</li>';
       return;
     }
@@ -51,44 +47,28 @@ export function mountDashboard(store){
        </li>`
     ).join('');
 
-    ul.querySelectorAll('.v4-reco-item').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
+    ul.querySelectorAll('.v4-reco-item').forEach(btn => {
+      btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
-        const prev = store.get().selection||{};
+        const prev = store.get().selection || {};
         store.set('selection', { ...prev, currentId: id });
       });
     });
   });
 }
 
-function renderCalendarMini(activity, el){
-  const days = Object.keys(activity||{}).sort().slice(-42);
-  // square tiles (w-4 h-4) so the grid doesn't stretch bars
-  el.innerHTML = days.map(d=>{
-    const c = activity[d]?.solvedCount||0;
+function renderCalendarMini(activity, el) {
+  const days = Object.keys(activity || {}).sort().slice(-42);
+  el.innerHTML = days.map(d => {
+    const c = activity[d]?.solvedCount || 0;
     const lvl =
-      c===0 ? 'bg-gray-100 dark:bg-gray-700'
-    : c<2  ? 'bg-green-100 dark:bg-green-900'
-    : c<4  ? 'bg-green-200 dark:bg-green-800'
-    : c<6  ? 'bg-green-300 dark:bg-green-700'
-           : 'bg-green-400 dark:bg-green-600';
+      c === 0 ? 'bg-gray-100 dark:bg-gray-700'
+      : c < 2 ? 'bg-green-100 dark:bg-green-900'
+      : c < 4 ? 'bg-green-200 dark:bg-green-800'
+      : c < 6 ? 'bg-green-300 dark:bg-green-700'
+      : 'bg-green-400 dark:bg-green-600';
     return `<div title="${d}: ${c}문제" class="w-4 h-4 rounded ${lvl}"></div>`;
   }).join('');
 }
 
-function dedupeDuplicateIds(){
-  const seen = new Set();
-  const nodes = Array.from(document.querySelectorAll('[id]'));// static copy
-  for(const el of nodes){
-    if(!el.id) continue;
-    if(seen.has(el.id)){
-      // remove the closest big card if exists, else the element itself
-      const card = el.closest('.bg-white.rounded-2xl');
-      if(card && card.parentElement){ card.remove(); } else { el.remove(); }
-    } else {
-      seen.add(el.id);
-    }
-  }
-}
-
-function ensure(sel){ const n=document.querySelector(sel); if(!n) throw new Error(`missing ${sel}`); return n; }
+function ensure(sel) { const n = document.querySelector(sel); if (!n) throw new Error(`missing ${sel}`); return n; }
