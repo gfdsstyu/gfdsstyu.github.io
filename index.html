@@ -368,3 +368,1368 @@
   <script type="module" src="/js/app.js"></script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="referrer" content="same-origin" />
+  <title>감린이 - 회계감사 학습 도우미 v3.2</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Noto Sans KR', sans-serif; }
+    .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .summary-btn {
+      width: 38px; height: 38px;
+      font-size: 0.8rem; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 2px;
+      transition: all 0.2s;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .summary-btn:hover { transform: scale(1.1); }
+    pre { white-space: pre-wrap; word-wrap: break-word; }
+    #toast { position: fixed; top: 16px; right: 16px; z-index: 9999; }
+
+    /* 다크모드 스타일(기존) */
+    .dark { background-color: #1a202c; color: #e2e8f0; }
+    .dark .bg-white { background-color: #2d3748; }
+    .dark .bg-gray-100 { background-color: #1a202c; }
+    .dark .bg-gray-50 { background-color: #2d3748; }
+    .dark .text-gray-800 { color: #e2e8f0; }
+    .dark .text-gray-700 { color: #cbd5e0; }
+    .dark .text-gray-600 { color: #a0aec0; }
+    .dark .border-gray-200 { border-color: #4a5568; }
+    .dark .border-gray-300 { border-color: #4a5568; }
+  </style>
+
+  <!-- 다크모드 접근성 보강 전역 CSS -->
+  <style id="dark-a11y-20251026">
+    html.dark { color-scheme: dark; }
+    html.dark input, html.dark textarea, html.dark select {
+      background-color: #1f2937; /* gray-800 */
+      color: #e5e7eb;            /* gray-200 */
+      border-color: #4b5563;     /* gray-600 */
+    }
+    html.dark ::placeholder { color: #9ca3af; } /* gray-400 */
+    html.dark :is(button, a, input, textarea, select):focus-visible {
+      outline: 2px solid #60a5fa; /* sky-400 */
+      outline-offset: 2px;
+    }
+    /* 진행바 트랙/결과/힌트/현황판 대비 */
+    html.dark .progress-track { background-color: #374151; } /* gray-700 */
+    html.dark #result-box { background-color: #1f2937; border-color: #374151; }
+    html.dark #quiz-area .bg-gray-50 { background-color: #111827; }
+    html.dark #quiz-area .border-gray-200 { border-color: #374151; }
+    html.dark #hint-container { background-color: #1e3a8a; border-color: #334155; color: #e0e7ff; }
+    html.dark #summary-area .border { border-color: #374151; }
+    html.dark #summary-area .bg-gray-50 { background-color: #111827; }
+    html.dark .summary-btn.bg-gray-100 { background-color:#111827; color:#d1d5db; border-color:#374151; }
+    html.dark .summary-btn.bg-red-100   { background-color:#7f1d1d; color:#fecaca; border-color:#991b1b; }
+    html.dark .summary-btn.bg-yellow-100{ background-color:#78350f; color:#fde68a; border-color:#92400e; }
+    html.dark .summary-btn.bg-green-100 { background-color:#14532d; color:#bbf7d0; border-color:#166534; }
+  </style>
+</head>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+  <div id="toast" class="hidden"></div>
+
+  <!-- ========== [A] 상단 네비게이션 바 ========== -->
+  <header id="fixed-header" class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200 dark:bg-gray-900/80 dark:border-gray-800">
+    <div class="mx-auto max-w-4xl px-4 py-2 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-xl font-extrabold tracking-tight text-blue-700 dark:text-blue-400">감린이</span>
+        <span class="hidden sm:inline text-xs text-gray-500 dark:text-gray-400">회계감사 암기 도우미 v3.2</span>
+      </div>
+      <nav class="flex items-center gap-2">
+        <a id="help-button" href="README.html" target="_blank" class="hidden sm:inline text-sm text-gray-700 hover:text-blue-700 dark:text-gray-300 dark:hover:text-white">도움말</a>
+        <button id="settings-btn" class="ml-1 inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600" aria-haspopup="dialog">
+          <span>설정</span><span aria-hidden>⚙️</span>
+        </button>
+        <button id="hamburger" class="sm:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600" aria-label="메뉴">≡</button>
+      </nav>
+    </div>
+  </header>
+  <div class="h-14"></div><!-- 상단바 공간 확보 -->
+
+  <!-- 메인 컨텐츠 -->
+  <div class="pt-2 flex-1 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-6 md:p-8">
+
+      <!-- 옵션 -->
+      <div class="flex flex-col md:flex-row gap-4 mb-6 items-center">
+        <div class="flex-1 w-full">
+          <label for="chapter-select" class="block text-sm font-medium text-gray-700 mb-1">단원 선택</label>
+          <select id="chapter-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
+            <option value="">-- 전체 단원 --</option>
+          </select>
+        </div>
+        <div class="flex-1 w-full">
+          <label for="filter-select" class="block text-sm font-medium text-gray-700 mb-1">문제 필터</label>
+          <select id="filter-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
+            <option value="all">모든 문제 풀기</option>
+            <option value="unanswered">아직 안 푼 문제</option>
+            <option value="today-review">오늘의 복습 (추천)</option>
+            <option value="80">80점 미만 문제</option>
+            <option value="60">60점 미만 문제</option>
+          </select>
+        </div>
+        <div class="w-full md:w-auto md:self-end flex gap-2">
+          <button id="load-quiz-btn" class="flex-1 bg-blue-600 text-white font-bold p-3 rounded-lg shadow-md hover:bg-blue-700 transition duration-200">학습 시작</button>
+          <button id="random-quiz-btn" class="flex-1 bg-purple-600 text-white font-bold p-3 rounded-lg shadow-md hover:bg-purple-700 transition duration-200">랜덤 문제</button>
+        </div>
+      </div>
+
+      <!-- 문제 영역 -->
+      <div id="quiz-area" class="hidden">
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-4">
+          <div class="flex justify-between items-center mb-4">
+            <h2 id="question-number" class="text-xl font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-md">문항</h2>
+            <span id="question-counter" class="text-gray-500 font-medium">0 / 0</span>
+          </div>
+          <p id="question-text" class="text-gray-800 text-base md:text-lg leading-relaxed">문제를 불러오는 중입니다...</p>
+
+          <!-- 힌트 버튼 -->
+          <div class="mt-3 flex items-center justify-end">
+            <button id="hint-btn" class="text-sm bg-purple-600 text-white px-3 py-1.5 rounded-md shadow hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">
+              힌트
+            </button>
+          </div>
+
+          <!-- 힌트 박스 -->
+          <div id="hint-container" class="hidden mt-3 text-sm bg-purple-50 border border-purple-200 text-purple-800 rounded-lg p-3 dark:bg-indigo-900 dark:border-indigo-700 dark:text-indigo-100"></div>
+        </div>
+
+        <div class="flex items-center justify-between mb-2">
+          <label for="user-answer" class="text-sm font-medium text-gray-700">답안 입력</label>
+          <button id="load-prev-answer-btn" class="text-xs text-blue-600 hover:underline">이전 답안 불러오기</button>
+        </div>
+        <textarea id="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요..."></textarea>
+        <p id="error-message" class="text-red-500 text-sm mt-2 hidden">답안을 입력해주세요.</p>
+
+        <div class="flex justify-between items-center my-5">
+          <button id="prev-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600">이전</button>
+          <button id="grade-btn" class="bg-green-500 text-white font-bold py-2 px-8 rounded-lg shadow-md hover:bg-green-600 transition duration-200 relative min-w-[120px]">
+            <span id="grade-btn-text">채점하기</span>
+            <div id="grade-loader" class="loader absolute inset-0 m-auto hidden" aria-hidden="true"></div>
+          </button>
+          <button id="next-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600">다음</button>
+        </div>
+      </div>
+
+      <!-- 결과 영역 -->
+      <div id="result-box" class="hidden bg-gray-50 border border-gray-200 rounded-lg p-6 mt-6 dark:bg-gray-800 dark:border-gray-700" aria-live="polite">
+        <h3 class="text-2xl font-bold text-gray-800 mb-4">채점 결과</h3>
+
+        <div id="score-display" class="mb-5">
+          <p class="text-lg font-medium text-gray-700">
+            유사도 점수: <span id="score" class="font-bold text-blue-600 text-2xl">0</span><span class="text-gray-600 text-lg">점</span>
+          </p>
+          <div class="w-full bg-gray-200 progress-track rounded-full h-4 mt-2 overflow-hidden shadow-inner">
+            <div id="progress-bar" class="h-4 rounded-full transition-all duration-500 ease-out" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="mb-5">
+          <h4 class="text-xl font-semibold text-gray-700 mb-2">🤖 AI 총평</h4>
+          <div id="ai-feedback" class="bg-white p-4 border border-gray-200 rounded-lg text-gray-600 leading-relaxed min-h-[50px]"></div>
+        </div>
+
+        <div>
+          <h4 class="text-xl font-semibold text-gray-700 mb-2">📘 모범 답안</h4>
+          <pre id="correct-answer" class="bg-white p-4 border border-gray-200 rounded-lg text-gray-600 text-sm font-sans leading-relaxed"></pre>
+        </div>
+      </div>
+
+      <!-- 학습 현황판 -->
+      <div id="summary-area" class="mt-8 pt-6 border-t hidden">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xl font-bold text-gray-800">학습 현황판 (클릭하여 이동)</h3>
+          <div class="flex gap-4">
+            <button id="clear-filter-btn" class="text-sm text-blue-700 hover:underline dark:text-blue-300">필터 해제</button>
+            <button id="reset-scores-btn" class="text-sm text-red-600 hover:underline dark:text-red-300">학습 기록 초기화</button>
+          </div>
+        </div>
+        <div id="score-summary" class="flex flex-wrap gap-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== API 키 최초 인증 모달 ========== -->
+  <div id="api-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1000]">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
+      <h2 class="text-xl font-bold text-gray-800">Gemini API 키 인증</h2>
+      <p class="text-sm text-gray-600 mt-1">
+        최초 1회만 입력합니다. 로컬 저장을 체크하면 다음부터는 팝업이 뜨지 않습니다.
+      </p>
+      <p class="text-sm mt-2">
+        처음 사용하시나요?
+        <a href="README.html" target="_blank" rel="noopener" class="underline text-blue-600 dark:text-blue-300">도움말(README)</a>를 확인하세요.
+      </p>
+
+      <label for="api-modal-input" class="block text-sm font-medium text-gray-700 mt-4">🔑 API Key</label>
+      <input type="password" id="api-modal-input"
+             class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700"
+             placeholder="Google AI Studio API 키" autocomplete="off" spellcheck="false" inputmode="text" />
+
+      <div class="flex items-center gap-2 mt-2">
+        <input type="checkbox" id="modal-remember" class="rounded border-gray-300" />
+        <label for="modal-remember" class="text-sm text-gray-700">이 브라우저에 키 저장</label>
+      </div>
+      <p class="text-xs text-yellow-600 mt-1">⚠️ 공용 PC에서는 체크 해제를 권장합니다.</p>
+
+      <div class="mt-5 flex justify-end gap-2">
+        <button id="api-cancel-btn" class="px-3 py-2 text-sm text-gray-600 hover:text-gray-900">취소</button>
+        <button id="api-save-btn" class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700">
+          저장
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== [B] 설정 모달 ========== -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1001]">
+    <div role="dialog" aria-modal="true" aria-labelledby="settings-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-2xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-2">
+        <h2 id="settings-title" class="text-2xl font-bold">설정 ⚙️</h2>
+        <button id="settings-close-btn" class="text-gray-500 hover:text-gray-800 dark:hover:text-white" aria-label="닫기">✕</button>
+      </div>
+
+      <!-- API 키 설정 -->
+      <div class="mb-6 pb-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">API 키 설정</h3>
+        <button id="open-api-key-modal-btn" class="w-full bg-blue-50 border border-blue-300 text-blue-700 font-medium py-2 px-4 rounded-lg hover:bg-blue-100 transition">
+          API 키 변경/설정
+        </button>
+      </div>
+
+      <!-- AI 모델 선택 -->
+      <div class="mb-6 pb-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">AI 모델 선택</h3>
+        <select id="ai-model-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700">
+          <option value="gemini-2.5-flash">Gemini 2.5 Flash (기본)</option>
+          <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (경량)</option>
+        </select>
+        <p class="text-xs text-gray-500 mt-2">힌트 및 채점에 사용될 AI 모델을 선택하세요.</p>
+      </div>
+
+      <!-- 다크 모드 -->
+      <div class="mb-6 pb-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">다크 모드</h3>
+        <select id="dark-mode-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700">
+          <option value="system">시스템 설정 (기본)</option>
+          <option value="light">라이트 모드</option>
+          <option value="dark">다크 모드</option>
+        </select>
+      </div>
+
+      <!-- 데이터 Import/Export -->
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">데이터 관리</h3>
+        <div class="flex gap-3">
+          <button id="export-data-btn" class="flex-1 bg-green-50 border border-green-300 text-green-700 font-medium py-2 px-4 rounded-lg hover:bg-green-100 transition">
+            📥 데이터 내보내기
+          </button>
+          <button id="import-data-btn" class="flex-1 bg-yellow-50 border border-yellow-300 text-yellow-700 font-medium py-2 px-4 rounded-lg hover:bg-yellow-100 transition">
+            📤 데이터 가져오기
+          </button>
+        </div>
+        <input type="file" id="import-file-input" accept=".json" class="hidden" />
+        <p class="text-xs text-gray-500 mt-2">학습 기록 및 설정을 백업하거나 복원할 수 있습니다.</p>
+      </div>
+
+      <!-- 닫기 버튼 -->
+      <div class="flex justify-end">
+        <button id="settings-close-btn-bottom" class="px-6 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600">
+          닫기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 내장 데이터(JSON) ========== -->
+  <script id="dataset-json" type="application/json">[
+  {
+    "고유ID": "q_001",
+    "표시번호": "1",
+    "출처": "ISA 200-A54",
+    "problemTitle": "",
+    "단원": 1,
+    "물음번호": 1,
+    "물음": "회계감사에는 고유한계가 존재하며, 감사인의 결론도출과 의견표명의 기초가 되는 대부분의 감사증거는 결정적 증거이기 보다는 설득적 증거이기 때문에 회계감사를 통해 재무제표에 부정이 나오류로 인한 중요한 왜곡표시가 없다는 절대적 확신은 얻을 수없다. 이러한 회계감사의 고유한계의 원인을 세가지만 기재하시오.",
+    "정답": "① 재무보고의 성격 ② 감사절차의 성격 ③ 합리적인 시간 내에 합리적인 비용으로 감사가 수행될 필요성"
+  },
+  {
+    "고유ID": "q_002",
+    "표시번호": "2",
+    "출처": "ISA 200-A51",
+    "problemTitle": "",
+    "단원": 1,
+    "물음번호": 2,
+    "물음": "회계감사기준은 감사를 계획하고 수행할 때재무보고의 적시성 및효익과 비용간의 균형을 고려할 것을 규정하고 있다. 따라서 감사인은 무한한 정도의 감사절차를 수행함으로써 절대적 확신을 제공하려는 감사절차를 수행하기 보다는 재무보고 이용자들의 요구수준을 충족할 수있는 정도의 감사절차를 수행할 수있다. 이와 같이 감사인이 재무보고의 적시성 및효익과 비용의 균형을 고려하여 채택하고 있는 감사절차에는 어떤 것이 있는지 세가지를 서술하시오.",
+    "정답": "ISA 200-A51 ① 감사가 효과적으로 수행될 수있도록 계획함 ② 부정이나 오류로 인한 중요왜곡표시위험이 포함될 것으로 가장 높게 예상되는 분야에 감사노력을 집중하고, 그렇지 아니한 다른 분야에는 상대적으로 적은 노력을 기울임 ③ 모집단의 왜곡표시를 조사하기 위해 테스트나 기타 수단을 사용함"
+  }
+]</script>
+
+<script type="module">
+  /* ----------------------------------------------------
+   * 감린이 v3.x (통합 패치)
+   * - 즉시 수정: 이전답안 토글, 다크 가독성, API 모달 UX
+   * - 다크 A11y 보강, 현황판 표시번호만 표기(+툴팁/폰트 보정)
+   * - DB 로딩: questions.json → dataset-json 폴백
+   * ---------------------------------------------------- */
+
+  // ====== 전역 상태 ======
+  let allData = [];
+  let currentQuizData = [];
+  let currentQuestionIndex = 0;
+  let questionScores = {};
+  let geminiApiKey = '';
+  let activeHintQuestionKey = null;
+  let selectedAiModel = 'gemini-2.5-flash'; // Final Draft 기본
+  let darkMode = 'system';
+  let prevLoaded = false; // 이전답안 토글 상태
+
+  // ====== DOM 캐시 ======
+  const el = {
+    toast: document.getElementById('toast'),
+    apiModal: document.getElementById('api-modal'),
+    apiModalInput: document.getElementById('api-modal-input'),
+    apiModalRemember: document.getElementById('modal-remember'),
+    apiModalSaveBtn: document.getElementById('api-save-btn'),
+    apiModalCancelBtn: document.getElementById('api-cancel-btn'),
+
+    // 헤더/설정
+    settingsBtn: document.getElementById('settings-btn'),
+    settingsModal: document.getElementById('settings-modal'),
+    settingsCloseBtn: document.getElementById('settings-close-btn'),
+    settingsCloseBtnBottom: document.getElementById('settings-close-btn-bottom'),
+    openApiKeyModalBtn: document.getElementById('open-api-key-modal-btn'),
+
+    // 설정 내 요소
+    aiModelSelect: document.getElementById('ai-model-select'),
+    darkModeSelect: document.getElementById('dark-mode-select'),
+    exportDataBtn: document.getElementById('export-data-btn'),
+    importDataBtn: document.getElementById('import-data-btn'),
+    importFileInput: document.getElementById('import-file-input'),
+
+    // 옵션/학습
+    chapterSelect: document.getElementById('chapter-select'),
+    filterSelect: document.getElementById('filter-select'),
+    loadQuizBtn: document.getElementById('load-quiz-btn'),
+    randomQuizBtn: document.getElementById('random-quiz-btn'),
+
+    // 문제/결과
+    quizArea: document.getElementById('quiz-area'),
+    questionNumber: document.getElementById('question-number'),
+    questionText: document.getElementById('question-text'),
+    questionCounter: document.getElementById('question-counter'),
+    userAnswer: document.getElementById('user-answer'),
+    errorMessage: document.getElementById('error-message'),
+    prevBtn: document.getElementById('prev-btn'),
+    nextBtn: document.getElementById('next-btn'),
+    gradeBtn: document.getElementById('grade-btn'),
+    gradeBtnText: document.getElementById('grade-btn-text'),
+    gradeLoader: document.getElementById('grade-loader'),
+    hintBtn: document.getElementById('hint-btn'),
+    hintBox: document.getElementById('hint-container'),
+    loadPrevAnswerBtn: document.getElementById('load-prev-answer-btn'),
+    resultBox: document.getElementById('result-box'),
+    score: document.getElementById('score'),
+    progressBar: document.getElementById('progress-bar'),
+    aiFeedback: document.getElementById('ai-feedback'),
+    correctAnswer: document.getElementById('correct-answer'),
+
+    // 현황판
+    summaryArea: document.getElementById('summary-area'),
+    scoreSummary: document.getElementById('score-summary'),
+    clearFilterBtn: document.getElementById('clear-filter-btn'),
+    resetScoresBtn: document.getElementById('reset-scores-btn')
+  };
+
+  // ====== 유틸 ======
+  const clamp = (v, min, max) => {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return min;
+    return Math.max(min, Math.min(max, n));
+  };
+  const sanitizeModelText = (t) => {
+    let s = (t || '').trim();
+    if (s.startsWith('```')) s = s.replace(/^```[\s\S]*?\n/, '').replace(/```$/, '').trim();
+    s = s.replace(/^\uFEFF/, '');
+    const start = s.indexOf('{'), end = s.lastIndexOf('}');
+    if (start !== -1 && end !== -1 && end > start) s = s.slice(start, end + 1);
+    return s;
+  };
+  const normId = (v) => String(v).trim();
+  const toNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+  function showToast(msg, type = 'info') {
+    const base = 'px-4 py-2 rounded shadow text-sm mb-2';
+    const color = type === 'error' ? 'bg-red-600 text-white' : type === 'warn' ? 'bg-yellow-500 text-white' : 'bg-gray-900 text-white';
+    el.toast.classList.remove('hidden');
+    const item = document.createElement('div');
+    item.className = `${base} ${color}`;
+    item.textContent = msg;
+    el.toast.appendChild(item);
+    setTimeout(() => { item.remove(); if (!el.toast.hasChildNodes()) el.toast.classList.add('hidden'); }, 3500);
+  }
+
+  // ====== 다크 모드 ======
+  function applyDarkMode() {
+    const mode = localStorage.getItem('darkMode') || 'system';
+    darkMode = mode;
+    if (el.darkModeSelect) el.darkModeSelect.value = mode;
+
+    if (mode === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (mode === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (darkMode === 'system') applyDarkMode();
+    });
+  }
+
+  // ====== 데이터 로딩: questions.json → dataset-json ======
+  async function loadData() {
+    try {
+      const res = await fetch('questions.json', { cache: 'no-store' });
+      if (!res.ok) throw new Error('questions.json not found');
+      const arr = await res.json();
+      if (!Array.isArray(arr)) throw new Error('questions.json 형식 오류');
+      allData = arr;
+    } catch (_) {
+      const node = document.getElementById('dataset-json');
+      if (!node) throw new Error('questions.json 로드 실패 & dataset-json 없음');
+      const text = (node.textContent || '').trim();
+      if (!text) throw new Error('내장 데이터가 비어 있습니다.');
+      const parsed = JSON.parse(text);
+      if (!Array.isArray(parsed)) throw new Error('내장 데이터 형식 오류(배열 아님)');
+      allData = parsed;
+    }
+
+    selfTest();
+    populateChapterSelect();
+    updateSummary();
+  }
+
+  function selfTest() {
+    const missing = [];
+    allData.forEach((row, i) => {
+      if (!(row && '고유ID' in row && '단원' in row && '물음' in row && '정답' in row)) missing.push(i + 1);
+    });
+    if (missing.length) showToast(`경고: 필수 필드 누락 ${missing.length}개`, 'warn');
+
+    const seen = new Set(); const dup = [];
+    for (const r of allData) {
+      const key = String(r.고유ID).trim();
+      if (seen.has(key)) dup.push(key); else seen.add(key);
+    }
+    if (dup.length) showToast(`경고: 중복 고유ID ${dup.length}개 발견`, 'warn');
+
+    const uniqChapterCount = new Set(allData.map(r => String(r.단원).trim())).size;
+    if (uniqChapterCount === 0) throw new Error('단원 데이터가 없습니다.');
+  }
+
+  function populateChapterSelect() {
+    while (el.chapterSelect.options.length > 1) el.chapterSelect.remove(1);
+    const chapters = [...new Set(allData.map(item => String(item.단원).trim()))];
+    chapters.sort((a, b) => {
+      const na = toNum(a), nb = toNum(b);
+      if (na !== null && nb !== null) return na - nb;
+      if (na !== null) return -1;
+      if (nb !== null) return 1;
+      return a.localeCompare(b, 'ko');
+    });
+    chapters.forEach(ch => {
+      const opt = document.createElement('option');
+      opt.value = ch;
+      opt.textContent = Number.isFinite(Number(ch)) ? `단원 ${ch}` : ch;
+      el.chapterSelect.appendChild(opt);
+    });
+  }
+
+  // ====== 로컬 상태 로딩 ======
+  function loadScores() {
+    const savedScores = localStorage.getItem('auditQuizScores');
+    if (savedScores) {
+      try { questionScores = JSON.parse(savedScores); }
+      catch { questionScores = {}; localStorage.removeItem('auditQuizScores'); }
+    }
+  }
+  function loadApiKey() {
+    const savedSession = sessionStorage.getItem('geminiApiKey');
+    const savedLocal = localStorage.getItem('geminiApiKey');
+    geminiApiKey = savedSession || savedLocal || '';
+  }
+  function loadSettings() {
+    selectedAiModel = localStorage.getItem('aiModel') || 'gemini-2.5-flash';
+    if (el.aiModelSelect) el.aiModelSelect.value = selectedAiModel;
+  }
+
+  // ====== 데이터 마이그레이션 (v3 → v3.x) ======
+  function migrateData() {
+    const version = localStorage.getItem('schemaVersion');
+    if (version === '2') return;
+
+    try {
+      const oldScores = localStorage.getItem('auditQuizScores');
+      if (!oldScores) {
+        localStorage.setItem('schemaVersion', '2');
+        return;
+      }
+
+      const parsed = JSON.parse(oldScores);
+      const newScores = {};
+      const mapping = {};
+      allData.forEach(q => {
+        const disp = String(q.표시번호 ?? '').trim();
+        const num = String(q.물음번호 ?? '').trim();
+        if (disp) mapping[disp] = q.고유ID;
+        if (num) mapping[num] = q.고유ID;
+      });
+
+      Object.keys(parsed).forEach(oldKey => {
+        const newKey = mapping[oldKey] || oldKey;
+        const oldValue = parsed[oldKey] || {};
+        const hist = Array.isArray(oldValue.solveHistory) ? oldValue.solveHistory
+                    : (oldValue.score != null ? [{ date: Date.now(), score: Number(oldValue.score)||0 }] : []);
+        newScores[newKey] = {
+          score: Number(oldValue.score ?? 0),
+          feedback: String(oldValue.feedback ?? ''),
+          user_answer: String(oldValue.user_answer ?? ''),
+          hintUsed: Boolean(oldValue.hintUsed ?? false),
+          isSolved: Boolean(oldValue.isSolved ?? (oldValue.score != null)),
+          lastSolvedDate: Number(oldValue.lastSolvedDate ?? (hist.length ? hist[hist.length-1].date : Date.now())),
+          solveHistory: hist
+        };
+      });
+
+      localStorage.setItem('auditQuizScores', JSON.stringify(newScores));
+      localStorage.setItem('schemaVersion', '2');
+      questionScores = newScores;
+      showToast('데이터 마이그레이션 완료 (v3 → v3.x)', 'info');
+    } catch (err) {
+      console.error('마이그레이션 실패:', err);
+      showToast('데이터 마이그레이션 중 오류 발생', 'error');
+    }
+  }
+
+  // ====== API 키 모달 ======
+  function openApiModal(initial = false) {
+    if (initial) el.apiModalCancelBtn.classList.add('hidden');
+    else el.apiModalCancelBtn.classList.remove('hidden');
+
+    el.apiModal.classList.remove('hidden');
+    el.apiModal.classList.add('flex');
+
+    el.apiModalInput.value = geminiApiKey || '';
+    el.apiModalRemember.checked = !!localStorage.getItem('geminiApiKey');
+    setTimeout(() => el.apiModalInput.focus(), 0);
+  }
+  function closeApiModal() {
+    el.apiModal.classList.add('hidden');
+    el.apiModal.classList.remove('flex');
+  }
+  function ensureApiKeyGate() {
+    if (geminiApiKey) return;
+    openApiModal(true);
+  }
+  el.apiModalSaveBtn.addEventListener('click', () => {
+    const key = (el.apiModalInput.value || '').trim();
+    if (!key) { showToast('API 키를 입력하세요.', 'error'); el.apiModalInput.focus(); return; }
+    geminiApiKey = key;
+    sessionStorage.setItem('geminiApiKey', key);
+    if (el.apiModalRemember.checked) localStorage.setItem('geminiApiKey', key);
+    else localStorage.removeItem('geminiApiKey');
+    closeApiModal();
+    showToast('API 키 저장 완료');
+  });
+  el.apiModalCancelBtn.addEventListener('click', () => closeApiModal());
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !el.apiModalCancelBtn.classList.contains('hidden')) {
+      if (!el.apiModal.classList.contains('hidden')) closeApiModal();
+    }
+    if (e.key === 'Escape' && !el.settingsModal.classList.contains('hidden')) {
+      closeSettingsModal();
+    }
+  });
+
+  // ====== 설정 모달 ======
+  function openSettingsModal() {
+    el.settingsModal.classList.remove('hidden');
+    el.settingsModal.classList.add('flex');
+    if (el.aiModelSelect) el.aiModelSelect.value = selectedAiModel;
+    if (el.darkModeSelect) el.darkModeSelect.value = darkMode;
+  }
+  function closeSettingsModal() {
+    el.settingsModal.classList.add('hidden');
+    el.settingsModal.classList.remove('flex');
+  }
+  el.settingsBtn.addEventListener('click', openSettingsModal);
+  el.settingsCloseBtn.addEventListener('click', closeSettingsModal);
+  el.settingsCloseBtnBottom.addEventListener('click', closeSettingsModal);
+  // UX 개선: 설정→API모달 전환 시 먼저 설정모달 닫기
+  el.openApiKeyModalBtn.addEventListener('click', () => {
+    closeSettingsModal();
+    openApiModal(false);
+  });
+
+  // AI 모델 선택
+  el.aiModelSelect.addEventListener('change', (e) => {
+    selectedAiModel = e.target.value;
+    localStorage.setItem('aiModel', selectedAiModel);
+    showToast(`AI 모델 변경: ${selectedAiModel}`);
+  });
+
+  // 다크 모드 선택
+  el.darkModeSelect.addEventListener('change', (e) => {
+    localStorage.setItem('darkMode', e.target.value);
+    applyDarkMode();
+    showToast('다크 모드 설정 변경됨');
+  });
+
+  // ====== Import/Export ======
+  el.exportDataBtn.addEventListener('click', () => {
+    try {
+      const data = {
+        version: '3.x',
+        schemaVersion: Number(localStorage.getItem('schemaVersion') || 2),
+        exportDate: new Date().toISOString(),
+        auditQuizScores: questionScores,
+        geminiApiKey: localStorage.getItem('geminiApiKey') || '',
+        aiModel: selectedAiModel,
+        darkMode: darkMode
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gamlini_backup_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('데이터 내보내기 완료');
+    } catch (err) {
+      console.error(err);
+      showToast('데이터 내보내기 실패', 'error');
+    }
+  });
+  el.importDataBtn.addEventListener('click', () => el.importFileInput.click());
+  el.importFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        if (!data.auditQuizScores) throw new Error('올바른 백업 파일이 아닙니다.');
+        if (data.auditQuizScores) {
+          localStorage.setItem('auditQuizScores', JSON.stringify(data.auditQuizScores));
+          questionScores = data.auditQuizScores;
+        }
+        if (data.geminiApiKey) {
+          localStorage.setItem('geminiApiKey', data.geminiApiKey);
+          geminiApiKey = data.geminiApiKey;
+        }
+        if (data.aiModel) {
+          localStorage.setItem('aiModel', data.aiModel);
+          selectedAiModel = data.aiModel;
+          el.aiModelSelect.value = data.aiModel;
+        }
+        if (data.darkMode) {
+          localStorage.setItem('darkMode', data.darkMode);
+          darkMode = data.darkMode;
+          applyDarkMode();
+        }
+        if (data.schemaVersion) {
+          localStorage.setItem('schemaVersion', String(data.schemaVersion));
+        }
+        showToast('데이터 가져오기 완료');
+        setTimeout(() => location.reload(), 800);
+      } catch (err) {
+        console.error(err);
+        showToast(`데이터 가져오기 실패: ${err.message}`, 'error');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  // ====== 필터 및 학습 시작 ======
+  el.chapterSelect.addEventListener('change', handleLoadQuiz);
+  el.filterSelect.addEventListener('change', handleLoadQuiz);
+  el.loadQuizBtn.addEventListener('click', handleLoadQuiz);
+
+  // 랜덤 문제 버튼
+  el.randomQuizBtn.addEventListener('click', () => {
+    const selectedChapter = el.chapterSelect.value;
+    const selectedFilter = el.filterSelect.value;
+
+    let filtered = allData;
+    if (selectedChapter) {
+      filtered = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
+    }
+
+    filtered = filtered.filter(q => {
+      const key = normId(q.고유ID);
+      const saved = questionScores[key];
+      if (selectedFilter === 'unanswered') return !saved;
+      if (selectedFilter === '80') return !saved || Number(saved.score) < 80;
+      if (selectedFilter === '60') return !saved || Number(saved.score) < 60;
+      if (selectedFilter === 'today-review') {
+        if (!saved) return true;
+        return Number(saved.score) < 60 || (saved.lastSolvedDate && (Date.now() - saved.lastSolvedDate > 7 * 24 * 60 * 60 * 1000));
+      }
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      showToast('선택한 조건에 맞는 문제가 없습니다.', 'warn');
+      return;
+    }
+
+    currentQuizData = filtered;
+    currentQuestionIndex = Math.floor(Math.random() * filtered.length);
+    el.quizArea.classList.remove('hidden');
+    el.summaryArea.classList.remove('hidden');
+    displayQuestion();
+    updateSummary();
+    showToast('랜덤 문제 시작!');
+  });
+
+  function handleLoadQuiz() {
+    const selectedChapter = el.chapterSelect.value;
+    const selectedFilter = el.filterSelect.value;
+
+    let filtered = allData;
+    if (selectedChapter) {
+      filtered = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
+    }
+
+    filtered = filtered.filter(q => {
+      const key = normId(q.고유ID);
+      const saved = questionScores[key];
+      if (selectedFilter === 'unanswered') return !saved;
+      if (selectedFilter === '80') return !saved || Number(saved.score) < 80;
+      if (selectedFilter === '60') return !saved || Number(saved.score) < 60;
+      if (selectedFilter === 'today-review') {
+        if (!saved) return true;
+        return Number(saved.score) < 60 || (saved.lastSolvedDate && (Date.now() - saved.lastSolvedDate > 7 * 24 * 60 * 60 * 1000));
+      }
+      return true;
+    });
+
+    if (selectedFilter === 'today-review') {
+      filtered.sort((a, b) => {
+        const aScore = questionScores[normId(a.고유ID)]?.score ?? 101;
+        const bScore = questionScores[normId(b.고유ID)]?.score ?? 101;
+        const aDate = questionScores[normId(a.고유ID)]?.lastSolvedDate ?? 0;
+        const bDate = questionScores[normId(b.고유ID)]?.lastSolvedDate ?? 0;
+        if (aScore !== bScore) return aScore - bScore;
+        return aDate - bDate;
+      });
+      filtered = filtered.slice(0, 10);
+    }
+
+    currentQuizData = filtered;
+    currentQuestionIndex = 0;
+
+    if (currentQuizData.length > 0) {
+      el.quizArea.classList.remove('hidden');
+      el.summaryArea.classList.remove('hidden');
+      displayQuestion();
+    } else {
+      el.quizArea.classList.add('hidden');
+      el.summaryArea.classList.remove('hidden');
+      showToast('선택한 조건에 맞는 문제가 없습니다.', 'warn');
+    }
+    updateSummary();
+  }
+
+  // ====== 문제 표시 ======
+  function displayQuestion() {
+    if (currentQuizData.length === 0) { el.quizArea.classList.add('hidden'); return; }
+    el.quizArea.classList.remove('hidden');
+    const q = currentQuizData[currentQuestionIndex];
+    el.questionNumber.textContent = `문항 ${q.표시번호 || q.물음번호 || q.고유ID}`;
+    el.questionText.textContent = q.물음;
+    el.questionCounter.textContent = `${currentQuestionIndex + 1} / ${currentQuizData.length}`;
+
+    // 힌트 자동 해제
+    activeHintQuestionKey = null;
+    el.hintBox.classList.add('hidden');
+    el.hintBox.innerHTML = '';
+
+    el.resultBox.classList.add('hidden');
+    el.userAnswer.value = ''; // 항상 초기화
+
+    // 이전답안 토글 초기화
+    if (el.loadPrevAnswerBtn) {
+      el.loadPrevAnswerBtn.textContent = '이전 답안 불러오기';
+      el.loadPrevAnswerBtn.removeAttribute('aria-pressed');
+      prevLoaded = false;
+    }
+
+    const saved = questionScores[normId(q.고유ID)];
+    if (saved && saved.score !== undefined) {
+      showResult(saved.score, saved.feedback, q.정답);
+    }
+
+    el.prevBtn.disabled = currentQuestionIndex === 0;
+    el.nextBtn.disabled = currentQuizData.length - 1 === currentQuestionIndex;
+
+    updateSummaryHighlight();
+  }
+
+  // ====== 이전 답안 토글: 불러오기 ↔ 지우기 ======
+  el.loadPrevAnswerBtn.addEventListener('click', () => {
+    if (currentQuizData.length === 0) return;
+    const q = currentQuizData[currentQuestionIndex];
+    const saved = questionScores[normId(q.고유ID)];
+    if (!prevLoaded) {
+      if (saved && saved.user_answer) {
+        el.userAnswer.value = saved.user_answer;
+        el.loadPrevAnswerBtn.textContent = '답안 지우기';
+        el.loadPrevAnswerBtn.setAttribute('aria-pressed', 'true');
+        prevLoaded = true;
+        showToast('이전 답안을 불러왔습니다.');
+      } else {
+        showToast('저장된 답안이 없습니다.', 'warn');
+      }
+    } else {
+      el.userAnswer.value = '';
+      el.loadPrevAnswerBtn.textContent = '이전 답안 불러오기';
+      el.loadPrevAnswerBtn.setAttribute('aria-pressed', 'false');
+      prevLoaded = false;
+    }
+  });
+
+  // ====== 네비게이션 ======
+  el.prevBtn.addEventListener('click', () => {
+    if (currentQuestionIndex > 0) {
+      currentQuestionIndex--;
+      displayQuestion();
+    }
+  });
+  el.nextBtn.addEventListener('click', () => {
+    if (currentQuestionIndex < currentQuizData.length - 1) {
+      currentQuestionIndex++;
+      displayQuestion();
+    }
+  });
+  el.userAnswer.addEventListener('input', () => el.errorMessage.classList.add('hidden'));
+
+  // ====== 채점 ======
+  el.gradeBtn.addEventListener('click', handleGrade);
+
+  async function handleGrade() {
+    if (!geminiApiKey) {
+      openApiModal(false);
+      showToast('Gemini API 키를 입력해주세요.', 'error');
+      return;
+    }
+    const answer = el.userAnswer.value.trim();
+    if (!answer) {
+      el.errorMessage.textContent = '답안을 입력해주세요.';
+      el.errorMessage.classList.remove('hidden');
+      el.userAnswer.focus();
+      return;
+    }
+    el.errorMessage.classList.add('hidden');
+
+    const q = currentQuizData[currentQuestionIndex];
+    const qKey = normId(q.고유ID);
+
+    setLoading(true);
+    try {
+      const result = await callGeminiAPI(answer, q.정답, geminiApiKey);
+      let finalScore = result.score;
+      let finalFeedback = result.feedback;
+
+      // 힌트 사용 시 감점
+      if (activeHintQuestionKey === qKey) {
+        finalScore = Math.min(59, Math.max(0, Math.round(finalScore * 0.8)));
+        finalFeedback = `${finalFeedback ? finalFeedback + ' ' : ''}(힌트사용으로 감점입니다)`;
+      }
+
+      showResult(finalScore, finalFeedback, q.정답);
+
+      // 학습 기록 저장 (v3.x 구조)
+      const existing = questionScores[qKey] || {};
+      const newHistory = [...(existing.solveHistory || [])];
+      newHistory.push({ date: Date.now(), score: finalScore });
+
+      questionScores[qKey] = {
+        score: finalScore,
+        feedback: finalFeedback,
+        user_answer: answer,
+        hintUsed: activeHintQuestionKey === qKey,
+        isSolved: true,
+        lastSolvedDate: Date.now(),
+        solveHistory: newHistory
+      };
+
+      try { localStorage.setItem('auditQuizScores', JSON.stringify(questionScores)); } catch (e) {
+        showToast('localStorage 저장 실패 (용량 초과 가능)', 'error');
+      }
+
+      updateSummary();
+    } catch (e) {
+      console.error('채점 오류:', e);
+      el.aiFeedback.textContent = `채점 중 오류: ${e.message}`;
+      el.score.textContent = 'Error';
+      el.progressBar.style.width = '0%';
+      el.resultBox.classList.remove('hidden');
+      showToast('채점 요청 실패: API 키/네트워크/할당량을 확인하세요.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function setLoading(isLoading) {
+    if (isLoading) {
+      el.gradeBtnText.classList.add('hidden');
+      el.gradeLoader.classList.remove('hidden');
+      el.gradeBtn.disabled = true;
+      el.resultBox.classList.add('hidden');
+    } else {
+      el.gradeBtnText.classList.remove('hidden');
+      el.gradeLoader.classList.add('hidden');
+      el.gradeBtn.disabled = false;
+    }
+  }
+
+  // ====== Gemini API: 채점 ======
+  async function callGeminiAPI(userAnswer, correctAnswer, apiKey, retries = 2, delay = 1000) {
+    const modelMap = {
+      'gemini-2.5-flash': 'gemini-2.5-flash',
+      'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite'
+    };
+    const model = modelMap[selectedAiModel] || 'gemini-2.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+    const generationConfig = {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          score: { type: 'NUMBER', description: '0~100 유사도 점수' },
+          feedback: { type: 'STRING', description: '간결하고 날카로운 한국어 피드백' }
+        },
+        required: ['score', 'feedback']
+      }
+    };
+
+    const systemInstruction = {
+      parts: [{ text:
+`당신은 매우 엄격한 회계감사 과목 채점 교수님입니다.
+- 사용자 답안을 모범답안과 비교해 0~100의 "score"(NUMBER)와 "feedback"(STRING, 한국어)을 JSON으로만 반환하세요.
+- 채점 기준을 매우 엄격하게(strictly) 적용합니다.
+- 대신 띄어쓰기나 맞춤법 실수 같은 단순한 타이핑실수는 봐줍니다. 또한 중요왜곡표시위험을 RMM으로, 성격·시기·범위를 성시범으로, 공인회계사를 CPA로 줄여쓰는 정도의 수험상 합의된 언어는 봐줍니다.
+
+[채점 기준]
+1. 모범 답안의 핵심 키워드 포함 여부
+2. 핵심 키워드 대부분 누락: 50점 미만
+3. 일부 포함이나 설명 부정확: 50~80점
+4. 모든 핵심 키워드 + 의도 일치: 80점 이상
+5. 조사까지 동일할 때만 100점
+6. 키워드는 모범답안에서 스스로 추출하되, 한국 회계감사 기준·규정(ISA, KSA, 외부감사법, 윤리기준)에 맞는 동의어·표현 변형을 허용
+7. 물음에서의 물음 부분이 굳이 답변에 포함되지 않아도 됨
+
+- 불필요한 말/코드블록 금지. JSON 객체만 반환.` }]
+    };
+
+    const userQuery = `[모범 답안]
+${correctAnswer}
+
+[사용자 답안]
+${userAnswer}
+
+[채점 요청]
+JSON으로 { "score": number, "feedback": string }만 반환`;
+
+    const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction, generationConfig };
+
+    try {
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const msg = body?.error?.message || res.statusText;
+        if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) throw new Error(`모델/버전 불일치: ${msg}`);
+        if (res.status === 429) throw new Error(`API 할당량 초과 (429)`);
+        if (res.status >= 500) throw new Error(`서버 오류 (${res.status})`);
+        throw new Error(msg);
+      }
+      const data = await res.json();
+      const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      const cleaned = sanitizeModelText(raw);
+      let parsed;
+      try { parsed = JSON.parse(cleaned); }
+      catch { throw new Error(`API 응답 파싱 실패`); }
+      const scoreNum = clamp(Number(parsed.score), 0, 100);
+      const feedbackStr = String(parsed.feedback || '').trim();
+      return { score: scoreNum, feedback: feedbackStr || '피드백 없음' };
+    } catch (err) {
+      if (retries > 0 && (String(err.message).includes('429') || String(err.message).match(/^서버 오류/))) {
+        await new Promise(r => setTimeout(r, delay));
+        return callGeminiAPI(userAnswer, correctAnswer, apiKey, retries - 1, delay * 2);
+      }
+      throw err;
+    }
+  }
+
+  // ====== 힌트 ======
+  el.hintBtn.addEventListener('click', () => {
+    if (currentQuizData.length === 0) return;
+    handleHint(currentQuizData[currentQuestionIndex]);
+  });
+
+  async function handleHint(q) {
+    if (!geminiApiKey) {
+      openApiModal(false);
+      showToast('Gemini API 키를 입력해주세요.', 'error');
+      return;
+    }
+    const userAns = el.userAnswer.value.trim();
+    const qKey = normId(q.고유ID);
+
+    setLoading(true);
+    try {
+      const hint = await callGeminiHintAPI(userAns, q.정답, q.물음, geminiApiKey);
+      el.hintBox.innerHTML = `<strong class="font-semibold">힌트</strong><br>${String(hint || '').replace(/\n/g, '<br>')}`;
+      el.hintBox.classList.remove('hidden');
+      activeHintQuestionKey = qKey;
+      showToast('힌트를 표시했습니다. (이 문항에서 즉시 채점 시 감점)', 'warn');
+    } catch (e) {
+      console.error(e);
+      showToast(`힌트 생성 실패: ${e.message}`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, retries = 2, delay = 1000) {
+    const modelMap = {
+      'gemini-2.5-flash': 'gemini-2.5-flash',
+      'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite'
+    };
+    const model = modelMap[selectedAiModel] || 'gemini-2.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+    const generationConfig = {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          hint: { type: 'STRING', description: '정답을 직접 말하지 않는 2~4줄 한국어 힌트' }
+        },
+        required: ['hint']
+      }
+    };
+
+    const systemInstruction = {
+      parts: [{ text:
+`역할: 회계감사 학습 튜터.
+목표: 정답을 노출하지 않고 핵심 개념을 떠올리게 만드는 힌트 제공.
+규칙:
+- 정답/조합/목록을 그대로 쓰지 마세요.
+- 2~4줄 한글 힌트, 필요 시 핵심 키워드의 방향만 암시.
+- 출력은 JSON만.` }]
+    };
+
+    const userQuery =
+`[문제]
+${questionText}
+
+[모범 답안]
+${correctAnswer}
+
+[사용자 답안]
+${userAnswer || '(미입력)'}
+
+[요청]
+정답 노출 없이 학습을 돕는 힌트 2~4줄. JSON으로 {"hint": string }만 반환`;
+
+    const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction, generationConfig };
+
+    try {
+      const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const msg = body?.error?.message || res.statusText;
+        if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) throw new Error(`모델/버전 불일치: ${msg}`);
+        if (res.status === 429) throw new Error(`API 할당량 초과 (429)`);
+        if (res.status >= 500) throw new Error(`서버 오류 (${res.status})`);
+        throw new Error(msg);
+      }
+      const data = await res.json();
+      const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      const cleaned = sanitizeModelText(raw);
+      let parsed;
+      try { parsed = JSON.parse(cleaned); }
+      catch { throw new Error(`API 응답 파싱 실패`); }
+      return String(parsed.hint || '').trim();
+    } catch (err) {
+      if (retries > 0 && (String(err.message).includes('429') || String(err.message).match(/^서버 오류/))) {
+        await new Promise(r => setTimeout(r, delay));
+        return callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, retries - 1, delay * 2);
+      }
+      throw err;
+    }
+  }
+
+  // ====== 결과 표시 ======
+  function showResult(scoreVal, feedback, correctAnswer) {
+    const s = clamp(Number(scoreVal), 0, 100);
+    el.score.textContent = s.toFixed(1);
+    el.progressBar.style.width = `${s}%`;
+    el.progressBar.setAttribute('aria-valuenow', String(Math.round(s)));
+    el.progressBar.className = 'h-4 rounded-full transition-all duration-500 ease-out ' + (s < 60 ? 'bg-red-500' : s < 80 ? 'bg-yellow-500' : 'bg-blue-600');
+    el.aiFeedback.textContent = String(feedback || '');
+    el.correctAnswer.textContent = String(correctAnswer || '');
+    el.resultBox.classList.remove('hidden');
+  }
+
+  // ====== 현황판 ======
+  function updateSummary() {
+    el.scoreSummary.innerHTML = '';
+    const selectedChapter = el.chapterSelect.value;
+
+    let base = allData;
+    if (selectedChapter) base = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
+
+    const groups = new Map();
+    for (const q of base) {
+      const ch = String(q.단원).trim();
+      if (!groups.has(ch)) groups.set(ch, []);
+      groups.get(ch).push(q);
+    }
+
+    const chapters = [...groups.keys()].sort((a, b) => {
+      const na = Number(a), nb = Number(b);
+      if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+      if (Number.isFinite(na)) return -1;
+      if (Number.isFinite(nb)) return 1;
+      return a.localeCompare(b, 'ko');
+    });
+
+    const _clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+    chapters.forEach(ch => {
+      const list = groups.get(ch) || [];
+      list.sort((a, b) => {
+        const na = Number(a.물음번호 || a.표시번호), nb = Number(b.물음번호 || b.표시번호);
+        if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+        return String(a.표시번호 || a.물음번호).localeCompare(String(b.표시번호 || b.물음번호), 'ko');
+      });
+
+      let sum = 0, cnt = 0;
+      let totalRounds = 0, roundCnt = 0;
+      let latestDate = 0;
+
+      list.forEach(q => {
+        const s = questionScores[String(q.고유ID)?.trim()];
+        if (s && Number.isFinite(Number(s.score))) { sum += Number(s.score); cnt++; }
+        if (s && s.solveHistory && s.solveHistory.length > 0) {
+          totalRounds += s.solveHistory.length; roundCnt++;
+        }
+        if (s && s.lastSolvedDate && s.lastSolvedDate > latestDate) latestDate = s.lastSolvedDate;
+      });
+
+      const avg = cnt ? (sum / cnt) : null;
+      const avgRounds = roundCnt ? (totalRounds / roundCnt) : null;
+
+      let recentText = '';
+      if (latestDate > 0) {
+        const daysDiff = Math.floor((Date.now() - latestDate) / (24 * 60 * 60 * 1000));
+        if (daysDiff === 0) recentText = '오늘';
+        else if (daysDiff === 1) recentText = '어제';
+        else recentText = `${daysDiff}일 전`;
+      } else {
+        recentText = '학습 기록 없음';
+      }
+
+      const ratioText = `응시 ${cnt}/${list.length}`;
+      const avgText = (avg === null) ? '-' : avg.toFixed(1);
+      const avgRoundsText = avgRounds ? avgRounds.toFixed(1) : '-';
+
+      const barW = _clamp(avg ?? 0, 0, 100);
+      const barCls = (avg === null) ? 'bg-gray-300'
+                   : avg < 60 ? 'bg-red-500'
+                   : avg < 80 ? 'bg-yellow-500'
+                   : 'bg-green-500';
+
+      // 헤더
+      const header = document.createElement('div');
+      header.className = 'px-3 py-2 rounded-md border bg-gray-50 mb-2';
+
+      const title = document.createElement('div');
+      title.className = 'font-semibold text-lg';
+      title.textContent = Number.isFinite(Number(ch)) ? `단원 ${ch}` : ch;
+
+      const meta = document.createElement('div');
+      meta.className = 'text-sm text-gray-700 mt-1 space-y-1';
+
+      const line1 = document.createElement('div');
+      line1.textContent = `평균 ${avgText}점 · ${ratioText}`;
+      const line2 = document.createElement('div');
+      line2.textContent = `평균 ${avgRoundsText}회독 · 최근 ${recentText}`;
+
+      meta.appendChild(line1);
+      meta.appendChild(line2);
+
+      const mini = document.createElement('div');
+      mini.className = 'w-28 h-2 bg-gray-200 rounded-full overflow-hidden mt-2';
+      const miniFill = document.createElement('div');
+      miniFill.className = `h-2 ${barCls}`;
+      miniFill.style.width = `${barW}%`;
+      mini.appendChild(miniFill);
+
+      const toggleWrap = document.createElement('div');
+      toggleWrap.className = 'mt-2 flex justify-end';
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'text-xs text-blue-700 hover:underline';
+      toggleBtn.textContent = '접기';
+      toggleWrap.appendChild(toggleBtn);
+
+      header.appendChild(title);
+      header.appendChild(meta);
+      header.appendChild(mini);
+      header.appendChild(toggleWrap);
+
+      // 문제 그리드
+      const grid = document.createElement('div');
+      grid.className = 'flex flex-wrap gap-2 mt-2 mb-4';
+
+      list.forEach(q => {
+        const btn = document.createElement('button');
+
+        // 표시번호만 라벨로 사용 (없으면 폴백)
+        const displayOnly = (q.표시번호 ?? '').toString().trim();
+        const fallback    = (q.물음번호 ?? q.고유ID ?? '').toString().trim();
+        const label       = displayOnly || fallback || '';
+        btn.textContent   = label;
+
+        // 길이에 따른 폰트 보정(38px 내 가독성)
+        if (label.length >= 3) btn.style.fontSize = '0.72rem';
+        if (label.length >= 4) { btn.style.fontSize = '0.66rem'; btn.style.letterSpacing = '-0.2px'; }
+
+        // 툴팁에 전체 정보
+        const fullMeta = [
+          q.problemTitle && String(q.problemTitle).trim(),
+          `표시번호:${displayOnly || '-'}`,
+          `물음번호:${(q.물음번호 ?? '').toString().trim() || '-'}`,
+          `ID:${(q.고유ID ?? '').toString().trim() || '-'}`
+        ].filter(Boolean).join(' | ');
+        btn.title = fullMeta;
+        btn.setAttribute('aria-label', fullMeta);
+
+        btn.classList.add('summary-btn', 'font-medium', 'rounded-lg', 'border');
+
+        const saved = questionScores[String(q.고유ID)?.trim()];
+        const sc = saved ? Number(saved.score) : NaN;
+        const { bg, txt, bd } =
+          !Number.isFinite(sc) ? { bg:'bg-gray-100', txt:'text-gray-600', bd:'border-gray-300' }
+          : sc < 60 ? { bg:'bg-red-100', txt:'text-red-700', bd:'border-red-300' }
+          : sc < 80 ? { bg:'bg-yellow-100', txt:'text-yellow-700', bd:'border-yellow-300' }
+                    : { bg:'bg-green-100', txt:'text-green-700', bd:'border-green-300' };
+        btn.classList.add(bg, txt, bd);
+        btn.dataset.qid = String(q.고유ID).trim();
+
+        btn.addEventListener('click', () => {
+          el.filterSelect.value = 'all';
+          if (el.chapterSelect.value !== ch) {
+            el.chapterSelect.value = ch;
+          }
+          handleLoadQuiz();
+          const idx = currentQuizData.findIndex(it => String(it.고유ID).trim() === String(q.고유ID).trim());
+          if (idx !== -1) {
+            currentQuestionIndex = idx;
+            displayQuestion();
+            showToast(`'${q.표시번호 || q.물음번호}'번으로 이동했습니다.`);
+          } else {
+            showToast('이 문항을 현재 목록에서 찾을 수 없습니다.', 'warn');
+          }
+        });
+
+        grid.appendChild(btn);
+      });
+
+      toggleBtn.addEventListener('click', () => {
+        const isHidden = grid.classList.toggle('hidden');
+        toggleBtn.textContent = isHidden ? '펼치기' : '접기';
+      });
+
+      const section = document.createElement('div');
+      section.className = 'w-full space-y-2 mb-3';
+      section.appendChild(header);
+      section.appendChild(grid);
+      el.scoreSummary.appendChild(section);
+    });
+
+    updateSummaryHighlight();
+  }
+
+  function updateSummaryHighlight() {
+    if (currentQuizData.length === 0) return;
+    const currentQ = String(currentQuizData[currentQuestionIndex].고유ID).trim();
+    const buttons = el.scoreSummary.querySelectorAll('button.summary-btn');
+    buttons.forEach(b => b.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2'));
+    buttons.forEach(b => {
+      if (b.dataset.qid === currentQ) {
+        b.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
+      }
+    });
+  }
+
+  // ====== 필터 해제 및 초기화 ======
+  el.clearFilterBtn.addEventListener('click', () => {
+    el.filterSelect.value = 'all';
+    el.chapterSelect.value = '';
+    handleLoadQuiz();
+    showToast('필터를 해제했습니다. 모든 문제를 표시합니다.');
+  });
+  el.resetScoresBtn.addEventListener('click', () => {
+    if (confirm('정말로 모든 학습 기록을 초기화하시겠습니까?')) {
+      questionScores = {};
+      localStorage.removeItem('auditQuizScores');
+      localStorage.removeItem('schemaVersion');
+      updateSummary();
+      if (currentQuizData.length > 0) {
+        currentQuestionIndex = 0;
+        handleLoadQuiz();
+      }
+      showToast('학습 기록이 초기화되었습니다.');
+    }
+  });
+
+  // ====== 초기화 ======
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      await loadData();
+    } catch (err) {
+      console.error(err);
+      el.questionText.textContent = '문제 데이터 로드 실패 (questions.json 또는 dataset-json를 확인하세요).';
+      showToast(`문제 데이터 로드 실패: ${err.message}`, 'error');
+    }
+    loadScores();
+    loadApiKey();
+    loadSettings();
+    applyDarkMode();
+    migrateData();
+    ensureApiKeyGate();
+  });
+</script>
+</body>
+</html>

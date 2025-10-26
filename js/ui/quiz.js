@@ -16,6 +16,18 @@ export function mountQuiz(store){
   const ta = document.getElementById('v4-answer');
   let t;
   ta.addEventListener('input', ()=>{
+export function mountQuiz(store){
+  const center = ensure('#v4-center');
+  center.innerHTML = `
+    <section class="p-4 rounded-xl border bg-white dark:bg-gray-900">
+      <h3 class="font-bold mb-2">퀴즈 영역(v4 Shell)</h3>
+      <p class="text-sm text-gray-500">v3.2 로직을 이 영역으로 모듈화 이전 예정</p>
+      <textarea id="v4-answer" class="w-full border rounded p-2" rows="3" placeholder="자동 임시저장 데모"></textarea>
+      <div class="mt-2 text-xs text-gray-500">Ctrl+Enter 채점, ←/→ 이동 예정</div>
+    </section>`;
+  const ta = document.getElementById('v4-answer');
+  let t;
+  ta.addEventListener('input', (e)=>{
     clearTimeout(t); t=setTimeout(()=>{ sessionStorage.setItem('v4-autosave', ta.value); }, 500);
     autoGrow(ta);
   });
