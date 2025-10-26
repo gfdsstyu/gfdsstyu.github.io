@@ -936,3 +936,415 @@
         'gemini-2.5-flash': 'gemini-2.5-flash',
         'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite'
       };
+      const model = modelMap[selectedAiModel] || 'gemini-2.5-flash';
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+      const generationConfig = {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'OBJECT',
+          properties: {
+            score: { type: 'NUMBER', description: '0~100 유사도 점수' },
+            feedback: { type: 'STRING', description: '간결하고 날카로운 한국어 피드백' }
+          },
+          required: ['score', 'feedback']
+        }
+      };
+
+      const systemInstruction = {
+        parts: [{ text:
+`당신은 매우 엄격한 회계감사 과목 채점 교수님입니다.
+- 사용자 답안을 모범답안과 비교해 0~100의 "score"(NUMBER)와 "feedback"(STRING, 한국어)을 JSON으로만 반환하세요.
+- 채점 기준을 매우 엄격하게(strictly) 적용합니다.
+- 대신 띄어쓰기나 맞춤법 실수 같은 단순한 타이핑실수는 봐줍니다. 또한 중요왜곡표시위험을 RMM으로, 성격·시기·범위를 성시범으로, 공인회계사를 CPA로 줄여쓰는 정도의 수험상 합의된 언어는 봐줍니다.
+
+[채점 기준]
+1. 모범 답안의 핵심 키워드 포함 여부
+2. 핵심 키워드 대부분 누락: 50점 미만
+3. 일부 포함이나 설명 부정확: 50~80점
+4. 모든 핵심 키워드 + 의도 일치: 80점 이상
+5. 조사까지 동일할 때만 100점
+6. 키워드는 모범답안에서 스스로 추출하되, 한국 회계감사 기준·규정(ISA, KSA, 외부감사법, 윤리기준)에 맞는 동의어·표현 변형을 허용
+7. 물음에서의 물음 부분이 굳이 답변에 포함되지 않아도 됨
+
+- 불필요한 말/코드블록 금지. JSON 객체만 반환.` }]
+      };
+
+      const userQuery = `[모범 답안]
+${correctAnswer}
+
+[사용자 답안]
+${userAnswer}
+
+[채점 요청]
+JSON으로 { "score": number, "feedback": string }만 반환`;
+
+      const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction, generationConfig };
+
+      try {
+        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          const msg = body?.error?.message || res.statusText;
+          if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) throw new Error(`모델/버전 불일치: ${msg}`);
+          if (res.status === 429) throw new Error(`API 할당량 초과 (429)`);
+          if (res.status >= 500) throw new Error(`서버 오류 (${res.status})`);
+          throw new Error(msg);
+        }
+        const data = await res.json();
+        const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+        const cleaned = sanitizeModelText(raw);
+        let parsed;
+        try { parsed = JSON.parse(cleaned); }
+        catch { throw new Error(`API 응답 파싱 실패`); }
+        const scoreNum = clamp(Number(parsed.score), 0, 100);
+        const feedbackStr = String(parsed.feedback || '').trim();
+        return { score: scoreNum, feedback: feedbackStr || '피드백 없음' };
+      } catch (err) {
+        if (retries > 0 && (String(err.message).includes('429') || String(err.message).match(/^서버 오류/))) {
+          await new Promise(r => setTimeout(r, delay));
+          return callGeminiAPI(userAnswer, correctAnswer, apiKey, retries - 1, delay * 2);
+        }
+        throw err;
+      }
+    }
+
+    // ====== 힌트 ======
+    el.hintBtn.addEventListener('click', () => {
+      if (currentQuizData.length === 0) return;
+      handleHint(currentQuizData[currentQuestionIndex]);
+    });
+
+    async function handleHint(q) {
+      if (!geminiApiKey) {
+        openApiModal(false);
+        showToast('Gemini API 키를 입력해주세요.', 'error');
+        return;
+      }
+      const userAns = el.userAnswer.value.trim();
+      const qKey = normId(q.고유ID);
+
+      setLoading(true);
+      try {
+        const hint = await callGeminiHintAPI(userAns, q.정답, q.물음, geminiApiKey);
+        el.hintBox.innerHTML = `<strong class="font-semibold">힌트</strong><br>${String(hint || '').replace(/\n/g, '<br>')}`;
+        el.hintBox.classList.remove('hidden');
+        activeHintQuestionKey = qKey;
+        showToast('힌트를 표시했습니다. (이 문항에서 즉시 채점 시 감점)', 'warn');
+      } catch (e) {
+        console.error(e);
+        showToast(`힌트 생성 실패: ${e.message}`, 'error');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, retries = 2, delay = 1000) {
+      const modelMap = {
+        'gemini-2.5-flash': 'gemini-2.5-flash',
+        'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite'
+      };
+      const model = modelMap[selectedAiModel] || 'gemini-2.5-flash';
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+      const generationConfig = {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'OBJECT',
+          properties: {
+            hint: { type: 'STRING', description: '정답을 직접 말하지 않는 2~4줄 한국어 힌트' }
+          },
+          required: ['hint']
+        }
+      };
+
+      const systemInstruction = {
+        parts: [{ text:
+`역할: 회계감사 학습 튜터.
+목표: 정답을 노출하지 않고 핵심 개념을 떠올리게 만드는 힌트 제공.
+규칙:
+- 정답/조합/목록을 그대로 쓰지 마세요.
+- 2~4줄 한글 힌트, 필요 시 핵심 키워드의 방향만 암시.
+- 출력은 JSON만.` }]
+      };
+
+      const userQuery =
+`[문제]
+${questionText}
+
+[모범 답안]
+${correctAnswer}
+
+[사용자 답안]
+${userAnswer || '(미입력)'}
+
+[요청]
+정답 노출 없이 학습을 돕는 힌트 2~4줄. JSON으로 {"hint": string }만 반환`;
+
+      const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction, generationConfig };
+
+      try {
+        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          const msg = body?.error?.message || res.statusText;
+          if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) throw new Error(`모델/버전 불일치: ${msg}`);
+          if (res.status === 429) throw new Error(`API 할당량 초과 (429)`);
+          if (res.status >= 500) throw new Error(`서버 오류 (${res.status})`);
+          throw new Error(msg);
+        }
+        const data = await res.json();
+        const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+        const cleaned = sanitizeModelText(raw);
+        let parsed;
+        try { parsed = JSON.parse(cleaned); }
+        catch { throw new Error(`API 응답 파싱 실패`); }
+        return String(parsed.hint || '').trim();
+      } catch (err) {
+        if (retries > 0 && (String(err.message).includes('429') || String(err.message).match(/^서버 오류/))) {
+          await new Promise(r => setTimeout(r, delay));
+          return callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, retries - 1, delay * 2);
+        }
+        throw err;
+      }
+    }
+
+    // ====== 결과 표시 ======
+    function showResult(scoreVal, feedback, correctAnswer) {
+      const s = clamp(Number(scoreVal), 0, 100);
+      el.score.textContent = s.toFixed(1);
+      el.progressBar.style.width = `${s}%`;
+      el.progressBar.setAttribute('aria-valuenow', String(Math.round(s)));
+      el.progressBar.className = 'h-4 rounded-full transition-all duration-500 ease-out ' + (s < 60 ? 'bg-red-500' : s < 80 ? 'bg-yellow-500' : 'bg-blue-600');
+      el.aiFeedback.textContent = String(feedback || '');
+      el.correctAnswer.textContent = String(correctAnswer || '');
+      el.resultBox.classList.remove('hidden');
+    }
+
+    // ====== 현황판 ======
+    function updateSummary() {
+      el.scoreSummary.innerHTML = '';
+      const selectedChapter = el.chapterSelect.value;
+
+      let base = allData;
+      if (selectedChapter) base = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
+
+      const groups = new Map();
+      for (const q of base) {
+        const ch = String(q.단원).trim();
+        if (!groups.has(ch)) groups.set(ch, []);
+        groups.get(ch).push(q);
+      }
+
+      const chapters = [...groups.keys()].sort((a, b) => {
+        const na = Number(a), nb = Number(b);
+        if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+        if (Number.isFinite(na)) return -1;
+        if (Number.isFinite(nb)) return 1;
+        return a.localeCompare(b, 'ko');
+      });
+
+      const _clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+      chapters.forEach(ch => {
+        const list = groups.get(ch) || [];
+        list.sort((a, b) => {
+          const na = Number(a.물음번호 || a.표시번호), nb = Number(b.물음번호 || b.표시번호);
+          if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+          return String(a.표시번호 || a.물음번호).localeCompare(String(b.표시번호 || b.물음번호), 'ko');
+        });
+
+        let sum = 0, cnt = 0;
+        let totalRounds = 0, roundCnt = 0;
+        let latestDate = 0;
+
+        list.forEach(q => {
+          const s = questionScores[String(q.고유ID)?.trim()];
+          if (s && Number.isFinite(Number(s.score))) { sum += Number(s.score); cnt++; }
+          if (s && s.solveHistory && s.solveHistory.length > 0) {
+            totalRounds += s.solveHistory.length; roundCnt++;
+          }
+          if (s && s.lastSolvedDate && s.lastSolvedDate > latestDate) latestDate = s.lastSolvedDate;
+        });
+
+        const avg = cnt ? (sum / cnt) : null;
+        const avgRounds = roundCnt ? (totalRounds / roundCnt) : null;
+
+        let recentText = '';
+        if (latestDate > 0) {
+          const daysDiff = Math.floor((Date.now() - latestDate) / (24 * 60 * 60 * 1000));
+          if (daysDiff === 0) recentText = '오늘';
+          else if (daysDiff === 1) recentText = '어제';
+          else recentText = `${daysDiff}일 전`;
+        } else {
+          recentText = '학습 기록 없음';
+        }
+
+        const ratioText = `응시 ${cnt}/${list.length}`;
+        const avgText = (avg === null) ? '-' : avg.toFixed(1);
+        const avgRoundsText = avgRounds ? avgRounds.toFixed(1) : '-';
+
+        const barW = _clamp(avg ?? 0, 0, 100);
+        const barCls = (avg === null) ? 'bg-gray-300'
+                     : avg < 60 ? 'bg-red-500'
+                     : avg < 80 ? 'bg-yellow-500'
+                     : 'bg-green-500';
+
+        const header = document.createElement('div');
+        header.className = 'px-3 py-2 rounded-md border bg-gray-50 mb-2';
+
+        const title = document.createElement('div');
+        title.className = 'font-semibold text-lg';
+        title.textContent = Number.isFinite(Number(ch)) ? `단원 ${ch}` : ch;
+
+        const meta = document.createElement('div');
+        meta.className = 'text-sm text-gray-700 mt-1 space-y-1';
+
+        const line1 = document.createElement('div');
+        line1.textContent = `평균 ${avgText}점 · ${ratioText}`;
+        const line2 = document.createElement('div');
+        line2.textContent = `평균 ${avgRoundsText}회독 · 최근 ${recentText}`;
+
+        meta.appendChild(line1);
+        meta.appendChild(line2);
+
+        const mini = document.createElement('div');
+        mini.className = 'w-28 h-2 bg-gray-200 rounded-full overflow-hidden mt-2';
+        const miniFill = document.createElement('div');
+        miniFill.className = `h-2 ${barCls}`;
+        miniFill.style.width = `${barW}%`;
+        mini.appendChild(miniFill);
+
+        const toggleWrap = document.createElement('div');
+        toggleWrap.className = 'mt-2 flex justify-end';
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'text-xs text-blue-700 hover:underline';
+        toggleBtn.textContent = '접기';
+        toggleWrap.appendChild(toggleBtn);
+
+        header.appendChild(title);
+        header.appendChild(meta);
+        header.appendChild(mini);
+        header.appendChild(toggleWrap);
+
+        const grid = document.createElement('div');
+        grid.className = 'flex flex-wrap gap-2 mt-2 mb-4';
+
+        list.forEach(q => {
+          const btn = document.createElement('button');
+
+          const displayOnly = (q.표시번호 ?? '').toString().trim();
+          const fallback    = (q.물음번호 ?? q.고유ID ?? '').toString().trim();
+          const label       = displayOnly || fallback || '';
+          btn.textContent   = label;
+
+          if (label.length >= 3) btn.style.fontSize = '0.72rem';
+          if (label.length >= 4) { btn.style.fontSize = '0.66rem'; btn.style.letterSpacing = '-0.2px'; }
+
+          const fullMeta = [
+            q.problemTitle && String(q.problemTitle).trim(),
+            `표시번호:${displayOnly || '-'}`,
+            `물음번호:${(q.물음번호 ?? '').toString().trim() || '-'}`,
+            `ID:${(q.고유ID ?? '').toString().trim() || '-'}`
+          ].filter(Boolean).join(' | ');
+          btn.title = fullMeta;
+          btn.setAttribute('aria-label', fullMeta);
+
+          btn.classList.add('summary-btn', 'font-medium', 'rounded-lg', 'border');
+
+          const saved = questionScores[String(q.고유ID)?.trim()];
+          const sc = saved ? Number(saved.score) : NaN;
+          const { bg, txt, bd } =
+            !Number.isFinite(sc) ? { bg:'bg-gray-100', txt:'text-gray-600', bd:'border-gray-300' }
+            : sc < 60 ? { bg:'bg-red-100', txt:'text-red-700', bd:'border-red-300' }
+            : sc < 80 ? { bg:'bg-yellow-100', txt:'text-yellow-700', bd:'border-yellow-300' }
+                      : { bg:'bg-green-100', txt:'text-green-700', bd:'border-green-300' };
+          btn.classList.add(bg, txt, bd);
+          btn.dataset.qid = String(q.고유ID).trim();
+
+          btn.addEventListener('click', () => {
+            el.filterSelect.value = 'all';
+            if (el.chapterSelect.value !== ch) {
+              el.chapterSelect.value = ch;
+            }
+            handleLoadQuiz();
+            const idx = currentQuizData.findIndex(it => String(it.고유ID).trim() === String(q.고유ID).trim());
+            if (idx !== -1) {
+              currentQuestionIndex = idx;
+              displayQuestion();
+              showToast(`'${q.표시번호 || q.물음번호}'번으로 이동했습니다.`);
+            } else {
+              showToast('이 문항을 현재 목록에서 찾을 수 없습니다.', 'warn');
+            }
+          });
+
+          grid.appendChild(btn);
+        });
+
+        toggleBtn.addEventListener('click', () => {
+          const isHidden = grid.classList.toggle('hidden');
+          toggleBtn.textContent = isHidden ? '펼치기' : '접기';
+        });
+
+        const section = document.createElement('div');
+        section.className = 'w-full space-y-2 mb-3';
+        section.appendChild(header);
+        section.appendChild(grid);
+        el.scoreSummary.appendChild(section);
+      });
+
+      updateSummaryHighlight();
+    }
+
+    function updateSummaryHighlight() {
+      if (currentQuizData.length === 0) return;
+      const currentQ = String(currentQuizData[currentQuestionIndex].고유ID).trim();
+      const buttons = el.scoreSummary.querySelectorAll('button.summary-btn');
+      buttons.forEach(b => b.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2'));
+      buttons.forEach(b => {
+        if (b.dataset.qid === currentQ) {
+          b.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
+        }
+      });
+    }
+
+    // ====== 필터 해제 및 초기화 ======
+    el.clearFilterBtn.addEventListener('click', () => {
+      el.filterSelect.value = 'all';
+      el.chapterSelect.value = '';
+      handleLoadQuiz();
+      showToast('필터를 해제했습니다. 모든 문제를 표시합니다.');
+    });
+    el.resetScoresBtn.addEventListener('click', () => {
+      if (confirm('정말로 모든 학습 기록을 초기화하시겠습니까?')) {
+        questionScores = {};
+        localStorage.removeItem('auditQuizScores');
+        localStorage.removeItem('schemaVersion');
+        updateSummary();
+        if (currentQuizData.length > 0) {
+          currentQuestionIndex = 0;
+          handleLoadQuiz();
+        }
+        showToast('학습 기록이 초기화되었습니다.');
+      }
+    });
+
+    // ====== 초기화 ======
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await loadData();
+      } catch (err) {
+        console.error(err);
+        el.questionText.textContent = '문제 데이터 로드 실패 (questions.json 또는 dataset-json을 확인하세요).';
+        showToast(`문제 데이터 로드 실패: ${err.message}`, 'error');
+      }
+      loadScores();
+      loadApiKey();
+      loadSettings();
+      applyDarkMode();
+      migrateData();
+      ensureApiKeyGate();
+    });
+  </script>
+</body>
+</html>
