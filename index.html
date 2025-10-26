@@ -1362,6 +1362,23 @@ ${userAnswer || '(미입력)'}
   });
 </script>
 <script type="module" src="/js/app.js"></script>
+<!-- (중복 ID 제거: 모듈 로드 전에 실행) -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const seen = new Set();
+    // 중복 ID 두번째 이후는 제거 (둘 다 수용으로 생긴 꼬임 방지)
+    document.querySelectorAll('[id]').forEach(el => {
+      if (!el.id) return;
+      if (seen.has(el.id)) el.remove();
+      else seen.add(el.id);
+    });
+  });
+</script>
+
+<!-- v4 부트스트랩: 반드시 '상대경로'로! -->
+<script type="module" src="js/app.js"></script>
 </body>
 </html>
+
+
 
