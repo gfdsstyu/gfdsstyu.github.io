@@ -1,50 +1,44 @@
-// js/engine/recommend.js
-// v4 엔진 v1: 망각지수(FI) 기반 추천
-export function daysSince(ts){
-  if(!ts) return Infinity;
-  const d = (Date.now() - Number(ts)) / 86400000;
-  return Math.max(0, d);
+// /js/engine/recommend.js
+import { store } from '../state/store.js';
+
+function daysSince(d){ const t = Date.now() - Number(d||0); return t/86400000; }
+function streak(hist){
+  if (!Array.isArray(hist)||!hist.length) return 0;
+  let s=0; for(let i=hist.length-1;i>=0;i--){ if((hist[i]?.score??0)>=80) s++; else break; } return s;
 }
 
-function streak(hist=[]) {
-  // 최근 연속 성공(>=80) 길이 간단 근사
-  let s=0;
-  for(let i=hist.length-1;i>=0;i--){
-    if((hist[i]?.score||0) >= 80) s++; else break;
-  }
-  return s;
+export function computeFI({ solveHistory=[], lastSolvedDate=0 }){
+  const t = Math.max(0, daysSince(lastSolvedDate));
+  const attempts = solveHistory.length || 0;
+  const best = solveHistory.length ? Math.max(...solveHistory.map(s=>Number(s.score||0))) : 0;
+  const H = 2.0 * (1 + 0.01*best + 0.2*attempts + 0.15*streak(solveHistory));
+  const R = Math.exp(-t / Math.max(0.1, H));
+  const recentWrong = Number(((solveHistory.at(-1)?.score) ?? 100) < 60);
+  return 0.6*(1 - R) + 0.3*(1 - best/100) + 0.1*recentWrong;
 }
 
-export function computeFI(rec){
-  const hist = rec?.solveHistory||[];
-  const t = daysSince(rec?.lastSolvedDate||0);
-  const attempts = hist.length;
-  const best = Math.max(0, ...hist.map(h=>Number(h.score)||0));
-  const recentWrong = Number(((hist.at(-1)?.score)||100) < 60);
-  const H0=2.0, a=0.01, b=0.2, c=0.15;
-  const H = H0 * (1 + a*best + b*attempts + c*streak(hist));
-  const R = Math.exp(- t / Math.max(0.1, H));
-  const fi_t = (1 - R);
-  const fi_s = (1 - best/100);
-  const fi_m = recentWrong;
-  const fi = 0.6*fi_t + 0.3*fi_s + 0.1*fi_m;
-  return { fi, reason: { time: fi_t, score: fi_s, wrong: fi_m, t, best, attempts } };
-}
+export function recommendToday(allQuestions, N=10, mode='forgetting'){
+  const { auditQuizScores } = store.getState();
+  const list = allQuestions.map(q=>{
+    const rec = auditQuizScores?.[String(q.고유ID).trim()] || {};
+    const fi = computeFI({ solveHistory: rec.solveHistory, lastSolvedDate: rec.lastSolvedDate });
+    const last = rec.solveHistory?.at(-1)?.score ?? null;
+    return {
+      id: String(q.고유ID).trim(),
+      score: Number(rec.score ?? (last ?? -1)),
+      fi,
+      reason: { fi_tuned: fi.toFixed(3), best: Math.max(0, ...(rec.solveHistory||[]).map(s=>Number(s.score||0))), attempts: (rec.solveHistory||[]).length }
+    };
+  });
 
-export function recommend(scores={}, N=10, mode='forgetting'){
-  const items = Object.entries(scores).map(([id,rec])=>({ id, rec }));
-  let ranked = [];
-  if(mode==='low-score') {
-    ranked = items.map(x=>({ id:x.id, rec:x.rec, key: (Number(x.rec?.score)||0) }))
-                  .sort((a,b)=>a.key-b.key)
-                  .map(x=>({ id:x.id, fi: 1-(Number(x.rec?.score)||0)/100, reason: {lowScore:true} }));
-  } else if(mode==='recent-wrong'){
-    ranked = items.map(x=>({ id:x.id, rec:x.rec, key: Number(((x.rec?.solveHistory||[]).at(-1)?.score)||100) }))
-                  .sort((a,b)=>a.key-b.key)
-                  .map(x=>({ id:x.id, fi: 1-x.key/100, reason: {recentWrong:true} }));
-  } else {
-    ranked = items.map(x=>{ const r = computeFI(x.rec); return { id:x.id, fi:r.fi, reason:r.reason }; })
-                  .sort((a,b)=>b.fi-a.fi);
-  }
-  return ranked.slice(0, Math.max(1, N));
+  let ranked = list;
+  if (mode === 'low-score') ranked = list.sort((a,b)=>(a.score??101)-(b.score??101));
+  else if (mode === 'recent-wrong') ranked = list.sort((a,b)=>{
+    const aFlag = Number((store.getState().auditQuizScores[a.id]?.solveHistory?.at(-1)?.score ?? 100) < 60);
+    const bFlag = Number((store.getState().auditQuizScores[b.id]?.solveHistory?.at(-1)?.score ?? 100) < 60);
+    return bFlag - aFlag;
+  });
+  else ranked = list.sort((a,b)=> b.fi - a.fi); // forgetting (default)
+
+  return ranked.slice(0, N);
 }
