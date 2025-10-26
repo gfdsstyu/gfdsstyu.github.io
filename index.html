@@ -49,7 +49,8 @@
     }
     /* 진행바 트랙/결과/힌트/현황판 대비 */
     html.dark .progress-track { background-color: #374151; } /* gray-700 */
-    html.dark #result-box { background-color: #1f2937; border-color: #374151; }
+    html.dark #result-box { background-color: #1f2937; border-color: #374151; */
+    }
     html.dark #quiz-area .bg-gray-50 { background-color: #111827; }
     html.dark #quiz-area .border-gray-200 { border-color: #374151; }
     html.dark #hint-container { background-color: #1e3a8a; border-color: #334155; color: #e0e7ff; }
@@ -96,7 +97,7 @@
         </div>
         <div class="flex-1 w-full">
           <label for="filter-select" class="block text-sm font-medium text-gray-700 mb-1">문제 필터</label>
-          <select id="filter-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
+          <select id="filter-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition dark:bg-gray-700 dark:text-gray-100 dark:border-gray-700">
             <option value="all">모든 문제 풀기</option>
             <option value="unanswered">아직 안 푼 문제</option>
             <option value="today-review">오늘의 복습 (추천)</option>
@@ -312,7 +313,7 @@
     /* ----------------------------------------------------
      * 감린이 v3.x (클린)
      * - 데이터 로딩: questions.json → dataset-json 폴백
-     * - 나머지 기능 동일
+     * - 경로 후보 자동 탐색 + 에러 상세 로깅
      * ---------------------------------------------------- */
 
     // ====== 전역 상태 ======
@@ -426,25 +427,61 @@
 
     // ====== 데이터 로딩: questions.json → dataset-json ======
     async function loadData() {
-      try {
-        const res = await fetch('questions.json', { cache: 'no-store' });
-        if (!res.ok) throw new Error('questions.json not found');
-        const arr = await res.json();
-        if (!Array.isArray(arr)) throw new Error('questions.json 형식 오류(최상위는 배열이어야 함)');
-        allData = arr;
-      } catch (_) {
-        const node = document.getElementById('dataset-json');
-        if (!node) throw new Error('questions.json 로드 실패 & dataset-json 없음');
-        const text = (node.textContent || '').trim();
-        if (!text) throw new Error('내장 데이터가 비어 있습니다.');
-        const parsed = JSON.parse(text);
-        if (!Array.isArray(parsed)) throw new Error('내장 데이터 형식 오류(배열 아님)');
-        allData = parsed;
+      // 경로 후보(상위부터 순차 시도). 필요한 경우 경로를 추가/수정하세요.
+      const CANDIDATES = [
+        'questions.json',
+        './questions.json',
+        './data/questions.json',
+        './assets/questions.json'
+      ];
+      const errs = [];
+
+      for (const path of CANDIDATES) {
+        try {
+          const res = await fetch(path, { cache: 'no-store' });
+          if (!res.ok) { errs.push(`${path}: HTTP ${res.status}`); continue; }
+
+          const arr = await res.json();
+          if (!Array.isArray(arr)) { errs.push(`${path}: JSON 최상위가 배열 아님`); continue; }
+
+          // 필수 키 검증
+          const need = ['고유ID','단원','물음','정답'];
+          const bad = arr.findIndex(r => !r || need.some(k => !(k in r)));
+          if (bad !== -1) { errs.push(`${path}: 필수키 누락(index ${bad})`); continue; }
+
+          allData = arr;
+          console.info('[questions.json] loaded from', path);
+          selfTest();
+          populateChapterSelect();
+          updateSummary();
+          return; // 성공 시 종료
+        } catch (e) {
+          errs.push(`${path}: ${e.message}`);
+        }
       }
 
-      selfTest();
-      populateChapterSelect();
-      updateSummary();
+      // 외부 파일 로드 실패 → 내장 데이터(JSON) 폴백
+      try {
+        const node = document.getElementById('dataset-json');
+        if (!node) throw new Error('dataset-json 없음');
+        const text = (node.textContent || '').trim();
+        if (!text) throw new Error('내장 데이터 비어 있음');
+        const parsed = JSON.parse(text);
+        if (!Array.isArray(parsed)) throw new Error('내장 데이터 최상위가 배열 아님');
+
+        allData = parsed;
+        console.warn('[questions.json] 모든 후보 실패. 내장 데이터로 폴백합니다.', errs);
+        showToast('외부 DB를 못 읽어 내장 데이터로 폴백했습니다(자세한 원인은 콘솔).', 'warn');
+
+        selfTest();
+        populateChapterSelect();
+        updateSummary();
+      } catch (err) {
+        console.error('질문 데이터 로드 실패 상세:', errs, err);
+        showToast(`문제 데이터 로드 실패: 콘솔에서 원인을 확인하세요.`, 'error');
+        const msg = document.getElementById('question-text');
+        if (msg) msg.textContent = '문제 데이터 로드 실패 (questions.json 또는 dataset-json을 확인하세요).';
+      }
     }
 
     function selfTest() {
@@ -1245,8 +1282,7 @@ ${userAnswer || '(미입력)'}
             q.problemTitle && String(q.problemTitle).trim(),
             `표시번호:${displayOnly || '-'}`,
             `물음번호:${(q.물음번호 ?? '').toString().trim() || '-'}`,
-            `ID:${(q.고유ID ?? '').toString().trim() || '-'}`
-          ].filter(Boolean).join(' | ');
+            `ID:${(q.고유ID ?? '').toString().trim() || '-'}`].filter(Boolean).join(' | ');
           btn.title = fullMeta;
           btn.setAttribute('aria-label', fullMeta);
 
@@ -1264,9 +1300,7 @@ ${userAnswer || '(미입력)'}
 
           btn.addEventListener('click', () => {
             el.filterSelect.value = 'all';
-            if (el.chapterSelect.value !== ch) {
-              el.chapterSelect.value = ch;
-            }
+            if (el.chapterSelect.value !== ch) el.chapterSelect.value = ch;
             handleLoadQuiz();
             const idx = currentQuizData.findIndex(it => String(it.고유ID).trim() === String(q.고유ID).trim());
             if (idx !== -1) {
@@ -1302,9 +1336,7 @@ ${userAnswer || '(미입력)'}
       const buttons = el.scoreSummary.querySelectorAll('button.summary-btn');
       buttons.forEach(b => b.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2'));
       buttons.forEach(b => {
-        if (b.dataset.qid === currentQ) {
-          b.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
-        }
+        if (b.dataset.qid === currentQ) b.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
       });
     }
 
@@ -1335,7 +1367,7 @@ ${userAnswer || '(미입력)'}
         await loadData();
       } catch (err) {
         console.error(err);
-        el.questionText.textContent = '문제 데이터 로드 실패 (questions.json 또는 dataset-json을 확인하세요).';
+        document.getElementById('question-text').textContent = '문제 데이터 로드 실패 (questions.json 또는 dataset-json을 확인하세요).';
         showToast(`문제 데이터 로드 실패: ${err.message}`, 'error');
       }
       loadScores();
