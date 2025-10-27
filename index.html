@@ -1413,121 +1413,60 @@ ${userAnswer || '(미입력)'}
       }
     });
 
-    /* ====== 단축키(업데이트): Ctrl+] 단계이동 / Ctrl+[ 역방향 ====== */
-/* 단계 정의: 0=TOP(문항 상단), 1=RESULT(채점결과 박스 풀뷰), 2=SUMMARY(학습현황판) */
-let _navPhase = 0;
-
-function _headerOffset() {
-  const hdr = document.getElementById('fixed-header');
-  return (hdr?.offsetHeight || 0);
-}
-
-function _scrollToY(y) {
-  window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
-}
-
-function _scrollBelowHeader(el, gap = 10) {
-  const rect = el.getBoundingClientRect();
-  const top = window.scrollY + rect.top - _headerOffset() - gap;
-  _scrollToY(top);
-}
-
-function _fitElementFully(el, gap = 10) {
-  // 가능한 경우: 채점결과 박스 전체가 뷰포트에 다 보이도록 정렬
-  // 불가능(너무 큼)하면 상단을 헤더 바로 아래에 붙여서 최소한 '위가 잘리지 않게'
-  const header = _headerOffset();
-  const vpH = window.innerHeight;
-  const elH = el.offsetHeight;
-  const avail = vpH - header - gap * 2;
-
-  // 일단 상단을 헤더 아래로
-  let targetTop = window.scrollY + el.getBoundingClientRect().top - header - gap;
-
-  if (elH <= avail) {
-    // 여유 있으면 상단 정렬로도 전체 표시됨 (가장 안정적)
-    _scrollToY(targetTop);
-  } else {
-    // 너무 크면 상단만 헤더에 붙여서 최대한 많이 보여줌
-    _scrollToY(targetTop);
-  }
-}
-
-function _goTopPhase() {
-  _navPhase = 0;
-  _scrollToY(0);
-}
-
-function _goResultPhase() {
-  // 결과 박스 열고, 모범답안 텍스트 채워둠(없을 수 있으니)
-  if (currentQuizData.length) {
-    const q = currentQuizData[currentQuestionIndex];
-    if (!el.correctAnswer.textContent?.trim()) {
-      el.correctAnswer.textContent = String(q.정답 || '');
-    }
-  }
-  el.resultBox.classList.remove('hidden');
-  _fitElementFully(el.resultBox, 10); // "채점결과 박스 전체가 다 보이게" 시도
-  _navPhase = 1;
-}
-
-function _goSummaryPhase() {
-  el.summaryArea.classList.remove('hidden');
-  _scrollBelowHeader(el.summaryArea, 10);
-  _navPhase = 2;
-}
-
-// 문항 바뀔 때는 기본을 TOP으로 리셋
-const _origDisplayQuestion = displayQuestion;
-displayQuestion = function patchedDisplayQuestion() {
-  _navPhase = 0;
-  _origDisplayQuestion();
-};
-
-// 단축키: H=힌트, Ctrl+←/→=이전/다음, Ctrl+[=역방향(위로위로), Ctrl+]=정방향(결과→현황)
-function _isEditing(t) { return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable); }
-
-document.addEventListener('keydown', (e) => {
-  // H/h 힌트 (입력 중이 아닐 때)
-  if ((e.key === 'h' || e.key === 'H') && !_isEditing(e.target)) {
-    e.preventDefault(); el.hintBtn?.click(); return;
-  }
-  if (e.ctrlKey && !e.altKey && !e.metaKey) {
-    // Ctrl+Arrow: 이전/다음
-    if (e.key === 'ArrowLeft')  { e.preventDefault(); el.prevBtn?.click(); _navPhase = 0; return; }
-    if (e.key === 'ArrowRight') { e.preventDefault(); el.nextBtn?.click(); _navPhase = 0; return; }
-
-    // Ctrl+]: 1회=RESULT 정렬(채점결과 박스가 '전체' 보이게), 2회=SUMMARY
-    if (e.key === ']') {
-      e.preventDefault();
-      if (_navPhase === 0) { _goResultPhase(); }
-      else if (_navPhase === 1) { _goSummaryPhase(); }
-      else /* 2 이상 */ { _goResultPhase(); }
-      return;
+    // ====== 단축키 ======
+    function isEditing(t) { return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable); }
+    function goTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    function ensureModelAnswerVisible() {
+      // 결과 영역 열고 모범답안 위치로 스크롤. 필요 시 즉시 정답 텍스트도 채운다.
+      if (currentQuizData.length) {
+        const q = currentQuizData[currentQuestionIndex];
+        if (!el.correctAnswer.textContent?.trim()) {
+          el.correctAnswer.textContent = String(q.정답 || '');
+        }
+      }
+      el.resultBox.classList.remove('hidden');
+      (el.correctAnswer || el.resultBox).scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    // Ctrl+[: 역방향(위→위 기능)
-    // SUMMARY → RESULT → TOP 로 단계 상승(위로 위로)
-    if (e.key === '[') {
-      e.preventDefault();
-      if (_navPhase === 2) { _goResultPhase(); }
-      else /* 0 or 1 */ { _goTopPhase(); }
-      return;
-    }
-  }
-});
+    document.addEventListener('keydown', (e) => {
+      // H/h 힌트 (입력 중이 아닐 때)
+      if ((e.key === 'h' || e.key === 'H') && !isEditing(e.target)) {
+        e.preventDefault(); el.hintBtn?.click(); return;
+      }
+      if (e.ctrlKey && !e.altKey && !e.metaKey) {
+        // Ctrl+Arrow: 이전/다음
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); el.prevBtn?.click(); return; }
+        if (e.key === 'ArrowRight') { e.preventDefault(); el.nextBtn?.click(); return; }
+        // Ctrl+[ / Ctrl+]
+        if (e.key === '[') { e.preventDefault(); goTop(); return; }
+        if (e.key === ']') { e.preventDefault(); ensureModelAnswerVisible(); return; }
+      }
+    });
 
-// 답안창: Enter=채점, Shift+Enter=줄바꿈
-el.userAnswer?.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    el.gradeBtn?.click();
-    // 채점 직후에도 Ctrl+] 1회면 전체 보이도록 감
-    _navPhase = 0;
-  }
-});
+    // 답안창: Enter=채점, Shift+Enter=줄바꿈
+    el.userAnswer?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        el.gradeBtn?.click();
+      }
+    });
 
+    // ====== 초기화 ======
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await loadData();
+      } catch (err) {
+        console.error(err);
+        document.getElementById('question-text').textContent = '문제 데이터 로드 실패 (questions.json 또는 dataset-json을 확인하세요).';
+        showToast(`문제 데이터 로드 실패: ${err.message}`, 'error');
+      }
+      loadScores();
+      loadApiKey();
+      loadSettings();
+      applyDarkMode();
+      migrateData();
+      ensureApiKeyGate();
+    });
   </script>
 </body>
 </html>
-
-
