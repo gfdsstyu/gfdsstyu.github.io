@@ -451,7 +451,6 @@
         const targetY = elmTop(topEl) - header - margin;
         smoothScrollTo(targetY < 0 ? 0 : targetY);
       }
-      // 스크롤 조금 끝난 뒤 바닥이 완전히 보이는지 점검
       setTimeout(() => {
         const bottomRect = bottomEl.getBoundingClientRect();
         const shortfall = bottomRect.bottom - (window.innerHeight - margin);
@@ -1302,8 +1301,8 @@ ${userAnswer || '(미입력)'}
 
         // 평균 점수
         let sum = 0, cnt = 0;
-        // 평균 회독수(고유)
-        let sumUniqueReads = 0, readCnt = 0;
+        // 총 고유 회독수 합
+        let sumUniqueReads = 0;
         // 최근 학습일
         let latestDate = 0;
 
@@ -1311,13 +1310,13 @@ ${userAnswer || '(미입력)'}
           const qid = String(q.고유ID).trim();
           const s = questionScores[qid];
           if (s && Number.isFinite(Number(s.score))) { sum += Number(s.score); cnt++; }
-          const ur = readStore[qid]?.uniqueReads || 0;
-          if (ur > 0) { sumUniqueReads += ur; readCnt++; }
+          sumUniqueReads += (readStore[qid]?.uniqueReads || 0);
           if (s && s.lastSolvedDate && s.lastSolvedDate > latestDate) latestDate = s.lastSolvedDate;
         });
 
         const avg = cnt ? (sum / cnt) : null;
-        const avgRounds = readCnt ? (sumUniqueReads / readCnt) : null;
+        // ★ 변경: 단원 전체 문항 수로 평균 회독수 계산 (미풀이 문항은 0회로 포함)
+        const avgRounds = list.length ? (sumUniqueReads / list.length) : 0;
 
         let recentText = '';
         if (latestDate > 0) {
@@ -1331,7 +1330,7 @@ ${userAnswer || '(미입력)'}
 
         const ratioText = `응시 ${cnt}/${list.length}`;
         const avgText = (avg === null) ? '-' : avg.toFixed(1);
-        const avgRoundsText = (avgRounds === null) ? '-' : avgRounds.toFixed(1);
+        const avgRoundsText = avgRounds.toFixed(1);
 
         const barW = _clamp(avg ?? 0, 0, 100);
         const barCls = (avg === null) ? 'bg-gray-300'
@@ -1352,7 +1351,8 @@ ${userAnswer || '(미입력)'}
         const line1 = document.createElement('div');
         line1.textContent = `평균 ${avgText}점 · ${ratioText}`;
         const line2 = document.createElement('div');
-        line2.textContent = `평균 ${avgRoundsText}회독(5분 윈도우) · 최근 ${recentText}`;
+        // ★ 변경: 문구에서 (5분 윈도우) 제거
+        line2.textContent = `평균 ${avgRoundsText}회독 · 최근 ${recentText}`;
 
         meta.appendChild(line1);
         meta.appendChild(line2);
@@ -1468,7 +1468,7 @@ ${userAnswer || '(미입력)'}
         questionScores = {};
         localStorage.removeItem('auditQuizScores');
         localStorage.removeItem('schemaVersion');
-        // 회독 저장소도 초기화 권장 시 주석 해제
+        // 필요 시 회독 저장소도 초기화:
         // localStorage.removeItem('readSessions_v2');
         updateSummary();
         if (currentQuizData.length > 0) {
@@ -1494,7 +1494,6 @@ ${userAnswer || '(미입력)'}
       lastScrollYBeforeFocus = window.pageYOffset;
       document.documentElement.classList.add('focus-mode');
       ensureResultBoxReady();
-      // "답안입력창 맨 위" + "채점결과 박스 전체 보이기"
       ensureRangeVisible({ topEl: el.userAnswer, bottomEl: el.resultBox, topAlign: true });
       ctrlNavState = 'focus';
     }
@@ -1516,26 +1515,20 @@ ${userAnswer || '(미입력)'}
     function isEditing(t) { return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable); }
     function goTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
-    // 기존 단축키 핸들러 대체: H, 좌/우, Ctrl[ / Ctrl]
     document.addEventListener('keydown', (e) => {
       // H/h 힌트 (입력 중이 아닐 때)
       if ((e.key === 'h' || e.key === 'H') && !isEditing(e.target)) {
         e.preventDefault(); el.hintBtn?.click(); return;
       }
       if (e.ctrlKey && !e.altKey && !e.metaKey) {
-        // Ctrl+Arrow: 이전/다음
         if (e.key === 'ArrowLeft')  { e.preventDefault(); el.prevBtn?.click(); return; }
         if (e.key === 'ArrowRight') { e.preventDefault(); el.nextBtn?.click(); return; }
-
-        // Ctrl+[ : 포커스 해제 후 이전 상태 복귀(위로>위로)
         if (e.key === '[') {
           e.preventDefault();
           if (ctrlNavState === 'focus') backFromFocus();
           else goTop();
           return;
         }
-
-        // Ctrl+] : 1회 포커스, 2회 현황판
         if (e.key === ']') {
           e.preventDefault();
           if (ctrlNavState !== 'focus') enterFocusMode();
