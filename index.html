@@ -145,7 +145,6 @@
         </div>
         <textarea id="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=모범답안 포커스/현황판)"></textarea>
         <p id="error-message" class="text-red-500 text-sm mt-2 hidden">답안을 입력해주세요.</p>
-        <!-- 단축키 가이드 -->
         <p id="hotkey-guide" class="text-xs text-gray-500 mt-2">
           단축키: Ctrl+←/→ 이전/다음 · Enter 채점 · Shift+Enter 줄바꿈 · H 힌트 · Ctrl+[ 이전 위치 복귀 · Ctrl+] 1회 포커스 / 2회 현황판
         </p>
@@ -189,7 +188,6 @@
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3">
           <h3 class="text-xl font-bold text-gray-800">학습 현황판 (클릭하여 이동)</h3>
           <div class="flex flex-wrap gap-3 items-center">
-            <!-- 보기 토글(요약판 전용, 문제 필터와 독립) -->
             <div class="flex items-center gap-2">
               <span class="text-sm text-gray-600">보기:</span>
               <button id="summary-view-all" class="px-3 py-1.5 text-sm border rounded bg-gray-100 hover:bg-gray-200">모든 단원보기</button>
@@ -334,8 +332,7 @@
      * 감린이 v3.x (클린, 스몰패치 통합)
      * - Ctrl+] 1회 포커스(답안입력 맨위+결과박스 전체 보이기), 2회 현황판
      * - Ctrl+[ 포커스 해제 후 이전 스크롤로 복귀(위로>위로)
-     * - 회독수 과대산정 방지: 5분 윈도우 고유회독 카운트 + 현황판 평균 n회독 계산 로직 교체
-     * - 기타 기존 기능 유지
+     * - 회독수 과대산정 방지 + 기존 solveHistory 백필
      * ---------------------------------------------------- */
 
     // ====== 전역 상태 ======
@@ -348,7 +345,7 @@
     let selectedAiModel = 'gemini-2.5-flash';
     let darkMode = 'system';
     let prevLoaded = false;
-    let summaryViewMode = 'ALL'; // 'ALL' | 'CURRENT' (요약판 전용)
+    let summaryViewMode = 'ALL'; // 'ALL' | 'CURRENT'
 
     // Ctrl] / Ctrl[ 내비 상태
     let ctrlNavState = 'dashboard'; // 'dashboard' | 'focus'
@@ -1222,7 +1219,7 @@ ${userAnswer || '(미입력)'}
       el.resultBox.classList.remove('hidden');
     }
 
-    // ====== 요약판(학습 현황판) 보기 토글 ======
+    // ====== 요약판 보기 토글 ======
     el.summaryViewAllBtn?.addEventListener('click', () => {
       summaryViewMode = 'ALL';
       el.summaryViewAllBtn.classList.add('bg-gray-100');
@@ -1247,12 +1244,65 @@ ${userAnswer || '(미입력)'}
     function saveReadStore(obj) {
       localStorage.setItem(READ_STORE_KEY, JSON.stringify(obj));
     }
+
+    // --- NEW: solveHistory → uniqueReads 계산기 & 백필 ---
+    function computeUniqueReadsFromHistory(history) {
+      const times = (Array.isArray(history) ? history : [])
+        .map(h => Number(h?.date))
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      if (times.length === 0) return { uniqueReads: 0, lastAt: 0 };
+
+      let count = 0;
+      let last = -Infinity;
+      for (const t of times) {
+        if (t - last >= UNIQUE_WINDOW_MS) {
+          count++;
+          last = t;
+        }
+      }
+      return { uniqueReads: count, lastAt: times[times.length - 1] };
+    }
+
+    function backfillReadStoreFromScores(force = false) {
+      if (!force && localStorage.getItem('readStoreBackfilled_v2') === '1') return;
+
+      const db = loadReadStore();
+      let touched = 0;
+
+      for (const [qid, rec] of Object.entries(questionScores || {})) {
+        const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
+        if (hist.length === 0) continue;
+
+        const has = db[qid];
+        if (!has || !Number.isFinite(has.uniqueReads) || has.uniqueReads === 0) {
+          const seed = computeUniqueReadsFromHistory(hist);
+          if (seed.uniqueReads > 0) {
+            db[qid] = seed;
+            touched++;
+          }
+        }
+      }
+
+      if (touched > 0) saveReadStore(db);
+      localStorage.setItem('readStoreBackfilled_v2', '1');
+    }
+
+    // --- FIX: registerUniqueRead가 비어있을 때 solveHistory로 시드 ---
     function registerUniqueRead(questionKey) {
       const t = Date.now();
       const db = loadReadStore();
-      const rec = db[questionKey] || { lastAt: 0, uniqueReads: 0 };
-      if (t - rec.lastAt >= UNIQUE_WINDOW_MS) {
-        rec.uniqueReads += 1;
+      let rec = db[questionKey];
+
+      if (!rec) {
+        const hist = questionScores[questionKey]?.solveHistory;
+        rec = Array.isArray(hist) && hist.length > 0
+          ? computeUniqueReadsFromHistory(hist)
+          : { uniqueReads: 0, lastAt: 0 };
+      }
+
+      if (t - (rec.lastAt || 0) >= UNIQUE_WINDOW_MS) {
+        rec.uniqueReads = (Number(rec.uniqueReads) || 0) + 1;
         rec.lastAt = t;
         db[questionKey] = rec;
         saveReadStore(db);
@@ -1301,7 +1351,7 @@ ${userAnswer || '(미입력)'}
 
         // 평균 점수
         let sum = 0, cnt = 0;
-        // 총 고유 회독수 합
+        // 고유 회독수 합
         let sumUniqueReads = 0;
         // 최근 학습일
         let latestDate = 0;
@@ -1310,12 +1360,22 @@ ${userAnswer || '(미입력)'}
           const qid = String(q.고유ID).trim();
           const s = questionScores[qid];
           if (s && Number.isFinite(Number(s.score))) { sum += Number(s.score); cnt++; }
-          sumUniqueReads += (readStore[qid]?.uniqueReads || 0);
+
+          // --- FIX: 저장소 값 없으면 solveHistory로 즉석 계산 ---
+          const ur = (() => {
+            const rs = readStore[qid];
+            if (rs && Number.isFinite(Number(rs.uniqueReads))) return Number(rs.uniqueReads);
+            const h = questionScores[qid]?.solveHistory;
+            if (Array.isArray(h) && h.length) return computeUniqueReadsFromHistory(h).uniqueReads;
+            return 0;
+          })();
+          sumUniqueReads += ur;
+
           if (s && s.lastSolvedDate && s.lastSolvedDate > latestDate) latestDate = s.lastSolvedDate;
         });
 
         const avg = cnt ? (sum / cnt) : null;
-        // ★ 변경: 단원 전체 문항 수로 평균 회독수 계산 (미풀이 문항은 0회로 포함)
+        // 미풀이 문항은 0회로 포함해서 평균 회독 계산
         const avgRounds = list.length ? (sumUniqueReads / list.length) : 0;
 
         let recentText = '';
@@ -1351,7 +1411,6 @@ ${userAnswer || '(미입력)'}
         const line1 = document.createElement('div');
         line1.textContent = `평균 ${avgText}점 · ${ratioText}`;
         const line2 = document.createElement('div');
-        // ★ 변경: 문구에서 (5분 윈도우) 제거
         line2.textContent = `평균 ${avgRoundsText}회독 · 최근 ${recentText}`;
 
         meta.appendChild(line1);
@@ -1468,8 +1527,9 @@ ${userAnswer || '(미입력)'}
         questionScores = {};
         localStorage.removeItem('auditQuizScores');
         localStorage.removeItem('schemaVersion');
-        // 필요 시 회독 저장소도 초기화:
-        // localStorage.removeItem('readSessions_v2');
+        // 회독 저장소 및 백필 플래그도 초기화
+        localStorage.removeItem('readSessions_v2');
+        localStorage.removeItem('readStoreBackfilled_v2');
         updateSummary();
         if (currentQuizData.length > 0) {
           currentQuestionIndex = 0;
@@ -1516,7 +1576,6 @@ ${userAnswer || '(미입력)'}
     function goTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
     document.addEventListener('keydown', (e) => {
-      // H/h 힌트 (입력 중이 아닐 때)
       if ((e.key === 'h' || e.key === 'H') && !isEditing(e.target)) {
         e.preventDefault(); el.hintBtn?.click(); return;
       }
@@ -1559,6 +1618,8 @@ ${userAnswer || '(미입력)'}
       loadSettings();
       applyDarkMode();
       migrateData();
+      // --- NEW: 기존 solveHistory를 회독 저장소로 백필 ---
+      backfillReadStoreFromScores(false);
       ensureApiKeyGate();
     });
   </script>
