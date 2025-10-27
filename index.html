@@ -35,7 +35,7 @@
     .dark .border-gray-300 { border-color: #4a5568; }
   </style>
 
-  <!-- 다크모드 접근성 보강 전역 CSS -->
+  <!-- 다크모드 접근성 보강 전역 CSS (주석 깨짐 수정) -->
   <style id="dark-a11y-20251026">
     html.dark { color-scheme: dark; }
     html.dark input, html.dark textarea, html.dark select {
@@ -49,8 +49,7 @@
     }
     /* 진행바 트랙/결과/힌트/현황판 대비 */
     html.dark .progress-track { background-color: #374151; } /* gray-700 */
-    html.dark #result-box { background-color: #1f2937; border-color: #374151; */
-    }
+    html.dark #result-box { background-color: #1f2937; border-color: #374151; }
     html.dark #quiz-area .bg-gray-50 { background-color: #111827; }
     html.dark #quiz-area .border-gray-200 { border-color: #374151; }
     html.dark #hint-container { background-color: #1e3a8a; border-color: #334155; color: #e0e7ff; }
@@ -60,6 +59,12 @@
     html.dark .summary-btn.bg-red-100   { background-color:#7f1d1d; color:#fecaca; border-color:#991b1b; }
     html.dark .summary-btn.bg-yellow-100{ background-color:#78350f; color:#fde68a; border-color:#92400e; }
     html.dark .summary-btn.bg-green-100 { background-color:#14532d; color:#bbf7d0; border-color:#166534; }
+  </style>
+
+  <!-- Ctrl] 포커스 모드 시 모범답안 박스 잘림 방지용 미니 CSS -->
+  <style id="focus-mode-css">
+    html.focus-mode { scroll-behavior: smooth; }
+    html.focus-mode #result-box { max-height: none !important; overflow: visible !important; }
   </style>
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
@@ -138,11 +143,11 @@
           <label for="user-answer" class="text-sm font-medium text-gray-700">답안 입력</label>
           <button id="load-prev-answer-btn" class="text-xs text-blue-600 hover:underline">이전 답안 불러오기</button>
         </div>
-        <textarea id="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=맨 위, Ctrl+]=모범답안)"></textarea>
+        <textarea id="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=모범답안 포커스/현황판)"></textarea>
         <p id="error-message" class="text-red-500 text-sm mt-2 hidden">답안을 입력해주세요.</p>
         <!-- 단축키 가이드 -->
         <p id="hotkey-guide" class="text-xs text-gray-500 mt-2">
-          단축키: Ctrl+←/→ 이전/다음 · Enter 채점 · Shift+Enter 줄바꿈 · H 힌트 · Ctrl+[ 맨 위 · Ctrl+] 모범답안
+          단축키: Ctrl+←/→ 이전/다음 · Enter 채점 · Shift+Enter 줄바꿈 · H 힌트 · Ctrl+[ 이전 위치 복귀 · Ctrl+] 1회 포커스 / 2회 현황판
         </p>
 
         <div class="flex justify-between items-center my-5">
@@ -327,10 +332,10 @@
   <script type="module">
     /* ----------------------------------------------------
      * 감린이 v3.x (클린, 스몰패치 통합)
-     * - 데이터 로딩: questions.json → dataset-json 폴백
-     * - 요약판 보기 토글(ALL/CURRENT) 추가(문제 필터와 독립)
-     * - 단축키: Ctrl+←/→, Enter/Shift+Enter, H, Ctrl+[ / Ctrl+]
-     * - 채점 프롬프트: flash 유지, flash-lite는 엄격 문구 추가
+     * - Ctrl+] 1회 포커스(답안입력 맨위+결과박스 전체 보이기), 2회 현황판
+     * - Ctrl+[ 포커스 해제 후 이전 스크롤로 복귀(위로>위로)
+     * - 회독수 과대산정 방지: 5분 윈도우 고유회독 카운트 + 현황판 평균 n회독 계산 로직 교체
+     * - 기타 기존 기능 유지
      * ---------------------------------------------------- */
 
     // ====== 전역 상태 ======
@@ -344,6 +349,10 @@
     let darkMode = 'system';
     let prevLoaded = false;
     let summaryViewMode = 'ALL'; // 'ALL' | 'CURRENT' (요약판 전용)
+
+    // Ctrl] / Ctrl[ 내비 상태
+    let ctrlNavState = 'dashboard'; // 'dashboard' | 'focus'
+    let lastScrollYBeforeFocus = 0;
 
     // ====== DOM 캐시 ======
     const el = {
@@ -392,7 +401,8 @@
       resetScoresBtn: document.getElementById('reset-scores-btn'),
       summaryViewAllBtn: document.getElementById('summary-view-all'),
       summaryViewCurrentBtn: document.getElementById('summary-view-current'),
-      dbQuestionId: document.getElementById('db-question-id')
+      dbQuestionId: document.getElementById('db-question-id'),
+      fixedHeader: document.getElementById('fixed-header'),
     };
 
     // ====== 유틸 ======
@@ -420,6 +430,35 @@
       item.textContent = msg;
       el.toast.appendChild(item);
       setTimeout(() => { item.remove(); if (!el.toast.hasChildNodes()) el.toast.classList.add('hidden'); }, 3500);
+    }
+
+    // 스크롤 유틸
+    function getHeaderOffset() {
+      const h = el.fixedHeader;
+      return h ? (h.getBoundingClientRect().height || h.offsetHeight || 0) : 0;
+    }
+    function smoothScrollTo(y) {
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+    function elmTop(elm) {
+      const rect = elm.getBoundingClientRect();
+      return rect.top + window.pageYOffset;
+    }
+    function ensureRangeVisible({ topEl, bottomEl, topAlign = true }) {
+      const header = getHeaderOffset();
+      const margin = 12;
+      if (topAlign) {
+        const targetY = elmTop(topEl) - header - margin;
+        smoothScrollTo(targetY < 0 ? 0 : targetY);
+      }
+      // 스크롤 조금 끝난 뒤 바닥이 완전히 보이는지 점검
+      setTimeout(() => {
+        const bottomRect = bottomEl.getBoundingClientRect();
+        const shortfall = bottomRect.bottom - (window.innerHeight - margin);
+        if (shortfall > 0) {
+          smoothScrollTo(window.pageYOffset + shortfall);
+        }
+      }, 160);
     }
 
     // ====== 다크 모드 ======
@@ -455,14 +494,11 @@
         try {
           const res = await fetch(path, { cache: 'no-store' });
           if (!res.ok) { errs.push(`${path}: HTTP ${res.status}`); continue; }
-
           const arr = await res.json();
           if (!Array.isArray(arr)) { errs.push(`${path}: JSON 최상위가 배열 아님`); continue; }
-
           const need = ['고유ID','단원','물음','정답'];
           const bad = arr.findIndex(r => !r || need.some(k => !(k in r)));
           if (bad !== -1) { errs.push(`${path}: 필수키 누락(index ${bad})`); continue; }
-
           allData = arr;
           console.info('[questions.json] loaded from', path);
           selfTest();
@@ -481,11 +517,9 @@
         if (!text) throw new Error('내장 데이터 비어 있음');
         const parsed = JSON.parse(text);
         if (!Array.isArray(parsed)) throw new Error('내장 데이터 최상위가 배열 아님');
-
         allData = parsed;
         console.warn('[questions.json] 모든 후보 실패. 내장 데이터로 폴백합니다.', errs);
         showToast('외부 DB를 못 읽어 내장 데이터로 폴백했습니다(자세한 원인은 콘솔).', 'warn');
-
         selfTest();
         populateChapterSelect();
         updateSummary();
@@ -837,19 +871,18 @@
       el.questionNumber.textContent = `문항 ${q.표시번호 || q.물음번호 || q.고유ID}`;
       el.questionText.textContent = q.물음;
       el.questionCounter.textContent = `${currentQuestionIndex + 1} / ${currentQuizData.length}`;
-      // DB 문제번호(스텁 업데이트, 기본 숨김 유지)
       if (el.dbQuestionId) {
         el.dbQuestionId.textContent = `ID: ${q.고유ID ?? '-'}`;
-        // el.dbQuestionId.classList.remove('hidden'); // 필요 시 노출
       }
 
-      // 힌트 자동 해제
+      // 힌트 초기화
       activeHintQuestionKey = null;
       el.hintBox.classList.add('hidden');
       el.hintBox.innerHTML = '';
 
+      // 결과/입력 초기화
       el.resultBox.classList.add('hidden');
-      el.userAnswer.value = ''; // 항상 초기화
+      el.userAnswer.value = '';
 
       // 이전답안 토글 초기화
       if (el.loadPrevAnswerBtn) {
@@ -959,6 +992,9 @@
           showToast('localStorage 저장 실패 (용량 초과 가능)', 'error');
         }
 
+        // ---- 회독수 고유 카운트(5분 윈도우) 등록 ----
+        const { increased, uniqueReads } = registerUniqueRead(qKey);
+        if (increased) showToast(`회독 +1 (이 문제 고유 ${uniqueReads}회)`);
         updateSummary();
       } catch (e) {
         console.error('채점 오류:', e);
@@ -985,7 +1021,7 @@
       }
     }
 
-    // ====== Gemini API: 채점 (flash=기존, flash-lite=엄격 추가) ======
+    // ====== Gemini API: 채점 ======
     async function callGeminiAPI(userAnswer, correctAnswer, apiKey, retries = 2, delay = 1000) {
       const modelMap = {
         'gemini-2.5-flash': 'gemini-2.5-flash',
@@ -1006,7 +1042,6 @@
         }
       };
 
-      // ★ 기존 프롬프트(Flash)는 그대로. Lite는 '엄격 모드 지침'만 추가로 붙임.
       const BASE_SYSTEM_PROMPT =
 `당신은 매우 엄격한 회계감사 과목 채점 교수님입니다.
 - 사용자 답안을 모범답안과 비교해 0~100의 "score"(NUMBER)와 "feedback"(STRING, 한국어)을 JSON으로만 반환하세요.
@@ -1202,11 +1237,39 @@ ${userAnswer || '(미입력)'}
       updateSummary();
     });
 
+    // ====== 회독수(고유) 저장소 ======
+    const READ_STORE_KEY = 'readSessions_v2';
+    const UNIQUE_WINDOW_MS = 5 * 60 * 1000; // 5분
+
+    function loadReadStore() {
+      try { return JSON.parse(localStorage.getItem(READ_STORE_KEY) || '{}'); }
+      catch { return {}; }
+    }
+    function saveReadStore(obj) {
+      localStorage.setItem(READ_STORE_KEY, JSON.stringify(obj));
+    }
+    function registerUniqueRead(questionKey) {
+      const t = Date.now();
+      const db = loadReadStore();
+      const rec = db[questionKey] || { lastAt: 0, uniqueReads: 0 };
+      if (t - rec.lastAt >= UNIQUE_WINDOW_MS) {
+        rec.uniqueReads += 1;
+        rec.lastAt = t;
+        db[questionKey] = rec;
+        saveReadStore(db);
+        return { increased: true, uniqueReads: rec.uniqueReads };
+      } else {
+        rec.lastAt = t;
+        db[questionKey] = rec;
+        saveReadStore(db);
+        return { increased: false, uniqueReads: rec.uniqueReads };
+      }
+    }
+
     // ====== 현황판 ======
     function updateSummary() {
       el.scoreSummary.innerHTML = '';
 
-      // 요약판은 문제 필터/단원 셀렉트와 **독립적으로** 동작
       const base = (summaryViewMode === 'CURRENT')
         ? (currentQuizData || [])
         : (allData || []);
@@ -1226,6 +1289,7 @@ ${userAnswer || '(미입력)'}
         return a.localeCompare(b, 'ko');
       });
 
+      const readStore = loadReadStore();
       const _clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
       chapters.forEach(ch => {
@@ -1236,21 +1300,24 @@ ${userAnswer || '(미입력)'}
           return String(a.표시번호 || a.물음번호).localeCompare(String(b.표시번호 || b.물음번호), 'ko');
         });
 
+        // 평균 점수
         let sum = 0, cnt = 0;
-        let totalRounds = 0, roundCnt = 0;
+        // 평균 회독수(고유)
+        let sumUniqueReads = 0, readCnt = 0;
+        // 최근 학습일
         let latestDate = 0;
 
         list.forEach(q => {
-          const s = questionScores[String(q.고유ID)?.trim()];
+          const qid = String(q.고유ID).trim();
+          const s = questionScores[qid];
           if (s && Number.isFinite(Number(s.score))) { sum += Number(s.score); cnt++; }
-          if (s && s.solveHistory && s.solveHistory.length > 0) {
-            totalRounds += s.solveHistory.length; roundCnt++;
-          }
+          const ur = readStore[qid]?.uniqueReads || 0;
+          if (ur > 0) { sumUniqueReads += ur; readCnt++; }
           if (s && s.lastSolvedDate && s.lastSolvedDate > latestDate) latestDate = s.lastSolvedDate;
         });
 
         const avg = cnt ? (sum / cnt) : null;
-        const avgRounds = roundCnt ? (totalRounds / roundCnt) : null;
+        const avgRounds = readCnt ? (sumUniqueReads / readCnt) : null;
 
         let recentText = '';
         if (latestDate > 0) {
@@ -1264,7 +1331,7 @@ ${userAnswer || '(미입력)'}
 
         const ratioText = `응시 ${cnt}/${list.length}`;
         const avgText = (avg === null) ? '-' : avg.toFixed(1);
-        const avgRoundsText = avgRounds ? avgRounds.toFixed(1) : '-';
+        const avgRoundsText = (avgRounds === null) ? '-' : avgRounds.toFixed(1);
 
         const barW = _clamp(avg ?? 0, 0, 100);
         const barCls = (avg === null) ? 'bg-gray-300'
@@ -1285,7 +1352,7 @@ ${userAnswer || '(미입력)'}
         const line1 = document.createElement('div');
         line1.textContent = `평균 ${avgText}점 · ${ratioText}`;
         const line2 = document.createElement('div');
-        line2.textContent = `평균 ${avgRoundsText}회독 · 최근 ${recentText}`;
+        line2.textContent = `평균 ${avgRoundsText}회독(5분 윈도우) · 최근 ${recentText}`;
 
         meta.appendChild(line1);
         meta.appendChild(line2);
@@ -1344,11 +1411,8 @@ ${userAnswer || '(미입력)'}
           btn.dataset.qid = String(q.고유ID).trim();
 
           btn.addEventListener('click', () => {
-            // 요약판은 독립 동작이지만, 클릭 시 해당 문항으로 이동 편의 제공
-            // 현재 세트가 해당 문항을 포함하지 않으면, 전체 allData에서 찾아서 현재 세트를 재구성
             const idxInCurrent = currentQuizData.findIndex(it => String(it.고유ID).trim() === String(q.고유ID).trim());
             if (idxInCurrent === -1) {
-              // 현재 세트를 해당 단원으로 잠시 구성
               const chVal = String(q.단원).trim();
               const newSet = allData.filter(it => String(it.단원).trim() === chVal);
               if (newSet.length) {
@@ -1392,7 +1456,7 @@ ${userAnswer || '(미입력)'}
       });
     }
 
-    // ====== 필터 해제 및 초기화 (문제 목록용) ======
+    // ====== 필터 해제 및 초기화 ======
     el.clearFilterBtn.addEventListener('click', () => {
       el.filterSelect.value = 'all';
       el.chapterSelect.value = '';
@@ -1404,6 +1468,8 @@ ${userAnswer || '(미입력)'}
         questionScores = {};
         localStorage.removeItem('auditQuizScores');
         localStorage.removeItem('schemaVersion');
+        // 회독 저장소도 초기화 권장 시 주석 해제
+        // localStorage.removeItem('readSessions_v2');
         updateSummary();
         if (currentQuizData.length > 0) {
           currentQuestionIndex = 0;
@@ -1413,11 +1479,8 @@ ${userAnswer || '(미입력)'}
       }
     });
 
-    // ====== 단축키 ======
-    function isEditing(t) { return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable); }
-    function goTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
-    function ensureModelAnswerVisible() {
-      // 결과 영역 열고 모범답안 위치로 스크롤. 필요 시 즉시 정답 텍스트도 채운다.
+    // ====== Ctrl] 포커스 모드 & Ctrl[ 복귀 ======
+    function ensureResultBoxReady() {
       if (currentQuizData.length) {
         const q = currentQuizData[currentQuestionIndex];
         if (!el.correctAnswer.textContent?.trim()) {
@@ -1425,9 +1488,35 @@ ${userAnswer || '(미입력)'}
         }
       }
       el.resultBox.classList.remove('hidden');
-      (el.correctAnswer || el.resultBox).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    function enterFocusMode() {
+      if (!el.userAnswer || !el.resultBox) return;
+      lastScrollYBeforeFocus = window.pageYOffset;
+      document.documentElement.classList.add('focus-mode');
+      ensureResultBoxReady();
+      // "답안입력창 맨 위" + "채점결과 박스 전체 보이기"
+      ensureRangeVisible({ topEl: el.userAnswer, bottomEl: el.resultBox, topAlign: true });
+      ctrlNavState = 'focus';
+    }
+    function exitToDashboard() {
+      document.documentElement.classList.remove('focus-mode');
+      if (el.summaryArea) {
+        smoothScrollTo(elmTop(el.summaryArea) - getHeaderOffset() - 8);
+      } else {
+        smoothScrollTo(0);
+      }
+      ctrlNavState = 'dashboard';
+    }
+    function backFromFocus() {
+      document.documentElement.classList.remove('focus-mode');
+      smoothScrollTo(Math.max(0, lastScrollYBeforeFocus));
+      ctrlNavState = 'dashboard';
     }
 
+    function isEditing(t) { return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable); }
+    function goTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+    // 기존 단축키 핸들러 대체: H, 좌/우, Ctrl[ / Ctrl]
     document.addEventListener('keydown', (e) => {
       // H/h 힌트 (입력 중이 아닐 때)
       if ((e.key === 'h' || e.key === 'H') && !isEditing(e.target)) {
@@ -1437,9 +1526,22 @@ ${userAnswer || '(미입력)'}
         // Ctrl+Arrow: 이전/다음
         if (e.key === 'ArrowLeft')  { e.preventDefault(); el.prevBtn?.click(); return; }
         if (e.key === 'ArrowRight') { e.preventDefault(); el.nextBtn?.click(); return; }
-        // Ctrl+[ / Ctrl+]
-        if (e.key === '[') { e.preventDefault(); goTop(); return; }
-        if (e.key === ']') { e.preventDefault(); ensureModelAnswerVisible(); return; }
+
+        // Ctrl+[ : 포커스 해제 후 이전 상태 복귀(위로>위로)
+        if (e.key === '[') {
+          e.preventDefault();
+          if (ctrlNavState === 'focus') backFromFocus();
+          else goTop();
+          return;
+        }
+
+        // Ctrl+] : 1회 포커스, 2회 현황판
+        if (e.key === ']') {
+          e.preventDefault();
+          if (ctrlNavState !== 'focus') enterFocusMode();
+          else exitToDashboard();
+          return;
+        }
       }
     });
 
@@ -1453,9 +1555,8 @@ ${userAnswer || '(미입력)'}
 
     // ====== 초기화 ======
     document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        await loadData();
-      } catch (err) {
+      try { await loadData(); }
+      catch (err) {
         console.error(err);
         document.getElementById('question-text').textContent = '문제 데이터 로드 실패 (questions.json 또는 dataset-json을 확인하세요).';
         showToast(`문제 데이터 로드 실패: ${err.message}`, 'error');
