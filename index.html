@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="referrer" content="same-origin" />
-  <title>감린이 - 회계감사 학습 도우미 v3.2</title>
+  <title>감린이 - 회계감사 학습 도우미 v3.3</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -114,11 +114,14 @@
       <!-- 문제 영역 -->
       <div id="quiz-area" class="hidden">
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-4">
-          <div class="flex justify-between items-center mb-4">
+          <div class="flex justify-between items-center mb-2">
             <h2 id="question-number" class="text-xl font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-md">문항</h2>
             <span id="question-counter" class="text-gray-500 font-medium">0 / 0</span>
           </div>
-          <p id="question-text" class="text-gray-800 text-base md:text-lg leading-relaxed">문제를 불러오는 중입니다...</p>
+          <!-- DB 문제번호(스텁) -->
+          <div id="db-question-id" class="text-xs text-gray-500 hidden">ID: -</div>
+
+          <p id="question-text" class="text-gray-800 text-base md:text-lg leading-relaxed mt-2">문제를 불러오는 중입니다...</p>
 
           <!-- 힌트 버튼 -->
           <div class="mt-3 flex items-center justify-end">
@@ -135,8 +138,12 @@
           <label for="user-answer" class="text-sm font-medium text-gray-700">답안 입력</label>
           <button id="load-prev-answer-btn" class="text-xs text-blue-600 hover:underline">이전 답안 불러오기</button>
         </div>
-        <textarea id="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요..."></textarea>
+        <textarea id="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=맨 위, Ctrl+]=모범답안)"></textarea>
         <p id="error-message" class="text-red-500 text-sm mt-2 hidden">답안을 입력해주세요.</p>
+        <!-- 단축키 가이드 -->
+        <p id="hotkey-guide" class="text-xs text-gray-500 mt-2">
+          단축키: Ctrl+←/→ 이전/다음 · Enter 채점 · Shift+Enter 줄바꿈 · H 힌트 · Ctrl+[ 맨 위 · Ctrl+] 모범답안
+        </p>
 
         <div class="flex justify-between items-center my-5">
           <button id="prev-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600">이전</button>
@@ -174,11 +181,19 @@
 
       <!-- 학습 현황판 -->
       <div id="summary-area" class="mt-8 pt-6 border-t hidden">
-        <div class="flex items-center justify-between mb-3">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3">
           <h3 class="text-xl font-bold text-gray-800">학습 현황판 (클릭하여 이동)</h3>
-          <div class="flex gap-4">
-            <button id="clear-filter-btn" class="text-sm text-blue-700 hover:underline dark:text-blue-300">필터 해제</button>
-            <button id="reset-scores-btn" class="text-sm text-red-600 hover:underline dark:text-red-300">학습 기록 초기화</button>
+          <div class="flex flex-wrap gap-3 items-center">
+            <!-- 보기 토글(요약판 전용, 문제 필터와 독립) -->
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-gray-600">보기:</span>
+              <button id="summary-view-all" class="px-3 py-1.5 text-sm border rounded bg-gray-100 hover:bg-gray-200">모든 단원보기</button>
+              <button id="summary-view-current" class="px-3 py-1.5 text-sm border rounded">현재 학습단원보기</button>
+            </div>
+            <div class="flex gap-4">
+              <button id="clear-filter-btn" class="text-sm text-blue-700 hover:underline dark:text-blue-300">필터 해제</button>
+              <button id="reset-scores-btn" class="text-sm text-red-600 hover:underline dark:text-red-300">학습 기록 초기화</button>
+            </div>
           </div>
         </div>
         <div id="score-summary" class="flex flex-wrap gap-2"></div>
@@ -284,7 +299,7 @@
       "problemTitle": "",
       "단원": 1,
       "물음번호": 1,
-      "물음": "회계감사에는 고유한계가 존재하며, 감사인의 결론도출과 의견표명의 기초가 되는 대부분의 감사증거는 결정적 증거이기 보다는 설득적 증거이기 때문에 회계감사를 통해 재무제표에 부정이 나오류로 인한 중요한 왜곡표시가 없다는 절대적 확신은 얻을 수없다. 이러한 회계감사의 고유한계의 원인을 세가지만 기재하시오.",
+      "물음": "회계감사에는 고유한계가 존재하며, 감사인의 결론도출과 의견표명의 기초가 되는 대부분의 감사증거는 결정적 증거이기 보다는 설득적 증거이기 때문에 회계감사를 통해 재무제표에 부정이 나오류로 인한 중요한 왜곡표시가 없다는 절대적 확신은 얻을 수없다. 이러한 회계감사의 고유한한계의 원인을 세가지만 기재하시오.",
       "정답": "ISA 200-A47 ① 재무보고의 성격 ② 감사절차의 성격 ③ 합리적인 시간 내에 합리적인 비용으로 감사가 수행될 필요성"
     },
     {
@@ -311,9 +326,11 @@
 
   <script type="module">
     /* ----------------------------------------------------
-     * 감린이 v3.x (클린)
+     * 감린이 v3.x (클린, 스몰패치 통합)
      * - 데이터 로딩: questions.json → dataset-json 폴백
-     * - 경로 후보 자동 탐색 + 에러 상세 로깅
+     * - 요약판 보기 토글(ALL/CURRENT) 추가(문제 필터와 독립)
+     * - 단축키: Ctrl+←/→, Enter/Shift+Enter, H, Ctrl+[ / Ctrl+]
+     * - 채점 프롬프트: flash 유지, flash-lite는 엄격 문구 추가
      * ---------------------------------------------------- */
 
     // ====== 전역 상태 ======
@@ -326,6 +343,7 @@
     let selectedAiModel = 'gemini-2.5-flash';
     let darkMode = 'system';
     let prevLoaded = false;
+    let summaryViewMode = 'ALL'; // 'ALL' | 'CURRENT' (요약판 전용)
 
     // ====== DOM 캐시 ======
     const el = {
@@ -371,7 +389,10 @@
       summaryArea: document.getElementById('summary-area'),
       scoreSummary: document.getElementById('score-summary'),
       clearFilterBtn: document.getElementById('clear-filter-btn'),
-      resetScoresBtn: document.getElementById('reset-scores-btn')
+      resetScoresBtn: document.getElementById('reset-scores-btn'),
+      summaryViewAllBtn: document.getElementById('summary-view-all'),
+      summaryViewCurrentBtn: document.getElementById('summary-view-current'),
+      dbQuestionId: document.getElementById('db-question-id')
     };
 
     // ====== 유틸 ======
@@ -407,16 +428,11 @@
       darkMode = mode;
       if (el.darkModeSelect) el.darkModeSelect.value = mode;
 
-      if (mode === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else if (mode === 'light') {
-        document.documentElement.classList.remove('dark');
-      } else {
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
+      if (mode === 'dark') document.documentElement.classList.add('dark');
+      else if (mode === 'light') document.documentElement.classList.remove('dark');
+      else {
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
       }
     }
     if (window.matchMedia) {
@@ -427,7 +443,6 @@
 
     // ====== 데이터 로딩: questions.json → dataset-json ======
     async function loadData() {
-      // 경로 후보(상위부터 순차 시도). 필요한 경우 경로를 추가/수정하세요.
       const CANDIDATES = [
         'questions.json',
         './questions.json',
@@ -444,7 +459,6 @@
           const arr = await res.json();
           if (!Array.isArray(arr)) { errs.push(`${path}: JSON 최상위가 배열 아님`); continue; }
 
-          // 필수 키 검증
           const need = ['고유ID','단원','물음','정답'];
           const bad = arr.findIndex(r => !r || need.some(k => !(k in r)));
           if (bad !== -1) { errs.push(`${path}: 필수키 누락(index ${bad})`); continue; }
@@ -454,13 +468,12 @@
           selfTest();
           populateChapterSelect();
           updateSummary();
-          return; // 성공 시 종료
+          return;
         } catch (e) {
           errs.push(`${path}: ${e.message}`);
         }
       }
 
-      // 외부 파일 로드 실패 → 내장 데이터(JSON) 폴백
       try {
         const node = document.getElementById('dataset-json');
         if (!node) throw new Error('dataset-json 없음');
@@ -824,6 +837,11 @@
       el.questionNumber.textContent = `문항 ${q.표시번호 || q.물음번호 || q.고유ID}`;
       el.questionText.textContent = q.물음;
       el.questionCounter.textContent = `${currentQuestionIndex + 1} / ${currentQuizData.length}`;
+      // DB 문제번호(스텁 업데이트, 기본 숨김 유지)
+      if (el.dbQuestionId) {
+        el.dbQuestionId.textContent = `ID: ${q.고유ID ?? '-'}`;
+        // el.dbQuestionId.classList.remove('hidden'); // 필요 시 노출
+      }
 
       // 힌트 자동 해제
       activeHintQuestionKey = null;
@@ -967,7 +985,7 @@
       }
     }
 
-    // ====== Gemini API: 채점 ======
+    // ====== Gemini API: 채점 (flash=기존, flash-lite=엄격 추가) ======
     async function callGeminiAPI(userAnswer, correctAnswer, apiKey, retries = 2, delay = 1000) {
       const modelMap = {
         'gemini-2.5-flash': 'gemini-2.5-flash',
@@ -988,8 +1006,8 @@
         }
       };
 
-      const systemInstruction = {
-        parts: [{ text:
+      // ★ 기존 프롬프트(Flash)는 그대로. Lite는 '엄격 모드 지침'만 추가로 붙임.
+      const BASE_SYSTEM_PROMPT =
 `당신은 매우 엄격한 회계감사 과목 채점 교수님입니다.
 - 사용자 답안을 모범답안과 비교해 0~100의 "score"(NUMBER)와 "feedback"(STRING, 한국어)을 JSON으로만 반환하세요.
 - 채점 기준을 매우 엄격하게(strictly) 적용합니다.
@@ -1004,8 +1022,20 @@
 6. 키워드는 모범답안에서 스스로 추출하되, 한국 회계감사 기준·규정(ISA, KSA, 외부감사법, 윤리기준)에 맞는 동의어·표현 변형을 허용
 7. 물음에서의 물음 부분이 굳이 답변에 포함되지 않아도 됨
 
-- 불필요한 말/코드블록 금지. JSON 객체만 반환.` }]
-      };
+- 불필요한 말/코드블록 금지. JSON 객체만 반환.`;
+
+      const LITE_STRICT_ADDENDUM =
+`[엄격 모드 지침(라이트 전용)]
+- 모호/추정/확장 서술은 감점.
+- 동의어 인정 범위를 좁게 적용(명시적 일치 우선).
+- 필수 키워드가 문장 내 명시적으로 없으면 큰 감점.
+- 레퍼런스 밖 주장은 근거 없으면 감점.`;
+
+      const systemText = model.includes('flash-lite')
+        ? `${BASE_SYSTEM_PROMPT}\n\n${LITE_STRICT_ADDENDUM}`
+        : BASE_SYSTEM_PROMPT;
+
+      const systemInstruction = { parts: [{ text: systemText }] };
 
       const userQuery = `[모범 답안]
 ${correctAnswer}
@@ -1158,13 +1188,28 @@ ${userAnswer || '(미입력)'}
       el.resultBox.classList.remove('hidden');
     }
 
+    // ====== 요약판(학습 현황판) 보기 토글 ======
+    el.summaryViewAllBtn?.addEventListener('click', () => {
+      summaryViewMode = 'ALL';
+      el.summaryViewAllBtn.classList.add('bg-gray-100');
+      el.summaryViewCurrentBtn.classList.remove('bg-gray-100');
+      updateSummary();
+    });
+    el.summaryViewCurrentBtn?.addEventListener('click', () => {
+      summaryViewMode = 'CURRENT';
+      el.summaryViewCurrentBtn.classList.add('bg-gray-100');
+      el.summaryViewAllBtn.classList.remove('bg-gray-100');
+      updateSummary();
+    });
+
     // ====== 현황판 ======
     function updateSummary() {
       el.scoreSummary.innerHTML = '';
-      const selectedChapter = el.chapterSelect.value;
 
-      let base = allData;
-      if (selectedChapter) base = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
+      // 요약판은 문제 필터/단원 셀렉트와 **독립적으로** 동작
+      const base = (summaryViewMode === 'CURRENT')
+        ? (currentQuizData || [])
+        : (allData || []);
 
       const groups = new Map();
       for (const q of base) {
@@ -1299,17 +1344,24 @@ ${userAnswer || '(미입력)'}
           btn.dataset.qid = String(q.고유ID).trim();
 
           btn.addEventListener('click', () => {
-            el.filterSelect.value = 'all';
-            if (el.chapterSelect.value !== ch) el.chapterSelect.value = ch;
-            handleLoadQuiz();
-            const idx = currentQuizData.findIndex(it => String(it.고유ID).trim() === String(q.고유ID).trim());
-            if (idx !== -1) {
-              currentQuestionIndex = idx;
-              displayQuestion();
-              showToast(`'${q.표시번호 || q.물음번호}'번으로 이동했습니다.`);
+            // 요약판은 독립 동작이지만, 클릭 시 해당 문항으로 이동 편의 제공
+            // 현재 세트가 해당 문항을 포함하지 않으면, 전체 allData에서 찾아서 현재 세트를 재구성
+            const idxInCurrent = currentQuizData.findIndex(it => String(it.고유ID).trim() === String(q.고유ID).trim());
+            if (idxInCurrent === -1) {
+              // 현재 세트를 해당 단원으로 잠시 구성
+              const chVal = String(q.단원).trim();
+              const newSet = allData.filter(it => String(it.단원).trim() === chVal);
+              if (newSet.length) {
+                currentQuizData = newSet;
+                currentQuestionIndex = newSet.findIndex(it => String(it.고유ID).trim() === String(q.고유ID).trim());
+              }
             } else {
-              showToast('이 문항을 현재 목록에서 찾을 수 없습니다.', 'warn');
+              currentQuestionIndex = idxInCurrent;
             }
+            if (currentQuestionIndex < 0) currentQuestionIndex = 0;
+            el.quizArea.classList.remove('hidden');
+            displayQuestion();
+            showToast(`'${q.표시번호 || q.물음번호 || q.고유ID}'번으로 이동했습니다.`);
           });
 
           grid.appendChild(btn);
@@ -1340,7 +1392,7 @@ ${userAnswer || '(미입력)'}
       });
     }
 
-    // ====== 필터 해제 및 초기화 ======
+    // ====== 필터 해제 및 초기화 (문제 목록용) ======
     el.clearFilterBtn.addEventListener('click', () => {
       el.filterSelect.value = 'all';
       el.chapterSelect.value = '';
@@ -1358,6 +1410,44 @@ ${userAnswer || '(미입력)'}
           handleLoadQuiz();
         }
         showToast('학습 기록이 초기화되었습니다.');
+      }
+    });
+
+    // ====== 단축키 ======
+    function isEditing(t) { return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable); }
+    function goTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    function ensureModelAnswerVisible() {
+      // 결과 영역 열고 모범답안 위치로 스크롤. 필요 시 즉시 정답 텍스트도 채운다.
+      if (currentQuizData.length) {
+        const q = currentQuizData[currentQuestionIndex];
+        if (!el.correctAnswer.textContent?.trim()) {
+          el.correctAnswer.textContent = String(q.정답 || '');
+        }
+      }
+      el.resultBox.classList.remove('hidden');
+      (el.correctAnswer || el.resultBox).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      // H/h 힌트 (입력 중이 아닐 때)
+      if ((e.key === 'h' || e.key === 'H') && !isEditing(e.target)) {
+        e.preventDefault(); el.hintBtn?.click(); return;
+      }
+      if (e.ctrlKey && !e.altKey && !e.metaKey) {
+        // Ctrl+Arrow: 이전/다음
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); el.prevBtn?.click(); return; }
+        if (e.key === 'ArrowRight') { e.preventDefault(); el.nextBtn?.click(); return; }
+        // Ctrl+[ / Ctrl+]
+        if (e.key === '[') { e.preventDefault(); goTop(); return; }
+        if (e.key === ']') { e.preventDefault(); ensureModelAnswerVisible(); return; }
+      }
+    });
+
+    // 답안창: Enter=채점, Shift+Enter=줄바꿈
+    el.userAnswer?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        el.gradeBtn?.click();
       }
     });
 
