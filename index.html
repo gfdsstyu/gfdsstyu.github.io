@@ -1303,7 +1303,7 @@ ${userAnswer || '(미입력)'}
         // 평균 점수
         let sum = 0, cnt = 0;
         // 평균 회독수(고유)
-        let sumUniqueReads = 0, readCnt = 0;
+        let sumUniqueReads = 0;
         // 최근 학습일
         let latestDate = 0;
 
@@ -1311,8 +1311,8 @@ ${userAnswer || '(미입력)'}
           const qid = String(q.고유ID).trim();
           const s = questionScores[qid];
           if (s && Number.isFinite(Number(s.score))) { sum += Number(s.score); cnt++; }
-          const ur = readStore[qid]?.uniqueReads || 0;
-          if (ur > 0) { sumUniqueReads += ur; readCnt++; }
+         const ur = (readStore[qid] && Number(readStore[qid].uniqueReads)) || 0;
+sumUniqueReads += ur;
           if (s && s.lastSolvedDate && s.lastSolvedDate > latestDate) latestDate = s.lastSolvedDate;
         });
 
@@ -1330,8 +1330,8 @@ ${userAnswer || '(미입력)'}
         }
 
         const ratioText = `응시 ${cnt}/${list.length}`;
-        const avgText = (avg === null) ? '-' : avg.toFixed(1);
-        const avgRoundsText = (avgRounds === null) ? '-' : avgRounds.toFixed(1);
+        const avgRounds = list.length ? (sumUniqueReads / list.length) : 0;
+const avgRoundsText = avgRounds.toFixed(1);
 
         const barW = _clamp(avg ?? 0, 0, 100);
         const barCls = (avg === null) ? 'bg-gray-300'
@@ -1352,7 +1352,7 @@ ${userAnswer || '(미입력)'}
         const line1 = document.createElement('div');
         line1.textContent = `평균 ${avgText}점 · ${ratioText}`;
         const line2 = document.createElement('div');
-        line2.textContent = `평균 ${avgRoundsText}회독(5분 윈도우) · 최근 ${recentText}`;
+line2.textContent = `평균 ${avgRoundsText}회독 · 최근 ${recentText}`;
 
         meta.appendChild(line1);
         meta.appendChild(line2);
@@ -1571,3 +1571,4 @@ ${userAnswer || '(미입력)'}
   </script>
 </body>
 </html>
+
