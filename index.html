@@ -457,6 +457,46 @@
       }, 160);
     }
 
+    /* ===== [PATCH] 단원 라벨 & 파트(대단원) 삽입 정의 ===== */
+    const CHAPTER_LABELS = {
+      1:  "제1장 감사와 회계감사의 기본개념",
+      2:  "제2장 감사인의 의무, 책임 및 자격요건",
+      3:  "제3장 감사인의 독립성과 품질관리",
+      4:  "제1장 감사인의 선임",
+      5:  "제2장 감사계약",
+      6:  "제1장 회계감사수행을 위한 기초지식",
+      7:  "제2장 위험평가절차와 계획수립",
+      8:  "제1장 통제테스트와 위험평가의 확정",
+      9:  "제1-2장 데이터분석",
+      10: "제2장 실증절차의 기초",
+      11: "제3장 기초잔액과 거래유형별 실증절차",
+      12: "제4장 특정항목별 감사절차",
+      13: "제5장 테스트항목의 범위와 표본감사 데이터분석",
+      14: "제6장 실증절차의 마무리절차",
+      15: "제1장 미수정왜곡표시의 평가와 감사의견의 형성",
+      16: "제2장 감사보고서의 작성과 보고",
+      17: "제1장 인증업무개념체계와 특정목적재무보고체계",
+      18: "제2장 그룹재무제표에 대한 감사",
+      19: "제3장 내부회계관리제도에 대한 감사와 검토",
+      20: "제4장 중간재무제표에 대한 검토"
+      // 필요시 21: "제5장 소규모기업 재무제표에 대한 감사" 추가
+    };
+
+    const PART_INSERTIONS = [
+      { before: 1,  label: "Part 1. 회계감사의 기초" },
+      { before: 4,  label: "Part 2. 감사인의 선임과 감사계약" },
+      { before: 6,  label: "Part 3. 회계감사의 시작과 위험평가절차" },
+      { before: 8,  label: "Part 4. 위험평가절차에 대한 추가감사절차" },
+      { before: 15, label: "Part 5. 감사의견의 형성과 감사보고서" },
+      { before: 17, label: "Part 6. 그룹재무제표에 대한 감사와 기타인증업무" },
+    ];
+
+    function chapterLabelText(chStr) {
+      const n = Number(chStr);
+      const title = CHAPTER_LABELS[n];
+      return Number.isFinite(n) ? (title ? `${n}. ${title}` : `단원 ${n}`) : String(chStr);
+    }
+
     // ====== 다크 모드 ======
     function applyDarkMode() {
       const mode = localStorage.getItem('darkMode') || 'system';
@@ -545,20 +585,40 @@
       if (uniqChapterCount === 0) throw new Error('단원 데이터가 없습니다.');
     }
 
+    /* ===== [PATCH] 단원선택 드롭다운: 1:1 라벨 + 파트 구분 삽입 ===== */
     function populateChapterSelect() {
       while (el.chapterSelect.options.length > 1) el.chapterSelect.remove(1);
-      const chapters = [...new Set(allData.map(item => String(item.단원).trim()))];
-      chapters.sort((a, b) => {
-        const na = toNum(a), nb = toNum(b);
-        if (na !== null && nb !== null) return na - nb;
-        if (na !== null) return -1;
-        if (nb !== null) return 1;
+
+      const chapters = [...new Set(allData.map(item => String(item.단원).trim()))].sort((a, b) => {
+        const na = Number(a), nb = Number(b);
+        if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+        if (Number.isFinite(na)) return -1;
+        if (Number.isFinite(nb)) return 1;
         return a.localeCompare(b, 'ko');
       });
+
+      const inserted = new Set();
       chapters.forEach(ch => {
+        const n = Number(ch);
+        // 파트(대단원) 배너를 드롭다운에 '비활성 옵션'으로 삽입
+        if (Number.isFinite(n)) {
+          PART_INSERTIONS.forEach(p => {
+            if (p.before === n && !inserted.has(p.before)) {
+              const sep = document.createElement('option');
+              sep.textContent = `━━ ${p.label} ━━`;
+              sep.disabled = true;
+              sep.value = `__part_${p.before}`;
+              sep.className = 'text-gray-500';
+              el.chapterSelect.appendChild(sep);
+              inserted.add(p.before);
+            }
+          });
+        }
+
+        // 실제 단원 옵션
         const opt = document.createElement('option');
         opt.value = ch;
-        opt.textContent = Number.isFinite(Number(ch)) ? `단원 ${ch}` : ch;
+        opt.textContent = chapterLabelText(ch); // ex) "1. 제1장 감사와 …"
         el.chapterSelect.appendChild(opt);
       });
     }
@@ -1342,6 +1402,18 @@ ${userAnswer || '(미입력)'}
       const _clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
       chapters.forEach(ch => {
+        /* ===== [PATCH] 학습현황판: 파트(대단원) 배너 삽입 ===== */
+        const nCh = Number(ch);
+        if (Number.isFinite(nCh)) {
+          const hit = PART_INSERTIONS.find(p => p.before === nCh);
+          if (hit) {
+            const partDiv = document.createElement('div');
+            partDiv.className = 'w-full px-3 py-2 mb-2 rounded-lg border-2 bg-blue-50 border-blue-200 text-blue-800 font-bold';
+            partDiv.textContent = hit.label;
+            el.scoreSummary.appendChild(partDiv);
+          }
+        }
+
         const list = groups.get(ch) || [];
         list.sort((a, b) => {
           const na = Number(a.물음번호 || a.표시번호), nb = Number(b.물음번호 || b.표시번호);
@@ -1403,7 +1475,8 @@ ${userAnswer || '(미입력)'}
 
         const title = document.createElement('div');
         title.className = 'font-semibold text-lg';
-        title.textContent = Number.isFinite(Number(ch)) ? `단원 ${ch}` : ch;
+        /* ===== [PATCH] 챕터 카드 타이틀: 1:1 라벨 적용 ===== */
+        title.textContent = chapterLabelText(ch);
 
         const meta = document.createElement('div');
         meta.className = 'text-sm text-gray-700 mt-1 space-y-1';
@@ -1625,4 +1698,3 @@ ${userAnswer || '(미입력)'}
   </script>
 </body>
 </html>
-
