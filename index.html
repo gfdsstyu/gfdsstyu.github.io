@@ -1119,7 +1119,8 @@
 - 모호/추정/확장 서술은 감점.
 - 점수 짜게준다.
 - 필수 키워드가 문장 내 명시적으로 없으면 큰 감점.
-- 레퍼런스 밖 주장은 근거 없으면 감점.`;
+- 레퍼런스 밖 주장은 근거 없으면 감점.
+- 도출한 점수보다 5점 깎아서 제시할 것`;
 
       const systemText = model.includes('flash-lite')
         ? `${BASE_SYSTEM_PROMPT}\n\n${LITE_STRICT_ADDENDUM}`
@@ -1697,4 +1698,5 @@ ${userAnswer || '(미입력)'}
   </script>
 </body>
 </html>
+
 
