@@ -23,7 +23,7 @@
     pre { white-space: pre-wrap; word-wrap: break-word; }
     #toast { position: fixed; top: 16px; right: 16px; z-index: 9999; }
 
-    /* 다크모드 스타일(기존) */
+    /* 다크모드 기본 */
     .dark { background-color: #1a202c; color: #e2e8f0; }
     .dark .bg-white { background-color: #2d3748; }
     .dark .bg-gray-100 { background-color: #1a202c; }
@@ -35,20 +35,15 @@
     .dark .border-gray-300 { border-color: #4a5568; }
   </style>
 
-  <!-- 다크모드 접근성 보강 전역 CSS (주석 깨짐 수정) -->
+  <!-- 다크모드 접근성 보강 -->
   <style id="dark-a11y-20251026">
     html.dark { color-scheme: dark; }
     html.dark input, html.dark textarea, html.dark select {
-      background-color: #1f2937; /* gray-800 */
-      color: #e5e7eb;            /* gray-200 */
-      border-color: #4b5563;     /* gray-600 */
+      background-color: #1f2937; color: #e5e7eb; border-color: #4b5563;
     }
-    html.dark ::placeholder { color: #9ca3af; } /* gray-400 */
-    html.dark :is(button, a, input, textarea, select):focus-visible {
-      outline: 2px solid #60a5fa; /* sky-400 */ outline-offset: 2px;
-    }
-    /* 진행바 트랙/결과/힌트/현황판 대비 */
-    html.dark .progress-track { background-color: #374151; } /* gray-700 */
+    html.dark ::placeholder { color: #9ca3af; }
+    html.dark :is(button, a, input, textarea, select):focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+    html.dark .progress-track { background-color: #374151; }
     html.dark #result-box { background-color: #1f2937; border-color: #374151; }
     html.dark #quiz-area .bg-gray-50 { background-color: #111827; }
     html.dark #quiz-area .border-gray-200 { border-color: #374151; }
@@ -61,18 +56,25 @@
     html.dark .summary-btn.bg-green-100 { background-color:#14532d; color:#bbf7d0; border-color:#166534; }
   </style>
 
-  <!-- Ctrl] 포커스 모드 시 모범답안 박스 잘림 방지용 미니 CSS -->
+  <!-- Ctrl] 포커스 모드 -->
   <style id="focus-mode-css">
     html.focus-mode { scroll-behavior: smooth; }
     html.focus-mode #result-box { max-height: none !important; overflow: visible !important; }
+  </style>
+
+  <!-- 보조 CSS -->
+  <style id="layout-css">
+    .heatmap-cell { width: 14px; height: 14px; border-radius: 3px; }
+    /* 모바일 드로어 */
+    .drawer-open { overflow: hidden; }
   </style>
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
   <div id="toast" class="hidden"></div>
 
-  <!-- ========== [A] 상단 네비게이션 바 ========== -->
+  <!-- 상단 네비 -->
   <header id="fixed-header" class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200 dark:bg-gray-900/80 dark:border-gray-800">
-    <div class="mx-auto max-w-4xl px-4 py-2 flex items-center justify-between">
+  <div class="mx-auto max-w-[1400px] 2xl:max-w-[1600px] px-4 lg:px-6 xl:px-8 py-2 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <span class="text-xl font-extrabold tracking-tight text-blue-700 dark:text-blue-400">감린이</span>
         <span class="hidden sm:inline text-xs text-gray-500 dark:text-gray-400">회계감사 암기 도우미 v3.3</span>
@@ -82,129 +84,187 @@
         <button id="settings-btn" class="ml-1 inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600" aria-haspopup="dialog">
           <span>설정</span><span aria-hidden>⚙️</span>
         </button>
-        <button id="hamburger" class="sm:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600" aria-label="메뉴">≡</button>
+        <button id="hamburger" class="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600" aria-label="메뉴">≡</button>
       </nav>
     </div>
   </header>
-  <div class="h-14"></div><!-- 상단바 공간 확보 -->
+  <div class="h-14"></div>
 
-  <!-- 메인 컨텐츠 -->
-  <div class="pt-2 flex-1 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-6 md:p-8">
+  <!-- 모바일 드로어 백드롭 -->
+  <div id="drawer-backdrop" class="fixed inset-0 bg-black/40 hidden z-[1099]"></div>
 
-      <!-- 옵션 -->
-      <div class="flex flex-col md:flex-row gap-4 mb-6 items-center">
-        <div class="flex-1 w-full">
-          <label for="chapter-select" class="block text-sm font-medium text-gray-700 mb-1">단원 선택</label>
-          <select id="chapter-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
-            <option value="">-- 전체 단원 --</option>
+  <!-- 메인 레이아웃 -->
+<div id="layout-root" class="pt-2 flex-1 px-4 lg:px-6 xl:px-8">
+  <div class="mx-auto max-w-[1400px] 2xl:max-w-[1600px] grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6 2xl:gap-8">
+      <!-- LEFT: 대시보드 (모바일 숨김→햄버거로 드로어) -->
+      <aside id="left-dashboard" class="lg:col-span-4 xl:col-span-3 2xl:col-span-3 space-y-4">
+        <div class="bg-white rounded-2xl shadow-xl p-4">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-bold text-lg">학습 캘린더</h3>
+            <div id="calendar-month-label" class="text-sm text-gray-500"></div>
+          </div>
+          <div class="grid grid-cols-7 gap-1 text-[11px] text-gray-500 mb-1">
+            <div class="text-center">월</div><div class="text-center">화</div><div class="text-center">수</div>
+            <div class="text-center">목</div><div class="text-center">금</div><div class="text-center">토</div>
+            <div class="text-center">일</div>
+          </div>
+          <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
+          <div class="mt-2 text-[11px] text-gray-500">숫자 배경색 = 해당일 풀이량</div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-xl p-4">
+          <h3 class="font-bold text-lg mb-2">오늘의 통계</h3>
+          <div id="stats-overview" class="text-sm space-y-1"></div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-xl p-4">
+          <h3 class="font-bold text-lg mb-2">오늘의 복습</h3>
+          <label class="text-sm block mb-2">우선순위</label>
+          <select id="review-strategy-select" class="w-full p-2 border rounded">
+            <option value="smart">지능형 추천 (기본)</option>
+            <option value="low">점수 낮은 순</option>
+            <option value="recentWrong">최근 틀린 순</option>
+            <option value="flag">사용자 지정 복습 목록</option>
           </select>
+          <button id="start-review-btn" class="mt-3 w-full bg-blue-600 text-white py-2 rounded-lg">오늘의 복습 시작</button>
         </div>
-        <div class="flex-1 w-full">
-          <label for="filter-select" class="block text-sm font-medium text-gray-700 mb-1">문제 필터</label>
-          <select id="filter-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition dark:bg-gray-700 dark:text-gray-100 dark:border-gray-700">
-            <option value="all">모든 문제 풀기</option>
-            <option value="unanswered">아직 안 푼 문제</option>
-            <option value="today-review">오늘의 복습 (추천)</option>
-            <option value="80">80점 미만 문제</option>
-            <option value="60">60점 미만 문제</option>
-          </select>
-        </div>
-        <div class="w-full md:w-auto md:self-end flex gap-2">
-          <button id="load-quiz-btn" class="flex-1 bg-blue-600 text-white font-bold p-3 rounded-lg shadow-md hover:bg-blue-700 transition duration-200">학습 시작</button>
-          <button id="random-quiz-btn" class="flex-1 bg-purple-600 text-white font-bold p-3 rounded-lg shadow-md hover:bg-purple-700 transition duration-200">랜덤 문제</button>
-        </div>
-      </div>
+      </aside>
 
-      <!-- 문제 영역 -->
-      <div id="quiz-area" class="hidden">
-        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-4">
-          <div class="flex justify-between items-center mb-2">
-            <h2 id="question-number" class="text-xl font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-md">문항</h2>
-            <span id="question-counter" class="text-gray-500 font-medium">0 / 0</span>
-          </div>
-          <!-- DB 문제번호(스텁) -->
-          <div id="db-question-id" class="text-xs text-gray-500 hidden">ID: -</div>
-
-          <p id="question-text" class="text-gray-800 text-base md:text-lg leading-relaxed mt-2">문제를 불러오는 중입니다...</p>
-
-          <!-- 힌트 버튼 -->
-          <div class="mt-3 flex items-center justify-end">
-            <button id="hint-btn" class="text-sm bg-purple-600 text-white px-3 py-1.5 rounded-md shadow hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">
-              힌트
-            </button>
-          </div>
-
-          <!-- 힌트 박스 -->
-          <div id="hint-container" class="hidden mt-3 text-sm bg-purple-50 border border-purple-200 text-purple-800 rounded-lg p-3 dark:bg-indigo-900 dark:border-indigo-700 dark:text-indigo-100"></div>
-        </div>
-
-        <div class="flex items-center justify-between mb-2">
-          <label for="user-answer" class="text-sm font-medium text-gray-700">답안 입력</label>
-          <button id="load-prev-answer-btn" class="text-xs text-blue-600 hover:underline">이전 답안 불러오기</button>
-        </div>
-        <textarea id="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=모범답안 포커스/현황판)"></textarea>
-        <p id="error-message" class="text-red-500 text-sm mt-2 hidden">답안을 입력해주세요.</p>
-        <p id="hotkey-guide" class="text-xs text-gray-500 mt-2">
-          단축키: Ctrl+←/→ 이전/다음 · Enter 채점 · Shift+Enter 줄바꿈 · H 힌트 · Ctrl+[ 이전 위치 복귀 · Ctrl+] 1회 포커스 / 2회 현황판
-        </p>
-
-        <div class="flex justify-between items-center my-5">
-          <button id="prev-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600">이전</button>
-          <button id="grade-btn" class="bg-green-500 text-white font-bold py-2 px-8 rounded-lg shadow-md hover:bg-green-600 transition duration-200 relative min-w-[120px]">
-            <span id="grade-btn-text">채점하기</span>
-            <div id="grade-loader" class="loader absolute inset-0 m-auto hidden" aria-hidden="true"></div>
-          </button>
-          <button id="next-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600">다음</button>
-        </div>
-      </div>
-
-      <!-- 결과 영역 -->
-      <div id="result-box" class="hidden bg-gray-50 border border-gray-200 rounded-lg p-6 mt-6 dark:bg-gray-800 dark:border-gray-700" aria-live="polite">
-        <h3 class="text-2xl font-bold text-gray-800 mb-4">채점 결과</h3>
-
-        <div id="score-display" class="mb-5">
-          <p class="text-lg font-medium text-gray-700">
-            유사도 점수: <span id="score" class="font-bold text-blue-600 text-2xl">0</span><span class="text-gray-600 text-lg">점</span>
-          </p>
-          <div class="w-full bg-gray-200 progress-track rounded-full h-4 mt-2 overflow-hidden shadow-inner">
-            <div id="progress-bar" class="h-4 rounded-full transition-all duration-500 ease-out" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width: 0%"></div>
-          </div>
-        </div>
-
-        <div class="mb-5">
-          <h4 class="text-xl font-semibold text-gray-700 mb-2">🤖 AI 총평</h4>
-          <div id="ai-feedback" class="bg-white p-4 border border-gray-200 rounded-lg text-gray-600 leading-relaxed min-h-[50px]"></div>
-        </div>
-
-        <div>
-          <h4 class="text-xl font-semibold text-gray-700 mb-2">📘 모범 답안</h4>
-          <pre id="correct-answer" class="bg-white p-4 border border-gray-200 rounded-lg text-gray-600 text-sm font-sans leading-relaxed"></pre>
-        </div>
-      </div>
-
-      <!-- 학습 현황판 -->
-      <div id="summary-area" class="mt-8 pt-6 border-t hidden">
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3">
-          <h3 class="text-xl font-bold text-gray-800">학습 현황판 (클릭하여 이동)</h3>
-          <div class="flex flex-wrap gap-3 items-center">
-            <div class="flex items-center gap-2">
-              <span class="text-sm text-gray-600">보기:</span>
-              <button id="summary-view-all" class="px-3 py-1.5 text-sm border rounded bg-gray-100 hover:bg-gray-200">모든 단원보기</button>
-              <button id="summary-view-current" class="px-3 py-1.5 text-sm border rounded">현재 학습단원보기</button>
+      <!-- CENTER: 메인 -->
+      <main id="center-core" class="lg:col-span-6 xl:col-span-7 2xl:col-span-7">
+        <div class="bg-white rounded-2xl shadow-xl w-full p-6 md:p-8">
+          <!-- 옵션 행 -->
+          <div class="flex flex-col md:flex-row gap-4 mb-6 items-center">
+            <div class="flex-1 w-full">
+              <label for="chapter-select" class="block text-sm font-medium text-gray-700 mb-1">단원 선택</label>
+              <select id="chapter-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
+                <option value="">-- 전체 단원 --</option>
+              </select>
             </div>
-            <div class="flex gap-4">
-              <button id="clear-filter-btn" class="text-sm text-blue-700 hover:underline dark:text-blue-300">필터 해제</button>
-              <button id="reset-scores-btn" class="text-sm text-red-600 hover:underline dark:text-red-300">학습 기록 초기화</button>
+            <div class="flex-1 w-full">
+              <label for="filter-select" class="block text-sm font-medium text-gray-700 mb-1">문제 필터</label>
+              <select id="filter-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition dark:bg-gray-700 dark:text-gray-100 dark:border-gray-700">
+                <option value="all">모든 문제 풀기</option>
+                <option value="unanswered">아직 안 푼 문제</option>
+                <option value="today-review">오늘의 복습 (추천)</option>
+                <option value="80">80점 미만 문제</option>
+                <option value="60">60점 미만 문제</option>
+              </select>
+            </div>
+            <div class="w-full md:w-auto md:self-end flex gap-2">
+              <button id="load-quiz-btn" class="flex-1 bg-blue-600 text-white font-bold p-3 rounded-lg shadow-md hover:bg-blue-700 transition duration-200">학습 시작</button>
+              <button id="random-quiz-btn" class="flex-1 bg-purple-600 text-white font-bold p-3 rounded-lg shadow-md hover:bg-purple-700 transition duration-200">랜덤 문제</button>
             </div>
           </div>
+
+          <!-- (신규) 출처 그룹 필터 -->
+          <div id="source-group-filter" class="mb-6"></div>
+
+          <!-- 문제 영역 -->
+          <div id="quiz-area" class="hidden">
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-4">
+              <div class="flex justify-between items-center mb-2">
+                <h2 id="question-number" class="text-xl font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-md">문항</h2>
+                <span id="question-counter" class="text-gray-500 font-medium">0 / 0</span>
+              </div>
+              <div id="db-question-id" class="text-xs text-gray-500 hidden">ID: -</div>
+
+              <p id="question-text" class="text-gray-800 text-base md:text-lg leading-relaxed mt-2">문제를 불러오는 중입니다...</p>
+
+              <div class="mt-3 flex items-center justify-between gap-2">
+                <button id="hint-btn" class="text-sm bg-purple-600 text-white px-3 py-1.5 rounded-md shadow hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">힌트</button>
+                <button id="review-flag-toggle" class="text-sm px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100 flex items-center gap-1" aria-pressed="false" title="복습 필요 토글">
+                  <span class="text-yellow-500">☆</span><span>복습 필요</span>
+                </button>
+              </div>
+
+              <div id="hint-container" class="hidden mt-3 text-sm bg-purple-50 border border-purple-200 text-purple-800 rounded-lg p-3 dark:bg-indigo-900 dark:border-indigo-700 dark:text-indigo-100"></div>
+            </div>
+
+            <div class="flex items-center justify-between mb-2">
+              <label for="user-answer" class="text-sm font-medium text-gray-700">답안 입력</label>
+              <button id="load-prev-answer-btn" class="text-xs text-blue-600 hover:underline">이전 답안 불러오기</button>
+            </div>
+            <textarea id="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=포커스/현황판)"></textarea>
+            <p id="error-message" class="text-red-500 text-sm mt-2 hidden">답안을 입력해주세요.</p>
+            <p id="hotkey-guide" class="text-xs text-gray-500 mt-2">
+              단축키: Ctrl+←/→ 이전/다음 · Enter 채점 · Shift+Enter 줄바꿈 · H 힌트 · Ctrl+[ 이전 · Ctrl+] 포커스/현황판
+            </p>
+
+            <div class="flex justify-between items-center my-5">
+              <button id="prev-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600">이전</button>
+              <button id="grade-btn" class="bg-green-500 text-white font-bold py-2 px-8 rounded-lg shadow-md hover:bg-green-600 transition duration-200 relative min-w-[120px]">
+                <span id="grade-btn-text">채점하기</span>
+                <div id="grade-loader" class="loader absolute inset-0 m-auto hidden" aria-hidden="true"></div>
+              </button>
+              <button id="next-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600">다음</button>
+            </div>
+          </div>
+
+          <!-- 결과 -->
+          <div id="result-box" class="hidden bg-gray-50 border border-gray-200 rounded-lg p-6 mt-6 dark:bg-gray-800 dark:border-gray-700" aria-live="polite">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4">채점 결과</h3>
+            <div id="score-display" class="mb-5">
+              <p class="text-lg font-medium text-gray-700">
+                유사도 점수: <span id="score" class="font-bold text-blue-600 text-2xl">0</span><span class="text-gray-600 text-lg">점</span>
+              </p>
+              <div class="w-full bg-gray-200 progress-track rounded-full h-4 mt-2 overflow-hidden shadow-inner">
+                <div id="progress-bar" class="h-4 rounded-full transition-all duration-500 ease-out" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width: 0%"></div>
+              </div>
+            </div>
+            <div class="mb-5">
+              <h4 class="text-xl font-semibold text-gray-700 mb-2">🤖 AI 총평</h4>
+              <div id="ai-feedback" class="bg-white p-4 border border-gray-200 rounded-lg text-gray-600 leading-relaxed min-h-[50px]"></div>
+            </div>
+            <div>
+              <h4 class="text-xl font-semibold text-gray-700 mb-2">📘 모범 답안</h4>
+              <pre id="correct-answer" class="bg-white p-4 border border-gray-200 rounded-lg text-gray-600 text-sm font-sans leading-relaxed"></pre>
+            </div>
+          </div>
+
+          <!-- 학습 현황판 -->
+          <div id="summary-area" class="mt-8 pt-6 border-t hidden">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3">
+              <h3 class="text-xl font-bold text-gray-800">학습 현황판 (클릭하여 이동)</h3>
+              <div class="flex flex-wrap gap-3 items-center">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm text-gray-600">보기:</span>
+                  <button id="summary-view-all" class="px-3 py-1.5 text-sm border rounded bg-gray-100 hover:bg-gray-200">모든 단원보기</button>
+                  <button id="summary-view-current" class="px-3 py-1.5 text-sm border rounded">현재 학습단원보기</button>
+                </div>
+                <div class="flex gap-4">
+                  <button id="clear-filter-btn" class="text-sm text-blue-700 hover:underline dark:text-blue-300">필터 해제</button>
+                  <button id="reset-scores-btn" class="text-sm text-red-600 hover:underline dark:text-red-300">학습 기록 초기화</button>
+                </div>
+              </div>
+            </div>
+            <div id="score-summary" class="flex flex-wrap gap-2"></div>
+          </div>
         </div>
-        <div id="score-summary" class="flex flex-wrap gap-2"></div>
-      </div>
+      </main>
+
+      <!-- RIGHT: 탐색 패널 (모바일에선 중앙 아래로) -->
+      <aside id="right-explorer" class="lg:col-span-2 xl:col-span-2 2xl:col-span-2 space-y-4">
+        <div class="bg-white rounded-2xl shadow-xl p-4">
+          <h3 class="font-bold text-lg mb-2">학습 범위 필터</h3>
+          <div id="source-filter-side"></div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-xl p-4">
+          <h3 class="font-bold text-lg mb-2">단원 네비게이터</h3>
+          <div id="explorer-chapters" class="space-y-2"></div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-xl p-4">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-bold text-lg">문제 목록</h3>
+            <input id="explorer-search" class="border rounded px-2 py-1 text-sm" placeholder="검색...">
+          </div>
+          <div id="explorer-problems" class="space-y-1 max-h-[60vh] overflow-y-auto pr-1"></div>
+        </div>
+      </aside>
     </div>
   </div>
 
-  <!-- ========== API 키 최초 인증 모달 ========== -->
+  <!-- API 키 모달 -->
   <div id="api-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1000]">
     <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
       <h2 class="text-xl font-bold text-gray-800">Gemini API 키 인증</h2>
@@ -226,14 +286,12 @@
 
       <div class="mt-5 flex justify-end gap-2">
         <button id="api-cancel-btn" class="px-3 py-2 text-sm text-gray-600 hover:text-gray-900">취소</button>
-        <button id="api-save-btn" class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700">
-          저장
-        </button>
+        <button id="api-save-btn" class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700">저장</button>
       </div>
     </div>
   </div>
 
-  <!-- ========== [B] 설정 모달 ========== -->
+  <!-- 설정 모달 -->
   <div id="settings-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1001]">
     <div role="dialog" aria-modal="true" aria-labelledby="settings-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-2xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-2">
@@ -241,15 +299,13 @@
         <button id="settings-close-btn" class="text-gray-500 hover:text-gray-800 dark:hover:text-white" aria-label="닫기">✕</button>
       </div>
 
-      <!-- API 키 설정 -->
+      <!-- API 키 -->
       <div class="mb-6 pb-6 border-b">
         <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">API 키 설정</h3>
-        <button id="open-api-key-modal-btn" class="w-full bg-blue-50 border border-blue-300 text-blue-700 font-medium py-2 px-4 rounded-lg hover:bg-blue-100 transition">
-          API 키 변경/설정
-        </button>
+        <button id="open-api-key-modal-btn" class="w-full bg-blue-50 border border-blue-300 text-blue-700 font-medium py-2 px-4 rounded-lg hover:bg-blue-100 transition">API 키 변경/설정</button>
       </div>
 
-      <!-- AI 모델 선택 -->
+      <!-- AI 모델 -->
       <div class="mb-6 pb-6 border-b">
         <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">AI 모델 선택</h3>
         <select id="ai-model-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700">
@@ -273,53 +329,46 @@
       <div class="mb-6">
         <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">데이터 관리</h3>
         <div class="flex gap-3">
-          <button id="export-data-btn" class="flex-1 bg-green-50 border border-green-300 text-green-700 font-medium py-2 px-4 rounded-lg hover:bg-green-100 transition">
-            📥 데이터 내보내기
-          </button>
-          <button id="import-data-btn" class="flex-1 bg-yellow-50 border border-yellow-300 text-yellow-700 font-medium py-2 px-4 rounded-lg hover:bg-yellow-100 transition">
-            📤 데이터 가져오기
-          </button>
+          <button id="export-data-btn" class="flex-1 bg-green-50 border border-green-300 text-green-700 font-medium py-2 px-4 rounded-lg hover:bg-green-100 transition">📥 데이터 내보내기</button>
+          <button id="import-data-btn" class="flex-1 bg-yellow-50 border border-yellow-300 text-yellow-700 font-medium py-2 px-4 rounded-lg hover:bg-yellow-100 transition">📤 데이터 가져오기</button>
         </div>
         <input type="file" id="import-file-input" accept=".json" class="hidden" />
         <p class="text-xs text-gray-500 mt-2">학습 기록 및 설정을 백업하거나 복원할 수 있습니다.</p>
       </div>
 
-      <!-- 닫기 버튼 -->
       <div class="flex justify-end">
-        <button id="settings-close-btn-bottom" class="px-6 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600">
-          닫기
-        </button>
+        <button id="settings-close-btn-bottom" class="px-6 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600">닫기</button>
       </div>
     </div>
   </div>
 
-  <!-- ========== 내장 데이터(JSON) ========== -->
+  <!-- 내장 데이터(JSON) -->
   <script id="dataset-json" type="application/json">[
     {
       "고유ID": "q_001",
       "표시번호": "1",
-      "출처": "",
-      "problemTitle": "",
+      "출처": "S",
+      "problemTitle": "회계감사의 고유한계 원인 세 가지",
       "단원": 1,
       "물음번호": 1,
-      "물음": "회계감사에는 고유한계가 존재하며, 감사인의 결론도출과 의견표명의 기초가 되는 대부분의 감사증거는 결정적 증거이기 보다는 설득적 증거이기 때문에 회계감사를 통해 재무제표에 부정이 나오류로 인한 중요한 왜곡표시가 없다는 절대적 확신은 얻을 수없다. 이러한 회계감사의 고유한한계의 원인을 세가지만 기재하시오.",
-      "정답": "ISA 200-A47 ① 재무보고의 성격 ② 감사절차의 성격 ③ 합리적인 시간 내에 합리적인 비용으로 감사가 수행될 필요성"
+      "물음": "회계감사에는 고유한계가 존재한다. 그 원인을 세 가지 쓰시오.",
+      "정답": "ISA 200-A47 ① 재무보고의 성격 ② 감사절차의 성격 ③ 합리적 시간·비용 제약"
     },
     {
       "고유ID": "q_002",
       "표시번호": "2",
-      "출처": "",
-      "problemTitle": "",
+      "출처": "H",
+      "problemTitle": "적시성과 비용-효익 고려 시 채택하는 절차",
       "단원": 1,
       "물음번호": 2,
-      "물음": "회계감사기준은 감사를 계획하고 수행할 때재무보고의 적시성 및효익과 비용간의 균형을 고려할 것을 규정하고 있다. 따라서 감사인은 무한한 정도의 감사절차를 수행함으로써 절대적 확신을 제공하려는 감사절차를 수행하기 보다는 재무보고 이용자들의 요구수준을 충족할 수있는 정도의 감사절차를 수행할 수있다. 이와 같이 감사인이 재무보고의 적시성 및효익과 비용의 균형을 고려하여 채택하고 있는 감사절차에는 어떤 것이 있는지 세가지를 서술하시오.",
-      "정답": "ISA 200-A51 ① 감사가 효과적으로 수행될 수있도록 계획함 ② 부정이나 오류로 인한 중요왜곡표시위험이 포함될 것으로 가장 높게 예상되는 분야에 감사노력을 집중하고, 그렇지 아니한 다른 분야에는 상대적으로 적은 노력을 기울임 ③ 모집단의 왜곡표시를 조사하기 위해 테스트나 기타 수단을 사용함"
+      "물음": "감사인은 적시성과 비용-효익 균형을 고려한다. 이에 따라 채택하는 절차 세 가지는?",
+      "정답": "ISA 200-A51 ① 효과적 계획 ② 위험 높은 분야 집중 ③ 테스트 등 표본 사용"
     },
     {
       "고유ID": "q_003",
       "표시번호": "3",
-      "출처": "",
-      "problemTitle": "",
+      "출처": "SS",
+      "problemTitle": "샘플 문제",
       "단원": 1,
       "물음번호": 3,
       "물음": "…",
@@ -328,14 +377,15 @@
   ]</script>
 
   <script type="module">
-    /* ----------------------------------------------------
-     * 감린이 v3.x (클린, 스몰패치 통합)
-     * - Ctrl+] 1회 포커스(답안입력 맨위+결과박스 전체 보이기), 2회 현황판
-     * - Ctrl+[ 포커스 해제 후 이전 스크롤로 복귀(위로>위로)
-     * - 회독수 과대산정 방지 + 기존 solveHistory 백필
-     * ---------------------------------------------------- */
+    /* =========================================================
+     * 감린이 v3.x + 패치 통합본
+     * - 월~일(월요일 시작) 달력: 날짜 표시 + 숫자 배경 색강도 = 풀이량
+     * - '오늘의 통계' + 세모 드롭다운(오늘/주간/월간), 목표/스트릭/약한 단원
+     * - 모바일 세로: 좌측패널 햄버거 드로어, 중앙→우측 순서, 중앙 폭 확장
+     * - 우측 문제목록: problemTitle 표시 및 길이 대응
+     * ========================================================= */
 
-    // ====== 전역 상태 ======
+    // ===== 전역 상태 =====
     let allData = [];
     let currentQuizData = [];
     let currentQuestionIndex = 0;
@@ -345,13 +395,21 @@
     let selectedAiModel = 'gemini-2.5-flash';
     let darkMode = 'system';
     let prevLoaded = false;
-    let summaryViewMode = 'ALL'; // 'ALL' | 'CURRENT'
+    let summaryViewMode = 'ALL';
 
-    // Ctrl] / Ctrl[ 내비 상태
-    let ctrlNavState = 'dashboard'; // 'dashboard' | 'focus'
+    // Stats view (day/week/month)
+    const STATS_VIEW_KEY = 'statsView_v1';
+    let statsView = localStorage.getItem(STATS_VIEW_KEY) || 'day';
+    function setStatsView(v){ statsView = v; localStorage.setItem(STATS_VIEW_KEY, v); renderStats(); }
+
+    // 캘린더 뷰(현재 달)
+    let calendarView = new Date(); // 오늘 기준 월
+
+    // Ctrl] / Ctrl[
+    let ctrlNavState = 'dashboard';
     let lastScrollYBeforeFocus = 0;
 
-    // ====== DOM 캐시 ======
+    // ===== DOM =====
     const el = {
       toast: document.getElementById('toast'),
       apiModal: document.getElementById('api-modal'),
@@ -369,6 +427,7 @@
       exportDataBtn: document.getElementById('export-data-btn'),
       importDataBtn: document.getElementById('import-data-btn'),
       importFileInput: document.getElementById('import-file-input'),
+
       chapterSelect: document.getElementById('chapter-select'),
       filterSelect: document.getElementById('filter-select'),
       loadQuizBtn: document.getElementById('load-quiz-btn'),
@@ -400,9 +459,33 @@
       summaryViewCurrentBtn: document.getElementById('summary-view-current'),
       dbQuestionId: document.getElementById('db-question-id'),
       fixedHeader: document.getElementById('fixed-header'),
+
+      layoutRoot: document.getElementById('layout-root'),
+      // 달력
+      calendarGrid: document.getElementById('calendar-grid'),
+      calendarMonthLabel: document.getElementById('calendar-month-label'),
+      // 통계
+      statsOverview: document.getElementById('stats-overview'),
+      // 복습 전략
+      reviewStrategySelect: document.getElementById('review-strategy-select'),
+      startReviewBtn: document.getElementById('start-review-btn'),
+      // 출처 필터
+      sourceFilterSide: document.getElementById('source-filter-side'),
+      sourceGroupFilter: document.getElementById('source-group-filter'),
+      // 탐색 패널
+      explorerChapters: document.getElementById('explorer-chapters'),
+      explorerProblems: document.getElementById('explorer-problems'),
+      explorerSearch: document.getElementById('explorer-search'),
+      // 복습 플래그
+      reviewFlagToggle: document.getElementById('review-flag-toggle'),
+
+      // 모바일 드로어
+      hamburger: document.getElementById('hamburger'),
+      leftDashboard: document.getElementById('left-dashboard'),
+      drawerBackdrop: document.getElementById('drawer-backdrop'),
     };
 
-    // ====== 유틸 ======
+    // ===== 유틸 =====
     const clamp = (v, min, max) => {
       const n = Number(v);
       if (!Number.isFinite(n)) return min;
@@ -434,13 +517,8 @@
       const h = el.fixedHeader;
       return h ? (h.getBoundingClientRect().height || h.offsetHeight || 0) : 0;
     }
-    function smoothScrollTo(y) {
-      window.scrollTo({ top: y, behavior: 'smooth' });
-    }
-    function elmTop(elm) {
-      const rect = elm.getBoundingClientRect();
-      return rect.top + window.pageYOffset;
-    }
+    function smoothScrollTo(y) { window.scrollTo({ top: y, behavior: 'smooth' }); }
+    function elmTop(e) { const r = e.getBoundingClientRect(); return r.top + window.pageYOffset; }
     function ensureRangeVisible({ topEl, bottomEl, topAlign = true }) {
       const header = getHeaderOffset();
       const margin = 12;
@@ -451,13 +529,11 @@
       setTimeout(() => {
         const bottomRect = bottomEl.getBoundingClientRect();
         const shortfall = bottomRect.bottom - (window.innerHeight - margin);
-        if (shortfall > 0) {
-          smoothScrollTo(window.pageYOffset + shortfall);
-        }
+        if (shortfall > 0) smoothScrollTo(window.pageYOffset + shortfall);
       }, 160);
     }
 
-    /* ===== [PATCH] 단원 라벨 & 파트(대단원) 삽입 정의 ===== */
+    /* ===== 단원 라벨/파트 ===== */
     const CHAPTER_LABELS = {
       1:  "제1장 감사와 회계감사의 기본개념",
       2:  "제2장 감사인의 의무, 책임 및 자격요건",
@@ -478,9 +554,8 @@
       17: "제1장 인증업무개념체계와 특정목적재무보고체계, 제2장 그룹재무제표에 대한 감사",
       18: "제3장 내부회계관리제도에 대한 감사와 검토",
       19: "제4장 중간재무제표에 대한 검토",
-      20: "제5장 소규모기업 재무제표에 대한 감사" 
+      20: "제5장 소규모기업 재무제표에 대한 감사"
     };
-
     const PART_INSERTIONS = [
       { before: 1,  label: "Part 1. 회계감사의 기초" },
       { before: 4,  label: "Part 2. 감사인의 선임과 감사계약" },
@@ -489,14 +564,13 @@
       { before: 15, label: "Part 5. 감사의견의 형성과 감사보고서" },
       { before: 17, label: "Part 6. 그룹재무제표에 대한 감사와 기타인증업무" },
     ];
-
     function chapterLabelText(chStr) {
       const n = Number(chStr);
       const title = CHAPTER_LABELS[n];
       return Number.isFinite(n) ? (title ? `${n}. ${title}` : `단원 ${n}`) : String(chStr);
     }
 
-    // ====== 다크 모드 ======
+    // ===== 다크 모드 =====
     function applyDarkMode() {
       const mode = localStorage.getItem('darkMode') || 'system';
       darkMode = mode;
@@ -515,7 +589,7 @@
       });
     }
 
-    // ====== 데이터 로딩: questions.json → dataset-json ======
+    // ===== 데이터 로딩 =====
     async function loadData() {
       const CANDIDATES = [
         'questions.json',
@@ -565,7 +639,6 @@
         if (msg) msg.textContent = '문제 데이터 로드 실패 (questions.json 또는 dataset-json을 확인하세요).';
       }
     }
-
     function selfTest() {
       const missing = [];
       allData.forEach((row, i) => {
@@ -579,15 +652,12 @@
         if (seen.has(key)) dup.push(key); else seen.add(key);
       }
       if (dup.length) showToast(`경고: 중복 고유ID ${dup.length}개 발견`, 'warn');
-
       const uniqChapterCount = new Set(allData.map(r => String(r.단원).trim())).size;
       if (uniqChapterCount === 0) throw new Error('단원 데이터가 없습니다.');
     }
 
-    /* ===== [PATCH] 단원선택 드롭다운: 1:1 라벨 + 파트 구분 삽입 ===== */
     function populateChapterSelect() {
       while (el.chapterSelect.options.length > 1) el.chapterSelect.remove(1);
-
       const chapters = [...new Set(allData.map(item => String(item.단원).trim()))].sort((a, b) => {
         const na = Number(a), nb = Number(b);
         if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
@@ -599,7 +669,6 @@
       const inserted = new Set();
       chapters.forEach(ch => {
         const n = Number(ch);
-        // 파트(대단원) 배너를 드롭다운에 '비활성 옵션'으로 삽입
         if (Number.isFinite(n)) {
           PART_INSERTIONS.forEach(p => {
             if (p.before === n && !inserted.has(p.before)) {
@@ -613,16 +682,14 @@
             }
           });
         }
-
-        // 실제 단원 옵션
         const opt = document.createElement('option');
         opt.value = ch;
-        opt.textContent = chapterLabelText(ch); // ex) "1. 제1장 감사와 …"
+        opt.textContent = chapterLabelText(ch);
         el.chapterSelect.appendChild(opt);
       });
     }
 
-    // ====== 로컬 상태 로딩 ======
+    // ===== 상태 로딩 =====
     function loadScores() {
       const savedScores = localStorage.getItem('auditQuizScores');
       if (savedScores) {
@@ -640,17 +707,14 @@
       if (el.aiModelSelect) el.aiModelSelect.value = selectedAiModel;
     }
 
-    // ====== 데이터 마이그레이션 (v3 → v3.x) ======
+    // ===== 마이그레이션 =====
     function migrateData() {
       const version = localStorage.getItem('schemaVersion');
       if (version === '2') return;
 
       try {
         const oldScores = localStorage.getItem('auditQuizScores');
-        if (!oldScores) {
-          localStorage.setItem('schemaVersion', '2');
-          return;
-        }
+        if (!oldScores) { localStorage.setItem('schemaVersion', '2'); return; }
 
         const parsed = JSON.parse(oldScores);
         const newScores = {};
@@ -688,26 +752,17 @@
       }
     }
 
-    // ====== API 키 모달 ======
+    // ===== API 키 모달 =====
     function openApiModal(initial = false) {
       if (initial) el.apiModalCancelBtn.classList.add('hidden');
       else el.apiModalCancelBtn.classList.remove('hidden');
-
-      el.apiModal.classList.remove('hidden');
-      el.apiModal.classList.add('flex');
-
+      el.apiModal.classList.remove('hidden'); el.apiModal.classList.add('flex');
       el.apiModalInput.value = geminiApiKey || '';
       el.apiModalRemember.checked = !!localStorage.getItem('geminiApiKey');
       setTimeout(() => el.apiModalInput.focus(), 0);
     }
-    function closeApiModal() {
-      el.apiModal.classList.add('hidden');
-      el.apiModal.classList.remove('flex');
-    }
-    function ensureApiKeyGate() {
-      if (geminiApiKey) return;
-      openApiModal(true);
-    }
+    function closeApiModal() { el.apiModal.classList.add('hidden'); el.apiModal.classList.remove('flex'); }
+    function ensureApiKeyGate() { if (!geminiApiKey) openApiModal(true); }
     el.apiModalSaveBtn.addEventListener('click', () => {
       const key = (el.apiModalInput.value || '').trim();
       if (!key) { showToast('API 키를 입력하세요.', 'error'); el.apiModalInput.focus(); return; }
@@ -723,45 +778,32 @@
       if (e.key === 'Escape' && !el.apiModalCancelBtn.classList.contains('hidden')) {
         if (!el.apiModal.classList.contains('hidden')) closeApiModal();
       }
-      if (e.key === 'Escape' && !el.settingsModal.classList.contains('hidden')) {
-        closeSettingsModal();
-      }
+      if (e.key === 'Escape' && !el.settingsModal.classList.contains('hidden')) closeSettingsModal();
     });
 
-    // ====== 설정 모달 ======
+    // ===== 설정 모달 =====
     function openSettingsModal() {
-      el.settingsModal.classList.remove('hidden');
-      el.settingsModal.classList.add('flex');
+      el.settingsModal.classList.remove('hidden'); el.settingsModal.classList.add('flex');
       if (el.aiModelSelect) el.aiModelSelect.value = selectedAiModel;
       if (el.darkModeSelect) el.darkModeSelect.value = darkMode;
     }
-    function closeSettingsModal() {
-      el.settingsModal.classList.add('hidden');
-      el.settingsModal.classList.remove('flex');
-    }
+    function closeSettingsModal() { el.settingsModal.classList.add('hidden'); el.settingsModal.classList.remove('flex'); }
     el.settingsBtn.addEventListener('click', openSettingsModal);
     el.settingsCloseBtn.addEventListener('click', closeSettingsModal);
     el.settingsCloseBtnBottom.addEventListener('click', closeSettingsModal);
-    el.openApiKeyModalBtn?.addEventListener('click', () => {
-      closeSettingsModal();
-      openApiModal(false);
-    });
+    el.openApiKeyModalBtn?.addEventListener('click', () => { closeSettingsModal(); openApiModal(false); });
 
-    // AI 모델 선택
     el.aiModelSelect?.addEventListener('change', (e) => {
       selectedAiModel = e.target.value;
       localStorage.setItem('aiModel', selectedAiModel);
       showToast(`AI 모델 변경: ${selectedAiModel}`);
     });
-
-    // 다크 모드 선택
     el.darkModeSelect?.addEventListener('change', (e) => {
       localStorage.setItem('darkMode', e.target.value);
-      applyDarkMode();
-      showToast('다크 모드 설정 변경됨');
+      applyDarkMode(); showToast('다크 모드 설정 변경됨');
     });
 
-    // ====== Import/Export ======
+    // ===== Import/Export =====
     el.exportDataBtn?.addEventListener('click', () => {
       try {
         const data = {
@@ -775,97 +817,128 @@
         };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `gamlini_backup_${Date.now()}.json`;
-        a.click();
+        const a = document.createElement('a'); a.href = url; a.download = `gamlini_backup_${Date.now()}.json`; a.click();
         URL.revokeObjectURL(url);
         showToast('데이터 내보내기 완료');
-      } catch (err) {
-        console.error(err);
-        showToast('데이터 내보내기 실패', 'error');
-      }
+      } catch (err) { console.error(err); showToast('데이터 내보내기 실패', 'error'); }
     });
     el.importDataBtn?.addEventListener('click', () => el.importFileInput.click());
     el.importFileInput?.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+      const file = e.target.files[0]; if (!file) return;
       const reader = new FileReader();
       reader.onload = (event) => {
         try {
           const data = JSON.parse(event.target.result);
           if (!data.auditQuizScores) throw new Error('올바른 백업 파일이 아닙니다.');
-          if (data.auditQuizScores) {
-            localStorage.setItem('auditQuizScores', JSON.stringify(data.auditQuizScores));
-            questionScores = data.auditQuizScores;
-          }
-          if (data.geminiApiKey) {
-            localStorage.setItem('geminiApiKey', data.geminiApiKey);
-            geminiApiKey = data.geminiApiKey;
-          }
-          if (data.aiModel) {
-            localStorage.setItem('aiModel', data.aiModel);
-            selectedAiModel = data.aiModel;
-            el.aiModelSelect.value = data.aiModel;
-          }
-          if (data.darkMode) {
-            localStorage.setItem('darkMode', data.darkMode);
-            darkMode = data.darkMode;
-            applyDarkMode();
-          }
-          if (data.schemaVersion) {
-            localStorage.setItem('schemaVersion', String(data.schemaVersion));
-          }
-          showToast('데이터 가져오기 완료');
-          setTimeout(() => location.reload(), 800);
-        } catch (err) {
-          console.error(err);
-          showToast(`데이터 가져오기 실패: ${err.message}`, 'error');
-        }
+          if (data.auditQuizScores) { localStorage.setItem('auditQuizScores', JSON.stringify(data.auditQuizScores)); questionScores = data.auditQuizScores; }
+          if (data.geminiApiKey) { localStorage.setItem('geminiApiKey', data.geminiApiKey); geminiApiKey = data.geminiApiKey; }
+          if (data.aiModel) { localStorage.setItem('aiModel', data.aiModel); selectedAiModel = data.aiModel; el.aiModelSelect.value = data.aiModel; }
+          if (data.darkMode) { localStorage.setItem('darkMode', data.darkMode); darkMode = data.darkMode; applyDarkMode(); }
+          if (data.schemaVersion) localStorage.setItem('schemaVersion', String(data.schemaVersion));
+          showToast('데이터 가져오기 완료'); setTimeout(() => location.reload(), 800);
+        } catch (err) { console.error(err); showToast(`데이터 가져오기 실패: ${err.message}`, 'error'); }
       };
-      reader.readAsText(file);
-      e.target.value = '';
+      reader.readAsText(file); e.target.value = '';
     });
 
-    // ====== 필터 및 학습 시작 ======
+    // ===== 출처 그룹 필터 =====
+    const SOURCE_LS = 'sourceFilterSelectionV1';
+    const BASIC_TAGS = ['S','H','HS'];
+    const ADV_TAGS   = ['SS','P'];
+    function buildSourceFilterUI() {
+      if (!el.sourceGroupFilter) return;
+      el.sourceGroupFilter.innerHTML = `
+        <div class="rounded-xl border p-3">
+          <div class="text-sm font-semibold mb-2">출처별 필터</div>
+          <div class="flex flex-wrap gap-3">
+            <label class="text-sm flex items-center gap-1">
+              <input type="checkbox" value="basic" class="source-filter"> 기본(S/H/HS)
+            </label>
+            <label class="text-sm flex items-center gap-1">
+              <input type="checkbox" value="advanced" class="source-filter"> 심화(SS/P)
+            </label>
+            <label class="text-sm flex items-center gap-1">
+              <input type="checkbox" value="other" class="source-filter"> 기타
+            </label>
+            <button id="source-filter-all" class="ml-auto text-xs px-2 py-1 border rounded">전체</button>
+            <button id="source-filter-none" class="text-xs px-2 py-1 border rounded">해제</button>
+          </div>
+        </div>
+      `;
+      const saved = JSON.parse(localStorage.getItem(SOURCE_LS) || '["basic","advanced","other"]');
+      el.sourceGroupFilter.querySelectorAll('input.source-filter').forEach(cb=>{
+        cb.checked = saved.includes(cb.value);
+        cb.addEventListener('change', ()=>{
+          const arr = getSelectedSourceGroups();
+          localStorage.setItem(SOURCE_LS, JSON.stringify(arr));
+          handleLoadQuiz(); updateSummary(); refreshPanels();
+        });
+      });
+      el.sourceGroupFilter.querySelector('#source-filter-all')?.addEventListener('click', ()=>{
+        el.sourceGroupFilter.querySelectorAll('input.source-filter').forEach(cb=>cb.checked=true);
+        localStorage.setItem(SOURCE_LS, JSON.stringify(['basic','advanced','other']));
+        handleLoadQuiz(); updateSummary(); refreshPanels();
+      });
+      el.sourceGroupFilter.querySelector('#source-filter-none')?.addEventListener('click', ()=>{
+        el.sourceGroupFilter.querySelectorAll('input.source-filter').forEach(cb=>cb.checked=false);
+        localStorage.setItem(SOURCE_LS, JSON.stringify([]));
+        handleLoadQuiz(); updateSummary(); refreshPanels();
+      });
+    }
+    function getSelectedSourceGroups() {
+      const boxes = el.sourceGroupFilter?.querySelectorAll('input.source-filter');
+      if (!boxes || boxes.length===0) return JSON.parse(localStorage.getItem(SOURCE_LS) || '["basic","advanced","other"]');
+      const arr = []; boxes.forEach(cb=>{ if (cb.checked) arr.push(cb.value); }); return arr;
+    }
+    function detectSourceGroup(srcStr) {
+      const s = String(srcStr || '').toUpperCase();
+      const tokens = s.split(/\s*[;,\/\s]\s*/).filter(Boolean);
+      let hasBasic = tokens.some(t => BASIC_TAGS.includes(t));
+      let hasAdv   = tokens.some(t => ADV_TAGS.includes(t));
+      if (hasBasic && !hasAdv) return 'basic';
+      if (!hasBasic && hasAdv) return 'advanced';
+      if (hasBasic && hasAdv)  return 'basic-advanced';
+      return 'other';
+    }
+    function applySourceFilter(dataArr) {
+      const selected = new Set(getSelectedSourceGroups());
+      if (selected.size === 0 || selected.size === 3) return dataArr;
+      return (dataArr || []).filter(q=>{
+        const g = detectSourceGroup(q.출처);
+        if (g === 'basic-advanced') return selected.has('basic') || selected.has('advanced');
+        return selected.has(g);
+      });
+    }
+
+    // ===== 필터/학습 로직 =====
     el.chapterSelect.addEventListener('change', handleLoadQuiz);
     el.filterSelect.addEventListener('change', handleLoadQuiz);
     el.loadQuizBtn.addEventListener('click', handleLoadQuiz);
-
-    // 랜덤 문제 버튼
     el.randomQuizBtn.addEventListener('click', () => {
       const selectedChapter = el.chapterSelect.value;
       const selectedFilter = el.filterSelect.value;
 
       let filtered = allData;
-      if (selectedChapter) {
-        filtered = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
-      }
+      if (selectedChapter) filtered = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
+      filtered = applySourceFilter(filtered);
 
       filtered = filtered.filter(q => {
-        const key = normId(q.고유ID);
-        const saved = questionScores[key];
+        const key = normId(q.고유ID); const saved = questionScores[key];
         if (selectedFilter === 'unanswered') return !saved;
         if (selectedFilter === '80') return !saved || Number(saved.score) < 80;
         if (selectedFilter === '60') return !saved || Number(saved.score) < 60;
-        if (selectedFilter === 'today-review') {
-          if (!saved) return true;
-          return Number(saved.score) < 60 || (saved.lastSolvedDate && (Date.now() - saved.lastSolvedDate > 7 * 24 * 60 * 60 * 1000));
-        }
+        if (selectedFilter === 'today-review') return true;
         return true;
       });
+      if (selectedFilter === 'today-review') filtered = prioritizeTodayReview(filtered).slice(0, 10);
 
-      if (filtered.length === 0) {
-        showToast('선택한 조건에 맞는 문제가 없습니다.', 'warn');
-        return;
-      }
-
+      if (filtered.length === 0) { showToast('선택한 조건에 맞는 문제가 없습니다.', 'warn'); return; }
       currentQuizData = filtered;
       currentQuestionIndex = Math.floor(Math.random() * filtered.length);
       el.quizArea.classList.remove('hidden');
       el.summaryArea.classList.remove('hidden');
       displayQuestion();
-      updateSummary();
+      updateSummary(); refreshPanels();
       showToast('랜덤 문제 시작!');
     });
 
@@ -874,51 +947,28 @@
       const selectedFilter = el.filterSelect.value;
 
       let filtered = allData;
-      if (selectedChapter) {
-        filtered = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
-      }
-
+      if (selectedChapter) filtered = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
+      filtered = applySourceFilter(filtered);
       filtered = filtered.filter(q => {
-        const key = normId(q.고유ID);
-        const saved = questionScores[key];
+        const key = normId(q.고유ID); const saved = questionScores[key];
         if (selectedFilter === 'unanswered') return !saved;
         if (selectedFilter === '80') return !saved || Number(saved.score) < 80;
         if (selectedFilter === '60') return !saved || Number(saved.score) < 60;
-        if (selectedFilter === 'today-review') {
-          if (!saved) return true;
-          return Number(saved.score) < 60 || (saved.lastSolvedDate && (Date.now() - saved.lastSolvedDate > 7 * 24 * 60 * 60 * 1000));
-        }
+        if (selectedFilter === 'today-review') return true;
         return true;
       });
+      if (selectedFilter === 'today-review') filtered = prioritizeTodayReview(filtered).slice(0, 10);
 
-      if (selectedFilter === 'today-review') {
-        filtered.sort((a, b) => {
-          const aScore = questionScores[normId(a.고유ID)]?.score ?? 101;
-          const bScore = questionScores[normId(b.고유ID)]?.score ?? 101;
-          const aDate = questionScores[normId(a.고유ID)]?.lastSolvedDate ?? 0;
-          const bDate = questionScores[normId(b.고유ID)]?.lastSolvedDate ?? 0;
-          if (aScore !== bScore) return aScore - bScore;
-          return aDate - bDate;
-        });
-        filtered = filtered.slice(0, 10);
-      }
-
-      currentQuizData = filtered;
-      currentQuestionIndex = 0;
-
+      currentQuizData = filtered; currentQuestionIndex = 0;
       if (currentQuizData.length > 0) {
-        el.quizArea.classList.remove('hidden');
-        el.summaryArea.classList.remove('hidden');
-        displayQuestion();
+        el.quizArea.classList.remove('hidden'); el.summaryArea.classList.remove('hidden'); displayQuestion();
       } else {
-        el.quizArea.classList.add('hidden');
-        el.summaryArea.classList.remove('hidden');
-        showToast('선택한 조건에 맞는 문제가 없습니다.', 'warn');
+        el.quizArea.classList.add('hidden'); el.summaryArea.classList.remove('hidden'); showToast('선택한 조건에 맞는 문제가 없습니다.', 'warn');
       }
-      updateSummary();
+      updateSummary(); refreshPanels();
     }
 
-    // ====== 문제 표시 ======
+    // ===== 문제 표시 =====
     function displayQuestion() {
       if (currentQuizData.length === 0) { el.quizArea.classList.add('hidden'); return; }
       el.quizArea.classList.remove('hidden');
@@ -926,38 +976,42 @@
       el.questionNumber.textContent = `문항 ${q.표시번호 || q.물음번호 || q.고유ID}`;
       el.questionText.textContent = q.물음;
       el.questionCounter.textContent = `${currentQuestionIndex + 1} / ${currentQuizData.length}`;
-      if (el.dbQuestionId) {
-        el.dbQuestionId.textContent = `ID: ${q.고유ID ?? '-'}`;
-      }
+      if (el.dbQuestionId) el.dbQuestionId.textContent = `ID: ${q.고유ID ?? '-'}`;
 
-      // 힌트 초기화
-      activeHintQuestionKey = null;
-      el.hintBox.classList.add('hidden');
-      el.hintBox.innerHTML = '';
-
-      // 결과/입력 초기화
-      el.resultBox.classList.add('hidden');
-      el.userAnswer.value = '';
-
-      // 이전답안 토글 초기화
-      if (el.loadPrevAnswerBtn) {
-        el.loadPrevAnswerBtn.textContent = '이전 답안 불러오기';
-        el.loadPrevAnswerBtn.removeAttribute('aria-pressed');
-        prevLoaded = false;
-      }
+      activeHintQuestionKey = null; el.hintBox.classList.add('hidden'); el.hintBox.innerHTML = '';
+      el.resultBox.classList.add('hidden'); el.userAnswer.value = '';
+      if (el.loadPrevAnswerBtn) { el.loadPrevAnswerBtn.textContent = '이전 답안 불러오기'; el.loadPrevAnswerBtn.removeAttribute('aria-pressed'); prevLoaded = false; }
 
       const saved = questionScores[normId(q.고유ID)];
-      if (saved && saved.score !== undefined) {
-        showResult(saved.score, saved.feedback, q.정답);
+      const flagged = !!(saved?.userReviewFlag);
+      if (el.reviewFlagToggle) {
+        el.reviewFlagToggle.setAttribute('aria-pressed', flagged ? 'true' : 'false');
+        el.reviewFlagToggle.querySelector('span').textContent = flagged ? '★' : '☆';
       }
+      if (saved && saved.score !== undefined) showResult(saved.score, saved.feedback, q.정답);
 
       el.prevBtn.disabled = currentQuestionIndex === 0;
       el.nextBtn.disabled = currentQuizData.length - 1 === currentQuestionIndex;
-
       updateSummaryHighlight();
     }
 
-    // ====== 이전 답안 토글 ======
+    // 복습 플래그
+    el.reviewFlagToggle?.addEventListener('click', () => {
+      if (currentQuizData.length === 0) return;
+      const q = currentQuizData[currentQuestionIndex];
+      const key = normId(q.고유ID);
+      const rec = questionScores[key] || {};
+      const next = !rec.userReviewFlag;
+      rec.userReviewFlag = next;
+      questionScores[key] = { ...rec };
+      try { localStorage.setItem('auditQuizScores', JSON.stringify(questionScores)); } catch {}
+      el.reviewFlagToggle.setAttribute('aria-pressed', next ? 'true' : 'false');
+      el.reviewFlagToggle.querySelector('span').textContent = next ? '★' : '☆';
+      showToast(next ? '복습 필요에 추가' : '복습 필요 해제');
+      refreshPanels();
+    });
+
+    // 이전 답안 토글
     el.loadPrevAnswerBtn.addEventListener('click', () => {
       if (currentQuizData.length === 0) return;
       const q = currentQuizData[currentQuestionIndex];
@@ -967,11 +1021,8 @@
           el.userAnswer.value = saved.user_answer;
           el.loadPrevAnswerBtn.textContent = '답안 지우기';
           el.loadPrevAnswerBtn.setAttribute('aria-pressed', 'true');
-          prevLoaded = true;
-          showToast('이전 답안을 불러왔습니다.');
-        } else {
-          showToast('저장된 답안이 없습니다.', 'warn');
-        }
+          prevLoaded = true; showToast('이전 답안을 불러왔습니다.');
+        } else showToast('저장된 답안이 없습니다.', 'warn');
       } else {
         el.userAnswer.value = '';
         el.loadPrevAnswerBtn.textContent = '이전 답안 불러오기';
@@ -980,37 +1031,17 @@
       }
     });
 
-    // ====== 네비게이션 ======
-    el.prevBtn.addEventListener('click', () => {
-      if (currentQuestionIndex > 0) {
-        currentQuestionIndex--;
-        displayQuestion();
-      }
-    });
-    el.nextBtn.addEventListener('click', () => {
-      if (currentQuestionIndex < currentQuizData.length - 1) {
-        currentQuestionIndex++;
-        displayQuestion();
-      }
-    });
+    // 네비
+    el.prevBtn.addEventListener('click', () => { if (currentQuestionIndex > 0) { currentQuestionIndex--; displayQuestion(); } });
+    el.nextBtn.addEventListener('click', () => { if (currentQuestionIndex < currentQuizData.length - 1) { currentQuestionIndex++; displayQuestion(); } });
     el.userAnswer.addEventListener('input', () => el.errorMessage.classList.add('hidden'));
 
-    // ====== 채점 ======
+    // 채점
     el.gradeBtn.addEventListener('click', handleGrade);
-
     async function handleGrade() {
-      if (!geminiApiKey) {
-        openApiModal(false);
-        showToast('Gemini API 키를 입력해주세요.', 'error');
-        return;
-      }
+      if (!geminiApiKey) { openApiModal(false); showToast('Gemini API 키를 입력해주세요.', 'error'); return; }
       const answer = el.userAnswer.value.trim();
-      if (!answer) {
-        el.errorMessage.textContent = '답안을 입력해주세요.';
-        el.errorMessage.classList.remove('hidden');
-        el.userAnswer.focus();
-        return;
-      }
+      if (!answer) { el.errorMessage.textContent = '답안을 입력해주세요.'; el.errorMessage.classList.remove('hidden'); el.userAnswer.focus(); return; }
       el.errorMessage.classList.add('hidden');
 
       const q = currentQuizData[currentQuestionIndex];
@@ -1021,12 +1052,10 @@
         const result = await callGeminiAPI(answer, q.정답, geminiApiKey);
         let finalScore = result.score;
         let finalFeedback = result.feedback;
-
         if (activeHintQuestionKey === qKey) {
           finalScore = Math.min(59, Math.max(0, Math.round(finalScore * 0.8)));
-          finalFeedback = `${finalFeedback ? finalFeedback + ' ' : ''}(힌트사용으로 감점입니다)`;
+          finalFeedback = `${finalFeedback ? finalFeedback + ' ' : ''}(힌트사용으로 감점)`;
         }
-
         showResult(finalScore, finalFeedback, q.정답);
 
         const existing = questionScores[qKey] || {};
@@ -1040,102 +1069,50 @@
           hintUsed: activeHintQuestionKey === qKey,
           isSolved: true,
           lastSolvedDate: Date.now(),
-          solveHistory: newHistory
+          solveHistory: newHistory,
+          userReviewFlag: !!existing.userReviewFlag
         };
 
-        try { localStorage.setItem('auditQuizScores', JSON.stringify(questionScores)); } catch (e) {
-          showToast('localStorage 저장 실패 (용량 초과 가능)', 'error');
-        }
+        try { localStorage.setItem('auditQuizScores', JSON.stringify(questionScores)); } catch (e) { showToast('localStorage 저장 실패 (용량 초과 가능)', 'error'); }
 
-        // ---- 회독수 고유 카운트(5분 윈도우) 등록 ----
         const { increased, uniqueReads } = registerUniqueRead(qKey);
         if (increased) showToast(`회독 +1 (이 문제 고유 ${uniqueReads}회)`);
-        updateSummary();
+        updateSummary(); refreshPanels();
       } catch (e) {
         console.error('채점 오류:', e);
         el.aiFeedback.textContent = `채점 중 오류: ${e.message}`;
-        el.score.textContent = 'Error';
-        el.progressBar.style.width = '0%';
-        el.resultBox.classList.remove('hidden');
-        showToast('채점 요청 실패: API 키/네트워크/할당량을 확인하세요.', 'error');
-      } finally {
-        setLoading(false);
-      }
+        el.score.textContent = 'Error'; el.progressBar.style.width = '0%'; el.resultBox.classList.remove('hidden');
+        showToast('채점 요청 실패: API 키/네트워크/할당량 확인.', 'error');
+      } finally { setLoading(false); }
     }
-
     function setLoading(isLoading) {
       if (isLoading) {
-        el.gradeBtnText.classList.add('hidden');
-        el.gradeLoader.classList.remove('hidden');
-        el.gradeBtn.disabled = true;
-        el.resultBox.classList.add('hidden');
+        el.gradeBtnText.classList.add('hidden'); el.gradeLoader.classList.remove('hidden');
+        el.gradeBtn.disabled = true; el.resultBox.classList.add('hidden');
       } else {
-        el.gradeBtnText.classList.remove('hidden');
-        el.gradeLoader.classList.add('hidden');
+        el.gradeBtnText.classList.remove('hidden'); el.gradeLoader.classList.add('hidden');
         el.gradeBtn.disabled = false;
       }
     }
 
-    // ====== Gemini API: 채점 ======
+    // Gemini 호출(채점)
     async function callGeminiAPI(userAnswer, correctAnswer, apiKey, retries = 2, delay = 1000) {
-      const modelMap = {
-        'gemini-2.5-flash': 'gemini-2.5-flash',
-        'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite'
-      };
+      const modelMap = { 'gemini-2.5-flash': 'gemini-2.5-flash', 'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite' };
       const model = modelMap[selectedAiModel] || 'gemini-2.5-flash';
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
       const generationConfig = {
         responseMimeType: 'application/json',
-        responseSchema: {
-          type: 'OBJECT',
-          properties: {
-            score: { type: 'NUMBER', description: '0~100 유사도 점수' },
-            feedback: { type: 'STRING', description: '간결하고 날카로운 한국어 피드백' }
-          },
-          required: ['score', 'feedback']
-        }
+        responseSchema: { type: 'OBJECT', properties: { score: { type: 'NUMBER' }, feedback: { type: 'STRING' } }, required: ['score','feedback'] }
       };
-
       const BASE_SYSTEM_PROMPT =
 `당신은 매우 엄격한 회계감사 과목 채점 교수님입니다.
 - 사용자 답안을 모범답안과 비교해 0~100의 "score"(NUMBER)와 "feedback"(STRING, 한국어)을 JSON으로만 반환하세요.
-- 채점 기준을 매우 엄격하게(strictly) 적용합니다.
-- 대신 띄어쓰기나 맞춤법 실수 같은 단순한 타이핑실수는 봐줍니다. 또한 중요왜곡표시위험을 RMM으로, 성격·시기·범위를 성시범으로, 공인회계사를 CPA로 줄여쓰는 정도의 수험상 합의된 언어는 봐줍니다.
-
-[채점 기준]
-1. 모범 답안의 핵심 키워드 포함 여부
-2. 핵심 키워드 대부분 누락: 50점 미만
-3. 일부 포함이나 설명 부정확: 50~80점
-4. 모든 핵심 키워드 + 의도 일치: 80점 이상
-5. 조사까지 동일할 때만 100점
-6. 키워드는 모범답안에서 스스로 추출하되, 한국 회계감사 기준·규정(ISA, KSA, 외부감사법, 윤리기준)에 맞는 동의어·표현 변형을 허용
-7. 물음에서의 물음 부분이 굳이 답변에 포함되지 않아도 됨(물음의 내용이 모범답안에 재진술되어있다고해서 굳이 사용자 답안에 해당 내용이 포함되지 않아도됨)
-
+- 띄어쓰기/약칭(CPA, RMM 등) 허용. 핵심키워드 충실도 위주.
 - 불필요한 말/코드블록 금지. JSON 객체만 반환.`;
 
-      const LITE_STRICT_ADDENDUM =
-`[엄격 모드 지침(라이트 전용)]
-- 모호/추정/확장 서술은 감점.
-- 점수 짜게준다.
-- 필수 키워드가 문장 내 명시적으로 없으면 큰 감점.
-- 레퍼런스 밖 주장은 근거 없으면 감점.
-- 도출한 점수보다 5점 깎아서 제시할 것`;
-
-      const systemText = model.includes('flash-lite')
-        ? `${BASE_SYSTEM_PROMPT}\n\n${LITE_STRICT_ADDENDUM}`
-        : BASE_SYSTEM_PROMPT;
-
-      const systemInstruction = { parts: [{ text: systemText }] };
-
-      const userQuery = `[모범 답안]
-${correctAnswer}
-
-[사용자 답안]
-${userAnswer}
-
-[채점 요청]
-JSON으로 { "score": number, "feedback": string }만 반환`;
+      const systemInstruction = { parts: [{ text: BASE_SYSTEM_PROMPT }] };
+      const userQuery = `[모범 답안]\n${correctAnswer}\n\n[사용자 답안]\n${userAnswer}\n\n[채점 요청]\n{"score": number, "feedback": string}`;
 
       const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction, generationConfig };
 
@@ -1152,9 +1129,7 @@ JSON으로 { "score": number, "feedback": string }만 반환`;
         const data = await res.json();
         const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
         const cleaned = sanitizeModelText(raw);
-        let parsed;
-        try { parsed = JSON.parse(cleaned); }
-        catch { throw new Error(`API 응답 파싱 실패`); }
+        let parsed; try { parsed = JSON.parse(cleaned); } catch { throw new Error(`API 응답 파싱 실패`); }
         const scoreNum = clamp(Number(parsed.score), 0, 100);
         const feedbackStr = String(parsed.feedback || '').trim();
         return { score: scoreNum, feedback: feedbackStr || '피드백 없음' };
@@ -1167,18 +1142,10 @@ JSON으로 { "score": number, "feedback": string }만 반환`;
       }
     }
 
-    // ====== 힌트 ======
-    el.hintBtn.addEventListener('click', () => {
-      if (currentQuizData.length === 0) return;
-      handleHint(currentQuizData[currentQuestionIndex]);
-    });
-
+    // 힌트
+    el.hintBtn.addEventListener('click', () => { if (currentQuizData.length === 0) return; handleHint(currentQuizData[currentQuestionIndex]); });
     async function handleHint(q) {
-      if (!geminiApiKey) {
-        openApiModal(false);
-        showToast('Gemini API 키를 입력해주세요.', 'error');
-        return;
-      }
+      if (!geminiApiKey) { openApiModal(false); showToast('Gemini API 키를 입력해주세요.', 'error'); return; }
       const userAns = el.userAnswer.value.trim();
       const qKey = normId(q.고유ID);
 
@@ -1186,61 +1153,27 @@ JSON으로 { "score": number, "feedback": string }만 반환`;
       try {
         const hint = await callGeminiHintAPI(userAns, q.정답, q.물음, geminiApiKey);
         el.hintBox.innerHTML = `<strong class="font-semibold">힌트</strong><br>${String(hint || '').replace(/\n/g, '<br>')}`;
-        el.hintBox.classList.remove('hidden');
-        activeHintQuestionKey = qKey;
-        showToast('힌트를 표시했습니다. (이 문항에서 즉시 채점 시 감점)', 'warn');
-      } catch (e) {
-        console.error(e);
-        showToast(`힌트 생성 실패: ${e.message}`, 'error');
-      } finally {
-        setLoading(false);
-      }
+        el.hintBox.classList.remove('hidden'); activeHintQuestionKey = qKey;
+        showToast('힌트를 표시했습니다. (즉시 채점 시 감점)', 'warn');
+      } catch (e) { console.error(e); showToast(`힌트 생성 실패: ${e.message}`, 'error'); }
+      finally { setLoading(false); }
     }
-
     async function callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, retries = 2, delay = 1000) {
-      const modelMap = {
-        'gemini-2.5-flash': 'gemini-2.5-flash',
-        'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite'
-      };
+      const modelMap = { 'gemini-2.5-flash': 'gemini-2.5-flash', 'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite' };
       const model = modelMap[selectedAiModel] || 'gemini-2.5-flash';
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
       const generationConfig = {
         responseMimeType: 'application/json',
-        responseSchema: {
-          type: 'OBJECT',
-          properties: {
-            hint: { type: 'STRING', description: '정답을 직접 말하지 않는 2~4줄 한국어 힌트' }
-          },
-          required: ['hint']
-        }
+        responseSchema: { type: 'OBJECT', properties: { hint: { type: 'STRING' } }, required: ['hint'] }
       };
-
-      const systemInstruction = {
-        parts: [{ text:
+      const systemInstruction = { parts: [{ text:
 `역할: 회계감사 학습 튜터.
-목표: 정답을 노출하지 않고 핵심 개념을 떠올리게 만드는 힌트 제공.
-규칙:
-- 정답/조합/목록을 그대로 쓰지 마세요.
-- 2~4줄 한글 힌트, 필요 시 핵심 키워드의 방향만 암시.
-- 출력은 JSON만.` }]
-      };
-
-      const userQuery =
-`[문제]
-${questionText}
-
-[모범 답안]
-${correctAnswer}
-
-[사용자 답안]
-${userAnswer || '(미입력)'}
-
-[요청]
-정답 노출 없이 학습을 돕는 힌트 2~4줄. JSON으로 {"hint": string }만 반환`;
+목표: 정답을 노출하지 않고 핵심 개념을 떠올리게 만드는 2~4줄 힌트 제공.
+출력: JSON만.` }] };
+      const userQuery = `[문제]\n${questionText}\n\n[모범 답안]\n${correctAnswer}\n\n[사용자 답안]\n${userAnswer || '(미입력)'}\n\n[요청]\n{"hint": string }`;
 
       const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction, generationConfig };
-
       try {
         const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         if (!res.ok) {
@@ -1254,9 +1187,7 @@ ${userAnswer || '(미입력)'}
         const data = await res.json();
         const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
         const cleaned = sanitizeModelText(raw);
-        let parsed;
-        try { parsed = JSON.parse(cleaned); }
-        catch { throw new Error(`API 응답 파싱 실패`); }
+        let parsed; try { parsed = JSON.parse(cleaned); } catch { throw new Error(`API 응답 파싱 실패`); }
         return String(parsed.hint || '').trim();
       } catch (err) {
         if (retries > 0 && (String(err.message).includes('429') || String(err.message).match(/^서버 오류/))) {
@@ -1267,142 +1198,83 @@ ${userAnswer || '(미입력)'}
       }
     }
 
-    // ====== 결과 표시 ======
+    // 결과
     function showResult(scoreVal, feedback, correctAnswer) {
       const s = clamp(Number(scoreVal), 0, 100);
       el.score.textContent = s.toFixed(1);
       el.progressBar.style.width = `${s}%`;
       el.progressBar.setAttribute('aria-valuenow', String(Math.round(s)));
       el.progressBar.className = 'h-4 rounded-full transition-all duration-500 ease-out ' + (s < 60 ? 'bg-red-500' : s < 80 ? 'bg-yellow-500' : 'bg-blue-600');
-      el.aiFeedback.textContent = String(feedback || '');
-      el.correctAnswer.textContent = String(correctAnswer || '');
+      el.aiFeedback.textContent = String(feedback || ''); el.correctAnswer.textContent = String(correctAnswer || '');
       el.resultBox.classList.remove('hidden');
     }
 
-    // ====== 요약판 보기 토글 ======
-    el.summaryViewAllBtn?.addEventListener('click', () => {
-      summaryViewMode = 'ALL';
-      el.summaryViewAllBtn.classList.add('bg-gray-100');
-      el.summaryViewCurrentBtn.classList.remove('bg-gray-100');
-      updateSummary();
-    });
-    el.summaryViewCurrentBtn?.addEventListener('click', () => {
-      summaryViewMode = 'CURRENT';
-      el.summaryViewCurrentBtn.classList.add('bg-gray-100');
-      el.summaryViewAllBtn.classList.remove('bg-gray-100');
-      updateSummary();
-    });
+    // 요약판/하이라이트
+    el.summaryViewAllBtn?.addEventListener('click', () => { summaryViewMode = 'ALL'; el.summaryViewAllBtn.classList.add('bg-gray-100'); el.summaryViewCurrentBtn.classList.remove('bg-gray-100'); updateSummary(); });
+    el.summaryViewCurrentBtn?.addEventListener('click', () => { summaryViewMode = 'CURRENT'; el.summaryViewCurrentBtn.classList.add('bg-gray-100'); el.summaryViewAllBtn.classList.remove('bg-gray-100'); updateSummary(); });
 
-    // ====== 회독수(고유) 저장소 ======
+    // 회독수(고유)
     const READ_STORE_KEY = 'readSessions_v2';
-    const UNIQUE_WINDOW_MS = 5 * 60 * 1000; // 5분
-
-    function loadReadStore() {
-      try { return JSON.parse(localStorage.getItem(READ_STORE_KEY) || '{}'); }
-      catch { return {}; }
-    }
-    function saveReadStore(obj) {
-      localStorage.setItem(READ_STORE_KEY, JSON.stringify(obj));
-    }
-
-    // --- NEW: solveHistory → uniqueReads 계산기 & 백필 ---
+    const UNIQUE_WINDOW_MS = 5 * 60 * 1000;
+    function loadReadStore() { try { return JSON.parse(localStorage.getItem(READ_STORE_KEY) || '{}'); } catch { return {}; } }
+    function saveReadStore(obj) { localStorage.setItem(READ_STORE_KEY, JSON.stringify(obj)); }
     function computeUniqueReadsFromHistory(history) {
-      const times = (Array.isArray(history) ? history : [])
-        .map(h => Number(h?.date))
-        .filter(Number.isFinite)
-        .sort((a, b) => a - b);
+      const times = (Array.isArray(history) ? history : []).map(h => Number(h?.date)).filter(Number.isFinite).sort((a,b)=>a-b);
       if (times.length === 0) return { uniqueReads: 0, lastAt: 0 };
-
-      let count = 0;
-      let last = -Infinity;
-      for (const t of times) {
-        if (t - last >= UNIQUE_WINDOW_MS) {
-          count++;
-          last = t;
-        }
-      }
+      let count = 0; let last = -Infinity;
+      for (const t of times) { if (t - last >= UNIQUE_WINDOW_MS) { count++; last = t; } }
       return { uniqueReads: count, lastAt: times[times.length - 1] };
     }
-
     function backfillReadStoreFromScores(force = false) {
       if (!force && localStorage.getItem('readStoreBackfilled_v2') === '1') return;
-
-      const db = loadReadStore();
-      let touched = 0;
-
+      const db = loadReadStore(); let touched = 0;
       for (const [qid, rec] of Object.entries(questionScores || {})) {
-        const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
-        if (hist.length === 0) continue;
-
+        const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : []; if (hist.length === 0) continue;
         const has = db[qid];
         if (!has || !Number.isFinite(has.uniqueReads) || has.uniqueReads === 0) {
           const seed = computeUniqueReadsFromHistory(hist);
-          if (seed.uniqueReads > 0) {
-            db[qid] = seed;
-            touched++;
-          }
+          if (seed.uniqueReads > 0) { db[qid] = seed; touched++; }
         }
       }
-
       if (touched > 0) saveReadStore(db);
       localStorage.setItem('readStoreBackfilled_v2', '1');
     }
-
-    // --- FIX: registerUniqueRead가 비어있을 때 solveHistory로 시드 ---
     function registerUniqueRead(questionKey) {
       const t = Date.now();
-      const db = loadReadStore();
-      let rec = db[questionKey];
-
+      const db = loadReadStore(); let rec = db[questionKey];
       if (!rec) {
         const hist = questionScores[questionKey]?.solveHistory;
-        rec = Array.isArray(hist) && hist.length > 0
-          ? computeUniqueReadsFromHistory(hist)
-          : { uniqueReads: 0, lastAt: 0 };
+        rec = Array.isArray(hist) && hist.length > 0 ? computeUniqueReadsFromHistory(hist) : { uniqueReads: 0, lastAt: 0 };
       }
-
       if (t - (rec.lastAt || 0) >= UNIQUE_WINDOW_MS) {
-        rec.uniqueReads = (Number(rec.uniqueReads) || 0) + 1;
-        rec.lastAt = t;
-        db[questionKey] = rec;
-        saveReadStore(db);
+        rec.uniqueReads = (Number(rec.uniqueReads) || 0) + 1; rec.lastAt = t; db[questionKey] = rec; saveReadStore(db);
         return { increased: true, uniqueReads: rec.uniqueReads };
       } else {
-        rec.lastAt = t;
-        db[questionKey] = rec;
-        saveReadStore(db);
+        rec.lastAt = t; db[questionKey] = rec; saveReadStore(db);
         return { increased: false, uniqueReads: rec.uniqueReads };
       }
     }
 
-    // ====== 현황판 ======
+    // 현황판
     function updateSummary() {
       el.scoreSummary.innerHTML = '';
-
-      const base = (summaryViewMode === 'CURRENT')
-        ? (currentQuizData || [])
-        : (allData || []);
-
+      const base = (summaryViewMode === 'CURRENT') ? (currentQuizData || []) : (allData || []);
       const groups = new Map();
       for (const q of base) {
         const ch = String(q.단원).trim();
         if (!groups.has(ch)) groups.set(ch, []);
         groups.get(ch).push(q);
       }
-
       const chapters = [...groups.keys()].sort((a, b) => {
         const na = Number(a), nb = Number(b);
         if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
-        if (Number.isFinite(na)) return -1;
-        if (Number.isFinite(nb)) return 1;
-        return a.localeCompare(b, 'ko');
+        if (Number.isFinite(na)) return -1; if (Number.isFinite(nb)) return 1; return a.localeCompare(b, 'ko');
       });
 
       const readStore = loadReadStore();
       const _clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
       chapters.forEach(ch => {
-        /* ===== [PATCH] 학습현황판: 파트(대단원) 배너 삽입 ===== */
         const nCh = Number(ch);
         if (Number.isFinite(nCh)) {
           const hit = PART_INSERTIONS.find(p => p.before === nCh);
@@ -1413,7 +1285,6 @@ ${userAnswer || '(미입력)'}
             el.scoreSummary.appendChild(partDiv);
           }
         }
-
         const list = groups.get(ch) || [];
         list.sort((a, b) => {
           const na = Number(a.물음번호 || a.표시번호), nb = Number(b.물음번호 || b.표시번호);
@@ -1421,19 +1292,11 @@ ${userAnswer || '(미입력)'}
           return String(a.표시번호 || a.물음번호).localeCompare(String(b.표시번호 || b.물음번호), 'ko');
         });
 
-        // 평균 점수
-        let sum = 0, cnt = 0;
-        // 고유 회독수 합
-        let sumUniqueReads = 0;
-        // 최근 학습일
-        let latestDate = 0;
-
+        let sum = 0, cnt = 0, sumUniqueReads = 0, latestDate = 0;
         list.forEach(q => {
           const qid = String(q.고유ID).trim();
           const s = questionScores[qid];
           if (s && Number.isFinite(Number(s.score))) { sum += Number(s.score); cnt++; }
-
-          // --- FIX: 저장소 값 없으면 solveHistory로 즉석 계산 ---
           const ur = (() => {
             const rs = readStore[qid];
             if (rs && Number.isFinite(Number(rs.uniqueReads))) return Number(rs.uniqueReads);
@@ -1442,83 +1305,40 @@ ${userAnswer || '(미입력)'}
             return 0;
           })();
           sumUniqueReads += ur;
-
           if (s && s.lastSolvedDate && s.lastSolvedDate > latestDate) latestDate = s.lastSolvedDate;
         });
 
         const avg = cnt ? (sum / cnt) : null;
-        // 미풀이 문항은 0회로 포함해서 평균 회독 계산
         const avgRounds = list.length ? (sumUniqueReads / list.length) : 0;
-
-        let recentText = '';
-        if (latestDate > 0) {
-          const daysDiff = Math.floor((Date.now() - latestDate) / (24 * 60 * 60 * 1000));
-          if (daysDiff === 0) recentText = '오늘';
-          else if (daysDiff === 1) recentText = '어제';
-          else recentText = `${daysDiff}일 전`;
-        } else {
-          recentText = '학습 기록 없음';
-        }
-
+        const recentText = (latestDate > 0)
+          ? (()=>{ const d=Math.floor((Date.now()-latestDate)/(24*60*60*1000)); return d===0?'오늘':(d===1?'어제':`${d}일 전`); })()
+          : '학습 기록 없음';
         const ratioText = `응시 ${cnt}/${list.length}`;
         const avgText = (avg === null) ? '-' : avg.toFixed(1);
         const avgRoundsText = avgRounds.toFixed(1);
-
         const barW = _clamp(avg ?? 0, 0, 100);
-        const barCls = (avg === null) ? 'bg-gray-300'
-                     : avg < 60 ? 'bg-red-500'
-                     : avg < 80 ? 'bg-yellow-500'
-                     : 'bg-green-500';
+        const barCls = (avg === null) ? 'bg-gray-300' : avg < 60 ? 'bg-red-500' : avg < 80 ? 'bg-yellow-500' : 'bg-green-500';
 
-        const header = document.createElement('div');
-        header.className = 'px-3 py-2 rounded-md border bg-gray-50 mb-2';
-
-        const title = document.createElement('div');
-        title.className = 'font-semibold text-lg';
-        /* ===== [PATCH] 챕터 카드 타이틀: 1:1 라벨 적용 ===== */
-        title.textContent = chapterLabelText(ch);
-
-        const meta = document.createElement('div');
-        meta.className = 'text-sm text-gray-700 mt-1 space-y-1';
-
-        const line1 = document.createElement('div');
-        line1.textContent = `평균 ${avgText}점 · ${ratioText}`;
-        const line2 = document.createElement('div');
-        line2.textContent = `평균 ${avgRoundsText}회독 · 최근 ${recentText}`;
-
-        meta.appendChild(line1);
-        meta.appendChild(line2);
-
-        const mini = document.createElement('div');
-        mini.className = 'w-28 h-2 bg-gray-200 rounded-full overflow-hidden mt-2';
-        const miniFill = document.createElement('div');
-        miniFill.className = `h-2 ${barCls}`;
-        miniFill.style.width = `${barW}%`;
-        mini.appendChild(miniFill);
-
-        const toggleWrap = document.createElement('div');
-        toggleWrap.className = 'mt-2 flex justify-end';
-        const toggleBtn = document.createElement('button');
-        toggleBtn.className = 'text-xs text-blue-700 hover:underline';
-        toggleBtn.textContent = '접기';
+        const header = document.createElement('div'); header.className = 'px-3 py-2 rounded-md border bg-gray-50 mb-2';
+        const title = document.createElement('div'); title.className = 'font-semibold text-lg'; title.textContent = chapterLabelText(ch);
+        const meta = document.createElement('div'); meta.className = 'text-sm text-gray-700 mt-1 space-y-1';
+        const line1 = document.createElement('div'); line1.textContent = `평균 ${avgText}점 · ${ratioText}`;
+        const line2 = document.createElement('div'); line2.textContent = `평균 ${avgRoundsText}회독 · 최근 ${recentText}`;
+        meta.appendChild(line1); meta.appendChild(line2);
+        const mini = document.createElement('div'); mini.className = 'w-28 h-2 bg-gray-200 rounded-full overflow-hidden mt-2';
+        const miniFill = document.createElement('div'); miniFill.className = `h-2 ${barCls}`; miniFill.style.width = `${barW}%`; mini.appendChild(miniFill);
+        const toggleWrap = document.createElement('div'); toggleWrap.className = 'mt-2 flex justify-end';
+        const toggleBtn = document.createElement('button'); toggleBtn.className = 'text-xs text-blue-700 hover:underline'; toggleBtn.textContent = '접기';
         toggleWrap.appendChild(toggleBtn);
+        header.appendChild(title); header.appendChild(meta); header.appendChild(mini); header.appendChild(toggleWrap);
 
-        header.appendChild(title);
-        header.appendChild(meta);
-        header.appendChild(mini);
-        header.appendChild(toggleWrap);
-
-        const grid = document.createElement('div');
-        grid.className = 'flex flex-wrap gap-2 mt-2 mb-4';
-
+        const grid = document.createElement('div'); grid.className = 'flex flex-wrap gap-2 mt-2 mb-4';
         list.forEach(q => {
           const btn = document.createElement('button');
-
           const displayOnly = (q.표시번호 ?? '').toString().trim();
           const fallback    = (q.물음번호 ?? q.고유ID ?? '').toString().trim();
           const label       = displayOnly || fallback || '';
           btn.textContent   = label;
-
           if (label.length >= 3) btn.style.fontSize = '0.72rem';
           if (label.length >= 4) { btn.style.fontSize = '0.66rem'; btn.style.letterSpacing = '-0.2px'; }
 
@@ -1527,9 +1347,7 @@ ${userAnswer || '(미입력)'}
             `표시번호:${displayOnly || '-'}`,
             `물음번호:${(q.물음번호 ?? '').toString().trim() || '-'}`,
             `ID:${(q.고유ID ?? '').toString().trim() || '-'}`].filter(Boolean).join(' | ');
-          btn.title = fullMeta;
-          btn.setAttribute('aria-label', fullMeta);
-
+          btn.title = fullMeta; btn.setAttribute('aria-label', fullMeta);
           btn.classList.add('summary-btn', 'font-medium', 'rounded-lg', 'border');
 
           const saved = questionScores[String(q.고유ID)?.trim()];
@@ -1551,15 +1369,11 @@ ${userAnswer || '(미입력)'}
                 currentQuizData = newSet;
                 currentQuestionIndex = newSet.findIndex(it => String(it.고유ID).trim() === String(q.고유ID).trim());
               }
-            } else {
-              currentQuestionIndex = idxInCurrent;
-            }
+            } else currentQuestionIndex = idxInCurrent;
             if (currentQuestionIndex < 0) currentQuestionIndex = 0;
-            el.quizArea.classList.remove('hidden');
-            displayQuestion();
+            el.quizArea.classList.remove('hidden'); displayQuestion();
             showToast(`'${q.표시번호 || q.물음번호 || q.고유ID}'번으로 이동했습니다.`);
           });
-
           grid.appendChild(btn);
         });
 
@@ -1568,57 +1382,41 @@ ${userAnswer || '(미입력)'}
           toggleBtn.textContent = isHidden ? '펼치기' : '접기';
         });
 
-        const section = document.createElement('div');
-        section.className = 'w-full space-y-2 mb-3';
-        section.appendChild(header);
-        section.appendChild(grid);
+        const section = document.createElement('div'); section.className = 'w-full space-y-2 mb-3';
+        section.appendChild(header); section.appendChild(grid);
         el.scoreSummary.appendChild(section);
       });
-
       updateSummaryHighlight();
     }
-
     function updateSummaryHighlight() {
       if (currentQuizData.length === 0) return;
       const currentQ = String(currentQuizData[currentQuestionIndex].고유ID).trim();
       const buttons = el.scoreSummary.querySelectorAll('button.summary-btn');
-      buttons.forEach(b => b.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2'));
-      buttons.forEach(b => {
-        if (b.dataset.qid === currentQ) b.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
-      });
+      buttons.forEach(b => b.classList.remove('ring-2','ring-blue-500','ring-offset-2'));
+      buttons.forEach(b => { if (b.dataset.qid === currentQ) b.classList.add('ring-2','ring-blue-500','ring-offset-2'); });
     }
 
-    // ====== 필터 해제 및 초기화 ======
+    // 필터 초기화/리셋
     el.clearFilterBtn.addEventListener('click', () => {
-      el.filterSelect.value = 'all';
-      el.chapterSelect.value = '';
-      handleLoadQuiz();
-      showToast('필터를 해제했습니다. 모든 문제를 표시합니다.');
+      el.filterSelect.value = 'all'; el.chapterSelect.value = '';
+      el.sourceGroupFilter?.querySelectorAll('input.source-filter')?.forEach(cb => cb.checked = true);
+      localStorage.setItem(SOURCE_LS, JSON.stringify(['basic','advanced','other']));
+      handleLoadQuiz(); showToast('필터를 해제했습니다. 모든 문제를 표시합니다.');
     });
     el.resetScoresBtn.addEventListener('click', () => {
       if (confirm('정말로 모든 학습 기록을 초기화하시겠습니까?')) {
-        questionScores = {};
-        localStorage.removeItem('auditQuizScores');
-        localStorage.removeItem('schemaVersion');
-        // 회독 저장소 및 백필 플래그도 초기화
-        localStorage.removeItem('readSessions_v2');
-        localStorage.removeItem('readStoreBackfilled_v2');
-        updateSummary();
-        if (currentQuizData.length > 0) {
-          currentQuestionIndex = 0;
-          handleLoadQuiz();
-        }
-        showToast('학습 기록이 초기화되었습니다.');
+        questionScores = {}; localStorage.removeItem('auditQuizScores'); localStorage.removeItem('schemaVersion');
+        localStorage.removeItem('readSessions_v2'); localStorage.removeItem('readStoreBackfilled_v2');
+        updateSummary(); if (currentQuizData.length > 0) { currentQuestionIndex = 0; handleLoadQuiz(); }
+        refreshPanels(); showToast('학습 기록이 초기화되었습니다.');
       }
     });
 
-    // ====== Ctrl] 포커스 모드 & Ctrl[ 복귀 ======
+    // Ctrl] / Ctrl[
     function ensureResultBoxReady() {
       if (currentQuizData.length) {
         const q = currentQuizData[currentQuestionIndex];
-        if (!el.correctAnswer.textContent?.trim()) {
-          el.correctAnswer.textContent = String(q.정답 || '');
-        }
+        if (!el.correctAnswer.textContent?.trim()) el.correctAnswer.textContent = String(q.정답 || '');
       }
       el.resultBox.classList.remove('hidden');
     }
@@ -1632,11 +1430,8 @@ ${userAnswer || '(미입력)'}
     }
     function exitToDashboard() {
       document.documentElement.classList.remove('focus-mode');
-      if (el.summaryArea) {
-        smoothScrollTo(elmTop(el.summaryArea) - getHeaderOffset() - 8);
-      } else {
-        smoothScrollTo(0);
-      }
+      if (el.summaryArea) smoothScrollTo(elmTop(el.summaryArea) - getHeaderOffset() - 8);
+      else smoothScrollTo(0);
       ctrlNavState = 'dashboard';
     }
     function backFromFocus() {
@@ -1644,41 +1439,382 @@ ${userAnswer || '(미입력)'}
       smoothScrollTo(Math.max(0, lastScrollYBeforeFocus));
       ctrlNavState = 'dashboard';
     }
-
     function isEditing(t) { return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable); }
     function goTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
     document.addEventListener('keydown', (e) => {
-      if ((e.key === 'h' || e.key === 'H') && !isEditing(e.target)) {
-        e.preventDefault(); el.hintBtn?.click(); return;
-      }
+      if ((e.key === 'h' || e.key === 'H') && !isEditing(e.target)) { e.preventDefault(); el.hintBtn?.click(); return; }
       if (e.ctrlKey && !e.altKey && !e.metaKey) {
         if (e.key === 'ArrowLeft')  { e.preventDefault(); el.prevBtn?.click(); return; }
         if (e.key === 'ArrowRight') { e.preventDefault(); el.nextBtn?.click(); return; }
-        if (e.key === '[') {
-          e.preventDefault();
-          if (ctrlNavState === 'focus') backFromFocus();
-          else goTop();
-          return;
+        if (e.key === '[') { e.preventDefault(); if (ctrlNavState === 'focus') backFromFocus(); else goTop(); return; }
+        if (e.key === ']') { e.preventDefault(); if (ctrlNavState !== 'focus') enterFocusMode(); else exitToDashboard(); return; }
+      }
+    });
+    el.userAnswer?.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); el.gradeBtn?.click(); } });
+
+    /* ===== 스코프 데이터 ===== */
+    function getScopeFilteredData() {
+      const bySource = applySourceFilter(allData || []);
+      const ch = el.chapterSelect?.value || '';
+      if (!ch) return bySource;
+      return bySource.filter(q => String(q.단원).trim() === String(ch));
+    }
+
+    /* ===== 달력: 월~일(월요일 시작), 숫자 배경 색칠 ===== */
+    function renderCalendar() {
+      if (!el.calendarGrid || !el.calendarMonthLabel) return;
+      const base = getScopeFilteredData();
+      const idSet = new Set(base.map(q => String(q.고유ID).trim()));
+
+      // 날짜별 풀이수 카운트
+      const dayCount = new Map(); // 'YYYY-MM-DD' -> count
+      for (const [qid, rec] of Object.entries(questionScores || {})) {
+        if (!idSet.has(qid)) continue;
+        const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
+        for (const h of hist) {
+          const t = Number(h?.date); if (!Number.isFinite(t)) continue;
+          const d = new Date(t); d.setHours(0,0,0,0);
+          const key = d.toISOString().slice(0,10);
+          dayCount.set(key, (dayCount.get(key)||0) + 1);
         }
-        if (e.key === ']') {
-          e.preventDefault();
-          if (ctrlNavState !== 'focus') enterFocusMode();
-          else exitToDashboard();
-          return;
+      }
+
+      // 현재 달 계산
+      const y = calendarView.getFullYear();
+      const m = calendarView.getMonth(); // 0-11
+      const first = new Date(y, m, 1);
+      const last = new Date(y, m+1, 0);
+      const firstDow = (first.getDay() + 6) % 7; // 월=0, ... 일=6
+      const daysInMonth = last.getDate();
+
+      el.calendarMonthLabel.textContent = `${y}.${String(m+1).padStart(2,'0')}`;
+      el.calendarGrid.innerHTML = '';
+
+      // 앞쪽 빈칸: 이전달
+      for (let i=0;i<firstDow;i++){
+        const cell = document.createElement('div');
+        cell.className = 'rounded text-center py-2 text-xs text-gray-400 border border-dashed border-gray-200';
+        cell.textContent = ' ';
+        el.calendarGrid.appendChild(cell);
+      }
+      // 이번달 날짜
+      for (let d=1; d<=daysInMonth; d++){
+        const dateObj = new Date(y, m, d); dateObj.setHours(0,0,0,0);
+        const key = dateObj.toISOString().slice(0,10);
+        const c = dayCount.get(key) || 0;
+        let bg = 'bg-gray-200', text='text-gray-800', ring='';
+        if (c>=1 && c<=1) { bg='bg-green-200'; text='text-gray-800'; }
+        else if (c<=3 && c>=2) { bg='bg-green-300'; text='text-gray-900'; }
+        else if (c<=6 && c>=4) { bg='bg-green-500'; text='text-white'; }
+        else if (c>=7) { bg='bg-green-700'; text='text-white'; }
+        // 오늘 테두리
+        const today = new Date(); today.setHours(0,0,0,0);
+        if (dateObj.getTime() === today.getTime()) ring='ring-2 ring-blue-500';
+
+        const cell = document.createElement('div');
+        cell.className = `rounded text-center py-2 text-sm border ${bg} ${text} ${ring}`;
+        cell.title = `${d}일 · 풀이 ${c}회`;
+        cell.textContent = String(d);
+        el.calendarGrid.appendChild(cell);
+      }
+      // 뒷쪽 빈칸 채워 6주 고정(가독성)
+      const filled = firstDow + daysInMonth;
+      const totalCells = Math.ceil(filled / 7) * 7;
+      for (let i=filled; i<totalCells; i++){
+        const cell = document.createElement('div');
+        cell.className = 'rounded text-center py-2 text-xs text-gray-400 border border-dashed border-gray-200';
+        cell.textContent = ' ';
+        el.calendarGrid.appendChild(cell);
+      }
+    }
+
+    /* ===== 통계: 오늘/주간/월간 (세모 드롭다운) ===== */
+    function renderStats() {
+      if (!el.statsOverview) return;
+
+      // 기간 계산
+      const now = new Date();
+      function startOfDay(d){ const t=new Date(d); t.setHours(0,0,0,0); return t; }
+      function endOfDay(d){ const t=new Date(d); t.setHours(23,59,59,999); return t; }
+      function startOfWeek(d){ const t=startOfDay(d); const dow=(t.getDay()+6)%7; t.setDate(t.getDate()-dow); return t; }
+      function startOfMonth(d){ return startOfDay(new Date(d.getFullYear(), d.getMonth(), 1)); }
+
+      let periodTitle='오늘의 통계', viewLabel='오늘', start=startOfDay(now), end=endOfDay(now);
+      if (statsView==='week'){ periodTitle='주간 통계'; viewLabel='주간'; start=startOfWeek(now); end=endOfDay(now); }
+      if (statsView==='month'){ periodTitle='월간 통계'; viewLabel='월간'; start=startOfMonth(now); end=endOfDay(now); }
+
+      const base = getScopeFilteredData();
+      const idSet = new Set(base.map(q => String(q.고유ID).trim()));
+
+      // 전체 평균/최근학습/스트릭
+      let solvedCnt=0, sumScore=0, flagged=0, lastSolvedAt=0;
+      const daySet = new Set();
+      for (const q of base) {
+        const qid = String(q.고유ID).trim(); const rec = questionScores[qid];
+        if (rec && Number.isFinite(Number(rec.score))) { solvedCnt += 1; sumScore += Number(rec.score); }
+        if (rec?.userReviewFlag) flagged += 1;
+        if (rec?.lastSolvedDate && rec.lastSolvedDate>lastSolvedAt) lastSolvedAt = rec.lastSolvedDate;
+        const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
+        hist.forEach(h=>{ const t=Number(h?.date); if(!Number.isFinite(t)) return; const d=new Date(t); d.setHours(0,0,0,0); daySet.add(d.toISOString().slice(0,10)); });
+      }
+      const avgAll = solvedCnt? (sumScore/solvedCnt) : null;
+      const recentTxt = lastSolvedAt ? (()=>{const d=Math.floor((Date.now()-lastSolvedAt)/(86400000)); return d===0?'오늘':(d===1?'어제':`${d}일 전`);})() : '기록 없음';
+      function hasSolved(day){ const k=new Date(day); k.setHours(0,0,0,0); return daySet.has(k.toISOString().slice(0,10)); }
+      let streak=0, cur=new Date(); cur.setHours(0,0,0,0); while (hasSolved(cur)) { streak+=1; cur.setDate(cur.getDate()-1); }
+      const bestStreakKey='bestStreak_v1';
+      const best = Math.max(streak, Number(localStorage.getItem(bestStreakKey)||0));
+      if (best > Number(localStorage.getItem(bestStreakKey)||0)) localStorage.setItem(bestStreakKey,String(best));
+
+      // 기간 지표
+      let periodSolves=0, periodScoreSum=0;
+      const byChapter = new Map();
+      function chRec(ch){ if(!byChapter.has(ch)) byChapter.set(ch,{solves:0,sum:0}); return byChapter.get(ch); }
+
+      for (const q of base) {
+        const qid = String(q.고유ID).trim(); const ch  = String(q.단원).trim();
+        const rec = questionScores[qid]; const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
+        for (const h of hist) {
+          const t = Number(h?.date); const sc = Number(h?.score);
+          if (!Number.isFinite(t)) continue;
+          if (t >= +start && t <= +end) {
+            periodSolves += 1;
+            if (Number.isFinite(sc)) periodScoreSum += sc;
+            const slot = chRec(ch); slot.solves += 1; if (Number.isFinite(sc)) slot.sum += sc;
+          }
         }
+      }
+      const periodAvg = periodSolves? (periodScoreSum/periodSolves) : null;
+
+      // 약한 단원 Top3
+      const weak = []; byChapter.forEach((v,ch)=>{ if(v.solves>=3) weak.push({ch, avg:v.sum/v.solves, cnt:v.solves}); });
+      weak.sort((a,b)=> a.avg-b.avg); const weakTop = weak.slice(0,3);
+
+      // 목표
+      const baseDaily = Number(localStorage.getItem('dailyTarget_v1')||20);
+      if (!localStorage.getItem('weeklyTarget_v1'))  localStorage.setItem('weeklyTarget_v1', String(baseDaily*7));
+      if (!localStorage.getItem('monthlyTarget_v1')) localStorage.setItem('monthlyTarget_v1', String(baseDaily*30));
+      const targetKey = statsView==='day' ? 'dailyTarget_v1' : (statsView==='week' ? 'weeklyTarget_v1' : 'monthlyTarget_v1');
+      const targetLabel = statsView==='day' ? '오늘 목표' : (statsView==='week' ? '이번 주 목표' : '이번 달 목표');
+      const targetVal = Number(localStorage.getItem(targetKey) || (statsView==='day'? baseDaily : (statsView==='week'? baseDaily*7 : baseDaily*30)));
+      const pct = Math.max(0, Math.min(100, Math.round((periodSolves / Math.max(1,targetVal))*100)));
+
+      const fmt = (v)=> v==null?'-':(Math.round(v*10)/10).toFixed(1);
+      const mkChip = (txt)=> `<button data-go-ch="${txt}" class="px-2 py-0.5 text-xs rounded border hover:bg-gray-50">${chapterLabelText(txt)}</button>`;
+      const weakHtml = weakTop.length ? weakTop.map(w=>`${mkChip(w.ch)} <span class="text-xs text-red-600 ml-1">${fmt(w.avg)}점·${w.cnt}회</span>`).join('<br>') : '데이터 부족';
+
+      el.statsOverview.innerHTML = `
+        <div class="border rounded p-3 relative">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-bold" id="stats-title">${periodTitle}</h3>
+            <div class="relative">
+              <button id="stats-view-btn" class="flex items-center gap-1 text-sm px-2 py-1 rounded border hover:bg-gray-50">
+                <span id="stats-view-label">${viewLabel}</span>
+                <span id="stats-caret" class="inline-block transition-transform">▼</span>
+              </button>
+              <div id="stats-view-menu" class="hidden absolute right-0 mt-1 w-28 bg-white dark:bg-gray-900 border rounded shadow-md overflow-hidden z-10">
+                <button data-view="day"   class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50">오늘</button>
+                <button data-view="week"  class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50">주간</button>
+                <button data-view="month" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50">월간</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div class="p-2 rounded border"><div class="text-[12px] text-gray-500">기간 풀이</div><div class="text-lg font-semibold">${periodSolves} 개</div></div>
+            <div class="p-2 rounded border"><div class="text-[12px] text-gray-500">기간 평균</div><div class="text-lg font-semibold">${fmt(periodAvg)} 점</div></div>
+            <div class="p-2 rounded border"><div class="text-[12px] text-gray-500">스트릭</div><div class="text-lg font-semibold">${streak} 일 <span class="text-xs text-gray-500">(최고 ${best}일)</span></div></div>
+            <div class="p-2 rounded border"><div class="text-[12px] text-gray-500">스코프 평균</div><div class="text-lg font-semibold">${fmt(avgAll)} 점</div></div>
+          </div>
+
+          <div class="mt-3">
+            <div class="flex items-center justify-between">
+              <div class="text-[12px] text-gray-500">${targetLabel} ${targetVal}개</div>
+              <div class="text-[12px] text-gray-500">${pct}%</div>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+              <div class="h-2 ${pct<60?'bg-red-500':(pct<100?'bg-yellow-500':'bg-green-600')}" style="width:${pct}%;"></div>
+            </div>
+            <div class="flex items-center gap-2 mt-2">
+              <label for="stats-target-input" class="text-xs text-gray-500">목표:</label>
+              <input id="stats-target-input" type="number" min="1" class="w-20 px-2 py-1 text-xs border rounded" value="${targetVal}">
+              <button id="apply-stats-target" class="text-xs px-2 py-1 border rounded hover:bg-gray-50">적용</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-3 mt-3">
+            <div class="p-2 rounded border">
+              <div class="text-[12px] text-gray-500 mb-1">약한 단원 Top 3 <span class="text-[11px] text-gray-400">(기간 기준)</span></div>
+              <div class="text-sm leading-5">${weakHtml}</div>
+            </div>
+          </div>
+
+          <div class="text-[12px] text-gray-500 mt-2">최근 학습: <strong class="text-gray-700">${recentTxt}</strong> · 복습 필요(★): <strong class="text-gray-700">${flagged}</strong></div>
+        </div>
+      `;
+
+      // 드롭다운
+      const btn = document.getElementById('stats-view-btn');
+      const caret = document.getElementById('stats-caret');
+      const menu = document.getElementById('stats-view-menu');
+      function openMenu(){ menu.classList.remove('hidden'); caret.style.transform='rotate(180deg)'; }
+      function closeMenu(){ menu.classList.add('hidden'); caret.style.transform='rotate(0deg)'; }
+      btn?.addEventListener('click',(e)=>{ e.stopPropagation(); if(menu.classList.contains('hidden')) openMenu(); else closeMenu(); });
+      document.addEventListener('click', closeMenu, { once:true });
+      menu?.querySelectorAll('[data-view]')?.forEach(item=>{
+        item.addEventListener('click', ()=>{ const v=item.getAttribute('data-view'); if (v) setStatsView(v); });
+      });
+      document.getElementById('apply-stats-target')?.addEventListener('click', ()=>{
+        const v = Math.max(1, Math.min(9999, Math.round(Number(document.getElementById('stats-target-input')?.value || 1))));
+        localStorage.setItem(targetKey, String(v)); renderStats();
+      });
+      el.statsOverview.querySelectorAll('[data-go-ch]')?.forEach(b=>{
+        b.addEventListener('click', ()=>{ const ch = b.getAttribute('data-go-ch') || ''; if (ch) { el.chapterSelect.value = ch; handleLoadQuiz(); showToast(`${chapterLabelText(ch)} 로 이동`);} });
+      });
+    }
+
+    /* ===== 탐색 패널 ===== */
+    function renderExplorer() {
+      if (!el.explorerChapters || !el.explorerProblems) return;
+      const base = getScopeFilteredData();
+
+      const group = new Map();
+      for (const q of base) {
+        const ch = String(q.단원).trim();
+        if (!group.has(ch)) group.set(ch, []);
+        group.get(ch).push(q);
+      }
+      const chapters = [...group.keys()].sort((a,b)=> {
+        const na=Number(a), nb=Number(b);
+        if (Number.isFinite(na) && Number.isFinite(nb)) return na-nb;
+        if (Number.isFinite(na)) return -1; if (Number.isFinite(nb)) return 1;
+        return a.localeCompare(b,'ko');
+      });
+
+      el.explorerChapters.innerHTML='';
+      chapters.forEach(ch=>{
+        const btn=document.createElement('button');
+        btn.className='w-full text-left px-3 py-2 rounded border hover:bg-gray-50';
+        btn.textContent=chapterLabelText(ch);
+        btn.addEventListener('click', ()=>{
+          const list = group.get(ch) || [];
+          if (list.length){ currentQuizData = list; currentQuestionIndex = 0; el.quizArea.classList.remove('hidden'); displayQuestion(); showToast(`${chapterLabelText(ch)} 로 이동`); updateSummaryHighlight(); }
+        });
+        el.explorerChapters.appendChild(btn);
+      });
+
+      const q = (el.explorerSearch?.value || '').trim();
+      const filtered = base.filter(it=>{ const t = `${it.problemTitle||''} ${it.물음||''}`.toLowerCase(); return !q || t.includes(q.toLowerCase()); });
+
+      el.explorerProblems.innerHTML='';
+      filtered.sort((a,b)=>{ const na=Number(a.물음번호||a.표시번호), nb=Number(b.물음번호||b.표시번호); if (Number.isFinite(na)&&Number.isFinite(nb)) return na-nb; return String(a.표시번호||a.물음번호).localeCompare(String(b.표시번호||b.물음번호),'ko'); })
+      .forEach(qitem=>{
+        const rec = questionScores[String(qitem.고유ID).trim()];
+        const score = Number.isFinite(Number(rec?.score))? Number(rec.score): null;
+        const flagged = !!(rec?.userReviewFlag || rec?.user_review_flag);
+
+        const row=document.createElement('button');
+        row.className='w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded hover:bg-gray-50 border';
+        const left=document.createElement('div');
+        left.className='flex items-center gap-2 text-sm';
+        if(flagged){ const star=document.createElement('span'); star.textContent='★'; star.className='text-purple-500'; left.appendChild(star); }
+        const title=document.createElement('span');
+        const label = (qitem.problemTitle && String(qitem.problemTitle).trim()) || `문항 ${qitem.표시번호||qitem.물음번호||qitem.고유ID}`;
+        title.textContent = label; title.className = 'block max-w-[16rem] md:max-w-[22rem] lg:max-w-[18rem] xl:max-w-[22rem] truncate';
+        left.appendChild(title);
+
+        const right=document.createElement('div');
+        right.className='text-xs';
+        const badge=document.createElement('span');
+        badge.className='px-2 py-0.5 rounded-full border ' + (score==null?'text-gray-600 border-gray-300':'text-blue-700 border-blue-300');
+        badge.textContent = score==null? '미풀이' : `${score}`;
+        right.appendChild(badge);
+
+        row.appendChild(left); row.appendChild(right);
+        row.title = `출처:${qitem.출처||'-'} | ID:${qitem.고유ID}`;
+
+        row.addEventListener('click',()=>{
+          const ch = String(qitem.단원).trim();
+          const list = base.filter(it=>String(it.단원).trim()===ch);
+          currentQuizData = list.length? list : [qitem];
+          currentQuestionIndex = list.findIndex(it=>String(it.고유ID).trim()===String(qitem.고유ID).trim());
+          if(currentQuestionIndex<0) currentQuestionIndex=0;
+          el.quizArea.classList.remove('hidden'); displayQuestion(); showToast(`'${label}' 로 이동`);
+        });
+
+        el.explorerProblems.appendChild(row);
+      });
+    }
+
+    // 출처필터 이동
+    function moveSourceFilterToSide() {
+      if (!el.sourceFilterSide || !el.sourceGroupFilter) return;
+      el.sourceFilterSide.innerHTML=''; el.sourceGroupFilter.classList.remove('mb-6'); el.sourceFilterSide.appendChild(el.sourceGroupFilter);
+    }
+
+    // 좌/우 패널 갱신
+    function refreshPanels() {
+      renderCalendar();
+      renderStats();
+      renderExplorer();
+    }
+
+    // 오늘의 복습 전략
+    const REVIEW_STRATEGY_LS = 'reviewStrategy_v1';
+    function getReviewStrategy() { return localStorage.getItem(REVIEW_STRATEGY_LS) || 'smart'; }
+    function prioritizeTodayReview(list) {
+      const strat = getReviewStrategy();
+      if (strat === 'flag') {
+        const flagged = list.filter(a => (questionScores[normId(a.고유ID)]?.userReviewFlag));
+        const rest = list.filter(a => !(questionScores[normId(a.고유ID)]?.userReviewFlag));
+        return flagged.concat(rest);
+      }
+      if (strat === 'low') {
+        return [...list].sort((a,b)=>{ const sa = questionScores[normId(a.고유ID)]?.score ?? 101; const sb = questionScores[normId(b.고유ID)]?.score ?? 101; return sa - sb; });
+      }
+      if (strat === 'recentWrong') {
+        return [...list].sort((a,b)=>{ const sa = questionScores[normId(a.고유ID)]; const sb = questionScores[normId(b.고유ID)]; const as = sa?.score ?? 101, bs = sb?.score ?? 101; const ad = sa?.lastSolvedDate ?? 0, bd = sb?.lastSolvedDate ?? 0; return (as - bs) || (ad - bd); });
+      }
+      return [...list].sort((a, b) => {
+        const sa = questionScores[normId(a.고유ID)], sb = questionScores[normId(b.고유ID)];
+        const aflag = sa?.userReviewFlag ? 0 : 1; const bflag = sb?.userReviewFlag ? 0 : 1;
+        const aUn = sa ? 1 : 0, bUn = sb ? 1 : 0; const aScore = sa?.score ?? 101, bScore = sb?.score ?? 101;
+        const aDate = sa?.lastSolvedDate ?? 0, bDate = sb?.lastSolvedDate ?? 0;
+        return (aflag - bflag) || (aUn - bUn) || (aScore - bScore) || (aDate - bDate);
+      });
+    }
+    el.reviewStrategySelect?.addEventListener('change', (e)=>{ localStorage.setItem(REVIEW_STRATEGY_LS, e.target.value); showToast(`오늘의 복습 전략: ${e.target.value}`); refreshPanels(); });
+    (function syncStrategy(){ const cur = getReviewStrategy(); if (el.reviewStrategySelect) el.reviewStrategySelect.value = cur; })();
+    el.startReviewBtn?.addEventListener('click', ()=>{ if (el.filterSelect) el.filterSelect.value = 'today-review'; handleLoadQuiz(); showToast('오늘의 복습 시작'); });
+
+    // 모바일: 좌측패널 드로어
+    function openDrawer(){
+      document.body.classList.add('drawer-open');
+      el.drawerBackdrop.classList.remove('hidden');
+      el.leftDashboard.classList.remove('hidden');
+      el.leftDashboard.classList.add('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900');
+    }
+    function closeDrawer(){
+      document.body.classList.remove('drawer-open');
+      el.drawerBackdrop.classList.add('hidden');
+      el.leftDashboard.classList.add('hidden');
+      el.leftDashboard.classList.remove('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900');
+    }
+    el.hamburger?.addEventListener('click', ()=> openDrawer());
+    el.drawerBackdrop?.addEventListener('click', ()=> closeDrawer());
+    window.addEventListener('resize', ()=>{
+      if (window.innerWidth >= 1024) { // lg 이상
+        el.leftDashboard.classList.remove('hidden');
+        el.drawerBackdrop.classList.add('hidden');
+        document.body.classList.remove('drawer-open');
+        el.leftDashboard.classList.remove('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900');
+      } else {
+        // 모바일 기본 감춤
+        el.leftDashboard.classList.add('hidden');
       }
     });
 
-    // 답안창: Enter=채점, Shift+Enter=줄바꿈
-    el.userAnswer?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        el.gradeBtn?.click();
-      }
-    });
-
-    // ====== 초기화 ======
+    // 초기화
     document.addEventListener('DOMContentLoaded', async () => {
       try { await loadData(); }
       catch (err) {
@@ -1686,19 +1822,14 @@ ${userAnswer || '(미입력)'}
         document.getElementById('question-text').textContent = '문제 데이터 로드 실패 (questions.json 또는 dataset-json을 확인하세요).';
         showToast(`문제 데이터 로드 실패: ${err.message}`, 'error');
       }
-      loadScores();
-      loadApiKey();
-      loadSettings();
-      applyDarkMode();
-      migrateData();
-      // --- NEW: 기존 solveHistory를 회독 저장소로 백필 ---
-      backfillReadStoreFromScores(false);
-      ensureApiKeyGate();
+      loadScores(); loadApiKey(); loadSettings(); applyDarkMode(); migrateData();
+      backfillReadStoreFromScores(false); ensureApiKeyGate();
+
+      buildSourceFilterUI(); moveSourceFilterToSide();
+      el.explorerSearch?.addEventListener('input', renderExplorer);
+
+      refreshPanels();
     });
   </script>
 </body>
 </html>
-
-
-
-
