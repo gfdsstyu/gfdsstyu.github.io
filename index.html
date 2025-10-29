@@ -13,60 +13,66 @@
     body { font-family: 'Noto Sans KR', sans-serif; }
     .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .summary-btn {
-      width: 38px; height: 38px;
-      font-size: 0.8rem; line-height: 1;
-      display: flex; align-items: center; justify-content: center;
-      padding: 0 2px; transition: all 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .summary-btn:hover { transform: scale(1.1); }
-    pre { white-space: pre-wrap; word-wrap: break-word; }
-    #toast { position: fixed; top: 16px; right: 16px; z-index: 9999; }
+    .summary-btn{ width:38px;height:38px;font-size:.8rem;line-height:1;display:flex;align-items:center;justify-content:center;padding:0 2px;transition:.2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis }
+    .summary-btn:hover{ transform:scale(1.1) }
+    pre{ white-space:pre-wrap; word-wrap:break-word }
+    #toast{ position:fixed; top:16px; right:16px; z-index:9999 }
+    .no-kr-break{ word-break:keep-all } /* ‘문제 목록’ 세로깨짐 방지 */
 
     /* 다크모드 기본 */
-    .dark { background-color: #1a202c; color: #e2e8f0; }
-    .dark .bg-white { background-color: #2d3748; }
-    .dark .bg-gray-100 { background-color: #1a202c; }
-    .dark .bg-gray-50 { background-color: #2d3748; }
-    .dark .text-gray-800 { color: #e2e8f0; }
-    .dark .text-gray-700 { color: #cbd5e0; }
-    .dark .text-gray-600 { color: #a0aec0; }
-    .dark .border-gray-200 { border-color: #4a5568; }
-    .dark .border-gray-300 { border-color: #4a5568; }
+    .dark{ background-color:#1a202c; color:#e2e8f0 }
+    .dark .bg-white{ background-color:#2d3748 }
+    .dark .bg-gray-100{ background-color:#1a202c }
+    .dark .bg-gray-50{ background-color:#2d3748 }
+    .dark .text-gray-800{ color:#e2e8f0 }
+    .dark .text-gray-700{ color:#cbd5e0 }
+    .dark .text-gray-600{ color:#a0aec0 }
+    .dark .border-gray-200{ border-color:#4a5568 }
+    .dark .border-gray-300{ border-color:#4a5568 }
   </style>
 
   <!-- 다크모드 접근성 보강 -->
   <style id="dark-a11y-20251026">
     html.dark { color-scheme: dark; }
-    html.dark input, html.dark textarea, html.dark select {
-      background-color: #1f2937; color: #e5e7eb; border-color: #4b5563;
-    }
-    html.dark ::placeholder { color: #9ca3af; }
-    html.dark :is(button, a, input, textarea, select):focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
-    html.dark .progress-track { background-color: #374151; }
-    html.dark #result-box { background-color: #1f2937; border-color: #374151; }
-    html.dark #quiz-area .bg-gray-50 { background-color: #111827; }
-    html.dark #quiz-area .border-gray-200 { border-color: #374151; }
-    html.dark #hint-container { background-color: #1e3a8a; border-color: #334155; color: #e0e7ff; }
-    html.dark #summary-area .border { border-color: #374151; }
-    html.dark #summary-area .bg-gray-50 { background-color: #111827; }
-    html.dark .summary-btn.bg-gray-100 { background-color:#111827; color:#d1d5db; border-color:#374151; }
-    html.dark .summary-btn.bg-red-100   { background-color:#7f1d1d; color:#fecaca; border-color:#991b1b; }
-    html.dark .summary-btn.bg-yellow-100{ background-color:#78350f; color:#fde68a; border-color:#92400e; }
-    html.dark .summary-btn.bg-green-100 { background-color:#14532d; color:#bbf7d0; border-color:#166534; }
+    html.dark input, html.dark textarea, html.dark select { background-color:#1f2937; color:#e5e7eb; border-color:#4b5563 }
+    html.dark ::placeholder { color:#9ca3af }
+    html.dark :is(button,a,input,textarea,select):focus-visible { outline:2px solid #60a5fa; outline-offset:2px }
+    html.dark .progress-track{ background-color:#374151 }
+    html.dark #result-box{ background-color:#1f2937; border-color:#374151 }
+    html.dark #quiz-area .bg-gray-50{ background-color:#111827 }
+    html.dark #quiz-area .border-gray-200{ border-color:#374151 }
+    html.dark #hint-container{ background-color:#1e3a8a; border-color:#334155; color:#e0e7ff }
+    html.dark #summary-area .border{ border-color:#374151 }
+    html.dark #summary-area .bg-gray-50{ background-color:#111827 }
+    html.dark .summary-btn.bg-gray-100{ background-color:#111827; color:#d1d5db; border-color:#374151 }
+    html.dark .summary-btn.bg-red-100{ background-color:#7f1d1d; color:#fecaca; border-color:#991b1b }
+    html.dark .summary-btn.bg-yellow-100{ background-color:#78350f; color:#fde68a; border-color:#92400e }
+    html.dark .summary-btn.bg-green-100{ background-color:#14532d; color:#bbf7d0; border-color:#166534 }
   </style>
 
   <!-- Ctrl] 포커스 모드 -->
   <style id="focus-mode-css">
     html.focus-mode { scroll-behavior: smooth; }
-    html.focus-mode #result-box { max-height: none !important; overflow: visible !important; }
+    html.focus-mode #result-box { max-height:none!important; overflow:visible!important; }
   </style>
 
   <!-- 보조 CSS -->
   <style id="layout-css">
-    .heatmap-cell { width: 14px; height: 14px; border-radius: 3px; }
-    /* 모바일 드로어 */
-    .drawer-open { overflow: hidden; }
+    .heatmap-cell{ width:14px; height:14px; border-radius:3px }
+    .drawer-open{ overflow:hidden } /* 모바일 드로어 */
+
+    /* 월간 캘린더 셀 */
+    .cal-cell {
+      height: 32px; border-radius: 6px; position: relative;
+      display: grid; place-items: center; font-size: 12px;
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+    .cal-cell .cal-day {
+      position: absolute; top: 4px; right: 6px;
+      font-size: 10px; opacity: 0.85;
+      font-weight: 600;
+    }
+    .cal-cell.muted { opacity: 0.35; }
   </style>
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
@@ -74,7 +80,7 @@
 
   <!-- 상단 네비 -->
   <header id="fixed-header" class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200 dark:bg-gray-900/80 dark:border-gray-800">
-  <div class="mx-auto max-w-[1400px] 2xl:max-w-[1600px] px-4 lg:px-6 xl:px-8 py-2 flex items-center justify-between">
+    <div class="mx-auto max-w-[1400px] 2xl:max-w-[1600px] px-4 lg:px-6 xl:px-8 py-2 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <span class="text-xl font-extrabold tracking-tight text-blue-700 dark:text-blue-400">감린이</span>
         <span class="hidden sm:inline text-xs text-gray-500 dark:text-gray-400">회계감사 암기 도우미 v3.3</span>
@@ -94,22 +100,30 @@
   <div id="drawer-backdrop" class="fixed inset-0 bg-black/40 hidden z-[1099]"></div>
 
   <!-- 메인 레이아웃 -->
-<div id="layout-root" class="pt-2 flex-1 px-4 lg:px-6 xl:px-8">
-  <div class="mx-auto max-w-[1400px] 2xl:max-w-[1600px] grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6 2xl:gap-8">
+  <div id="layout-root" class="pt-2 flex-1 px-4 lg:px-6 xl:px-8">
+    <div class="mx-auto max-w-[1400px] 2xl:max-w-[1600px] grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6 2xl:gap-8">
       <!-- LEFT: 대시보드 (모바일 숨김→햄버거로 드로어) -->
-      <aside id="left-dashboard" class="lg:col-span-4 xl:col-span-3 2xl:col-span-3 space-y-4">
+      <aside id="left-dashboard" class="lg:col-span-3 xl:col-span-3 2xl:col-span-3 space-y-4">
+        <!-- 드로어 X 버튼(모바일 전용) -->
+        <button id="drawer-close" class="hidden lg:hidden absolute top-2 right-2 z-[1101] inline-flex items-center justify-center w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700" aria-label="닫기">✕</button>
+
+        <!-- 학습 캘린더 (네비 + 월요일 시작 + 숫자 + 히트맵) -->
         <div class="bg-white rounded-2xl shadow-xl p-4">
           <div class="flex items-center justify-between mb-2">
             <h3 class="font-bold text-lg">학습 캘린더</h3>
-            <div id="calendar-month-label" class="text-sm text-gray-500"></div>
+            <div class="flex items-center gap-2">
+              <button id="cal-prev" class="w-8 h-8 grid place-items-center rounded-md border hover:bg-gray-50" aria-label="이전 달">◀</button>
+              <div id="cal-title" class="min-w-[96px] text-sm font-semibold text-center">YYYY.MM</div>
+              <button id="cal-next" class="w-8 h-8 grid place-items-center rounded-md border hover:bg-gray-50" aria-label="다음 달">▶</button>
+            </div>
           </div>
-          <div class="grid grid-cols-7 gap-1 text-[11px] text-gray-500 mb-1">
-            <div class="text-center">월</div><div class="text-center">화</div><div class="text-center">수</div>
-            <div class="text-center">목</div><div class="text-center">금</div><div class="text-center">토</div>
-            <div class="text-center">일</div>
+
+          <div id="calendar-weekdays" class="grid grid-cols-7 text-center text-xs text-gray-500 mb-1">
+            <div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div><div>일</div>
           </div>
           <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
-          <div class="mt-2 text-[11px] text-gray-500">숫자 배경색 = 해당일 풀이량</div>
+
+          <div class="mt-2 text-[11px] text-gray-500">색 = 해당일 풀이량 (노랑→초록→파랑, 촘촘)</div>
         </div>
 
         <div class="bg-white rounded-2xl shadow-xl p-4">
@@ -131,7 +145,7 @@
       </aside>
 
       <!-- CENTER: 메인 -->
-      <main id="center-core" class="lg:col-span-6 xl:col-span-7 2xl:col-span-7">
+      <main id="center-core" class="lg:col-span-6 xl:col-span-6 2xl:col-span-6">
         <div class="bg-white rounded-2xl shadow-xl w-full p-6 md:p-8">
           <!-- 옵션 행 -->
           <div class="flex flex-col md:flex-row gap-4 mb-6 items-center">
@@ -243,8 +257,8 @@
         </div>
       </main>
 
-      <!-- RIGHT: 탐색 패널 (모바일에선 중앙 아래로) -->
-      <aside id="right-explorer" class="lg:col-span-2 xl:col-span-2 2xl:col-span-2 space-y-4">
+      <!-- RIGHT: 탐색 패널 (살짝 확대) -->
+      <aside id="right-explorer" class="lg:col-span-3 xl:col-span-3 2xl:col-span-3 space-y-4">
         <div class="bg-white rounded-2xl shadow-xl p-4">
           <h3 class="font-bold text-lg mb-2">학습 범위 필터</h3>
           <div id="source-filter-side"></div>
@@ -255,7 +269,7 @@
         </div>
         <div class="bg-white rounded-2xl shadow-xl p-4">
           <div class="flex items-center justify-between mb-2">
-            <h3 class="font-bold text-lg">문제 목록</h3>
+            <h3 class="font-bold text-lg whitespace-nowrap no-kr-break">문제 목록</h3>
             <input id="explorer-search" class="border rounded px-2 py-1 text-sm" placeholder="검색...">
           </div>
           <div id="explorer-problems" class="space-y-1 max-h-[60vh] overflow-y-auto pr-1"></div>
@@ -344,1277 +358,752 @@
 
   <!-- 내장 데이터(JSON) -->
   <script id="dataset-json" type="application/json">[
-    {
-      "고유ID": "q_001",
-      "표시번호": "1",
-      "출처": "S",
-      "problemTitle": "회계감사의 고유한계 원인 세 가지",
-      "단원": 1,
-      "물음번호": 1,
-      "물음": "회계감사에는 고유한계가 존재한다. 그 원인을 세 가지 쓰시오.",
-      "정답": "ISA 200-A47 ① 재무보고의 성격 ② 감사절차의 성격 ③ 합리적 시간·비용 제약"
-    },
-    {
-      "고유ID": "q_002",
-      "표시번호": "2",
-      "출처": "H",
-      "problemTitle": "적시성과 비용-효익 고려 시 채택하는 절차",
-      "단원": 1,
-      "물음번호": 2,
-      "물음": "감사인은 적시성과 비용-효익 균형을 고려한다. 이에 따라 채택하는 절차 세 가지는?",
-      "정답": "ISA 200-A51 ① 효과적 계획 ② 위험 높은 분야 집중 ③ 테스트 등 표본 사용"
-    },
-    {
-      "고유ID": "q_003",
-      "표시번호": "3",
-      "출처": "SS",
-      "problemTitle": "샘플 문제",
-      "단원": 1,
-      "물음번호": 3,
-      "물음": "…",
-      "정답": "…"
-    }
+    {"고유ID":"q_001","표시번호":"1","출처":"S","problemTitle":"회계감사의 고유한계 원인 세 가지","단원":1,"물음번호":1,"물음":"회계감사에는 고유한계가 존재한다. 그 원인을 세 가지 쓰시오.","정답":"ISA 200-A47 ① 재무보고의 성격 ② 감사절차의 성격 ③ 합리적 시간·비용 제약"},
+    {"고유ID":"q_002","표시번호":"2","출처":"H","problemTitle":"적시성과 비용-효익 고려 시 채택하는 절차","단원":1,"물음번호":2,"물음":"감사인은 적시성과 비용-효익 균형을 고려한다. 이에 따라 채택하는 절차 세 가지는?","정답":"ISA 200-A51 ① 효과적 계획 ② 위험 높은 분야 집중 ③ 테스트 등 표본 사용"},
+    {"고유ID":"q_003","표시번호":"3","출처":"SS","problemTitle":"샘플 문제","단원":1,"물음번호":3,"물음":"…","정답":"…"}
   ]</script>
 
   <script type="module">
-    /* =========================================================
-     * 감린이 v3.x + 패치 통합본
-     * - 월~일(월요일 시작) 달력: 날짜 표시 + 숫자 배경 색강도 = 풀이량
-     * - '오늘의 통계' + 세모 드롭다운(오늘/주간/월간), 목표/스트릭/약한 단원
-     * - 모바일 세로: 좌측패널 햄버거 드로어, 중앙→우측 순서, 중앙 폭 확장
-     * - 우측 문제목록: problemTitle 표시 및 길이 대응
-     * ========================================================= */
+    /* ========= 채점 프롬프트(원문 그대로) ========= */
+    const BASE_SYSTEM_PROMPT =
+`당신은 매우 엄격한 회계감사 과목 채점 교수님입니다.
+- 사용자 답안을 모범답안과 비교해 0~100의 "score"(NUMBER)와 "feedback"(STRING, 한국어)을 JSON으로만 반환하세요.
+- 채점 기준을 매우 엄격하게(strictly) 적용합니다.
+- 대신 띄어쓰기나 맞춤법 실수 같은 단순한 타이핑실수는 봐줍니다. 또한 중요왜곡표시위험을 RMM으로, 성격·시기·범위를 성시범으로, 공인회계사를 CPA로 줄여쓰는 정도의 수험상 합의된 언어는 봐줍니다.
 
-    // ===== 전역 상태 =====
-    let allData = [];
-    let currentQuizData = [];
-    let currentQuestionIndex = 0;
-    let questionScores = {};
-    let geminiApiKey = '';
-    let activeHintQuestionKey = null;
-    let selectedAiModel = 'gemini-2.5-flash';
-    let darkMode = 'system';
-    let prevLoaded = false;
-    let summaryViewMode = 'ALL';
+[채점 기준]
+1. 모범 답안의 핵심 키워드 포함 여부
+2. 핵심 키워드 대부분 누락: 50점 미만
+3. 일부 포함이나 설명 부정확: 50~80점
+4. 모든 핵심 키워드 + 의도 일치: 80점 이상
+5. 조사까지 동일할 때만 100점
+6. 키워드는 모범답안에서 스스로 추출하되, 한국 회계감사 기준·규정(ISA, KSA, 외부감사법, 윤리기준)에 맞는 동의어·표현 변형을 허용
+7. 물음에서의 물음 부분이 굳이 답변에 포함되지 않아도 됨(물음의 내용이 모범답안에 재진술되어있다고해서 굳이 사용자 답안에 해당 내용이 포함되지 않아도됨)
 
-    // Stats view (day/week/month)
-    const STATS_VIEW_KEY = 'statsView_v1';
-    let statsView = localStorage.getItem(STATS_VIEW_KEY) || 'day';
-    function setStatsView(v){ statsView = v; localStorage.setItem(STATS_VIEW_KEY, v); renderStats(); }
+- 불필요한 말/코드블록 금지. JSON 객체만 반환.`;
 
-    // 캘린더 뷰(현재 달)
-    let calendarView = new Date(); // 오늘 기준 월
+    const LITE_STRICT_ADDENDUM =
+`[엄격 모드 지침(라이트 전용)]
+- 모호/추정/확장 서술은 감점.
+- 점수 짜게준다.
+- 필수 키워드가 문장 내 명시적으로 없으면 큰 감점.
+- 레퍼런스 밖 주장은 근거 없으면 감점.
+- 도출한 점수보다 7점 깎아서 제시할 것`;
 
-    // Ctrl] / Ctrl[
-    let ctrlNavState = 'dashboard';
-    let lastScrollYBeforeFocus = 0;
+    /* ========= 전역 상태 ========= */
+    let allData=[], currentQuizData=[], currentQuestionIndex=0, questionScores={};
+    let geminiApiKey='', activeHintQuestionKey=null, selectedAiModel='gemini-2.5-flash', darkMode='system';
+    let prevLoaded=false, summaryViewMode='ALL', statsView=localStorage.getItem('statsView_v1')||'day';
+    let ctrlNavState='dashboard', lastScrollYBeforeFocus=0;
 
-    // ===== DOM =====
+    /* 월간 캘린더 기준일(항상 1일로 세팅) */
+    let calRefDate = (() => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(1); return d; })();
+
+    /* ========= DOM ========= */
+    const $ = id=>document.getElementById(id);
     const el = {
-      toast: document.getElementById('toast'),
-      apiModal: document.getElementById('api-modal'),
-      apiModalInput: document.getElementById('api-modal-input'),
-      apiModalRemember: document.getElementById('modal-remember'),
-      apiModalSaveBtn: document.getElementById('api-save-btn'),
-      apiModalCancelBtn: document.getElementById('api-cancel-btn'),
-      settingsBtn: document.getElementById('settings-btn'),
-      settingsModal: document.getElementById('settings-modal'),
-      settingsCloseBtn: document.getElementById('settings-close-btn'),
-      settingsCloseBtnBottom: document.getElementById('settings-close-btn-bottom'),
-      openApiKeyModalBtn: document.getElementById('open-api-key-modal-btn'),
-      aiModelSelect: document.getElementById('ai-model-select'),
-      darkModeSelect: document.getElementById('dark-mode-select'),
-      exportDataBtn: document.getElementById('export-data-btn'),
-      importDataBtn: document.getElementById('import-data-btn'),
-      importFileInput: document.getElementById('import-file-input'),
-
-      chapterSelect: document.getElementById('chapter-select'),
-      filterSelect: document.getElementById('filter-select'),
-      loadQuizBtn: document.getElementById('load-quiz-btn'),
-      randomQuizBtn: document.getElementById('random-quiz-btn'),
-      quizArea: document.getElementById('quiz-area'),
-      questionNumber: document.getElementById('question-number'),
-      questionText: document.getElementById('question-text'),
-      questionCounter: document.getElementById('question-counter'),
-      userAnswer: document.getElementById('user-answer'),
-      errorMessage: document.getElementById('error-message'),
-      prevBtn: document.getElementById('prev-btn'),
-      nextBtn: document.getElementById('next-btn'),
-      gradeBtn: document.getElementById('grade-btn'),
-      gradeBtnText: document.getElementById('grade-btn-text'),
-      gradeLoader: document.getElementById('grade-loader'),
-      hintBtn: document.getElementById('hint-btn'),
-      hintBox: document.getElementById('hint-container'),
-      loadPrevAnswerBtn: document.getElementById('load-prev-answer-btn'),
-      resultBox: document.getElementById('result-box'),
-      score: document.getElementById('score'),
-      progressBar: document.getElementById('progress-bar'),
-      aiFeedback: document.getElementById('ai-feedback'),
-      correctAnswer: document.getElementById('correct-answer'),
-      summaryArea: document.getElementById('summary-area'),
-      scoreSummary: document.getElementById('score-summary'),
-      clearFilterBtn: document.getElementById('clear-filter-btn'),
-      resetScoresBtn: document.getElementById('reset-scores-btn'),
-      summaryViewAllBtn: document.getElementById('summary-view-all'),
-      summaryViewCurrentBtn: document.getElementById('summary-view-current'),
-      dbQuestionId: document.getElementById('db-question-id'),
-      fixedHeader: document.getElementById('fixed-header'),
-
-      layoutRoot: document.getElementById('layout-root'),
-      // 달력
-      calendarGrid: document.getElementById('calendar-grid'),
-      calendarMonthLabel: document.getElementById('calendar-month-label'),
-      // 통계
-      statsOverview: document.getElementById('stats-overview'),
-      // 복습 전략
-      reviewStrategySelect: document.getElementById('review-strategy-select'),
-      startReviewBtn: document.getElementById('start-review-btn'),
-      // 출처 필터
-      sourceFilterSide: document.getElementById('source-filter-side'),
-      sourceGroupFilter: document.getElementById('source-group-filter'),
-      // 탐색 패널
-      explorerChapters: document.getElementById('explorer-chapters'),
-      explorerProblems: document.getElementById('explorer-problems'),
-      explorerSearch: document.getElementById('explorer-search'),
-      // 복습 플래그
-      reviewFlagToggle: document.getElementById('review-flag-toggle'),
-
-      // 모바일 드로어
-      hamburger: document.getElementById('hamburger'),
-      leftDashboard: document.getElementById('left-dashboard'),
-      drawerBackdrop: document.getElementById('drawer-backdrop'),
+      toast: $('toast'), apiModal:$('api-modal'), apiModalInput:$('api-modal-input'), apiModalRemember:$('modal-remember'),
+      apiModalSaveBtn:$('api-save-btn'), apiModalCancelBtn:$('api-cancel-btn'),
+      settingsBtn:$('settings-btn'), settingsModal:$('settings-modal'),
+      settingsCloseBtn:$('settings-close-btn'), settingsCloseBtnBottom:$('settings-close-btn-bottom'),
+      openApiKeyModalBtn:$('open-api-key-modal-btn'), aiModelSelect:$('ai-model-select'), darkModeSelect:$('dark-mode-select'),
+      exportDataBtn:$('export-data-btn'), importDataBtn:$('import-data-btn'), importFileInput:$('import-file-input'),
+      chapterSelect:$('chapter-select'), filterSelect:$('filter-select'), loadQuizBtn:$('load-quiz-btn'), randomQuizBtn:$('random-quiz-btn'),
+      quizArea:$('quiz-area'), questionNumber:$('question-number'), questionText:$('question-text'), questionCounter:$('question-counter'),
+      userAnswer:$('user-answer'), errorMessage:$('error-message'), prevBtn:$('prev-btn'), nextBtn:$('next-btn'),
+      gradeBtn:$('grade-btn'), gradeBtnText:$('grade-btn-text'), gradeLoader:$('grade-loader'), hintBtn:$('hint-btn'), hintBox:$('hint-container'),
+      loadPrevAnswerBtn:$('load-prev-answer-btn'), resultBox:$('result-box'), score:$('score'), progressBar:$('progress-bar'),
+      aiFeedback:$('ai-feedback'), correctAnswer:$('correct-answer'), summaryArea:$('summary-area'), scoreSummary:$('score-summary'),
+      clearFilterBtn:$('clear-filter-btn'), resetScoresBtn:$('reset-scores-btn'), summaryViewAllBtn:$('summary-view-all'), summaryViewCurrentBtn:$('summary-view-current'),
+      dbQuestionId:$('db-question-id'), fixedHeader:$('fixed-header'), layoutRoot:$('layout-root'),
+      statsOverview:$('stats-overview'),
+      reviewStrategySelect:$('review-strategy-select'), startReviewBtn:$('start-review-btn'),
+      sourceFilterSide:$('source-filter-side'), sourceGroupFilter:$('source-group-filter'),
+      explorerChapters:$('explorer-chapters'), explorerProblems:$('explorer-problems'), explorerSearch:$('explorer-search'),
+      reviewFlagToggle:$('review-flag-toggle'), hamburger:$('hamburger'), leftDashboard:$('left-dashboard'), drawerBackdrop:$('drawer-backdrop'), drawerClose:$('drawer-close'),
+      // 캘린더
+      calPrev:$('cal-prev'), calNext:$('cal-next'), calTitle:$('cal-title'), calendarGrid:$('calendar-grid')
     };
 
-    // ===== 유틸 =====
-    const clamp = (v, min, max) => {
-      const n = Number(v);
-      if (!Number.isFinite(n)) return min;
-      return Math.max(min, Math.min(max, n));
-    };
-    const sanitizeModelText = (t) => {
-      let s = (t || '').trim();
-      if (s.startsWith('```')) s = s.replace(/^```[\s\S]*?\n/, '').replace(/```$/, '').trim();
-      s = s.replace(/^\uFEFF/, '');
-      const start = s.indexOf('{'), end = s.lastIndexOf('}');
-      if (start !== -1 && end !== -1 && end > start) s = s.slice(start, end + 1);
-      return s;
-    };
-    const normId = (v) => String(v).trim();
-    const toNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
-    function showToast(msg, type = 'info') {
-      const base = 'px-4 py-2 rounded shadow text-sm mb-2';
-      const color = type === 'error' ? 'bg-red-600 text-white' : type === 'warn' ? 'bg-yellow-500 text-white' : 'bg-gray-900 text-white';
+    /* ========= 유틸 ========= */
+    const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
+    const normId=v=>String(v).trim();
+    const sanitizeModelText=t=>{ let s=(t||'').trim(); if(s.startsWith('```')) s=s.replace(/^```[\s\S]*?\n/,'').replace(/```$/,'').trim(); s=s.replace(/^\uFEFF/,''); const a=s.indexOf('{'), b=s.lastIndexOf('}'); if(a!==-1&&b!==-1&&b>a) s=s.slice(a,b+1); return s; };
+    const showToast=(msg,type='info')=>{
+      const base='px-4 py-2 rounded shadow text-sm mb-2';
+      const color= type==='error'?'bg-red-600 text-white': type==='warn'?'bg-yellow-500 text-white':'bg-gray-900 text-white';
       el.toast.classList.remove('hidden');
-      const item = document.createElement('div');
-      item.className = `${base} ${color}`;
-      item.textContent = msg;
-      el.toast.appendChild(item);
-      setTimeout(() => { item.remove(); if (!el.toast.hasChildNodes()) el.toast.classList.add('hidden'); }, 3500);
-    }
-
-    // 스크롤 유틸
-    function getHeaderOffset() {
-      const h = el.fixedHeader;
-      return h ? (h.getBoundingClientRect().height || h.offsetHeight || 0) : 0;
-    }
-    function smoothScrollTo(y) { window.scrollTo({ top: y, behavior: 'smooth' }); }
-    function elmTop(e) { const r = e.getBoundingClientRect(); return r.top + window.pageYOffset; }
-    function ensureRangeVisible({ topEl, bottomEl, topAlign = true }) {
-      const header = getHeaderOffset();
-      const margin = 12;
-      if (topAlign) {
-        const targetY = elmTop(topEl) - header - margin;
-        smoothScrollTo(targetY < 0 ? 0 : targetY);
-      }
-      setTimeout(() => {
-        const bottomRect = bottomEl.getBoundingClientRect();
-        const shortfall = bottomRect.bottom - (window.innerHeight - margin);
-        if (shortfall > 0) smoothScrollTo(window.pageYOffset + shortfall);
-      }, 160);
-    }
-
-    /* ===== 단원 라벨/파트 ===== */
-    const CHAPTER_LABELS = {
-      1:  "제1장 감사와 회계감사의 기본개념",
-      2:  "제2장 감사인의 의무, 책임 및 자격요건",
-      3:  "제3장 감사인의 독립성과 품질관리",
-      4:  "제1장 감사인의 선임",
-      5:  "제2장 감사계약",
-      6:  "제1장 회계감사수행을 위한 기초지식",
-      7:  "제2장 위험평가절차와 계획수립",
-      8:  "제1장 통제테스트와 위험평가의 확정",
-      9:  "제1-2장 데이터분석",
-      10: "제2장 실증절차의 기초",
-      11: "제3장 기초잔액과 거래유형별 실증절차",
-      12: "제4장 특정항목별 감사절차",
-      13: "제5장 테스트항목의 범위와 표본감사 데이터분석",
-      14: "제6장 실증절차의 마무리절차",
-      15: "제1장 미수정왜곡표시의 평가와 감사의견의 형성",
-      16: "제2장 감사보고서의 작성과 보고",
-      17: "제1장 인증업무개념체계와 특정목적재무보고체계, 제2장 그룹재무제표에 대한 감사",
-      18: "제3장 내부회계관리제도에 대한 감사와 검토",
-      19: "제4장 중간재무제표에 대한 검토",
-      20: "제5장 소규모기업 재무제표에 대한 감사"
+      const item=document.createElement('div'); item.className=`${base} ${color}`; item.textContent=msg; el.toast.appendChild(item);
+      setTimeout(()=>{ item.remove(); if(!el.toast.hasChildNodes()) el.toast.classList.add('hidden'); }, 3000);
     };
-    const PART_INSERTIONS = [
-      { before: 1,  label: "Part 1. 회계감사의 기초" },
-      { before: 4,  label: "Part 2. 감사인의 선임과 감사계약" },
-      { before: 6,  label: "Part 3. 회계감사의 시작과 위험평가절차" },
-      { before: 8,  label: "Part 4. 위험평가절차에 대한 추가감사절차" },
-      { before: 15, label: "Part 5. 감사의견의 형성과 감사보고서" },
-      { before: 17, label: "Part 6. 그룹재무제표에 대한 감사와 기타인증업무" },
-    ];
-    function chapterLabelText(chStr) {
-      const n = Number(chStr);
-      const title = CHAPTER_LABELS[n];
-      return Number.isFinite(n) ? (title ? `${n}. ${title}` : `단원 ${n}`) : String(chStr);
+    const getHeaderOffset=()=>el.fixedHeader?.getBoundingClientRect().height||0;
+    const smoothScrollTo=y=>window.scrollTo({top:y,behavior:'smooth'});
+    const elmTop=e=>e.getBoundingClientRect().top + window.pageYOffset;
+    const ensureRangeVisible=({topEl,bottomEl,topAlign=true})=>{
+      const header=getHeaderOffset(), margin=12;
+      if(topAlign){ const y=elmTop(topEl)-header-margin; smoothScrollTo(Math.max(0,y)); }
+      requestAnimationFrame(()=>{
+        const br=bottomEl.getBoundingClientRect(), short=br.bottom-(window.innerHeight-margin);
+        if(short>0) smoothScrollTo(window.pageYOffset+short);
+      });
+    };
+
+    /* ====== 캘린더 색상 헬퍼 (노랑/초록/파랑 촘촘) ====== */
+    function hslToHex(h, s, l) {
+      s /= 100; l /= 100;
+      const k = n => (n + h/30) % 12;
+      const a = s * Math.min(l, 1 - l);
+      const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+      const toHex = x => Math.round(x*255).toString(16).padStart(2, '0');
+      return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
     }
+    function colorForCount(c) {
+      if (!Number.isFinite(c) || c <= 0) return { bg: '#e5e7eb', fg: '#111827' }; // gray-200
+      const fgForL = (l) => (l < 55 ? '#ffffff' : '#111827');
 
-    // ===== 다크 모드 =====
-    function applyDarkMode() {
-      const mode = localStorage.getItem('darkMode') || 'system';
-      darkMode = mode;
-      if (el.darkModeSelect) el.darkModeSelect.value = mode;
+      // 1~6: Yellow band (h≈50)
+      if (c >= 1 && c <= 6) {
+        const steps = 6, idx = c - 1;
+        const h = 50, s = 95;
+        const lStart = 92, lEnd = 55;
+        const l = lStart + (lEnd - lStart) * (idx / (steps - 1));
+        const bg = hslToHex(h, s, l);
+        return { bg, fg: fgForL(l) };
+      }
+      // 7~15: Green band (h≈140)
+      if (c >= 7 && c <= 15) {
+        const steps = 9, idx = c - 7;
+        const h = 140, s = 85;
+        const lStart = 92, lEnd = 45;
+        const l = lStart + (lEnd - lStart) * (idx / (steps - 1));
+        const bg = hslToHex(h, s, l);
+        return { bg, fg: fgForL(l) };
+      }
+      // 16~30: Blue band (h≈210)
+      if (c >= 16 && c <= 30) {
+        const steps = 15, idx = c - 16;
+        const h = 210, s = 85;
+        const lStart = 92, lEnd = 40;
+        const l = lStart + (lEnd - lStart) * (idx / (steps - 1));
+        const bg = hslToHex(h, s, l);
+        return { bg, fg: fgForL(l) };
+      }
+      // 31+ : 매우 진한 파랑
+      return { bg: '#1e40af', fg: '#ffffff' }; // blue-800
+    }
+    // yyyy-mm-dd (로컬)
+    function ymd(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const dd= String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${dd}`;
+    }
+    // 월요일 시작 요일 인덱스: Mon=0 .. Sun=6
+    function dowMon0(d) { return (d.getDay()+6)%7; }
 
-      if (mode === 'dark') document.documentElement.classList.add('dark');
-      else if (mode === 'light') document.documentElement.classList.remove('dark');
-      else {
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
+    /* ========= 라벨 ========= */
+    const CHAPTER_LABELS={1:"제1장 감사와 회계감사의 기본개념",2:"제2장 감사인의 의무, 책임 및 자격요건",3:"제3장 감사인의 독립성과 품질관리",4:"제1장 감사인의 선임",5:"제2장 감사계약",6:"제1장 회계감사수행을 위한 기초지식",7:"제2장 위험평가절차와 계획수립",8:"제1장 통제테스트와 위험평가의 확정",9:"제1-2장 데이터분석",10:"제2장 실증절차의 기초",11:"제3장 기초잔액과 거래유형별 실증절차",12:"제4장 특정항목별 감사절차",13:"제5장 테스트항목의 범위와 표본감사 데이터분석",14:"제6장 실증절차의 마무리절차",15:"제1장 미수정왜곡표시의 평가와 감사의견의 형성",16:"제2장 감사보고서의 작성과 보고",17:"제1장 인증업무개념체계와 특정목적재무보고체계, 제2장 그룹재무제표에 대한 감사",18:"제3장 내부회계관리제도에 대한 감사와 검토",19:"제4장 중간재무제표에 대한 검토",20:"제5장 소규모기업 재무제표에 대한 감사"};
+    const PART_INSERTIONS=[{before:1,label:"Part 1. 회계감사의 기초"},{before:4,label:"Part 2. 감사인의 선임과 감사계약"},{before:6,label:"Part 3. 회계감사의 시작과 위험평가절차"},{before:8,label:"Part 4. 위험평가절차에 대한 추가감사절차"},{before:15,label:"Part 5. 감사의견의 형성과 감사보고서"},{before:17,label:"Part 6. 그룹재무제표에 대한 감사와 기타인증업무"}];
+    const chapterLabelText=chStr=>{ const n=Number(chStr), t=CHAPTER_LABELS[n]; return Number.isFinite(n)? (t?`${n}. ${t}`:`단원 ${n}`):String(chStr); };
+
+    /* ========= 다크 모드 ========= */
+    function applyDarkMode(){
+      const mode=localStorage.getItem('darkMode')||'system'; darkMode=mode;
+      if(el.darkModeSelect) el.darkModeSelect.value=mode;
+      if(mode==='dark') document.documentElement.classList.add('dark');
+      else if(mode==='light') document.documentElement.classList.remove('dark');
+      else{
+        if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
         else document.documentElement.classList.remove('dark');
       }
     }
-    if (window.matchMedia) {
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-        if (darkMode === 'system') applyDarkMode();
-      });
+    if(window.matchMedia){
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(darkMode==='system') applyDarkMode(); });
     }
 
-    // ===== 데이터 로딩 =====
-    async function loadData() {
-      const CANDIDATES = [
-        'questions.json',
-        './questions.json',
-        './data/questions.json',
-        './assets/questions.json'
-      ];
-      const errs = [];
-
-      for (const path of CANDIDATES) {
-        try {
-          const res = await fetch(path, { cache: 'no-store' });
-          if (!res.ok) { errs.push(`${path}: HTTP ${res.status}`); continue; }
-          const arr = await res.json();
-          if (!Array.isArray(arr)) { errs.push(`${path}: JSON 최상위가 배열 아님`); continue; }
-          const need = ['고유ID','단원','물음','정답'];
-          const bad = arr.findIndex(r => !r || need.some(k => !(k in r)));
-          if (bad !== -1) { errs.push(`${path}: 필수키 누락(index ${bad})`); continue; }
-          allData = arr;
-          console.info('[questions.json] loaded from', path);
-          selfTest();
-          populateChapterSelect();
-          updateSummary();
-          return;
-        } catch (e) {
-          errs.push(`${path}: ${e.message}`);
-        }
+    /* ========= 데이터 로딩/마이그레이션 ========= */
+    async function loadData(){
+      const CAND=['questions.json','./questions.json','./data/questions.json','./assets/questions.json'];
+      const errs=[];
+      for(const path of CAND){
+        try{
+          const res=await fetch(path,{cache:'no-store'}); if(!res.ok){ errs.push(`${path}: HTTP ${res.status}`); continue; }
+          const arr=await res.json(); if(!Array.isArray(arr)){ errs.push(`${path}: JSON 최상위가 배열 아님`); continue; }
+          const need=['고유ID','단원','물음','정답']; const bad=arr.findIndex(r=>!r||need.some(k=>!(k in r)));
+          if(bad!==-1){ errs.push(`${path}: 필수키 누락(index ${bad})`); continue; }
+          allData=arr; console.info('[questions.json] loaded from',path); selfTest(); populateChapterSelect(); updateSummary(); return;
+        }catch(e){ errs.push(`${path}: ${e.message}`); }
       }
-
-      try {
-        const node = document.getElementById('dataset-json');
-        if (!node) throw new Error('dataset-json 없음');
-        const text = (node.textContent || '').trim();
-        if (!text) throw new Error('내장 데이터 비어 있음');
-        const parsed = JSON.parse(text);
-        if (!Array.isArray(parsed)) throw new Error('내장 데이터 최상위가 배열 아님');
-        allData = parsed;
-        console.warn('[questions.json] 모든 후보 실패. 내장 데이터로 폴백합니다.', errs);
-        showToast('외부 DB를 못 읽어 내장 데이터로 폴백했습니다(자세한 원인은 콘솔).', 'warn');
-        selfTest();
-        populateChapterSelect();
-        updateSummary();
-      } catch (err) {
-        console.error('질문 데이터 로드 실패 상세:', errs, err);
-        showToast(`문제 데이터 로드 실패: 콘솔에서 원인을 확인하세요.`, 'error');
-        const msg = document.getElementById('question-text');
-        if (msg) msg.textContent = '문제 데이터 로드 실패 (questions.json 또는 dataset-json을 확인하세요).';
-      }
+      try{
+        const node=$('dataset-json'); if(!node) throw new Error('dataset-json 없음');
+        const text=(node.textContent||'').trim(); if(!text) throw new Error('내장 데이터 비어 있음');
+        const parsed=JSON.parse(text); if(!Array.isArray(parsed)) throw new Error('내장 데이터 최상위가 배열 아님');
+        allData=parsed; console.warn('[questions.json] 모든 후보 실패. 내장 데이터로 폴백',errs); showToast('외부 DB 실패 → 내장 데이터 사용','warn');
+        selfTest(); populateChapterSelect(); updateSummary();
+      }catch(err){ console.error('질문 데이터 로드 실패:',errs,err); showToast('문제 데이터 로드 실패: 콘솔 확인','error'); $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).'; }
     }
-    function selfTest() {
-      const missing = [];
-      allData.forEach((row, i) => {
-        if (!(row && '고유ID' in row && '단원' in row && '물음' in row && '정답' in row)) missing.push(i + 1);
-      });
-      if (missing.length) showToast(`경고: 필수 필드 누락 ${missing.length}개`, 'warn');
-
-      const seen = new Set(); const dup = [];
-      for (const r of allData) {
-        const key = String(r.고유ID).trim();
-        if (seen.has(key)) dup.push(key); else seen.add(key);
-      }
-      if (dup.length) showToast(`경고: 중복 고유ID ${dup.length}개 발견`, 'warn');
-      const uniqChapterCount = new Set(allData.map(r => String(r.단원).trim())).size;
-      if (uniqChapterCount === 0) throw new Error('단원 데이터가 없습니다.');
+    function selfTest(){
+      const miss=[]; allData.forEach((r,i)=>{ if(!(r&&'고유ID'in r && '단원'in r && '물음'in r && '정답'in r)) miss.push(i+1); });
+      if(miss.length) showToast(`경고: 필수 필드 누락 ${miss.length}개`,'warn');
+      const seen=new Set(), dup=[]; for(const r of allData){ const k=String(r.고유ID).trim(); if(seen.has(k)) dup.push(k); else seen.add(k); }
+      if(dup.length) showToast(`경고: 중복 고유ID ${dup.length}개`,'warn');
+      if(!new Set(allData.map(r=>String(r.단원).trim())).size) throw new Error('단원 데이터 없음');
     }
-
-    function populateChapterSelect() {
-      while (el.chapterSelect.options.length > 1) el.chapterSelect.remove(1);
-      const chapters = [...new Set(allData.map(item => String(item.단원).trim()))].sort((a, b) => {
-        const na = Number(a), nb = Number(b);
-        if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
-        if (Number.isFinite(na)) return -1;
-        if (Number.isFinite(nb)) return 1;
-        return a.localeCompare(b, 'ko');
-      });
-
-      const inserted = new Set();
-      chapters.forEach(ch => {
-        const n = Number(ch);
-        if (Number.isFinite(n)) {
-          PART_INSERTIONS.forEach(p => {
-            if (p.before === n && !inserted.has(p.before)) {
-              const sep = document.createElement('option');
-              sep.textContent = `━━ ${p.label} ━━`;
-              sep.disabled = true;
-              sep.value = `__part_${p.before}`;
-              sep.className = 'text-gray-500';
-              el.chapterSelect.appendChild(sep);
-              inserted.add(p.before);
+    function populateChapterSelect(){
+      while(el.chapterSelect.options.length>1) el.chapterSelect.remove(1);
+      const chapters=[...new Set(allData.map(i=>String(i.단원).trim()))].sort((a,b)=>{ const na=+a, nb=+b; if(Number.isFinite(na)&&Number.isFinite(nb)) return na-nb; if(Number.isFinite(na)) return -1; if(Number.isFinite(nb)) return 1; return a.localeCompare(b,'ko'); });
+      const inserted=new Set();
+      chapters.forEach(ch=>{
+        const n=+ch;
+        if(Number.isFinite(n)){
+          PART_INSERTIONS.forEach(p=>{
+            if(p.before===n && !inserted.has(p.before)){
+              const sep=document.createElement('option'); sep.textContent=`━━ ${p.label} ━━`; sep.disabled=true; sep.value=`__part_${p.before}`; sep.className='text-gray-500'; el.chapterSelect.appendChild(sep); inserted.add(p.before);
             }
           });
         }
-        const opt = document.createElement('option');
-        opt.value = ch;
-        opt.textContent = chapterLabelText(ch);
-        el.chapterSelect.appendChild(opt);
+        const opt=document.createElement('option'); opt.value=ch; opt.textContent=chapterLabelText(ch); el.chapterSelect.appendChild(opt);
       });
     }
 
-    // ===== 상태 로딩 =====
-    function loadScores() {
-      const savedScores = localStorage.getItem('auditQuizScores');
-      if (savedScores) {
-        try { questionScores = JSON.parse(savedScores); }
-        catch { questionScores = {}; localStorage.removeItem('auditQuizScores'); }
-      }
-    }
-    function loadApiKey() {
-      const savedSession = sessionStorage.getItem('geminiApiKey');
-      const savedLocal = localStorage.getItem('geminiApiKey');
-      geminiApiKey = savedSession || savedLocal || '';
-    }
-    function loadSettings() {
-      selectedAiModel = localStorage.getItem('aiModel') || 'gemini-2.5-flash';
-      if (el.aiModelSelect) el.aiModelSelect.value = selectedAiModel;
-    }
+    function loadScores(){ try{ questionScores=JSON.parse(localStorage.getItem('auditQuizScores')||'{}'); }catch{ questionScores={}; localStorage.removeItem('auditQuizScores'); } }
+    function loadApiKey(){ geminiApiKey=sessionStorage.getItem('geminiApiKey')||localStorage.getItem('geminiApiKey')||''; }
+    function loadSettings(){ selectedAiModel=localStorage.getItem('aiModel')||'gemini-2.5-flash'; if(el.aiModelSelect) el.aiModelSelect.value=selectedAiModel; }
 
-    // ===== 마이그레이션 =====
-    function migrateData() {
-      const version = localStorage.getItem('schemaVersion');
-      if (version === '2') return;
-
-      try {
-        const oldScores = localStorage.getItem('auditQuizScores');
-        if (!oldScores) { localStorage.setItem('schemaVersion', '2'); return; }
-
-        const parsed = JSON.parse(oldScores);
-        const newScores = {};
-        const mapping = {};
-        allData.forEach(q => {
-          const disp = String(q.표시번호 ?? '').trim();
-          const num = String(q.물음번호 ?? '').trim();
-          if (disp) mapping[disp] = q.고유ID;
-          if (num) mapping[num] = q.고유ID;
+    function migrateData(){
+      const version=localStorage.getItem('schemaVersion'); if(version==='2') return;
+      try{
+        const old=localStorage.getItem('auditQuizScores'); if(!old){ localStorage.setItem('schemaVersion','2'); return; }
+        const parsed=JSON.parse(old), newScores={}, map={};
+        allData.forEach(q=>{ const disp=String(q.표시번호??'').trim(), num=String(q.물음번호??'').trim(); if(disp) map[disp]=q.고유ID; if(num) map[num]=q.고유ID; });
+        Object.keys(parsed).forEach(k=>{
+          const nk=map[k]||k, ov=parsed[k]||{}, hist=Array.isArray(ov.solveHistory)?ov.solveHistory:(ov.score!=null?[{date:Date.now(),score:+ov.score||0}]:[]);
+          newScores[nk]={ score:+(ov.score??0), feedback:String(ov.feedback??''), user_answer:String(ov.user_answer??''), hintUsed:!!ov.hintUsed, isSolved:!!(ov.isSolved||(ov.score!=null)), lastSolvedDate:+(ov.lastSolvedDate??(hist.at(-1)?.date||Date.now())), solveHistory:hist, userReviewFlag:!!ov.userReviewFlag };
         });
-
-        Object.keys(parsed).forEach(oldKey => {
-          const newKey = mapping[oldKey] || oldKey;
-          const oldValue = parsed[oldKey] || {};
-          const hist = Array.isArray(oldValue.solveHistory) ? oldValue.solveHistory
-                      : (oldValue.score != null ? [{ date: Date.now(), score: Number(oldValue.score)||0 }] : []);
-          newScores[newKey] = {
-            score: Number(oldValue.score ?? 0),
-            feedback: String(oldValue.feedback ?? ''),
-            user_answer: String(oldValue.user_answer ?? ''),
-            hintUsed: Boolean(oldValue.hintUsed ?? false),
-            isSolved: Boolean(oldValue.isSolved ?? (oldValue.score != null)),
-            lastSolvedDate: Number(oldValue.lastSolvedDate ?? (hist.length ? hist[hist.length-1].date : Date.now())),
-            solveHistory: hist
-          };
-        });
-
-        localStorage.setItem('auditQuizScores', JSON.stringify(newScores));
-        localStorage.setItem('schemaVersion', '2');
-        questionScores = newScores;
-        showToast('데이터 마이그레이션 완료 (v3 → v3.x)', 'info');
-      } catch (err) {
-        console.error('마이그레이션 실패:', err);
-        showToast('데이터 마이그레이션 중 오류 발생', 'error');
-      }
+        localStorage.setItem('auditQuizScores',JSON.stringify(newScores)); localStorage.setItem('schemaVersion','2'); questionScores=newScores; showToast('데이터 마이그레이션 완료','info');
+      }catch(e){ console.error(e); showToast('마이그레이션 오류','error'); }
     }
 
-    // ===== API 키 모달 =====
-    function openApiModal(initial = false) {
-      if (initial) el.apiModalCancelBtn.classList.add('hidden');
-      else el.apiModalCancelBtn.classList.remove('hidden');
-      el.apiModal.classList.remove('hidden'); el.apiModal.classList.add('flex');
-      el.apiModalInput.value = geminiApiKey || '';
-      el.apiModalRemember.checked = !!localStorage.getItem('geminiApiKey');
-      setTimeout(() => el.apiModalInput.focus(), 0);
+    /* ========= API 키 모달 ========= */
+    function openApiModal(initial=false){ if(initial) el.apiModalCancelBtn.classList.add('hidden'); else el.apiModalCancelBtn.classList.remove('hidden');
+      el.apiModal.classList.remove('hidden'); el.apiModal.classList.add('flex'); el.apiModalInput.value=geminiApiKey||''; el.apiModalRemember.checked=!!localStorage.getItem('geminiApiKey'); setTimeout(()=>el.apiModalInput.focus(),0);
     }
-    function closeApiModal() { el.apiModal.classList.add('hidden'); el.apiModal.classList.remove('flex'); }
-    function ensureApiKeyGate() { if (!geminiApiKey) openApiModal(true); }
-    el.apiModalSaveBtn.addEventListener('click', () => {
-      const key = (el.apiModalInput.value || '').trim();
-      if (!key) { showToast('API 키를 입력하세요.', 'error'); el.apiModalInput.focus(); return; }
-      geminiApiKey = key;
-      sessionStorage.setItem('geminiApiKey', key);
-      if (el.apiModalRemember.checked) localStorage.setItem('geminiApiKey', key);
-      else localStorage.removeItem('geminiApiKey');
-      closeApiModal();
-      showToast('API 키 저장 완료');
+    const closeApiModal=()=>{ el.apiModal.classList.add('hidden'); el.apiModal.classList.remove('flex'); };
+    const ensureApiKeyGate=()=>{ if(!geminiApiKey) openApiModal(true); };
+    el.apiModalSaveBtn.addEventListener('click',()=>{
+      const key=(el.apiModalInput.value||'').trim(); if(!key){ showToast('API 키를 입력하세요.','error'); el.apiModalInput.focus(); return; }
+      geminiApiKey=key; sessionStorage.setItem('geminiApiKey',key); if(el.apiModalRemember.checked) localStorage.setItem('geminiApiKey',key); else localStorage.removeItem('geminiApiKey'); closeApiModal(); showToast('API 키 저장 완료');
     });
-    el.apiModalCancelBtn.addEventListener('click', () => closeApiModal());
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !el.apiModalCancelBtn.classList.contains('hidden')) {
-        if (!el.apiModal.classList.contains('hidden')) closeApiModal();
-      }
-      if (e.key === 'Escape' && !el.settingsModal.classList.contains('hidden')) closeSettingsModal();
-    });
+    el.apiModalCancelBtn.addEventListener('click',closeApiModal);
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(!el.apiModalCancelBtn.classList.contains('hidden') && !el.apiModal.classList.contains('hidden')) closeApiModal(); if(!el.settingsModal.classList.contains('hidden')) closeSettingsModal(); } });
 
-    // ===== 설정 모달 =====
-    function openSettingsModal() {
-      el.settingsModal.classList.remove('hidden'); el.settingsModal.classList.add('flex');
-      if (el.aiModelSelect) el.aiModelSelect.value = selectedAiModel;
-      if (el.darkModeSelect) el.darkModeSelect.value = darkMode;
-    }
-    function closeSettingsModal() { el.settingsModal.classList.add('hidden'); el.settingsModal.classList.remove('flex'); }
-    el.settingsBtn.addEventListener('click', openSettingsModal);
-    el.settingsCloseBtn.addEventListener('click', closeSettingsModal);
-    el.settingsCloseBtnBottom.addEventListener('click', closeSettingsModal);
-    el.openApiKeyModalBtn?.addEventListener('click', () => { closeSettingsModal(); openApiModal(false); });
+    /* ========= 설정 모달 ========= */
+    function openSettingsModal(){ el.settingsModal.classList.remove('hidden'); el.settingsModal.classList.add('flex'); if(el.aiModelSelect) el.aiModelSelect.value=selectedAiModel; if(el.darkModeSelect) el.darkModeSelect.value=darkMode; }
+    function closeSettingsModal(){ el.settingsModal.classList.add('hidden'); el.settingsModal.classList.remove('flex'); }
+    el.settingsBtn.addEventListener('click',openSettingsModal);
+    el.settingsCloseBtn.addEventListener('click',closeSettingsModal);
+    el.settingsCloseBtnBottom.addEventListener('click',closeSettingsModal);
+    el.openApiKeyModalBtn?.addEventListener('click',()=>{ closeSettingsModal(); openApiModal(false); });
+    el.aiModelSelect?.addEventListener('change',e=>{ selectedAiModel=e.target.value; localStorage.setItem('aiModel',selectedAiModel); showToast(`AI 모델 변경: ${selectedAiModel}`); });
+    el.darkModeSelect?.addEventListener('change',e=>{ localStorage.setItem('darkMode',e.target.value); applyDarkMode(); showToast('다크 모드 설정 변경됨'); });
 
-    el.aiModelSelect?.addEventListener('change', (e) => {
-      selectedAiModel = e.target.value;
-      localStorage.setItem('aiModel', selectedAiModel);
-      showToast(`AI 모델 변경: ${selectedAiModel}`);
+    /* ========= Import/Export ========= */
+    el.exportDataBtn?.addEventListener('click',()=>{
+      try{
+        const data={ version:'3.x', schemaVersion:+(localStorage.getItem('schemaVersion')||2), exportDate:new Date().toISOString(), auditQuizScores:questionScores, geminiApiKey:localStorage.getItem('geminiApiKey')||'', aiModel:selectedAiModel, darkMode:darkMode };
+        const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob);
+        const a=document.createElement('a'); a.href=url; a.download=`gamlini_backup_${Date.now()}.json`; a.click(); URL.revokeObjectURL(url); showToast('데이터 내보내기 완료');
+      }catch(err){ console.error(err); showToast('데이터 내보내기 실패','error'); }
     });
-    el.darkModeSelect?.addEventListener('change', (e) => {
-      localStorage.setItem('darkMode', e.target.value);
-      applyDarkMode(); showToast('다크 모드 설정 변경됨');
-    });
-
-    // ===== Import/Export =====
-    el.exportDataBtn?.addEventListener('click', () => {
-      try {
-        const data = {
-          version: '3.x',
-          schemaVersion: Number(localStorage.getItem('schemaVersion') || 2),
-          exportDate: new Date().toISOString(),
-          auditQuizScores: questionScores,
-          geminiApiKey: localStorage.getItem('geminiApiKey') || '',
-          aiModel: selectedAiModel,
-          darkMode: darkMode
-        };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = `gamlini_backup_${Date.now()}.json`; a.click();
-        URL.revokeObjectURL(url);
-        showToast('데이터 내보내기 완료');
-      } catch (err) { console.error(err); showToast('데이터 내보내기 실패', 'error'); }
-    });
-    el.importDataBtn?.addEventListener('click', () => el.importFileInput.click());
-    el.importFileInput?.addEventListener('change', (e) => {
-      const file = e.target.files[0]; if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const data = JSON.parse(event.target.result);
-          if (!data.auditQuizScores) throw new Error('올바른 백업 파일이 아닙니다.');
-          if (data.auditQuizScores) { localStorage.setItem('auditQuizScores', JSON.stringify(data.auditQuizScores)); questionScores = data.auditQuizScores; }
-          if (data.geminiApiKey) { localStorage.setItem('geminiApiKey', data.geminiApiKey); geminiApiKey = data.geminiApiKey; }
-          if (data.aiModel) { localStorage.setItem('aiModel', data.aiModel); selectedAiModel = data.aiModel; el.aiModelSelect.value = data.aiModel; }
-          if (data.darkMode) { localStorage.setItem('darkMode', data.darkMode); darkMode = data.darkMode; applyDarkMode(); }
-          if (data.schemaVersion) localStorage.setItem('schemaVersion', String(data.schemaVersion));
-          showToast('데이터 가져오기 완료'); setTimeout(() => location.reload(), 800);
-        } catch (err) { console.error(err); showToast(`데이터 가져오기 실패: ${err.message}`, 'error'); }
+    el.importDataBtn?.addEventListener('click',()=>el.importFileInput.click());
+    el.importFileInput?.addEventListener('change',e=>{
+      const file=e.target.files[0]; if(!file) return;
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        try{
+          const data=JSON.parse(ev.target.result);
+          if(!data.auditQuizScores) throw new Error('올바른 백업 파일이 아닙니다.');
+          localStorage.setItem('auditQuizScores',JSON.stringify(data.auditQuizScores)); questionScores=data.auditQuizScores;
+          if(data.geminiApiKey){ localStorage.setItem('geminiApiKey',data.geminiApiKey); geminiApiKey=data.geminiApiKey; }
+          if(data.aiModel){ localStorage.setItem('aiModel',data.aiModel); selectedAiModel=data.aiModel; if(el.aiModelSelect) el.aiModelSelect.value=data.aiModel; }
+          if(data.darkMode){ localStorage.setItem('darkMode',data.darkMode); darkMode=data.darkMode; applyDarkMode(); }
+          if(data.schemaVersion) localStorage.setItem('schemaVersion',String(data.schemaVersion));
+          showToast('데이터 가져오기 완료'); setTimeout(()=>location.reload(),600);
+        }catch(err){ console.error(err); showToast(`가져오기 실패: ${err.message}`,'error'); }
       };
-      reader.readAsText(file); e.target.value = '';
+      reader.readAsText(file); e.target.value='';
     });
 
-    // ===== 출처 그룹 필터 =====
-    const SOURCE_LS = 'sourceFilterSelectionV1';
-    const BASIC_TAGS = ['S','H','HS'];
-    const ADV_TAGS   = ['SS','P'];
-    function buildSourceFilterUI() {
-      if (!el.sourceGroupFilter) return;
-      el.sourceGroupFilter.innerHTML = `
+    /* ========= 출처 그룹 필터 ========= */
+    const SOURCE_LS='sourceFilterSelectionV1', BASIC_TAGS=['S','H','HS'], ADV_TAGS=['SS','P'];
+    function buildSourceFilterUI(){
+      if(!el.sourceGroupFilter) return;
+      el.sourceGroupFilter.innerHTML=`
         <div class="rounded-xl border p-3">
           <div class="text-sm font-semibold mb-2">출처별 필터</div>
           <div class="flex flex-wrap gap-3">
-            <label class="text-sm flex items-center gap-1">
-              <input type="checkbox" value="basic" class="source-filter"> 기본(S/H/HS)
-            </label>
-            <label class="text-sm flex items-center gap-1">
-              <input type="checkbox" value="advanced" class="source-filter"> 심화(SS/P)
-            </label>
-            <label class="text-sm flex items-center gap-1">
-              <input type="checkbox" value="other" class="source-filter"> 기타
-            </label>
+            <label class="text-sm flex items-center gap-1"><input type="checkbox" value="basic" class="source-filter"> 기본(S/H/HS)</label>
+            <label class="text-sm flex items-center gap-1"><input type="checkbox" value="advanced" class="source-filter"> 심화(SS/P)</label>
+            <label class="text-sm flex items-center gap-1"><input type="checkbox" value="other" class="source-filter"> 기타</label>
             <button id="source-filter-all" class="ml-auto text-xs px-2 py-1 border rounded">전체</button>
             <button id="source-filter-none" class="text-xs px-2 py-1 border rounded">해제</button>
           </div>
-        </div>
-      `;
-      const saved = JSON.parse(localStorage.getItem(SOURCE_LS) || '["basic","advanced","other"]');
+        </div>`;
+      const saved=JSON.parse(localStorage.getItem(SOURCE_LS)||'["basic","advanced","other"]');
       el.sourceGroupFilter.querySelectorAll('input.source-filter').forEach(cb=>{
-        cb.checked = saved.includes(cb.value);
-        cb.addEventListener('change', ()=>{
-          const arr = getSelectedSourceGroups();
-          localStorage.setItem(SOURCE_LS, JSON.stringify(arr));
-          handleLoadQuiz(); updateSummary(); refreshPanels();
-        });
+        cb.checked=saved.includes(cb.value);
+        cb.addEventListener('change',()=>{ localStorage.setItem(SOURCE_LS,JSON.stringify(getSelectedSourceGroups())); reloadAndRefresh(); });
       });
-      el.sourceGroupFilter.querySelector('#source-filter-all')?.addEventListener('click', ()=>{
-        el.sourceGroupFilter.querySelectorAll('input.source-filter').forEach(cb=>cb.checked=true);
-        localStorage.setItem(SOURCE_LS, JSON.stringify(['basic','advanced','other']));
-        handleLoadQuiz(); updateSummary(); refreshPanels();
-      });
-      el.sourceGroupFilter.querySelector('#source-filter-none')?.addEventListener('click', ()=>{
-        el.sourceGroupFilter.querySelectorAll('input.source-filter').forEach(cb=>cb.checked=false);
-        localStorage.setItem(SOURCE_LS, JSON.stringify([]));
-        handleLoadQuiz(); updateSummary(); refreshPanels();
-      });
+      el.sourceGroupFilter.querySelector('#source-filter-all')?.addEventListener('click',()=>{ setAllGroups(['basic','advanced','other']); });
+      el.sourceGroupFilter.querySelector('#source-filter-none')?.addEventListener('click',()=>{ setAllGroups([]); });
+      function setAllGroups(arr){ el.sourceGroupFilter.querySelectorAll('input.source-filter').forEach(cb=>cb.checked=arr.includes(cb.value)); localStorage.setItem(SOURCE_LS,JSON.stringify(arr)); reloadAndRefresh(); }
     }
-    function getSelectedSourceGroups() {
-      const boxes = el.sourceGroupFilter?.querySelectorAll('input.source-filter');
-      if (!boxes || boxes.length===0) return JSON.parse(localStorage.getItem(SOURCE_LS) || '["basic","advanced","other"]');
-      const arr = []; boxes.forEach(cb=>{ if (cb.checked) arr.push(cb.value); }); return arr;
-    }
-    function detectSourceGroup(srcStr) {
-      const s = String(srcStr || '').toUpperCase();
-      const tokens = s.split(/\s*[;,\/\s]\s*/).filter(Boolean);
-      let hasBasic = tokens.some(t => BASIC_TAGS.includes(t));
-      let hasAdv   = tokens.some(t => ADV_TAGS.includes(t));
-      if (hasBasic && !hasAdv) return 'basic';
-      if (!hasBasic && hasAdv) return 'advanced';
-      if (hasBasic && hasAdv)  return 'basic-advanced';
-      return 'other';
-    }
-    function applySourceFilter(dataArr) {
-      const selected = new Set(getSelectedSourceGroups());
-      if (selected.size === 0 || selected.size === 3) return dataArr;
-      return (dataArr || []).filter(q=>{
-        const g = detectSourceGroup(q.출처);
-        if (g === 'basic-advanced') return selected.has('basic') || selected.has('advanced');
-        return selected.has(g);
+    const getSelectedSourceGroups=()=>{
+      const boxes=el.sourceGroupFilter?.querySelectorAll('input.source-filter'); if(!boxes||boxes.length===0) return JSON.parse(localStorage.getItem(SOURCE_LS)||'["basic","advanced","other"]');
+      const arr=[]; boxes.forEach(cb=>{ if(cb.checked) arr.push(cb.value); }); return arr;
+    };
+    const detectSourceGroup=src=>{
+      const s=String(src||'').toUpperCase(), tok=s.split(/\s*[;,\/\s]\s*/).filter(Boolean);
+      const hasBasic=tok.some(t=>BASIC_TAGS.includes(t)), hasAdv=tok.some(t=>ADV_TAGS.includes(t));
+      if(hasBasic && !hasAdv) return 'basic'; if(!hasBasic && hasAdv) return 'advanced'; if(hasBasic && hasAdv) return 'basic-advanced'; return 'other';
+    };
+    const applySourceFilter=arr=>{
+      const selected=new Set(getSelectedSourceGroups()); if(selected.size===0||selected.size===3) return arr;
+      return (arr||[]).filter(q=>{ const g=detectSourceGroup(q.출처); if(g==='basic-advanced') return selected.has('basic')||selected.has('advanced'); return selected.has(g); });
+    };
+
+    /* ========= 공통 필터 파이프라인 ========= */
+    function getFilteredByUI(){
+      const chapter=el.chapterSelect.value, filter=el.filterSelect.value;
+      let list=allData; if(chapter) list=list.filter(q=>String(q.단원).trim()===String(chapter));
+      list=applySourceFilter(list);
+      list=list.filter(q=>{
+        const key=normId(q.고유ID), s=questionScores[key];
+        if(filter==='unanswered') return !s;
+        if(filter==='80') return !s || +s.score<80;
+        if(filter==='60') return !s || +s.score<60;
+        return true; // all / today-review
       });
+      if(filter==='today-review') list=prioritizeTodayReview(list).slice(0,10);
+      return list;
     }
-
-    // ===== 필터/학습 로직 =====
-    el.chapterSelect.addEventListener('change', handleLoadQuiz);
-    el.filterSelect.addEventListener('change', handleLoadQuiz);
-    el.loadQuizBtn.addEventListener('click', handleLoadQuiz);
-    el.randomQuizBtn.addEventListener('click', () => {
-      const selectedChapter = el.chapterSelect.value;
-      const selectedFilter = el.filterSelect.value;
-
-      let filtered = allData;
-      if (selectedChapter) filtered = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
-      filtered = applySourceFilter(filtered);
-
-      filtered = filtered.filter(q => {
-        const key = normId(q.고유ID); const saved = questionScores[key];
-        if (selectedFilter === 'unanswered') return !saved;
-        if (selectedFilter === '80') return !saved || Number(saved.score) < 80;
-        if (selectedFilter === '60') return !saved || Number(saved.score) < 60;
-        if (selectedFilter === 'today-review') return true;
-        return true;
-      });
-      if (selectedFilter === 'today-review') filtered = prioritizeTodayReview(filtered).slice(0, 10);
-
-      if (filtered.length === 0) { showToast('선택한 조건에 맞는 문제가 없습니다.', 'warn'); return; }
-      currentQuizData = filtered;
-      currentQuestionIndex = Math.floor(Math.random() * filtered.length);
-      el.quizArea.classList.remove('hidden');
-      el.summaryArea.classList.remove('hidden');
-      displayQuestion();
+    function reloadAndRefresh(){
+      currentQuizData=getFilteredByUI(); currentQuestionIndex=0;
+      if(currentQuizData.length){ el.quizArea.classList.remove('hidden'); el.summaryArea.classList.remove('hidden'); displayQuestion(); }
+      else{ el.quizArea.classList.add('hidden'); el.summaryArea.classList.remove('hidden'); showToast('선택한 조건에 맞는 문제가 없습니다.','warn'); }
       updateSummary(); refreshPanels();
-      showToast('랜덤 문제 시작!');
+    }
+
+    /* ========= 이벤트: 학습 로딩 ========= */
+    el.chapterSelect.addEventListener('change', reloadAndRefresh);
+    el.filterSelect.addEventListener('change', reloadAndRefresh);
+    el.loadQuizBtn.addEventListener('click', reloadAndRefresh);
+    el.randomQuizBtn.addEventListener('click',()=>{
+      const list=getFilteredByUI(); if(!list.length){ showToast('선택 조건에 맞는 문제가 없습니다.','warn'); return; }
+      currentQuizData=list; currentQuestionIndex=Math.floor(Math.random()*list.length);
+      el.quizArea.classList.remove('hidden'); el.summaryArea.classList.remove('hidden'); displayQuestion(); updateSummary(); refreshPanels(); showToast('랜덤 문제 시작!');
     });
 
-    function handleLoadQuiz() {
-      const selectedChapter = el.chapterSelect.value;
-      const selectedFilter = el.filterSelect.value;
-
-      let filtered = allData;
-      if (selectedChapter) filtered = allData.filter(q => String(q.단원).trim() === String(selectedChapter));
-      filtered = applySourceFilter(filtered);
-      filtered = filtered.filter(q => {
-        const key = normId(q.고유ID); const saved = questionScores[key];
-        if (selectedFilter === 'unanswered') return !saved;
-        if (selectedFilter === '80') return !saved || Number(saved.score) < 80;
-        if (selectedFilter === '60') return !saved || Number(saved.score) < 60;
-        if (selectedFilter === 'today-review') return true;
-        return true;
-      });
-      if (selectedFilter === 'today-review') filtered = prioritizeTodayReview(filtered).slice(0, 10);
-
-      currentQuizData = filtered; currentQuestionIndex = 0;
-      if (currentQuizData.length > 0) {
-        el.quizArea.classList.remove('hidden'); el.summaryArea.classList.remove('hidden'); displayQuestion();
-      } else {
-        el.quizArea.classList.add('hidden'); el.summaryArea.classList.remove('hidden'); showToast('선택한 조건에 맞는 문제가 없습니다.', 'warn');
-      }
-      updateSummary(); refreshPanels();
-    }
-
-    // ===== 문제 표시 =====
-    function displayQuestion() {
-      if (currentQuizData.length === 0) { el.quizArea.classList.add('hidden'); return; }
+    /* ========= 문제 표시/상태 ========= */
+    function displayQuestion(){
+      if(!currentQuizData.length){ el.quizArea.classList.add('hidden'); return; }
+      const q=currentQuizData[currentQuestionIndex];
       el.quizArea.classList.remove('hidden');
-      const q = currentQuizData[currentQuestionIndex];
-      el.questionNumber.textContent = `문항 ${q.표시번호 || q.물음번호 || q.고유ID}`;
-      el.questionText.textContent = q.물음;
-      el.questionCounter.textContent = `${currentQuestionIndex + 1} / ${currentQuizData.length}`;
-      if (el.dbQuestionId) el.dbQuestionId.textContent = `ID: ${q.고유ID ?? '-'}`;
-
-      activeHintQuestionKey = null; el.hintBox.classList.add('hidden'); el.hintBox.innerHTML = '';
-      el.resultBox.classList.add('hidden'); el.userAnswer.value = '';
-      if (el.loadPrevAnswerBtn) { el.loadPrevAnswerBtn.textContent = '이전 답안 불러오기'; el.loadPrevAnswerBtn.removeAttribute('aria-pressed'); prevLoaded = false; }
-
-      const saved = questionScores[normId(q.고유ID)];
-      const flagged = !!(saved?.userReviewFlag);
-      if (el.reviewFlagToggle) {
-        el.reviewFlagToggle.setAttribute('aria-pressed', flagged ? 'true' : 'false');
-        el.reviewFlagToggle.querySelector('span').textContent = flagged ? '★' : '☆';
-      }
-      if (saved && saved.score !== undefined) showResult(saved.score, saved.feedback, q.정답);
-
-      el.prevBtn.disabled = currentQuestionIndex === 0;
-      el.nextBtn.disabled = currentQuizData.length - 1 === currentQuestionIndex;
+      el.questionNumber.textContent=`문항 ${q.표시번호||q.물음번호||q.고유ID}`;
+      el.questionText.textContent=q.물음;
+      el.questionCounter.textContent=`${currentQuestionIndex+1} / ${currentQuizData.length}`;
+      el.dbQuestionId.textContent=`ID: ${q.고유ID??'-'}`;
+      activeHintQuestionKey=null; el.hintBox.classList.add('hidden'); el.hintBox.innerHTML='';
+      el.resultBox.classList.add('hidden'); el.userAnswer.value='';
+      el.loadPrevAnswerBtn.textContent='이전 답안 불러오기'; el.loadPrevAnswerBtn.removeAttribute('aria-pressed'); prevLoaded=false;
+      const saved=questionScores[normId(q.고유ID)];
+      const flagged=!!(saved?.userReviewFlag);
+      el.reviewFlagToggle.setAttribute('aria-pressed', flagged?'true':'false');
+      el.reviewFlagToggle.querySelector('span').textContent= flagged?'★':'☆';
+      if(saved && saved.score!==undefined) showResult(saved.score, saved.feedback, q.정답);
+      el.prevBtn.disabled=(currentQuestionIndex===0);
+      el.nextBtn.disabled=(currentQuizData.length-1===currentQuestionIndex);
       updateSummaryHighlight();
     }
 
-    // 복습 플래그
-    el.reviewFlagToggle?.addEventListener('click', () => {
-      if (currentQuizData.length === 0) return;
-      const q = currentQuizData[currentQuestionIndex];
-      const key = normId(q.고유ID);
-      const rec = questionScores[key] || {};
-      const next = !rec.userReviewFlag;
-      rec.userReviewFlag = next;
-      questionScores[key] = { ...rec };
-      try { localStorage.setItem('auditQuizScores', JSON.stringify(questionScores)); } catch {}
-      el.reviewFlagToggle.setAttribute('aria-pressed', next ? 'true' : 'false');
-      el.reviewFlagToggle.querySelector('span').textContent = next ? '★' : '☆';
-      showToast(next ? '복습 필요에 추가' : '복습 필요 해제');
-      refreshPanels();
+    /* ========= 복습 플래그/이전답안 ========= */
+    el.reviewFlagToggle.addEventListener('click',()=>{
+      if(!currentQuizData.length) return;
+      const q=currentQuizData[currentQuestionIndex], key=normId(q.고유ID), rec=questionScores[key]||{}, next=!rec.userReviewFlag;
+      questionScores[key]={...rec, userReviewFlag:next};
+      try{ localStorage.setItem('auditQuizScores',JSON.stringify(questionScores)); }catch{}
+      el.reviewFlagToggle.setAttribute('aria-pressed', next?'true':'false');
+      el.reviewFlagToggle.querySelector('span').textContent= next?'★':'☆';
+      showToast(next?'복습 필요에 추가':'복습 필요 해제'); refreshPanels();
     });
-
-    // 이전 답안 토글
-    el.loadPrevAnswerBtn.addEventListener('click', () => {
-      if (currentQuizData.length === 0) return;
-      const q = currentQuizData[currentQuestionIndex];
-      const saved = questionScores[normId(q.고유ID)];
-      if (!prevLoaded) {
-        if (saved && saved.user_answer) {
-          el.userAnswer.value = saved.user_answer;
-          el.loadPrevAnswerBtn.textContent = '답안 지우기';
-          el.loadPrevAnswerBtn.setAttribute('aria-pressed', 'true');
-          prevLoaded = true; showToast('이전 답안을 불러왔습니다.');
-        } else showToast('저장된 답안이 없습니다.', 'warn');
-      } else {
-        el.userAnswer.value = '';
-        el.loadPrevAnswerBtn.textContent = '이전 답안 불러오기';
-        el.loadPrevAnswerBtn.setAttribute('aria-pressed', 'false');
-        prevLoaded = false;
+    el.loadPrevAnswerBtn.addEventListener('click',()=>{
+      if(!currentQuizData.length) return;
+      const q=currentQuizData[currentQuestionIndex], saved=questionScores[normId(q.고유ID)];
+      if(!prevLoaded){
+        if(saved?.user_answer){ el.userAnswer.value=saved.user_answer; el.loadPrevAnswerBtn.textContent='답안 지우기'; el.loadPrevAnswerBtn.setAttribute('aria-pressed','true'); prevLoaded=true; showToast('이전 답안을 불러왔습니다.'); }
+        else showToast('저장된 답안이 없습니다.','warn');
+      }else{
+        el.userAnswer.value=''; el.loadPrevAnswerBtn.textContent='이전 답안 불러오기'; el.loadPrevAnswerBtn.setAttribute('aria-pressed','false'); prevLoaded=false;
       }
     });
 
-    // 네비
-    el.prevBtn.addEventListener('click', () => { if (currentQuestionIndex > 0) { currentQuestionIndex--; displayQuestion(); } });
-    el.nextBtn.addEventListener('click', () => { if (currentQuestionIndex < currentQuizData.length - 1) { currentQuestionIndex++; displayQuestion(); } });
-    el.userAnswer.addEventListener('input', () => el.errorMessage.classList.add('hidden'));
+    /* ========= 네비 & 입력 ========= */
+    el.prevBtn.addEventListener('click',()=>{ if(currentQuestionIndex>0){ currentQuestionIndex--; displayQuestion(); } });
+    el.nextBtn.addEventListener('click',()=>{ if(currentQuestionIndex<currentQuizData.length-1){ currentQuestionIndex++; displayQuestion(); } });
+    el.userAnswer.addEventListener('input',()=> el.errorMessage.classList.add('hidden'));
+    el.userAnswer.addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); el.gradeBtn.click(); } });
 
-    // 채점
-    el.gradeBtn.addEventListener('click', handleGrade);
-    async function handleGrade() {
-      if (!geminiApiKey) { openApiModal(false); showToast('Gemini API 키를 입력해주세요.', 'error'); return; }
-      const answer = el.userAnswer.value.trim();
-      if (!answer) { el.errorMessage.textContent = '답안을 입력해주세요.'; el.errorMessage.classList.remove('hidden'); el.userAnswer.focus(); return; }
+    /* ========= 채점 ========= */
+    el.gradeBtn.addEventListener('click',handleGrade);
+    async function handleGrade(){
+      if(!geminiApiKey){ openApiModal(false); showToast('Gemini API 키를 입력해주세요.','error'); return; }
+      const answer=el.userAnswer.value.trim(); if(!answer){ el.errorMessage.textContent='답안을 입력해주세요.'; el.errorMessage.classList.remove('hidden'); el.userAnswer.focus(); return; }
       el.errorMessage.classList.add('hidden');
-
-      const q = currentQuizData[currentQuestionIndex];
-      const qKey = normId(q.고유ID);
-
+      const q=currentQuizData[currentQuestionIndex], qKey=normId(q.고유ID);
       setLoading(true);
-      try {
-        const result = await callGeminiAPI(answer, q.정답, geminiApiKey);
-        let finalScore = result.score;
-        let finalFeedback = result.feedback;
-        if (activeHintQuestionKey === qKey) {
-          finalScore = Math.min(59, Math.max(0, Math.round(finalScore * 0.8)));
-          finalFeedback = `${finalFeedback ? finalFeedback + ' ' : ''}(힌트사용으로 감점)`;
+      try{
+        let {score, feedback}=await callGeminiAPI(answer, q.정답, geminiApiKey);
+
+        // (라이트 전용) -7점 보정 강제 적용
+        if (selectedAiModel === 'gemini-2.5-flash-lite') {
+          score = clamp(score - 7, 0, 100);
         }
+
+        const usedHint=(activeHintQuestionKey===qKey);
+        const finalScore= usedHint? Math.min(59, Math.round(score*0.8)) : score;
+        const finalFeedback= usedHint? `${feedback?feedback+' ':''}(힌트사용으로 감점)` : feedback;
         showResult(finalScore, finalFeedback, q.정답);
 
-        const existing = questionScores[qKey] || {};
-        const newHistory = [...(existing.solveHistory || [])];
-        newHistory.push({ date: Date.now(), score: finalScore });
+        const existing=questionScores[qKey]||{}, newHistory=[...(existing.solveHistory||[]), {date:Date.now(), score:finalScore}];
+        questionScores[qKey]={ score:finalScore, feedback:finalFeedback, user_answer:answer, hintUsed:usedHint, isSolved:true, lastSolvedDate:Date.now(), solveHistory:newHistory, userReviewFlag:!!existing.userReviewFlag };
+        try{ localStorage.setItem('auditQuizScores',JSON.stringify(questionScores)); }catch{ showToast('localStorage 저장 실패(용량)','error'); }
 
-        questionScores[qKey] = {
-          score: finalScore,
-          feedback: finalFeedback,
-          user_answer: answer,
-          hintUsed: activeHintQuestionKey === qKey,
-          isSolved: true,
-          lastSolvedDate: Date.now(),
-          solveHistory: newHistory,
-          userReviewFlag: !!existing.userReviewFlag
-        };
-
-        try { localStorage.setItem('auditQuizScores', JSON.stringify(questionScores)); } catch (e) { showToast('localStorage 저장 실패 (용량 초과 가능)', 'error'); }
-
-        const { increased, uniqueReads } = registerUniqueRead(qKey);
-        if (increased) showToast(`회독 +1 (이 문제 고유 ${uniqueReads}회)`);
+        const {increased, uniqueReads}=registerUniqueRead(qKey); if(increased) showToast(`회독 +1 (이 문제 고유 ${uniqueReads}회)`);
         updateSummary(); refreshPanels();
-      } catch (e) {
-        console.error('채점 오류:', e);
-        el.aiFeedback.textContent = `채점 중 오류: ${e.message}`;
-        el.score.textContent = 'Error'; el.progressBar.style.width = '0%'; el.resultBox.classList.remove('hidden');
-        showToast('채점 요청 실패: API 키/네트워크/할당량 확인.', 'error');
-      } finally { setLoading(false); }
+      }catch(e){
+        console.error('채점 오류:',e); el.aiFeedback.textContent=`채점 중 오류: ${e.message}`; el.score.textContent='Error'; el.progressBar.style.width='0%'; el.resultBox.classList.remove('hidden');
+        showToast('채점 요청 실패: API 키/네트워크/할당량 확인.','error');
+      }finally{ setLoading(false); }
     }
-    function setLoading(isLoading) {
-      if (isLoading) {
-        el.gradeBtnText.classList.add('hidden'); el.gradeLoader.classList.remove('hidden');
-        el.gradeBtn.disabled = true; el.resultBox.classList.add('hidden');
-      } else {
-        el.gradeBtnText.classList.remove('hidden'); el.gradeLoader.classList.add('hidden');
-        el.gradeBtn.disabled = false;
-      }
-    }
+    function setLoading(v){ if(v){ el.gradeBtnText.classList.add('hidden'); el.gradeLoader.classList.remove('hidden'); el.gradeBtn.disabled=true; el.resultBox.classList.add('hidden'); } else { el.gradeBtnText.classList.remove('hidden'); el.gradeLoader.classList.add('hidden'); el.gradeBtn.disabled=false; } }
 
-    // Gemini 호출(채점)
-    async function callGeminiAPI(userAnswer, correctAnswer, apiKey, retries = 2, delay = 1000) {
-      const modelMap = { 'gemini-2.5-flash': 'gemini-2.5-flash', 'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite' };
-      const model = modelMap[selectedAiModel] || 'gemini-2.5-flash';
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    async function callGeminiAPI(userAnswer, correctAnswer, apiKey, retries=2, delay=800){
+      const modelMap={'gemini-2.5-flash':'gemini-2.5-flash','gemini-2.5-flash-lite':'gemini-2.5-flash-lite'};
+      const model=modelMap[selectedAiModel]||'gemini-2.5-flash';
+      const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const generationConfig={ responseMimeType:'application/json', responseSchema:{ type:'OBJECT', properties:{score:{type:'NUMBER'}, feedback:{type:'STRING'}}, required:['score','feedback'] } };
 
-      const generationConfig = {
-        responseMimeType: 'application/json',
-        responseSchema: { type: 'OBJECT', properties: { score: { type: 'NUMBER' }, feedback: { type: 'STRING' } }, required: ['score','feedback'] }
-      };
-      const BASE_SYSTEM_PROMPT =
-`당신은 매우 엄격한 회계감사 과목 채점 교수님입니다.
-- 사용자 답안을 모범답안과 비교해 0~100의 "score"(NUMBER)와 "feedback"(STRING, 한국어)을 JSON으로만 반환하세요.
-- 띄어쓰기/약칭(CPA, RMM 등) 허용. 핵심키워드 충실도 위주.
-- 불필요한 말/코드블록 금지. JSON 객체만 반환.`;
+      // 모델별 시스템 프롬프트 구성
+      const systemText = (model === 'gemini-2.5-flash-lite')
+        ? `${BASE_SYSTEM_PROMPT}\n\n${LITE_STRICT_ADDENDUM}`
+        : BASE_SYSTEM_PROMPT;
 
-      const systemInstruction = { parts: [{ text: BASE_SYSTEM_PROMPT }] };
-      const userQuery = `[모범 답안]\n${correctAnswer}\n\n[사용자 답안]\n${userAnswer}\n\n[채점 요청]\n{"score": number, "feedback": string}`;
+      const systemInstruction={ parts:[{ text: systemText }] };
+      const userQuery=`[모범 답안]\n${correctAnswer}\n\n[사용자 답안]\n${userAnswer}\n\n[채점 요청]\n{"score": number, "feedback": string}`;
 
-      const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction, generationConfig };
+      const payload={ contents:[{ parts:[{ text:userQuery }] }], systemInstruction, generationConfig };
 
-      try {
-        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          const msg = body?.error?.message || res.statusText;
-          if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) throw new Error(`모델/버전 불일치: ${msg}`);
-          if (res.status === 429) throw new Error(`API 할당량 초과 (429)`);
-          if (res.status >= 500) throw new Error(`서버 오류 (${res.status})`);
-          throw new Error(msg);
+      try{
+        const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+        if(!res.ok){ const body=await res.json().catch(()=>({})); const msg=body?.error?.message||res.statusText;
+          if((res.status===404||res.status===400)&&/model/i.test(msg)) throw new Error(`모델/버전 불일치: ${msg}`);
+          if(res.status===429) throw new Error(`API 할당량 초과 (429)`); if(res.status>=500) throw new Error(`서버 오류 (${res.status})`); throw new Error(msg);
         }
-        const data = await res.json();
-        const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-        const cleaned = sanitizeModelText(raw);
-        let parsed; try { parsed = JSON.parse(cleaned); } catch { throw new Error(`API 응답 파싱 실패`); }
-        const scoreNum = clamp(Number(parsed.score), 0, 100);
-        const feedbackStr = String(parsed.feedback || '').trim();
-        return { score: scoreNum, feedback: feedbackStr || '피드백 없음' };
-      } catch (err) {
-        if (retries > 0 && (String(err.message).includes('429') || String(err.message).match(/^서버 오류/))) {
-          await new Promise(r => setTimeout(r, delay));
-          return callGeminiAPI(userAnswer, correctAnswer, apiKey, retries - 1, delay * 2);
-        }
+        const data=await res.json(); const raw=data?.candidates?.[0]?.content?.parts?.[0]?.text??''; const cleaned=sanitizeModelText(raw);
+        let parsed; try{ parsed=JSON.parse(cleaned); }catch{ throw new Error('API 응답 파싱 실패'); }
+        return { score:clamp(+parsed.score,0,100), feedback:String(parsed.feedback||'피드백 없음').trim() };
+      }catch(err){
+        if(retries>0 && (String(err.message).includes('429') || /^서버 오류/.test(String(err.message)))){ await new Promise(r=>setTimeout(r,delay)); return callGeminiAPI(userAnswer, correctAnswer, apiKey, retries-1, delay*1.6); }
         throw err;
       }
     }
 
-    // 힌트
-    el.hintBtn.addEventListener('click', () => { if (currentQuizData.length === 0) return; handleHint(currentQuizData[currentQuestionIndex]); });
-    async function handleHint(q) {
-      if (!geminiApiKey) { openApiModal(false); showToast('Gemini API 키를 입력해주세요.', 'error'); return; }
-      const userAns = el.userAnswer.value.trim();
-      const qKey = normId(q.고유ID);
-
+    /* ========= 힌트 ========= */
+    el.hintBtn.addEventListener('click',()=>{ if(currentQuizData.length) handleHint(currentQuizData[currentQuestionIndex]); });
+    async function handleHint(q){
+      if(!geminiApiKey){ openApiModal(false); showToast('Gemini API 키를 입력해주세요.','error'); return; }
       setLoading(true);
-      try {
-        const hint = await callGeminiHintAPI(userAns, q.정답, q.물음, geminiApiKey);
-        el.hintBox.innerHTML = `<strong class="font-semibold">힌트</strong><br>${String(hint || '').replace(/\n/g, '<br>')}`;
-        el.hintBox.classList.remove('hidden'); activeHintQuestionKey = qKey;
-        showToast('힌트를 표시했습니다. (즉시 채점 시 감점)', 'warn');
-      } catch (e) { console.error(e); showToast(`힌트 생성 실패: ${e.message}`, 'error'); }
-      finally { setLoading(false); }
+      try{
+        const hint=await callGeminiHintAPI(el.userAnswer.value.trim(), q.정답, q.물음, geminiApiKey);
+        el.hintBox.innerHTML=`<strong class="font-semibold">힌트</strong><br>${String(hint||'').replace(/\n/g,'<br>')}`;
+        el.hintBox.classList.remove('hidden'); activeHintQuestionKey=normId(q.고유ID); showToast('힌트를 표시했습니다. (즉시 채점 시 감점)','warn');
+      }catch(e){ console.error(e); showToast(`힌트 생성 실패: ${e.message}`,'error'); }
+      finally{ setLoading(false); }
     }
-    async function callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, retries = 2, delay = 1000) {
-      const modelMap = { 'gemini-2.5-flash': 'gemini-2.5-flash', 'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite' };
-      const model = modelMap[selectedAiModel] || 'gemini-2.5-flash';
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
-
-      const generationConfig = {
-        responseMimeType: 'application/json',
-        responseSchema: { type: 'OBJECT', properties: { hint: { type: 'STRING' } }, required: ['hint'] }
-      };
-      const systemInstruction = { parts: [{ text:
-`역할: 회계감사 학습 튜터.
-목표: 정답을 노출하지 않고 핵심 개념을 떠올리게 만드는 2~4줄 힌트 제공.
-출력: JSON만.` }] };
-      const userQuery = `[문제]\n${questionText}\n\n[모범 답안]\n${correctAnswer}\n\n[사용자 답안]\n${userAnswer || '(미입력)'}\n\n[요청]\n{"hint": string }`;
-
-      const payload = { contents: [{ parts: [{ text: userQuery }] }], systemInstruction, generationConfig };
-      try {
-        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          const msg = body?.error?.message || res.statusText;
-          if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) throw new Error(`모델/버전 불일치: ${msg}`);
-          if (res.status === 429) throw new Error(`API 할당량 초과 (429)`);
-          if (res.status >= 500) throw new Error(`서버 오류 (${res.status})`);
-          throw new Error(msg);
+    async function callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, retries=2, delay=800){
+      const modelMap={'gemini-2.5-flash':'gemini-2.5-flash','gemini-2.5-flash-lite':'gemini-2.5-flash-lite'};
+      const model=modelMap[selectedAiModel]||'gemini-2.5-flash';
+      const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const generationConfig={ responseMimeType:'application/json', responseSchema:{ type:'OBJECT', properties:{hint:{type:'STRING'}}, required:['hint'] } };
+      const systemInstruction={ parts:[{ text:`역할: 회계감사 학습 튜터.\n목표: 정답을 노출하지 않고 핵심 개념을 떠올리게 만드는 2~4줄 힌트 제공.\n출력: JSON만.` }] };
+      const userQuery=`[문제]\n${questionText}\n\n[모범 답안]\n${correctAnswer}\n\n[사용자 답안]\n${userAnswer||'(미입력)'}\n\n[요청]\n{"hint": string }`;
+      const payload={ contents:[{ parts:[{ text:userQuery }] }], systemInstruction, generationConfig };
+      try{
+        const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        if(!res.ok){ const body=await res.json().catch(()=>({})); const msg=body?.error?.message||res.statusText;
+          if((res.status===404||res.status===400)&&/model/i.test(msg)) throw new Error(`모델/버전 불일치: ${msg}`);
+          if(res.status===429) throw new Error(`API 할당량 초과 (429)`); if(res.status>=500) throw new Error(`서버 오류 (${res.status})`); throw new Error(msg);
         }
-        const data = await res.json();
-        const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-        const cleaned = sanitizeModelText(raw);
-        let parsed; try { parsed = JSON.parse(cleaned); } catch { throw new Error(`API 응답 파싱 실패`); }
-        return String(parsed.hint || '').trim();
-      } catch (err) {
-        if (retries > 0 && (String(err.message).includes('429') || String(err.message).match(/^서버 오류/))) {
-          await new Promise(r => setTimeout(r, delay));
-          return callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, retries - 1, delay * 2);
-        }
+        const data=await res.json(); const raw=data?.candidates?.[0]?.content?.parts?.[0]?.text??''; const cleaned=sanitizeModelText(raw);
+        let parsed; try{ parsed=JSON.parse(cleaned); }catch{ throw new Error('API 응답 파싱 실패'); }
+        return String(parsed.hint||'').trim();
+      }catch(err){
+        if(retries>0 && (String(err.message).includes('429') || /^서버 오류/.test(String(err.message)))){ await new Promise(r=>setTimeout(r,delay)); return callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, retries-1, delay*1.6); }
         throw err;
       }
     }
 
-    // 결과
-    function showResult(scoreVal, feedback, correctAnswer) {
-      const s = clamp(Number(scoreVal), 0, 100);
-      el.score.textContent = s.toFixed(1);
-      el.progressBar.style.width = `${s}%`;
-      el.progressBar.setAttribute('aria-valuenow', String(Math.round(s)));
-      el.progressBar.className = 'h-4 rounded-full transition-all duration-500 ease-out ' + (s < 60 ? 'bg-red-500' : s < 80 ? 'bg-yellow-500' : 'bg-blue-600');
-      el.aiFeedback.textContent = String(feedback || ''); el.correctAnswer.textContent = String(correctAnswer || '');
-      el.resultBox.classList.remove('hidden');
+    /* ========= 결과 ========= */
+    function showResult(scoreVal, feedback, correctAnswer){
+      const s=clamp(+scoreVal,0,100);
+      el.score.textContent=s.toFixed(1); el.progressBar.style.width=`${s}%`; el.progressBar.setAttribute('aria-valuenow',String(Math.round(s)));
+      el.progressBar.className='h-4 rounded-full transition-all duration-500 ease-out '+(s<60?'bg-red-500': s<80?'bg-yellow-500':'bg-blue-600');
+      el.aiFeedback.textContent=String(feedback||''); el.correctAnswer.textContent=String(correctAnswer||''); el.resultBox.classList.remove('hidden');
     }
 
-    // 요약판/하이라이트
-    el.summaryViewAllBtn?.addEventListener('click', () => { summaryViewMode = 'ALL'; el.summaryViewAllBtn.classList.add('bg-gray-100'); el.summaryViewCurrentBtn.classList.remove('bg-gray-100'); updateSummary(); });
-    el.summaryViewCurrentBtn?.addEventListener('click', () => { summaryViewMode = 'CURRENT'; el.summaryViewCurrentBtn.classList.add('bg-gray-100'); el.summaryViewAllBtn.classList.remove('bg-gray-100'); updateSummary(); });
+    /* ========= 요약판 ========= */
+    el.summaryViewAllBtn?.addEventListener('click',()=>{ summaryViewMode='ALL'; el.summaryViewAllBtn.classList.add('bg-gray-100'); el.summaryViewCurrentBtn.classList.remove('bg-gray-100'); updateSummary(); });
+    el.summaryViewCurrentBtn?.addEventListener('click',()=>{ summaryViewMode='CURRENT'; el.summaryViewCurrentBtn.classList.add('bg-gray-100'); el.summaryViewAllBtn.classList.remove('bg-gray-100'); updateSummary(); });
 
-    // 회독수(고유)
-    const READ_STORE_KEY = 'readSessions_v2';
-    const UNIQUE_WINDOW_MS = 5 * 60 * 1000;
-    function loadReadStore() { try { return JSON.parse(localStorage.getItem(READ_STORE_KEY) || '{}'); } catch { return {}; } }
-    function saveReadStore(obj) { localStorage.setItem(READ_STORE_KEY, JSON.stringify(obj)); }
-    function computeUniqueReadsFromHistory(history) {
-      const times = (Array.isArray(history) ? history : []).map(h => Number(h?.date)).filter(Number.isFinite).sort((a,b)=>a-b);
-      if (times.length === 0) return { uniqueReads: 0, lastAt: 0 };
-      let count = 0; let last = -Infinity;
-      for (const t of times) { if (t - last >= UNIQUE_WINDOW_MS) { count++; last = t; } }
-      return { uniqueReads: count, lastAt: times[times.length - 1] };
+    const READ_STORE_KEY='readSessions_v2', UNIQUE_WINDOW_MS=5*60*1000;
+    const loadReadStore=()=>{ try{ return JSON.parse(localStorage.getItem(READ_STORE_KEY)||'{}'); }catch{ return {}; } };
+    const saveReadStore=obj=>localStorage.setItem(READ_STORE_KEY,JSON.stringify(obj));
+    const computeUniqueReadsFromHistory=h=>{ const times=(Array.isArray(h)?h:[]).map(x=>+x?.date).filter(Number.isFinite).sort((a,b)=>a-b); if(!times.length) return {uniqueReads:0,lastAt:0}; let c=0,last=-Infinity; for(const t of times){ if(t-last>=UNIQUE_WINDOW_MS){ c++; last=t; } } return {uniqueReads:c,lastAt:times.at(-1)}; };
+    function backfillReadStoreFromScores(force=false){
+      if(!force && localStorage.getItem('readStoreBackfilled_v2')==='1') return;
+      const db=loadReadStore(); let touched=0;
+      for(const [qid,rec] of Object.entries(questionScores||{})){ const hist=Array.isArray(rec?.solveHistory)?rec.solveHistory:[]; if(!hist.length) continue; const has=db[qid];
+        if(!has || !Number.isFinite(+has.uniqueReads) || +has.uniqueReads===0){ const seed=computeUniqueReadsFromHistory(hist); if(seed.uniqueReads>0){ db[qid]=seed; touched++; } }
+      }
+      if(touched>0) saveReadStore(db); localStorage.setItem('readStoreBackfilled_v2','1');
     }
-    function backfillReadStoreFromScores(force = false) {
-      if (!force && localStorage.getItem('readStoreBackfilled_v2') === '1') return;
-      const db = loadReadStore(); let touched = 0;
-      for (const [qid, rec] of Object.entries(questionScores || {})) {
-        const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : []; if (hist.length === 0) continue;
-        const has = db[qid];
-        if (!has || !Number.isFinite(has.uniqueReads) || has.uniqueReads === 0) {
-          const seed = computeUniqueReadsFromHistory(hist);
-          if (seed.uniqueReads > 0) { db[qid] = seed; touched++; }
-        }
-      }
-      if (touched > 0) saveReadStore(db);
-      localStorage.setItem('readStoreBackfilled_v2', '1');
-    }
-    function registerUniqueRead(questionKey) {
-      const t = Date.now();
-      const db = loadReadStore(); let rec = db[questionKey];
-      if (!rec) {
-        const hist = questionScores[questionKey]?.solveHistory;
-        rec = Array.isArray(hist) && hist.length > 0 ? computeUniqueReadsFromHistory(hist) : { uniqueReads: 0, lastAt: 0 };
-      }
-      if (t - (rec.lastAt || 0) >= UNIQUE_WINDOW_MS) {
-        rec.uniqueReads = (Number(rec.uniqueReads) || 0) + 1; rec.lastAt = t; db[questionKey] = rec; saveReadStore(db);
-        return { increased: true, uniqueReads: rec.uniqueReads };
-      } else {
-        rec.lastAt = t; db[questionKey] = rec; saveReadStore(db);
-        return { increased: false, uniqueReads: rec.uniqueReads };
-      }
+    function registerUniqueRead(qid){
+      const t=Date.now(), db=loadReadStore(); let rec=db[qid];
+      if(!rec){ const hist=questionScores[qid]?.solveHistory; rec=Array.isArray(hist)&&hist.length?computeUniqueReadsFromHistory(hist):{uniqueReads:0,lastAt:0}; }
+      if(t-(rec.lastAt||0)>=UNIQUE_WINDOW_MS){ rec.uniqueReads=(+rec.uniqueReads||0)+1; rec.lastAt=t; db[qid]=rec; saveReadStore(db); return {increased:true, uniqueReads:rec.uniqueReads}; }
+      rec.lastAt=t; db[qid]=rec; saveReadStore(db); return {increased:false, uniqueReads:rec.uniqueReads};
     }
 
-    // 현황판
-    function updateSummary() {
-      el.scoreSummary.innerHTML = '';
-      const base = (summaryViewMode === 'CURRENT') ? (currentQuizData || []) : (allData || []);
-      const groups = new Map();
-      for (const q of base) {
-        const ch = String(q.단원).trim();
-        if (!groups.has(ch)) groups.set(ch, []);
-        groups.get(ch).push(q);
-      }
-      const chapters = [...groups.keys()].sort((a, b) => {
-        const na = Number(a), nb = Number(b);
-        if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
-        if (Number.isFinite(na)) return -1; if (Number.isFinite(nb)) return 1; return a.localeCompare(b, 'ko');
-      });
+    function updateSummary(){
+      el.scoreSummary.innerHTML='';
+      const base=(summaryViewMode==='CURRENT')?(currentQuizData||[]):(allData||[]);
+      const groups=new Map(); for(const q of base){ const ch=String(q.단원).trim(); if(!groups.has(ch)) groups.set(ch,[]); groups.get(ch).push(q); }
+      const chapters=[...groups.keys()].sort((a,b)=>{ const na=+a, nb=+b; if(Number.isFinite(na)&&Number.isFinite(nb)) return na-nb; if(Number.isFinite(na)) return -1; if(Number.isFinite(nb)) return 1; return a.localeCompare(b,'ko'); });
 
-      const readStore = loadReadStore();
-      const _clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+      const readStore=loadReadStore(), _clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 
-      chapters.forEach(ch => {
-        const nCh = Number(ch);
-        if (Number.isFinite(nCh)) {
-          const hit = PART_INSERTIONS.find(p => p.before === nCh);
-          if (hit) {
-            const partDiv = document.createElement('div');
-            partDiv.className = 'w-full px-3 py-2 mb-2 rounded-lg border-2 bg-blue-50 border-blue-200 text-blue-800 font-bold';
-            partDiv.textContent = hit.label;
-            el.scoreSummary.appendChild(partDiv);
-          }
-        }
-        const list = groups.get(ch) || [];
-        list.sort((a, b) => {
-          const na = Number(a.물음번호 || a.표시번호), nb = Number(b.물음번호 || b.표시번호);
-          if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
-          return String(a.표시번호 || a.물음번호).localeCompare(String(b.표시번호 || b.물음번호), 'ko');
+      chapters.forEach(ch=>{
+        const n=+ch; if(Number.isFinite(n)){ const hit=PART_INSERTIONS.find(p=>p.before===n); if(hit){ const part=document.createElement('div'); part.className='w-full px-3 py-2 mb-2 rounded-lg border-2 bg-blue-50 border-blue-200 text-blue-800 font-bold'; part.textContent=hit.label; el.scoreSummary.appendChild(part); } }
+        const list=(groups.get(ch)||[]).sort((a,b)=>{ const na=+(a.물음번호||a.표시번호), nb=+(b.물음번호||b.표시번호); if(Number.isFinite(na)&&Number.isFinite(nb)) return na-nb; return String(a.표시번호||a.물음번호).localeCompare(String(b.표시번호||b.물음번호),'ko'); });
+
+        let sum=0,cnt=0,sumRounds=0, last=0;
+        list.forEach(q=>{
+          const id=String(q.고유ID).trim(), s=questionScores[id];
+          if(s && Number.isFinite(+s.score)){ sum+=+s.score; cnt++; }
+          const rs=readStore[id]; const ur= rs && Number.isFinite(+rs.uniqueReads)? +rs.uniqueReads : computeUniqueReadsFromHistory(s?.solveHistory||[]).uniqueReads;
+          sumRounds+=ur; if(s?.lastSolvedDate && s.lastSolvedDate>last) last=s.lastSolvedDate;
         });
 
-        let sum = 0, cnt = 0, sumUniqueReads = 0, latestDate = 0;
-        list.forEach(q => {
-          const qid = String(q.고유ID).trim();
-          const s = questionScores[qid];
-          if (s && Number.isFinite(Number(s.score))) { sum += Number(s.score); cnt++; }
-          const ur = (() => {
-            const rs = readStore[qid];
-            if (rs && Number.isFinite(Number(rs.uniqueReads))) return Number(rs.uniqueReads);
-            const h = questionScores[qid]?.solveHistory;
-            if (Array.isArray(h) && h.length) return computeUniqueReadsFromHistory(h).uniqueReads;
-            return 0;
-          })();
-          sumUniqueReads += ur;
-          if (s && s.lastSolvedDate && s.lastSolvedDate > latestDate) latestDate = s.lastSolvedDate;
-        });
+        const avg=cnt? (sum/cnt):null, rounds=list.length? (sumRounds/list.length):0;
+        const recent= last? ((d=>d===0?'오늘':d===1?'어제':`${d}일 전`)(Math.floor((Date.now()-last)/86400000))):'학습 기록 없음';
+        const ratio=`응시 ${cnt}/${list.length}`, avgTxt=avg==null?'-':avg.toFixed(1), roundsTxt=rounds.toFixed(1);
+        const barW=_clamp(avg??0,0,100), barCls= avg==null?'bg-gray-300': avg<60?'bg-red-500': avg<80?'bg-yellow-500':'bg-green-500';
 
-        const avg = cnt ? (sum / cnt) : null;
-        const avgRounds = list.length ? (sumUniqueReads / list.length) : 0;
-        const recentText = (latestDate > 0)
-          ? (()=>{ const d=Math.floor((Date.now()-latestDate)/(24*60*60*1000)); return d===0?'오늘':(d===1?'어제':`${d}일 전`); })()
-          : '학습 기록 없음';
-        const ratioText = `응시 ${cnt}/${list.length}`;
-        const avgText = (avg === null) ? '-' : avg.toFixed(1);
-        const avgRoundsText = avgRounds.toFixed(1);
-        const barW = _clamp(avg ?? 0, 0, 100);
-        const barCls = (avg === null) ? 'bg-gray-300' : avg < 60 ? 'bg-red-500' : avg < 80 ? 'bg-yellow-500' : 'bg-green-500';
+        const header=document.createElement('div'); header.className='px-3 py-2 rounded-md border bg-gray-50 mb-2';
+        header.innerHTML=`
+          <div class="font-semibold text-lg">${chapterLabelText(ch)}</div>
+          <div class="text-sm text-gray-700 mt-1 space-y-1">
+            <div>평균 ${avgTxt}점 · ${ratio}</div>
+            <div>평균 ${roundsTxt}회독 · 최근 ${recent}</div>
+          </div>
+          <div class="w-28 h-2 bg-gray-200 rounded-full overflow-hidden mt-2"><div class="h-2 ${barCls}" style="width:${barW}%"></div></div>
+          <div class="mt-2 flex justify-end"><button class="text-xs text-blue-700 hover:underline summary-toggle">접기</button></div>`;
+        const grid=document.createElement('div'); grid.className='flex flex-wrap gap-2 mt-2 mb-4';
 
-        const header = document.createElement('div'); header.className = 'px-3 py-2 rounded-md border bg-gray-50 mb-2';
-        const title = document.createElement('div'); title.className = 'font-semibold text-lg'; title.textContent = chapterLabelText(ch);
-        const meta = document.createElement('div'); meta.className = 'text-sm text-gray-700 mt-1 space-y-1';
-        const line1 = document.createElement('div'); line1.textContent = `평균 ${avgText}점 · ${ratioText}`;
-        const line2 = document.createElement('div'); line2.textContent = `평균 ${avgRoundsText}회독 · 최근 ${recentText}`;
-        meta.appendChild(line1); meta.appendChild(line2);
-        const mini = document.createElement('div'); mini.className = 'w-28 h-2 bg-gray-200 rounded-full overflow-hidden mt-2';
-        const miniFill = document.createElement('div'); miniFill.className = `h-2 ${barCls}`; miniFill.style.width = `${barW}%`; mini.appendChild(miniFill);
-        const toggleWrap = document.createElement('div'); toggleWrap.className = 'mt-2 flex justify-end';
-        const toggleBtn = document.createElement('button'); toggleBtn.className = 'text-xs text-blue-700 hover:underline'; toggleBtn.textContent = '접기';
-        toggleWrap.appendChild(toggleBtn);
-        header.appendChild(title); header.appendChild(meta); header.appendChild(mini); header.appendChild(toggleWrap);
+        list.forEach(q=>{
+          const btn=document.createElement('button');
+          const disp=(q.표시번호??'').toString().trim(), fallback=(q.물음번호??q.고유ID??'').toString().trim(), label=disp||fallback||'';
+          btn.textContent=label; if(label.length>=3) btn.style.fontSize='.72rem'; if(label.length>=4){ btn.style.fontSize='.66rem'; btn.style.letterSpacing='-0.2px'; }
+          const fullMeta=[q.problemTitle && String(q.problemTitle).trim(),`표시번호:${disp||'-'}`,`물음번호:${(q.물음번호??'').toString().trim()||'-'}`,`ID:${(q.고유ID??'').toString().trim()||'-'}`].filter(Boolean).join(' | ');
+          btn.title=fullMeta; btn.setAttribute('aria-label',fullMeta);
+          btn.classList.add('summary-btn','font-medium','rounded-lg','border');
 
-        const grid = document.createElement('div'); grid.className = 'flex flex-wrap gap-2 mt-2 mb-4';
-        list.forEach(q => {
-          const btn = document.createElement('button');
-          const displayOnly = (q.표시번호 ?? '').toString().trim();
-          const fallback    = (q.물음번호 ?? q.고유ID ?? '').toString().trim();
-          const label       = displayOnly || fallback || '';
-          btn.textContent   = label;
-          if (label.length >= 3) btn.style.fontSize = '0.72rem';
-          if (label.length >= 4) { btn.style.fontSize = '0.66rem'; btn.style.letterSpacing = '-0.2px'; }
-
-          const fullMeta = [
-            q.problemTitle && String(q.problemTitle).trim(),
-            `표시번호:${displayOnly || '-'}`,
-            `물음번호:${(q.물음번호 ?? '').toString().trim() || '-'}`,
-            `ID:${(q.고유ID ?? '').toString().trim() || '-'}`].filter(Boolean).join(' | ');
-          btn.title = fullMeta; btn.setAttribute('aria-label', fullMeta);
-          btn.classList.add('summary-btn', 'font-medium', 'rounded-lg', 'border');
-
-          const saved = questionScores[String(q.고유ID)?.trim()];
-          const sc = saved ? Number(saved.score) : NaN;
-          const { bg, txt, bd } =
-            !Number.isFinite(sc) ? { bg:'bg-gray-100', txt:'text-gray-600', bd:'border-gray-300' }
-            : sc < 60 ? { bg:'bg-red-100', txt:'text-red-700', bd:'border-red-300' }
-            : sc < 80 ? { bg:'bg-yellow-100', txt:'text-yellow-700', bd:'border-yellow-300' }
-                      : { bg:'bg-green-100', txt:'text-green-700', bd:'border-green-300' };
-          btn.classList.add(bg, txt, bd);
-          btn.dataset.qid = String(q.고유ID).trim();
-
-          btn.addEventListener('click', () => {
-            const idxInCurrent = currentQuizData.findIndex(it => String(it.고유ID).trim() === String(q.고유ID).trim());
-            if (idxInCurrent === -1) {
-              const chVal = String(q.단원).trim();
-              const newSet = allData.filter(it => String(it.단원).trim() === chVal);
-              if (newSet.length) {
-                currentQuizData = newSet;
-                currentQuestionIndex = newSet.findIndex(it => String(it.고유ID).trim() === String(q.고유ID).trim());
-              }
-            } else currentQuestionIndex = idxInCurrent;
-            if (currentQuestionIndex < 0) currentQuestionIndex = 0;
-            el.quizArea.classList.remove('hidden'); displayQuestion();
-            showToast(`'${q.표시번호 || q.물음번호 || q.고유ID}'번으로 이동했습니다.`);
+          const saved=questionScores[String(q.고유ID)?.trim()], sc=saved? +saved.score: NaN;
+          const cls= !Number.isFinite(sc)? ['bg-gray-100','text-gray-600','border-gray-300'] : sc<60? ['bg-red-100','text-red-700','border-red-300'] : sc<80? ['bg-yellow-100','text-yellow-700','border-yellow-300'] : ['bg-green-100','text-green-700','border-green-300'];
+          btn.classList.add(...cls); btn.dataset.qid=String(q.고유ID).trim();
+          btn.addEventListener('click',()=>{
+            const idx=currentQuizData.findIndex(it=>String(it.고유ID).trim()===String(q.고유ID).trim());
+            if(idx===-1){ const chVal=String(q.단원).trim(), set=allData.filter(it=>String(it.단원).trim()===chVal); if(set.length){ currentQuizData=set; currentQuestionIndex=set.findIndex(it=>String(it.고유ID).trim()===String(q.고유ID).trim()); } }
+            else currentQuestionIndex=idx;
+            if(currentQuestionIndex<0) currentQuestionIndex=0;
+            el.quizArea.classList.remove('hidden'); displayQuestion(); showToast(`'${label}'로 이동`);
           });
           grid.appendChild(btn);
         });
 
-        toggleBtn.addEventListener('click', () => {
-          const isHidden = grid.classList.toggle('hidden');
-          toggleBtn.textContent = isHidden ? '펼치기' : '접기';
+        header.querySelector('.summary-toggle').addEventListener('click',e=>{
+          const hidden=grid.classList.toggle('hidden'); e.currentTarget.textContent= hidden?'펼치기':'접기';
         });
 
-        const section = document.createElement('div'); section.className = 'w-full space-y-2 mb-3';
-        section.appendChild(header); section.appendChild(grid);
+        const section=document.createElement('div'); section.className='w-full space-y-2 mb-3'; section.appendChild(header); section.appendChild(grid);
         el.scoreSummary.appendChild(section);
       });
       updateSummaryHighlight();
     }
-    function updateSummaryHighlight() {
-      if (currentQuizData.length === 0) return;
-      const currentQ = String(currentQuizData[currentQuestionIndex].고유ID).trim();
-      const buttons = el.scoreSummary.querySelectorAll('button.summary-btn');
-      buttons.forEach(b => b.classList.remove('ring-2','ring-blue-500','ring-offset-2'));
-      buttons.forEach(b => { if (b.dataset.qid === currentQ) b.classList.add('ring-2','ring-blue-500','ring-offset-2'); });
+    function updateSummaryHighlight(){
+      if(!currentQuizData.length) return; const cur=String(currentQuizData[currentQuestionIndex].고유ID).trim();
+      el.scoreSummary.querySelectorAll('button.summary-btn').forEach(b=>{ b.classList.remove('ring-2','ring-blue-500','ring-offset-2'); if(b.dataset.qid===cur) b.classList.add('ring-2','ring-blue-500','ring-offset-2'); });
     }
 
-    // 필터 초기화/리셋
-    el.clearFilterBtn.addEventListener('click', () => {
-      el.filterSelect.value = 'all'; el.chapterSelect.value = '';
-      el.sourceGroupFilter?.querySelectorAll('input.source-filter')?.forEach(cb => cb.checked = true);
-      localStorage.setItem(SOURCE_LS, JSON.stringify(['basic','advanced','other']));
-      handleLoadQuiz(); showToast('필터를 해제했습니다. 모든 문제를 표시합니다.');
+    /* ========= 필터 초기화/리셋 ========= */
+    el.clearFilterBtn.addEventListener('click',()=>{
+      el.filterSelect.value='all'; el.chapterSelect.value='';
+      el.sourceGroupFilter?.querySelectorAll('input.source-filter')?.forEach(cb=>cb.checked=true);
+      localStorage.setItem(SOURCE_LS,JSON.stringify(['basic','advanced','other']));
+      reloadAndRefresh(); showToast('필터 해제: 모든 문제 표시');
     });
-    el.resetScoresBtn.addEventListener('click', () => {
-      if (confirm('정말로 모든 학습 기록을 초기화하시겠습니까?')) {
-        questionScores = {}; localStorage.removeItem('auditQuizScores'); localStorage.removeItem('schemaVersion');
-        localStorage.removeItem('readSessions_v2'); localStorage.removeItem('readStoreBackfilled_v2');
-        updateSummary(); if (currentQuizData.length > 0) { currentQuestionIndex = 0; handleLoadQuiz(); }
-        refreshPanels(); showToast('학습 기록이 초기화되었습니다.');
+    el.resetScoresBtn.addEventListener('click',()=>{
+      if(confirm('정말로 모든 학습 기록을 초기화하시겠습니까?')){
+        questionScores={}; localStorage.removeItem('auditQuizScores'); localStorage.removeItem('schemaVersion'); localStorage.removeItem('readSessions_v2'); localStorage.removeItem('readStoreBackfilled_v2');
+        updateSummary(); if(currentQuizData.length){ currentQuestionIndex=0; reloadAndRefresh(); } refreshPanels(); showToast('학습 기록 초기화 완료');
       }
     });
 
-    // Ctrl] / Ctrl[
-    function ensureResultBoxReady() {
-      if (currentQuizData.length) {
-        const q = currentQuizData[currentQuestionIndex];
-        if (!el.correctAnswer.textContent?.trim()) el.correctAnswer.textContent = String(q.정답 || '');
-      }
-      el.resultBox.classList.remove('hidden');
-    }
-    function enterFocusMode() {
-      if (!el.userAnswer || !el.resultBox) return;
-      lastScrollYBeforeFocus = window.pageYOffset;
-      document.documentElement.classList.add('focus-mode');
-      ensureResultBoxReady();
-      ensureRangeVisible({ topEl: el.userAnswer, bottomEl: el.resultBox, topAlign: true });
-      ctrlNavState = 'focus';
-    }
-    function exitToDashboard() {
-      document.documentElement.classList.remove('focus-mode');
-      if (el.summaryArea) smoothScrollTo(elmTop(el.summaryArea) - getHeaderOffset() - 8);
-      else smoothScrollTo(0);
-      ctrlNavState = 'dashboard';
-    }
-    function backFromFocus() {
-      document.documentElement.classList.remove('focus-mode');
-      smoothScrollTo(Math.max(0, lastScrollYBeforeFocus));
-      ctrlNavState = 'dashboard';
-    }
-    function isEditing(t) { return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable); }
-    function goTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
-
-    document.addEventListener('keydown', (e) => {
-      if ((e.key === 'h' || e.key === 'H') && !isEditing(e.target)) { e.preventDefault(); el.hintBtn?.click(); return; }
-      if (e.ctrlKey && !e.altKey && !e.metaKey) {
-        if (e.key === 'ArrowLeft')  { e.preventDefault(); el.prevBtn?.click(); return; }
-        if (e.key === 'ArrowRight') { e.preventDefault(); el.nextBtn?.click(); return; }
-        if (e.key === '[') { e.preventDefault(); if (ctrlNavState === 'focus') backFromFocus(); else goTop(); return; }
-        if (e.key === ']') { e.preventDefault(); if (ctrlNavState !== 'focus') enterFocusMode(); else exitToDashboard(); return; }
+    /* ========= 포커스 단축키 ========= */
+    function ensureResultBoxReady(){ if(currentQuizData.length){ const q=currentQuizData[currentQuestionIndex]; if(!el.correctAnswer.textContent?.trim()) el.correctAnswer.textContent=String(q.정답||''); } el.resultBox.classList.remove('hidden'); }
+    function enterFocusMode(){ lastScrollYBeforeFocus=window.pageYOffset; document.documentElement.classList.add('focus-mode'); ensureResultBoxReady(); ensureRangeVisible({topEl:el.userAnswer,bottomEl:el.resultBox,topAlign:true}); ctrlNavState='focus'; }
+    function exitToDashboard(){ document.documentElement.classList.remove('focus-mode'); if(el.summaryArea) smoothScrollTo(elmTop(el.summaryArea)-getHeaderOffset()-8); else smoothScrollTo(0); ctrlNavState='dashboard'; }
+    function backFromFocus(){ document.documentElement.classList.remove('focus-mode'); smoothScrollTo(Math.max(0,lastScrollYBeforeFocus)); ctrlNavState='dashboard'; }
+    const isEditing=t=> t && (t.tagName==='INPUT' || t.tagName==='TEXTAREA' || t.isContentEditable);
+    document.addEventListener('keydown',e=>{
+      if((e.key==='h'||e.key==='H') && !isEditing(e.target)){ e.preventDefault(); el.hintBtn?.click(); return; }
+      if(e.ctrlKey && !e.altKey && !e.metaKey){
+        if(e.key==='ArrowLeft'){ e.preventDefault(); el.prevBtn?.click(); return; }
+        if(e.key==='ArrowRight'){ e.preventDefault(); el.nextBtn?.click(); return; }
+        if(e.key==='['){ e.preventDefault(); if(ctrlNavState==='focus') backFromFocus(); else window.scrollTo({top:0,behavior:'smooth'}); return; }
+        if(e.key===']'){ e.preventDefault(); if(ctrlNavState!=='focus') enterFocusMode(); else exitToDashboard(); return; }
       }
     });
-    el.userAnswer?.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); el.gradeBtn?.click(); } });
 
-    /* ===== 스코프 데이터 ===== */
-    function getScopeFilteredData() {
-      const bySource = applySourceFilter(allData || []);
-      const ch = el.chapterSelect?.value || '';
-      if (!ch) return bySource;
-      return bySource.filter(q => String(q.단원).trim() === String(ch));
-    }
+    /* ========= 스코프/달력/통계/탐색 ========= */
+    const getScopeFilteredData=()=>{ const bySrc=applySourceFilter(allData||[]), ch=el.chapterSelect?.value||''; return ch? bySrc.filter(q=>String(q.단원).trim()===String(ch)) : bySrc; };
 
-    /* ===== 달력: 월~일(월요일 시작), 숫자 배경 색칠 ===== */
-    function renderCalendar() {
-      if (!el.calendarGrid || !el.calendarMonthLabel) return;
+    // 월간 렌더러 (월요일 시작 + ◀ ▶ 네비 + 로컬 날짜 키 + 색상 그라데이션)
+    function renderCalendarMonth() {
+      const grid = el.calendarGrid, title = el.calTitle;
+      if (!grid || !title) return;
+
+      // 타이틀
+      title.textContent = `${calRefDate.getFullYear()}.${String(calRefDate.getMonth()+1).padStart(2,'0')}`;
+
+      // 범위 데이터(현재 필터 반영)
       const base = getScopeFilteredData();
       const idSet = new Set(base.map(q => String(q.고유ID).trim()));
 
-      // 날짜별 풀이수 카운트
-      const dayCount = new Map(); // 'YYYY-MM-DD' -> count
+      // solveHistory를 일자별 count로 집계(로컬 0시 기준)
+      const counts = new Map(); // 'yyyy-mm-dd' -> n
       for (const [qid, rec] of Object.entries(questionScores || {})) {
         if (!idSet.has(qid)) continue;
         const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
         for (const h of hist) {
-          const t = Number(h?.date); if (!Number.isFinite(t)) continue;
-          const d = new Date(t); d.setHours(0,0,0,0);
-          const key = d.toISOString().slice(0,10);
-          dayCount.set(key, (dayCount.get(key)||0) + 1);
+          const t = Number(h?.date);
+          if (!Number.isFinite(t)) continue;
+          const d = new Date(t);
+          d.setHours(0,0,0,0);
+          const k = ymd(d);
+          counts.set(k, (counts.get(k)||0) + 1);
         }
       }
 
-      // 현재 달 계산
-      const y = calendarView.getFullYear();
-      const m = calendarView.getMonth(); // 0-11
-      const first = new Date(y, m, 1);
-      const last = new Date(y, m+1, 0);
-      const firstDow = (first.getDay() + 6) % 7; // 월=0, ... 일=6
-      const daysInMonth = last.getDate();
+      // 달력 범위 계산 (월요일 시작)
+      const first = new Date(calRefDate); // 1일
+      const firstDow = dowMon0(first);
+      const start = new Date(first);
+      start.setDate(first.getDate() - firstDow); // 그 주의 월요일
 
-      el.calendarMonthLabel.textContent = `${y}.${String(m+1).padStart(2,'0')}`;
-      el.calendarGrid.innerHTML = '';
+      const lastDay = new Date(calRefDate.getFullYear(), calRefDate.getMonth()+1, 0);
+      const lastDow = dowMon0(lastDay);
+      const end = new Date(lastDay);
+      end.setDate(lastDay.getDate() + (6 - lastDow)); // 그 주의 일요일
 
-      // 앞쪽 빈칸: 이전달
-      for (let i=0;i<firstDow;i++){
-        const cell = document.createElement('div');
-        cell.className = 'rounded text-center py-2 text-xs text-gray-400 border border-dashed border-gray-200';
-        cell.textContent = ' ';
-        el.calendarGrid.appendChild(cell);
-      }
-      // 이번달 날짜
-      for (let d=1; d<=daysInMonth; d++){
-        const dateObj = new Date(y, m, d); dateObj.setHours(0,0,0,0);
-        const key = dateObj.toISOString().slice(0,10);
-        const c = dayCount.get(key) || 0;
-        let bg = 'bg-gray-200', text='text-gray-800', ring='';
-        if (c>=1 && c<=1) { bg='bg-green-200'; text='text-gray-800'; }
-        else if (c<=3 && c>=2) { bg='bg-green-300'; text='text-gray-900'; }
-        else if (c<=6 && c>=4) { bg='bg-green-500'; text='text-white'; }
-        else if (c>=7) { bg='bg-green-700'; text='text-white'; }
-        // 오늘 테두리
-        const today = new Date(); today.setHours(0,0,0,0);
-        if (dateObj.getTime() === today.getTime()) ring='ring-2 ring-blue-500';
+      // 렌더
+      grid.innerHTML = '';
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
+        const inMonth = (d.getMonth() === calRefDate.getMonth() && d.getFullYear() === calRefDate.getFullYear());
+        const key = ymd(d);
+        const c = counts.get(key) || 0;
 
+        const { bg, fg } = colorForCount(c);
         const cell = document.createElement('div');
-        cell.className = `rounded text-center py-2 text-sm border ${bg} ${text} ${ring}`;
-        cell.title = `${d}일 · 풀이 ${c}회`;
-        cell.textContent = String(d);
-        el.calendarGrid.appendChild(cell);
-      }
-      // 뒷쪽 빈칸 채워 6주 고정(가독성)
-      const filled = firstDow + daysInMonth;
-      const totalCells = Math.ceil(filled / 7) * 7;
-      for (let i=filled; i<totalCells; i++){
-        const cell = document.createElement('div');
-        cell.className = 'rounded text-center py-2 text-xs text-gray-400 border border-dashed border-gray-200';
-        cell.textContent = ' ';
-        el.calendarGrid.appendChild(cell);
+        cell.className = `cal-cell` + (inMonth ? '' : ' muted');
+        cell.title = `${key} · 풀이 ${c}회`;
+        cell.style.backgroundColor = bg;
+        cell.style.color = fg;
+
+        const day = document.createElement('div');
+        day.className = 'cal-day';
+        day.textContent = String(d.getDate());
+
+        cell.appendChild(day);
+        grid.appendChild(cell);
       }
     }
 
-    /* ===== 통계: 오늘/주간/월간 (세모 드롭다운) ===== */
-    function renderStats() {
-      if (!el.statsOverview) return;
+    // 캘린더 네비
+    el.calPrev?.addEventListener('click', () => { calRefDate.setMonth(calRefDate.getMonth()-1); renderCalendarMonth(); });
+    el.calNext?.addEventListener('click', () => { calRefDate.setMonth(calRefDate.getMonth()+1); renderCalendarMonth(); });
 
-      // 기간 계산
-      const now = new Date();
-      function startOfDay(d){ const t=new Date(d); t.setHours(0,0,0,0); return t; }
-      function endOfDay(d){ const t=new Date(d); t.setHours(23,59,59,999); return t; }
-      function startOfWeek(d){ const t=startOfDay(d); const dow=(t.getDay()+6)%7; t.setDate(t.getDate()-dow); return t; }
-      function startOfMonth(d){ return startOfDay(new Date(d.getFullYear(), d.getMonth(), 1)); }
+    function renderStats(){
+      if(!el.statsOverview) return;
+      const now=new Date(), startOfDay=d=>{const t=new Date(d); t.setHours(0,0,0,0); return t;}, endOfDay=d=>{const t=new Date(d); t.setHours(23,59,59,999); return t;}, startOfWeek=d=>{const t=startOfDay(d); const dow=(t.getDay()+6)%7; t.setDate(t.getDate()-dow); return t;}, startOfMonth=d=>startOfDay(new Date(d.getFullYear(), d.getMonth(),1));
+      let title='오늘의 통계', label='오늘', start=startOfDay(now), end=endOfDay(now);
+      if(statsView==='week'){ title='주간 통계'; label='주간'; start=startOfWeek(now); }
+      if(statsView==='month'){ title='월간 통계'; label='월간'; start=startOfMonth(now); }
 
-      let periodTitle='오늘의 통계', viewLabel='오늘', start=startOfDay(now), end=endOfDay(now);
-      if (statsView==='week'){ periodTitle='주간 통계'; viewLabel='주간'; start=startOfWeek(now); end=endOfDay(now); }
-      if (statsView==='month'){ periodTitle='월간 통계'; viewLabel='월간'; start=startOfMonth(now); end=endOfDay(now); }
-
-      const base = getScopeFilteredData();
-      const idSet = new Set(base.map(q => String(q.고유ID).trim()));
-
-      // 전체 평균/최근학습/스트릭
-      let solvedCnt=0, sumScore=0, flagged=0, lastSolvedAt=0;
-      const daySet = new Set();
-      for (const q of base) {
-        const qid = String(q.고유ID).trim(); const rec = questionScores[qid];
-        if (rec && Number.isFinite(Number(rec.score))) { solvedCnt += 1; sumScore += Number(rec.score); }
-        if (rec?.userReviewFlag) flagged += 1;
-        if (rec?.lastSolvedDate && rec.lastSolvedDate>lastSolvedAt) lastSolvedAt = rec.lastSolvedDate;
-        const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
-        hist.forEach(h=>{ const t=Number(h?.date); if(!Number.isFinite(t)) return; const d=new Date(t); d.setHours(0,0,0,0); daySet.add(d.toISOString().slice(0,10)); });
+      const base=getScopeFilteredData(), idSet=new Set(base.map(q=>String(q.고유ID).trim()));
+      let solved=0,sum=0, flagged=0,last=0; const daySet=new Set();
+      for(const q of base){
+        const id=String(q.고유ID).trim(), rec=questionScores[id];
+        if(rec && Number.isFinite(+rec.score)){ solved++; sum+=+rec.score; }
+        if(rec?.userReviewFlag) flagged++;
+        if(rec?.lastSolvedDate && rec.lastSolvedDate>last) last=rec.lastSolvedDate;
+        (Array.isArray(rec?.solveHistory)?rec.solveHistory:[]).forEach(h=>{ const t=+h?.date; if(!Number.isFinite(t)) return; const d=new Date(t); d.setHours(0,0,0,0); daySet.add(ymd(d)); });
       }
-      const avgAll = solvedCnt? (sumScore/solvedCnt) : null;
-      const recentTxt = lastSolvedAt ? (()=>{const d=Math.floor((Date.now()-lastSolvedAt)/(86400000)); return d===0?'오늘':(d===1?'어제':`${d}일 전`);})() : '기록 없음';
-      function hasSolved(day){ const k=new Date(day); k.setHours(0,0,0,0); return daySet.has(k.toISOString().slice(0,10)); }
-      let streak=0, cur=new Date(); cur.setHours(0,0,0,0); while (hasSolved(cur)) { streak+=1; cur.setDate(cur.getDate()-1); }
-      const bestStreakKey='bestStreak_v1';
-      const best = Math.max(streak, Number(localStorage.getItem(bestStreakKey)||0));
-      if (best > Number(localStorage.getItem(bestStreakKey)||0)) localStorage.setItem(bestStreakKey,String(best));
+      const avgAll=solved?(sum/solved):null;
+      const recentTxt= last? ((d=>d===0?'오늘':d===1?'어제':`${d}일 전`)(Math.floor((Date.now()-last)/86400000))):'기록 없음';
+      const hasSolved=dayKey=> daySet.has(dayKey);
+      let streak=0, cur=new Date(); cur.setHours(0,0,0,0);
+      while(hasSolved(ymd(cur))){ streak++; cur.setDate(cur.getDate()-1); }
+      const bestKey='bestStreak_v1', best=Math.max(streak, +(localStorage.getItem(bestKey)||0)); if(best>+(localStorage.getItem(bestKey)||0)) localStorage.setItem(bestKey,String(best));
 
-      // 기간 지표
-      let periodSolves=0, periodScoreSum=0;
-      const byChapter = new Map();
-      function chRec(ch){ if(!byChapter.has(ch)) byChapter.set(ch,{solves:0,sum:0}); return byChapter.get(ch); }
-
-      for (const q of base) {
-        const qid = String(q.고유ID).trim(); const ch  = String(q.단원).trim();
-        const rec = questionScores[qid]; const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
-        for (const h of hist) {
-          const t = Number(h?.date); const sc = Number(h?.score);
-          if (!Number.isFinite(t)) continue;
-          if (t >= +start && t <= +end) {
-            periodSolves += 1;
-            if (Number.isFinite(sc)) periodScoreSum += sc;
-            const slot = chRec(ch); slot.solves += 1; if (Number.isFinite(sc)) slot.sum += sc;
-          }
-        }
+      let periodSolves=0, periodSum=0; const byCh=new Map(), chRec=ch=>{ if(!byCh.has(ch)) byCh.set(ch,{solves:0,sum:0}); return byCh.get(ch); };
+      for(const q of base){
+        const id=String(q.고유ID).trim(), ch=String(q.단원).trim(), rec=questionScores[id], hist=Array.isArray(rec?.solveHistory)?rec.solveHistory:[];
+        for(const h of hist){ const t=+h?.date, sc=+h?.score; if(!Number.isFinite(t)) continue; if(t>=+start && t<=+end){ periodSolves++; if(Number.isFinite(sc)) periodSum+=sc; const slot=chRec(ch); slot.solves++; if(Number.isFinite(sc)) slot.sum+=sc; } }
       }
-      const periodAvg = periodSolves? (periodScoreSum/periodSolves) : null;
+      const periodAvg=periodSolves? (periodSum/periodSolves):null;
+      const weak=[]; byCh.forEach((v,ch)=>{ if(v.solves>=3) weak.push({ch,avg:v.sum/v.solves,cnt:v.solves}); }); weak.sort((a,b)=>a.avg-b.avg); const weakTop=weak.slice(0,3);
 
-      // 약한 단원 Top3
-      const weak = []; byChapter.forEach((v,ch)=>{ if(v.solves>=3) weak.push({ch, avg:v.sum/v.solves, cnt:v.solves}); });
-      weak.sort((a,b)=> a.avg-b.avg); const weakTop = weak.slice(0,3);
+      const baseDaily=+(localStorage.getItem('dailyTarget_v1')||20);
+      if(!localStorage.getItem('weeklyTarget_v1')) localStorage.setItem('weeklyTarget_v1', String(baseDaily*7));
+      if(!localStorage.getItem('monthlyTarget_v1')) localStorage.setItem('monthlyTarget_v1', String(baseDaily*30));
+      const targetKey= statsView==='day'?'dailyTarget_v1': statsView==='week'?'weeklyTarget_v1':'monthlyTarget_v1';
+      const targetLabel= statsView==='day'?'오늘 목표': statsView==='week'?'이번 주 목표':'이번 달 목표';
+      const targetVal= +(localStorage.getItem(targetKey) || (statsView==='day'?baseDaily: (statsView==='week'? baseDaily*7: baseDaily*30)));
+      const pct=Math.max(0,Math.min(100,Math.round((periodSolves/Math.max(1,targetVal))*100)));
+      const fmt=v=> v==null?'-':(Math.round(v*10)/10).toFixed(1);
+      const chip=txt=>`<button data-go-ch="${txt}" class="px-2 py-0.5 text-xs rounded border hover:bg-gray-50">${chapterLabelText(txt)}</button>`;
+      const weakHtml= weakTop.length? weakTop.map(w=>`${chip(w.ch)} <span class="text-xs text-red-600 ml-1">${fmt(w.avg)}점·${w.cnt}회</span>`).join('<br>'):'데이터 부족';
 
-      // 목표
-      const baseDaily = Number(localStorage.getItem('dailyTarget_v1')||20);
-      if (!localStorage.getItem('weeklyTarget_v1'))  localStorage.setItem('weeklyTarget_v1', String(baseDaily*7));
-      if (!localStorage.getItem('monthlyTarget_v1')) localStorage.setItem('monthlyTarget_v1', String(baseDaily*30));
-      const targetKey = statsView==='day' ? 'dailyTarget_v1' : (statsView==='week' ? 'weeklyTarget_v1' : 'monthlyTarget_v1');
-      const targetLabel = statsView==='day' ? '오늘 목표' : (statsView==='week' ? '이번 주 목표' : '이번 달 목표');
-      const targetVal = Number(localStorage.getItem(targetKey) || (statsView==='day'? baseDaily : (statsView==='week'? baseDaily*7 : baseDaily*30)));
-      const pct = Math.max(0, Math.min(100, Math.round((periodSolves / Math.max(1,targetVal))*100)));
-
-      const fmt = (v)=> v==null?'-':(Math.round(v*10)/10).toFixed(1);
-      const mkChip = (txt)=> `<button data-go-ch="${txt}" class="px-2 py-0.5 text-xs rounded border hover:bg-gray-50">${chapterLabelText(txt)}</button>`;
-      const weakHtml = weakTop.length ? weakTop.map(w=>`${mkChip(w.ch)} <span class="text-xs text-red-600 ml-1">${fmt(w.avg)}점·${w.cnt}회</span>`).join('<br>') : '데이터 부족';
-
-      el.statsOverview.innerHTML = `
+      el.statsOverview.innerHTML=`
         <div class="border rounded p-3 relative">
           <div class="flex items-center justify-between mb-2">
-            <h3 class="font-bold" id="stats-title">${periodTitle}</h3>
+            <h3 class="font-bold" id="stats-title">${title}</h3>
             <div class="relative">
-              <button id="stats-view-btn" class="flex items-center gap-1 text-sm px-2 py-1 rounded border hover:bg-gray-50">
-                <span id="stats-view-label">${viewLabel}</span>
-                <span id="stats-caret" class="inline-block transition-transform">▼</span>
-              </button>
+              <button id="stats-view-btn" class="flex items-center gap-1 text-sm px-2 py-1 rounded border hover:bg-gray-50"><span id="stats-view-label">${label}</span><span id="stats-caret" class="inline-block transition-transform">▼</span></button>
               <div id="stats-view-menu" class="hidden absolute right-0 mt-1 w-28 bg-white dark:bg-gray-900 border rounded shadow-md overflow-hidden z-10">
-                <button data-view="day"   class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50">오늘</button>
-                <button data-view="week"  class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50">주간</button>
+                <button data-view="day" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50">오늘</button>
+                <button data-view="week" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50">주간</button>
                 <button data-view="month" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50">월간</button>
               </div>
             </div>
@@ -1628,13 +1117,8 @@
           </div>
 
           <div class="mt-3">
-            <div class="flex items-center justify-between">
-              <div class="text-[12px] text-gray-500">${targetLabel} ${targetVal}개</div>
-              <div class="text-[12px] text-gray-500">${pct}%</div>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-              <div class="h-2 ${pct<60?'bg-red-500':(pct<100?'bg-yellow-500':'bg-green-600')}" style="width:${pct}%;"></div>
-            </div>
+            <div class="flex items-center justify-between"><div class="text-[12px] text-gray-500">${targetLabel} ${targetVal}개</div><div class="text-[12px] text-gray-500">${pct}%</div></div>
+            <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden"><div class="h-2 ${pct<60?'bg-red-500':(pct<100?'bg-yellow-500':'bg-green-600')}" style="width:${pct}%"></div></div>
             <div class="flex items-center gap-2 mt-2">
               <label for="stats-target-input" class="text-xs text-gray-500">목표:</label>
               <input id="stats-target-input" type="number" min="1" class="w-20 px-2 py-1 text-xs border rounded" value="${targetVal}">
@@ -1650,184 +1134,100 @@
           </div>
 
           <div class="text-[12px] text-gray-500 mt-2">최근 학습: <strong class="text-gray-700">${recentTxt}</strong> · 복습 필요(★): <strong class="text-gray-700">${flagged}</strong></div>
-        </div>
-      `;
+        </div>`;
 
-      // 드롭다운
-      const btn = document.getElementById('stats-view-btn');
-      const caret = document.getElementById('stats-caret');
-      const menu = document.getElementById('stats-view-menu');
-      function openMenu(){ menu.classList.remove('hidden'); caret.style.transform='rotate(180deg)'; }
-      function closeMenu(){ menu.classList.add('hidden'); caret.style.transform='rotate(0deg)'; }
-      btn?.addEventListener('click',(e)=>{ e.stopPropagation(); if(menu.classList.contains('hidden')) openMenu(); else closeMenu(); });
-      document.addEventListener('click', closeMenu, { once:true });
-      menu?.querySelectorAll('[data-view]')?.forEach(item=>{
-        item.addEventListener('click', ()=>{ const v=item.getAttribute('data-view'); if (v) setStatsView(v); });
-      });
-      document.getElementById('apply-stats-target')?.addEventListener('click', ()=>{
-        const v = Math.max(1, Math.min(9999, Math.round(Number(document.getElementById('stats-target-input')?.value || 1))));
-        localStorage.setItem(targetKey, String(v)); renderStats();
-      });
-      el.statsOverview.querySelectorAll('[data-go-ch]')?.forEach(b=>{
-        b.addEventListener('click', ()=>{ const ch = b.getAttribute('data-go-ch') || ''; if (ch) { el.chapterSelect.value = ch; handleLoadQuiz(); showToast(`${chapterLabelText(ch)} 로 이동`);} });
-      });
+      const btn=$('stats-view-btn'), caret=$('stats-caret'), menu=$('stats-view-menu');
+      const openMenu=()=>{ menu.classList.remove('hidden'); caret.style.transform='rotate(180deg)'; };
+      const closeMenu=()=>{ menu.classList.add('hidden'); caret.style.transform='rotate(0deg)'; };
+      btn?.addEventListener('click',e=>{ e.stopPropagation(); if(menu.classList.contains('hidden')) openMenu(); else closeMenu(); });
+      document.addEventListener('click', closeMenu, {once:true});
+      menu?.querySelectorAll('[data-view]').forEach(i=> i.addEventListener('click',()=>{ const v=i.getAttribute('data-view'); statsView=v; localStorage.setItem('statsView_v1',v); renderStats(); }) );
+      $('apply-stats-target')?.addEventListener('click',()=>{ const v=Math.max(1,Math.min(9999,Math.round(+($('stats-target-input')?.value||1)))); localStorage.setItem(targetKey,String(v)); renderStats(); });
+      el.statsOverview.querySelectorAll('[data-go-ch]')?.forEach(b=> b.addEventListener('click',()=>{ const ch=b.getAttribute('data-go-ch')||''; if(ch){ el.chapterSelect.value=ch; reloadAndRefresh(); showToast(`${chapterLabelText(ch)} 로 이동`);} }));
     }
 
-    /* ===== 탐색 패널 ===== */
-    function renderExplorer() {
-      if (!el.explorerChapters || !el.explorerProblems) return;
-      const base = getScopeFilteredData();
-
-      const group = new Map();
-      for (const q of base) {
-        const ch = String(q.단원).trim();
-        if (!group.has(ch)) group.set(ch, []);
-        group.get(ch).push(q);
-      }
-      const chapters = [...group.keys()].sort((a,b)=> {
-        const na=Number(a), nb=Number(b);
-        if (Number.isFinite(na) && Number.isFinite(nb)) return na-nb;
-        if (Number.isFinite(na)) return -1; if (Number.isFinite(nb)) return 1;
-        return a.localeCompare(b,'ko');
-      });
+    function renderExplorer(){
+      if(!el.explorerChapters||!el.explorerProblems) return;
+      const base=getScopeFilteredData(), group=new Map();
+      for(const q of base){ const ch=String(q.단원).trim(); if(!group.has(ch)) group.set(ch,[]); group.get(ch).push(q); }
+      const chapters=[...group.keys()].sort((a,b)=>{ const na=+a, nb=+b; if(Number.isFinite(na)&&Number.isFinite(nb)) return na-nb; if(Number.isFinite(na)) return -1; if(Number.isFinite(nb)) return 1; return a.localeCompare(b,'ko'); });
 
       el.explorerChapters.innerHTML='';
       chapters.forEach(ch=>{
-        const btn=document.createElement('button');
-        btn.className='w-full text-left px-3 py-2 rounded border hover:bg-gray-50';
-        btn.textContent=chapterLabelText(ch);
-        btn.addEventListener('click', ()=>{
-          const list = group.get(ch) || [];
-          if (list.length){ currentQuizData = list; currentQuestionIndex = 0; el.quizArea.classList.remove('hidden'); displayQuestion(); showToast(`${chapterLabelText(ch)} 로 이동`); updateSummaryHighlight(); }
-        });
+        const btn=document.createElement('button'); btn.className='w-full text-left px-3 py-2 rounded border hover:bg-gray-50'; btn.textContent=chapterLabelText(ch);
+        btn.addEventListener('click',()=>{ const list=group.get(ch)||[]; if(list.length){ currentQuizData=list; currentQuestionIndex=0; el.quizArea.classList.remove('hidden'); displayQuestion(); showToast(`${chapterLabelText(ch)} 로 이동`); updateSummaryHighlight(); } });
         el.explorerChapters.appendChild(btn);
       });
 
-      const q = (el.explorerSearch?.value || '').trim();
-      const filtered = base.filter(it=>{ const t = `${it.problemTitle||''} ${it.물음||''}`.toLowerCase(); return !q || t.includes(q.toLowerCase()); });
-
+      const q=(el.explorerSearch?.value||'').trim().toLowerCase();
+      const filtered=base.filter(it=> (it.problemTitle||'').toLowerCase().includes(q) || (it.물음||'').toLowerCase().includes(q) );
       el.explorerProblems.innerHTML='';
-      filtered.sort((a,b)=>{ const na=Number(a.물음번호||a.표시번호), nb=Number(b.물음번호||b.표시번호); if (Number.isFinite(na)&&Number.isFinite(nb)) return na-nb; return String(a.표시번호||a.물음번호).localeCompare(String(b.표시번호||b.물음번호),'ko'); })
-      .forEach(qitem=>{
-        const rec = questionScores[String(qitem.고유ID).trim()];
-        const score = Number.isFinite(Number(rec?.score))? Number(rec.score): null;
-        const flagged = !!(rec?.userReviewFlag || rec?.user_review_flag);
-
-        const row=document.createElement('button');
-        row.className='w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded hover:bg-gray-50 border';
-        const left=document.createElement('div');
-        left.className='flex items-center gap-2 text-sm';
+      filtered.sort((a,b)=>{ const na=+(a.물음번호||a.표시번호), nb=+(b.물음번호||b.표시번호); if(Number.isFinite(na)&&Number.isFinite(nb)) return na-nb; return String(a.표시번호||a.물음번호).localeCompare(String(b.표시번호||b.물음번호),'ko'); })
+      .forEach(it=>{
+        const rec=questionScores[String(it.고유ID).trim()], score= Number.isFinite(+rec?.score)? +rec.score : null, flagged=!!(rec?.userReviewFlag);
+        const row=document.createElement('button'); row.className='w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded hover:bg-gray-50 border';
+        const left=document.createElement('div'); left.className='flex items-center gap-2 text-sm';
         if(flagged){ const star=document.createElement('span'); star.textContent='★'; star.className='text-purple-500'; left.appendChild(star); }
-        const title=document.createElement('span');
-        const label = (qitem.problemTitle && String(qitem.problemTitle).trim()) || `문항 ${qitem.표시번호||qitem.물음번호||qitem.고유ID}`;
-        title.textContent = label; title.className = 'block max-w-[16rem] md:max-w-[22rem] lg:max-w-[18rem] xl:max-w-[22rem] truncate';
-        left.appendChild(title);
-
-        const right=document.createElement('div');
-        right.className='text-xs';
-        const badge=document.createElement('span');
-        badge.className='px-2 py-0.5 rounded-full border ' + (score==null?'text-gray-600 border-gray-300':'text-blue-700 border-blue-300');
-        badge.textContent = score==null? '미풀이' : `${score}`;
-        right.appendChild(badge);
-
-        row.appendChild(left); row.appendChild(right);
-        row.title = `출처:${qitem.출처||'-'} | ID:${qitem.고유ID}`;
-
+        const title=document.createElement('span'); const label=(it.problemTitle && String(it.problemTitle).trim())||`문항 ${it.표시번호||it.물음번호||it.고유ID}`;
+        title.textContent=label; title.className='block max-w-[18rem] xl:max-w-[22rem] truncate'; left.appendChild(title);
+        const right=document.createElement('div'); right.className='text-xs'; const badge=document.createElement('span'); badge.className='px-2 py-0.5 rounded-full border '+(score==null?'text-gray-600 border-gray-300':'text-blue-700 border-blue-300'); badge.textContent= score==null?'미풀이':`${score}`; right.appendChild(badge);
+        row.appendChild(left); row.appendChild(right); row.title=`출처:${it.출처||'-'} | ID:${it.고유ID}`;
         row.addEventListener('click',()=>{
-          const ch = String(qitem.단원).trim();
-          const list = base.filter(it=>String(it.단원).trim()===ch);
-          currentQuizData = list.length? list : [qitem];
-          currentQuestionIndex = list.findIndex(it=>String(it.고유ID).trim()===String(qitem.고유ID).trim());
-          if(currentQuestionIndex<0) currentQuestionIndex=0;
+          const ch=String(it.단원).trim(), list=base.filter(x=>String(x.단원).trim()===ch);
+          currentQuizData=list.length?list:[it]; currentQuestionIndex=list.findIndex(x=>String(x.고유ID).trim()===String(it.고유ID).trim()); if(currentQuestionIndex<0) currentQuestionIndex=0;
           el.quizArea.classList.remove('hidden'); displayQuestion(); showToast(`'${label}' 로 이동`);
         });
-
         el.explorerProblems.appendChild(row);
       });
     }
+    const moveSourceFilterToSide=()=>{ if(!el.sourceFilterSide||!el.sourceGroupFilter) return; el.sourceFilterSide.innerHTML=''; el.sourceGroupFilter.classList.remove('mb-6'); el.sourceFilterSide.appendChild(el.sourceGroupFilter); };
+    const refreshPanels=()=>{ renderCalendarMonth(); renderStats(); renderExplorer(); };
 
-    // 출처필터 이동
-    function moveSourceFilterToSide() {
-      if (!el.sourceFilterSide || !el.sourceGroupFilter) return;
-      el.sourceFilterSide.innerHTML=''; el.sourceGroupFilter.classList.remove('mb-6'); el.sourceFilterSide.appendChild(el.sourceGroupFilter);
+    /* ========= 오늘의 복습 ========= */
+    const REVIEW_STRATEGY_LS='reviewStrategy_v1';
+    const getReviewStrategy=()=> localStorage.getItem(REVIEW_STRATEGY_LS)||'smart';
+    function prioritizeTodayReview(list){
+      const strat=getReviewStrategy();
+      if(strat==='flag'){ const f=list.filter(a=>questionScores[normId(a.고유ID)]?.userReviewFlag); const r=list.filter(a=>!questionScores[normId(a.고유ID)]?.userReviewFlag); return f.concat(r); }
+      if(strat==='low'){ return [...list].sort((a,b)=>{ const sa=questionScores[normId(a.고유ID)]?.score??101, sb=questionScores[normId(b.고유ID)]?.score??101; return sa-sb; }); }
+      if(strat==='recentWrong'){ return [...list].sort((a,b)=>{ const sa=questionScores[normId(a.고유ID)], sb=questionScores[normId(b.고유ID)], as=sa?.score??101, bs=sb?.score??101, ad=sa?.lastSolvedDate??0, bd=sb?.lastSolvedDate??0; return (as-bs)||(ad-bd); }); }
+      return [...list].sort((a,b)=>{ const sa=questionScores[normId(a.고유ID)], sb=questionScores[normId(b.고유ID)], af=sa?.userReviewFlag?0:1, bf=sb?.userReviewFlag?0:1, aUn=sa?1:0, bUn=sb?1:0, aS=sa?.score??101, bS=sb?.score??101, aD=sa?.lastSolvedDate??0, bD=sb?.lastSolvedDate??0; return (af-bf)||(aUn-bUn)||(aS-bS)||(aD-bD); });
     }
+    el.reviewStrategySelect?.addEventListener('change',e=>{ localStorage.setItem(REVIEW_STRATEGY_LS, e.target.value); showToast(`오늘의 복습 전략: ${e.target.value}`); refreshPanels(); });
+    (function syncStrategy(){ const cur=getReviewStrategy(); if(el.reviewStrategySelect) el.reviewStrategySelect.value=cur; })();
+    el.startReviewBtn?.addEventListener('click',()=>{ if(el.filterSelect) el.filterSelect.value='today-review'; reloadAndRefresh(); showToast('오늘의 복습 시작'); });
 
-    // 좌/우 패널 갱신
-    function refreshPanels() {
-      renderCalendar();
-      renderStats();
-      renderExplorer();
-    }
-
-    // 오늘의 복습 전략
-    const REVIEW_STRATEGY_LS = 'reviewStrategy_v1';
-    function getReviewStrategy() { return localStorage.getItem(REVIEW_STRATEGY_LS) || 'smart'; }
-    function prioritizeTodayReview(list) {
-      const strat = getReviewStrategy();
-      if (strat === 'flag') {
-        const flagged = list.filter(a => (questionScores[normId(a.고유ID)]?.userReviewFlag));
-        const rest = list.filter(a => !(questionScores[normId(a.고유ID)]?.userReviewFlag));
-        return flagged.concat(rest);
-      }
-      if (strat === 'low') {
-        return [...list].sort((a,b)=>{ const sa = questionScores[normId(a.고유ID)]?.score ?? 101; const sb = questionScores[normId(b.고유ID)]?.score ?? 101; return sa - sb; });
-      }
-      if (strat === 'recentWrong') {
-        return [...list].sort((a,b)=>{ const sa = questionScores[normId(a.고유ID)]; const sb = questionScores[normId(b.고유ID)]; const as = sa?.score ?? 101, bs = sb?.score ?? 101; const ad = sa?.lastSolvedDate ?? 0, bd = sb?.lastSolvedDate ?? 0; return (as - bs) || (ad - bd); });
-      }
-      return [...list].sort((a, b) => {
-        const sa = questionScores[normId(a.고유ID)], sb = questionScores[normId(b.고유ID)];
-        const aflag = sa?.userReviewFlag ? 0 : 1; const bflag = sb?.userReviewFlag ? 0 : 1;
-        const aUn = sa ? 1 : 0, bUn = sb ? 1 : 0; const aScore = sa?.score ?? 101, bScore = sb?.score ?? 101;
-        const aDate = sa?.lastSolvedDate ?? 0, bDate = sb?.lastSolvedDate ?? 0;
-        return (aflag - bflag) || (aUn - bUn) || (aScore - bScore) || (aDate - bDate);
-      });
-    }
-    el.reviewStrategySelect?.addEventListener('change', (e)=>{ localStorage.setItem(REVIEW_STRATEGY_LS, e.target.value); showToast(`오늘의 복습 전략: ${e.target.value}`); refreshPanels(); });
-    (function syncStrategy(){ const cur = getReviewStrategy(); if (el.reviewStrategySelect) el.reviewStrategySelect.value = cur; })();
-    el.startReviewBtn?.addEventListener('click', ()=>{ if (el.filterSelect) el.filterSelect.value = 'today-review'; handleLoadQuiz(); showToast('오늘의 복습 시작'); });
-
-    // 모바일: 좌측패널 드로어
+    /* ========= 모바일 드로어 (햄버거 ↔ ✕) ========= */
     function openDrawer(){
       document.body.classList.add('drawer-open');
       el.drawerBackdrop.classList.remove('hidden');
       el.leftDashboard.classList.remove('hidden');
-      el.leftDashboard.classList.add('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900');
+      el.leftDashboard.classList.add('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900','relative');
+      el.drawerClose.classList.remove('hidden'); // ✕ 버튼 표시
     }
     function closeDrawer(){
       document.body.classList.remove('drawer-open');
       el.drawerBackdrop.classList.add('hidden');
       el.leftDashboard.classList.add('hidden');
-      el.leftDashboard.classList.remove('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900');
+      el.leftDashboard.classList.remove('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900','relative');
+      el.drawerClose.classList.add('hidden'); // ✕ 버튼 숨김
     }
-    el.hamburger?.addEventListener('click', ()=> openDrawer());
-    el.drawerBackdrop?.addEventListener('click', ()=> closeDrawer());
-    window.addEventListener('resize', ()=>{
-      if (window.innerWidth >= 1024) { // lg 이상
-        el.leftDashboard.classList.remove('hidden');
-        el.drawerBackdrop.classList.add('hidden');
-        document.body.classList.remove('drawer-open');
-        el.leftDashboard.classList.remove('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900');
-      } else {
-        // 모바일 기본 감춤
-        el.leftDashboard.classList.add('hidden');
-      }
+    el.hamburger?.addEventListener('click', openDrawer);
+    el.drawerBackdrop?.addEventListener('click', closeDrawer);
+    el.drawerClose?.addEventListener('click', closeDrawer);
+    window.addEventListener('resize',()=>{
+      if(window.innerWidth>=1024){ // lg↑
+        el.leftDashboard.classList.remove('hidden'); el.drawerBackdrop.classList.add('hidden'); document.body.classList.remove('drawer-open');
+        el.leftDashboard.classList.remove('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900','relative'); el.drawerClose.classList.add('hidden');
+      }else{ el.leftDashboard.classList.add('hidden'); }
     });
 
-    // 초기화
-    document.addEventListener('DOMContentLoaded', async () => {
-      try { await loadData(); }
-      catch (err) {
-        console.error(err);
-        document.getElementById('question-text').textContent = '문제 데이터 로드 실패 (questions.json 또는 dataset-json을 확인하세요).';
-        showToast(`문제 데이터 로드 실패: ${err.message}`, 'error');
-      }
-      loadScores(); loadApiKey(); loadSettings(); applyDarkMode(); migrateData();
-      backfillReadStoreFromScores(false); ensureApiKeyGate();
-
+    /* ========= 초기화 ========= */
+    document.addEventListener('DOMContentLoaded', async ()=>{
+      try{ await loadData(); }catch(err){ console.error(err); $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).'; showToast(`문제 데이터 로드 실패: ${err.message}`,'error'); }
+      loadScores(); loadApiKey(); loadSettings(); applyDarkMode(); migrateData(); backfillReadStoreFromScores(false); ensureApiKeyGate();
       buildSourceFilterUI(); moveSourceFilterToSide();
       el.explorerSearch?.addEventListener('input', renderExplorer);
-
       refreshPanels();
     });
   </script>
