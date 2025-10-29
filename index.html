@@ -17,9 +17,8 @@
     .summary-btn:hover{ transform:scale(1.1) }
     pre{ white-space:pre-wrap; word-wrap:break-word }
     #toast{ position:fixed; top:16px; right:16px; z-index:9999 }
-    .no-kr-break{ word-break:keep-all } /* ‘문제 목록’ 세로깨짐 방지 */
+    .no-kr-break{ word-break:keep-all }
 
-    /* 다크모드 기본 */
     .dark{ background-color:#1a202c; color:#e2e8f0 }
     .dark .bg-white{ background-color:#2d3748 }
     .dark .bg-gray-100{ background-color:#1a202c }
@@ -31,7 +30,6 @@
     .dark .border-gray-300{ border-color:#4a5568 }
   </style>
 
-  <!-- 다크모드 접근성 보강 -->
   <style id="dark-a11y-20251026">
     html.dark { color-scheme: dark; }
     html.dark input, html.dark textarea, html.dark select { background-color:#1f2937; color:#e5e7eb; border-color:#4b5563 }
@@ -50,28 +48,16 @@
     html.dark .summary-btn.bg-green-100{ background-color:#14532d; color:#bbf7d0; border-color:#166534 }
   </style>
 
-  <!-- Ctrl] 포커스 모드 -->
   <style id="focus-mode-css">
     html.focus-mode { scroll-behavior: smooth; }
     html.focus-mode #result-box { max-height:none!important; overflow:visible!important; }
   </style>
 
-  <!-- 보조 CSS -->
   <style id="layout-css">
     .heatmap-cell{ width:14px; height:14px; border-radius:3px }
-    .drawer-open{ overflow:hidden } /* 모바일 드로어 */
-
-    /* 월간 캘린더 셀 */
-    .cal-cell {
-      height: 32px; border-radius: 6px; position: relative;
-      display: grid; place-items: center; font-size: 12px;
-      border: 1px solid rgba(0,0,0,0.06);
-    }
-    .cal-cell .cal-day {
-      position: absolute; top: 4px; right: 6px;
-      font-size: 10px; opacity: 0.85;
-      font-weight: 600;
-    }
+    .drawer-open{ overflow:hidden }
+    .cal-cell { height: 32px; border-radius: 6px; position: relative; display: grid; place-items: center; font-size: 12px; border: 1px solid rgba(0,0,0,0.06); }
+    .cal-cell .cal-day { position: absolute; top: 4px; right: 6px; font-size: 10px; opacity: 0.85; font-weight: 600; }
     .cal-cell.muted { opacity: 0.35; }
   </style>
 </head>
@@ -96,18 +82,14 @@
   </header>
   <div class="h-14"></div>
 
-  <!-- 모바일 드로어 백드롭 -->
   <div id="drawer-backdrop" class="fixed inset-0 bg-black/40 hidden z-[1099]"></div>
 
-  <!-- 메인 레이아웃 -->
   <div id="layout-root" class="pt-2 flex-1 px-4 lg:px-6 xl:px-8">
     <div class="mx-auto max-w-[1400px] 2xl:max-w-[1600px] grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6 2xl:gap-8">
-      <!-- LEFT: 대시보드 -->
+      <!-- LEFT -->
       <aside id="left-dashboard" class="lg:col-span-3 xl:col-span-3 2xl:col-span-3 space-y-4">
-        <!-- 드로어 X 버튼(모바일 전용) -->
         <button id="drawer-close" class="hidden lg:hidden absolute top-2 right-2 z-[1101] inline-flex items-center justify-center w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700" aria-label="닫기">✕</button>
 
-        <!-- 학습 캘린더 -->
         <div class="bg-white rounded-2xl shadow-xl p-4">
           <div class="flex items-center justify-between mb-2">
             <h3 class="font-bold text-lg">학습 캘린더</h3>
@@ -117,12 +99,10 @@
               <button id="cal-next" class="w-8 h-8 grid place-items-center rounded-md border hover:bg-gray-50" aria-label="다음 달">▶</button>
             </div>
           </div>
-
           <div id="calendar-weekdays" class="grid grid-cols-7 text-center text-xs text-gray-500 mb-1">
             <div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div><div>일</div>
           </div>
           <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
-
           <div class="mt-2 text-[11px] text-gray-500">색 = 해당일 풀이량 (노랑→초록→파랑, 촘촘)</div>
         </div>
 
@@ -144,16 +124,14 @@
         </div>
       </aside>
 
-      <!-- CENTER: 메인 -->
+      <!-- CENTER -->
       <main id="center-core" class="lg:col-span-6 xl:col-span-6 2xl:col-span-6">
         <div class="bg-white rounded-2xl shadow-xl w-full p-6 md:p-8">
-          <!-- 옵션 행 -->
           <div class="flex flex-col md:flex-row gap-4 mb-6 items-center">
             <div class="flex-1 w-full">
               <label for="chapter-select" class="block text-sm font-medium text-gray-700 mb-1">단원 선택</label>
               <select id="chapter-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
                 <option value="">-- 전체 단원 --</option>
-                <!-- JS에서 파트 옵션과 장 옵션을 동적으로 채움 -->
               </select>
             </div>
             <div class="flex-1 w-full">
@@ -172,7 +150,6 @@
             </div>
           </div>
 
-          <!-- (신규) 출처 그룹 필터 -->
           <div id="source-group-filter" class="mb-6"></div>
 
           <!-- 문제 영역 -->
@@ -186,11 +163,20 @@
 
               <p id="question-text" class="text-gray-800 text-base md:text-lg leading-relaxed mt-2">문제를 불러오는 중입니다...</p>
 
+              <!-- 힌트/복습 버튼 영역 -->
               <div class="mt-3 flex items-center justify-between gap-2">
                 <button id="hint-btn" class="text-sm bg-purple-600 text-white px-3 py-1.5 rounded-md shadow hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">힌트</button>
-                <button id="review-flag-toggle" class="text-sm px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100 flex items-center gap-1" aria-pressed="false" title="복습 필요 토글">
-                  <span class="text-yellow-500">☆</span><span>복습 필요</span>
-                </button>
+
+                <div class="flex items-center gap-2">
+                  <button id="review-flag-toggle" class="text-sm px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100 flex items-center gap-1" aria-pressed="false" title="복습 필요 토글">
+                    <span class="text-yellow-500">☆</span><span>복습 필요</span>
+                  </button>
+
+                  <!-- NEW: 복습 제외 토글 (오늘의 복습에서 제외) -->
+                  <button id="review-exclude-toggle" class="text-sm px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100 flex items-center gap-1" aria-pressed="false" title="오늘의 복습에서 제외/해제">
+                    <span class="text-gray-600">➖</span><span>복습 제외</span>
+                  </button>
+                </div>
               </div>
 
               <div id="hint-container" class="hidden mt-3 text-sm bg-purple-50 border border-purple-200 text-purple-800 rounded-lg p-3 dark:bg-indigo-900 dark:border-indigo-700 dark:text-indigo-100"></div>
@@ -200,7 +186,7 @@
               <label for="user-answer" class="text-sm font-medium text-gray-700">답안 입력</label>
               <button id="load-prev-answer-btn" class="text-xs text-blue-600 hover:underline">이전 답안 불러오기</button>
             </div>
-            <textarea id="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=포커스/현황판)"></textarea>
+            <textarea id="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark=text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=포커스/현황판)"></textarea>
             <p id="error-message" class="text-red-500 text-sm mt-2 hidden">답안을 입력해주세요.</p>
             <p id="hotkey-guide" class="text-xs text-gray-500 mt-2">
               단축키: Ctrl+←/→ 이전/다음 · Enter 채점 · Shift+Enter 줄바꿈 · H 힌트 · Ctrl+[ 이전 · Ctrl+] 포커스/현황판
@@ -258,7 +244,7 @@
         </div>
       </main>
 
-      <!-- RIGHT: 탐색 패널 -->
+      <!-- RIGHT -->
       <aside id="right-explorer" class="lg:col-span-3 xl:col-span-3 2xl:col-span-3 space-y-4">
         <div class="bg-white rounded-2xl shadow-xl p-4">
           <h3 class="font-bold text-lg mb-2">학습 범위 필터</h3>
@@ -314,13 +300,11 @@
         <button id="settings-close-btn" class="text-gray-500 hover:text-gray-800 dark:hover:text-white" aria-label="닫기">✕</button>
       </div>
 
-      <!-- API 키 -->
       <div class="mb-6 pb-6 border-b">
         <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">API 키 설정</h3>
         <button id="open-api-key-modal-btn" class="w-full bg-blue-50 border border-blue-300 text-blue-700 font-medium py-2 px-4 rounded-lg hover:bg-blue-100 transition">API 키 변경/설정</button>
       </div>
 
-      <!-- AI 모델 -->
       <div class="mb-6 pb-6 border-b">
         <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">AI 모델 선택</h3>
         <select id="ai-model-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700">
@@ -330,7 +314,6 @@
         <p class="text-xs text-gray-500 mt-2">힌트 및 채점에 사용될 AI 모델을 선택하세요.</p>
       </div>
 
-      <!-- 다크 모드 -->
       <div class="mb-6 pb-6 border-b">
         <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">다크 모드</h3>
         <select id="dark-mode-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700">
@@ -340,7 +323,6 @@
         </select>
       </div>
 
-      <!-- 데이터 Import/Export -->
       <div class="mb-6">
         <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">데이터 관리</h3>
         <div class="flex gap-3">
@@ -365,7 +347,6 @@
   ]</script>
 
   <script type="module">
-    /* ========= 채점 프롬프트(원문 그대로) ========= */
     const BASE_SYSTEM_PROMPT =
 `당신은 매우 엄격한 회계감사 과목 채점 교수님입니다.
 - 사용자 답안을 모범답안과 비교해 0~100의 "score"(NUMBER)와 "feedback"(STRING, 한국어)을 JSON으로만 반환하세요.
@@ -391,16 +372,13 @@
 - 레퍼런스 밖 주장은 근거 없으면 감점.
 - 도출한 점수보다 7점 깎아서 제시할 것`;
 
-    /* ========= 전역 상태 ========= */
     let allData=[], currentQuizData=[], currentQuestionIndex=0, questionScores={};
     let geminiApiKey='', activeHintQuestionKey=null, selectedAiModel='gemini-2.5-flash', darkMode='system';
     let prevLoaded=false, summaryViewMode='ALL', statsView=localStorage.getItem('statsView_v1')||'day';
     let ctrlNavState='dashboard', lastScrollYBeforeFocus=0;
 
-    /* 월간 캘린더 기준일(항상 1일로 세팅) */
     let calRefDate = (() => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(1); return d; })();
 
-    /* ========= DOM ========= */
     const $ = id=>document.getElementById(id);
     const el = {
       toast: $('toast'), apiModal:$('api-modal'), apiModalInput:$('api-modal-input'), apiModalRemember:$('modal-remember'),
@@ -421,12 +399,11 @@
       reviewStrategySelect:$('review-strategy-select'), startReviewBtn:$('start-review-btn'),
       sourceFilterSide:$('source-filter-side'), sourceGroupFilter:$('source-group-filter'),
       explorerChapters:$('explorer-chapters'), explorerProblems:$('explorer-problems'), explorerSearch:$('explorer-search'),
-      reviewFlagToggle:$('review-flag-toggle'), hamburger:$('hamburger'), leftDashboard:$('left-dashboard'), drawerBackdrop:$('drawer-backdrop'), drawerClose:$('drawer-close'),
-      // 캘린더
+      reviewFlagToggle:$('review-flag-toggle'), reviewExcludeToggle:$('review-exclude-toggle'),
+      hamburger:$('hamburger'), leftDashboard:$('left-dashboard'), drawerBackdrop:$('drawer-backdrop'), drawerClose:$('drawer-close'),
       calPrev:$('cal-prev'), calNext:$('cal-next'), calTitle:$('cal-title'), calendarGrid:$('calendar-grid')
     };
 
-    /* ========= 유틸 ========= */
     const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
     const normId=v=>String(v).trim();
     const sanitizeModelText=t=>{ let s=(t||'').trim(); if(s.startsWith('```')) s=s.replace(/^```[\s\S]*?\n/,'').replace(/```$/,'').trim(); s=s.replace(/^\uFEFF/,''); const a=s.indexOf('{'), b=s.lastIndexOf('}'); if(a!==-1&&b!==-1&&b>a) s=s.slice(a,b+1); return s; };
@@ -441,85 +418,22 @@
     const smoothScrollTo=y=>window.scrollTo({top:y,behavior:'smooth'});
     const elmTop=e=>e.getBoundingClientRect().top + window.pageYOffset;
 
-    /* ====== 캘린더 색상 헬퍼 (노랑/초록/파랑 촘촘) ====== */
-    function hslToHex(h, s, l) {
-      s /= 100; l /= 100;
-      const k = n => (n + h/30) % 12;
-      const a = s * Math.min(l, 1 - l);
-      const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-      const toHex = x => Math.round(x*255).toString(16).padStart(2, '0');
-      return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
-    }
+    function hslToHex(h, s, l) { s/=100; l/=100; const k=n=>(n+h/30)%12; const a=s*Math.min(l,1-l); const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1))); const toHex=x=>Math.round(x*255).toString(16).padStart(2,'0'); return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`; }
     function colorForCount(c) {
       if (!Number.isFinite(c) || c <= 0) return { bg: '#e5e7eb', fg: '#111827' };
       const fgForL = (l) => (l < 55 ? '#ffffff' : '#111827');
-
-      if (c >= 1 && c <= 6) {
-        const steps = 6, idx = c - 1;
-        const h = 50, s = 95;
-        const lStart = 92, lEnd = 55;
-        const l = lStart + (lEnd - lStart) * (idx / (steps - 1));
-        const bg = hslToHex(h, s, l);
-        return { bg, fg: fgForL(l) };
-      }
-      if (c >= 7 && c <= 15) {
-        const steps = 9, idx = c - 7;
-        const h = 140, s = 85;
-        const lStart = 92, lEnd = 45;
-        const l = lStart + (lEnd - lStart) * (idx / (steps - 1));
-        const bg = hslToHex(h, s, l);
-        return { bg, fg: fgForL(l) };
-      }
-      if (c >= 16 && c <= 30) {
-        const steps = 15, idx = c - 16;
-        const h = 210, s = 85;
-        const lStart = 92, lEnd = 40;
-        const l = lStart + (lEnd - lStart) * (idx / (steps - 1));
-        const bg = hslToHex(h, s, l);
-        return { bg, fg: fgForL(l) };
-      }
+      if (c >= 1 && c <= 6) { const steps=6, idx=c-1, h=50, s=95, lStart=92, lEnd=55; const l=lStart+(lEnd-lStart)*(idx/(steps-1)); return { bg:hslToHex(h,s,l), fg:fgForL(l) }; }
+      if (c >= 7 && c <= 15){ const steps=9, idx=c-7, h=140, s=85, lStart=92, lEnd=45; const l=lStart+(lEnd-lStart)*(idx/(steps-1)); return { bg:hslToHex(h,s,l), fg:fgForL(l) }; }
+      if (c >= 16 && c <= 30){ const steps=15, idx=c-16, h=210, s=85, lStart=92, lEnd=40; const l=lStart+(lEnd-lStart)*(idx/(steps-1)); return { bg:hslToHex(h,s,l), fg:fgForL(l) }; }
       return { bg: '#1e40af', fg: '#ffffff' };
     }
     const ymd=(d)=>{ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; };
     const dowMon0=d=> (d.getDay()+6)%7;
 
-    /* ========= 라벨 ========= */
-    const CHAPTER_LABELS={
-      1:"제1장 감사와 회계감사의 기본개념",
-      2:"제2장 감사인의 의무, 책임 및 자격요건",
-      3:"제3장 감사인의 독립성과 품질관리",
-      4:"제1장 감사인의 선임",
-      5:"제2장 감사계약",
-      6:"제1장 회계감사수행을 위한 기초지식",
-      7:"제2장 위험평가절차와 계획수립",
-      8:"제1장 통제테스트와 위험평가의 확정",
-      9:"제1-2장 데이터분석",
-      10:"제2장 실증절차의 기초",
-      11:"제3장 기초잔액과 거래유형별 실증절차",
-      12:"제4장 특정항목별 감사절차",
-      13:"제5장 테스트항목의 범위와 표본감사 데이터분석",
-      14:"제6장 실증절차의 마무리절차",
-      15:"제1장 미수정왜곡표시의 평가와 감사의견의 형성",
-      16:"제2장 감사보고서의 작성과 보고",
-      17:"제1장 인증업무개념체계와 특정목적재무보고체계, 제2장 그룹재무제표에 대한 감사",
-      18:"제3장 내부회계관리제도에 대한 감사와 검토",
-      19:"제4장 중간재무제표에 대한 검토",
-      20:"제5장 소규모기업 재무제표에 대한 감사"
-    };
-    const PART_INSERTIONS=[
-      {before:1, label:"Part 1. 회계감사의 기초"},
-      {before:4, label:"Part 2. 감사인의 선임과 감사계약"},
-      {before:6, label:"Part 3. 회계감사의 시작과 위험평가절차"},
-      {before:8, label:"Part 4. 위험평가절차에 대한 추가감사절차"},
-      {before:15,label:"Part 5. 감사의견의 형성과 감사보고서"},
-      {before:17,label:"Part 6. 그룹재무제표에 대한 감사와 기타인증업무"}
-    ];
-    const chapterLabelText=chStr=>{
-      const n=Number(chStr), t=CHAPTER_LABELS[n];
-      return Number.isFinite(n)? (t?`${n}. ${t}`:`단원 ${n}`):String(chStr);
-    };
+    const CHAPTER_LABELS={ 1:"제1장 감사와 회계감사의 기본개념", 2:"제2장 감사인의 의무, 책임 및 자격요건", 3:"제3장 감사인의 독립성과 품질관리", 4:"제1장 감사인의 선임", 5:"제2장 감사계약", 6:"제1장 회계감사수행을 위한 기초지식", 7:"제2장 위험평가절차와 계획수립", 8:"제1장 통제테스트와 위험평가의 확정", 9:"제1-2장 데이터분석", 10:"제2장 실증절차의 기초", 11:"제3장 기초잔액과 거래유형별 실증절차", 12:"제4장 특정항목별 감사절차", 13:"제5장 테스트항목의 범위와 표본감사 데이터분석", 14:"제6장 실증절차의 마무리절차", 15:"제1장 미수정왜곡표시의 평가와 감사의견의 형성", 16:"제2장 감사보고서의 작성과 보고", 17:"제1장 인증업무개념체계와 특정목적재무보고체계, 제2장 그룹재무제표에 대한 감사", 18:"제3장 내부회계관리제도에 대한 감사와 검토", 19:"제4장 중간재무제표에 대한 검토", 20:"제5장 소규모기업 재무제표에 대한 감사" };
+    const PART_INSERTIONS=[ {before:1,label:"Part 1. 회계감사의 기초"}, {before:4,label:"Part 2. 감사인의 선임과 감사계약"}, {before:6,label:"Part 3. 회계감사의 시작과 위험평가절차"}, {before:8,label:"Part 4. 위험평가절차에 대한 추가감사절차"}, {before:15,label:"Part 5. 감사의견의 형성과 감사보고서"}, {before:17,label:"Part 6. 그룹재무제표에 대한 감사와 기타인증업무"} ];
+    const chapterLabelText=chStr=>{ const n=Number(chStr), t=CHAPTER_LABELS[n]; return Number.isFinite(n)? (t?`${n}. ${t}`:`단원 ${n}`):String(chStr); };
 
-    /* ========= 파트 옵션 유틸 ========= */
     const PART_VALUE=(s,e)=>`PART:${s}-${e}`;
     const isPartValue=v=>/^PART:\d+-\d+$/.test(v||'');
     const parsePartValue=v=>{ const m=String(v||'').match(/^PART:(\d+)-(\d+)$/); return m?{start:+m[1], end:+m[2]}:null; };
@@ -532,14 +446,11 @@
       for(let i=0;i<parts.length;i++){
         const start=parts[i].before;
         const end=(i+1<parts.length)? (parts[i+1].before-1) : maxCh;
-        if(chapterNums.some(n=>n>=start && n<=end)){
-          ranges.push({start,end,label:parts[i].label});
-        }
+        if(chapterNums.some(n=>n>=start && n<=end)) ranges.push({start,end,label:parts[i].label});
       }
       return ranges;
     }
 
-    /* ========= 다크 모드 ========= */
     function applyDarkMode(){
       const mode=localStorage.getItem('darkMode')||'system'; darkMode=mode;
       if(el.darkModeSelect) el.darkModeSelect.value=mode;
@@ -550,11 +461,8 @@
         else document.documentElement.classList.remove('dark');
       }
     }
-    if(window.matchMedia){
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(darkMode==='system') applyDarkMode(); });
-    }
+    if(window.matchMedia){ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(darkMode==='system') applyDarkMode(); }); }
 
-    /* ========= 데이터 로딩/마이그레이션 ========= */
     async function loadData(){
       const CAND=['questions.json','./questions.json','./data/questions.json','./assets/questions.json'];
       const errs=[];
@@ -583,27 +491,15 @@
       if(!new Set(allData.map(r=>String(r.단원).trim())).size) throw new Error('단원 데이터 없음');
     }
 
-    /* ========= 단원/파트 드롭다운 구성 (신규: 파트 선택 가능) ========= */
     function populateChapterSelect(){
-      // 초기화: 기본 옵션만 남기고 제거
       while(el.chapterSelect.options.length>1) el.chapterSelect.remove(1);
-
-      const chNums=getAllChapterNums(); // 실제 데이터에 존재하는 장 번호
-      const ranges=computePartRanges(chNums);
-
-      // 1) 각 파트 옵션 추가 (선택 가능)
+      const chNums=getAllChapterNums(); const ranges=computePartRanges(chNums);
       for(const r of ranges){
-        const opt=document.createElement('option');
-        opt.value=PART_VALUE(r.start,r.end);
-        opt.textContent=`--- ${r.label} (${r.start}~${r.end}장) ---`;
-        opt.className='text-gray-700';
+        const opt=document.createElement('option'); opt.value=PART_VALUE(r.start,r.end);
+        opt.textContent=`--- ${r.label} (${r.start}~${r.end}장) ---`; opt.className='text-gray-700';
         el.chapterSelect.appendChild(opt);
-
-        // 2) 파트 하위 장 옵션들 순서대로
         chNums.filter(n=>n>=r.start && n<=r.end).forEach(n=>{
-          const copt=document.createElement('option');
-          copt.value=String(n);
-          copt.textContent=chapterLabelText(n);
+          const copt=document.createElement('option'); copt.value=String(n); copt.textContent=chapterLabelText(n);
           el.chapterSelect.appendChild(copt);
         });
       }
@@ -627,7 +523,6 @@
       }catch(e){ console.error(e); showToast('마이그레이션 오류','error'); }
     }
 
-    /* ========= API 키 모달 ========= */
     function openApiModal(initial=false){ if(initial) el.apiModalCancelBtn.classList.add('hidden'); else el.apiModalCancelBtn.classList.remove('hidden');
       el.apiModal.classList.remove('hidden'); el.apiModal.classList.add('flex'); el.apiModalInput.value=geminiApiKey||''; el.apiModalRemember.checked=!!localStorage.getItem('geminiApiKey'); setTimeout(()=>el.apiModalInput.focus(),0);
     }
@@ -640,7 +535,6 @@
     el.apiModalCancelBtn.addEventListener('click',closeApiModal);
     document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(!el.apiModalCancelBtn.classList.contains('hidden') && !el.apiModal.classList.contains('hidden')) closeApiModal(); if(!el.settingsModal.classList.contains('hidden')) closeSettingsModal(); } });
 
-    /* ========= 설정 모달 ========= */
     function openSettingsModal(){ el.settingsModal.classList.remove('hidden'); el.settingsModal.classList.add('flex'); if(el.aiModelSelect) el.aiModelSelect.value=selectedAiModel; if(el.darkModeSelect) el.darkModeSelect.value=darkMode; }
     function closeSettingsModal(){ el.settingsModal.classList.add('hidden'); el.settingsModal.classList.remove('flex'); }
     el.settingsBtn.addEventListener('click',openSettingsModal);
@@ -650,7 +544,6 @@
     el.aiModelSelect?.addEventListener('change',e=>{ selectedAiModel=e.target.value; localStorage.setItem('aiModel',selectedAiModel); showToast(`AI 모델 변경: ${selectedAiModel}`); });
     el.darkModeSelect?.addEventListener('change',e=>{ localStorage.setItem('darkMode',e.target.value); applyDarkMode(); showToast('다크 모드 설정 변경됨'); });
 
-    /* ========= Import/Export ========= */
     el.exportDataBtn?.addEventListener('click',()=>{
       try{
         const data={ version:'3.x', schemaVersion:+(localStorage.getItem('schemaVersion')||2), exportDate:new Date().toISOString(), auditQuizScores:questionScores, geminiApiKey:localStorage.getItem('geminiApiKey')||'', aiModel:selectedAiModel, darkMode:darkMode };
@@ -677,7 +570,6 @@
       reader.readAsText(file); e.target.value='';
     });
 
-    /* ========= 출처 그룹 필터 ========= */
     const SOURCE_LS='sourceFilterSelectionV1', BASIC_TAGS=['S','H','HS'], ADV_TAGS=['SS','P'];
     function buildSourceFilterUI(){
       if(!el.sourceGroupFilter) return;
@@ -701,21 +593,10 @@
       el.sourceGroupFilter.querySelector('#source-filter-none')?.addEventListener('click',()=>{ setAllGroups([]); });
       function setAllGroups(arr){ el.sourceGroupFilter.querySelectorAll('input.source-filter').forEach(cb=>cb.checked=arr.includes(cb.value)); localStorage.setItem(SOURCE_LS,JSON.stringify(arr)); reloadAndRefresh(); }
     }
-    const getSelectedSourceGroups=()=>{
-      const boxes=el.sourceGroupFilter?.querySelectorAll('input.source-filter'); if(!boxes||boxes.length===0) return JSON.parse(localStorage.getItem(SOURCE_LS)||'["basic","advanced","other"]');
-      const arr=[]; boxes.forEach(cb=>{ if(cb.checked) arr.push(cb.value); }); return arr;
-    };
-    const detectSourceGroup=src=>{
-      const s=String(src||'').toUpperCase(), tok=s.split(/\s*[;,\/\s]\s*/).filter(Boolean);
-      const hasBasic=tok.some(t=>BASIC_TAGS.includes(t)), hasAdv=tok.some(t=>ADV_TAGS.includes(t));
-      if(hasBasic && !hasAdv) return 'basic'; if(!hasBasic && hasAdv) return 'advanced'; if(hasBasic && hasAdv) return 'basic-advanced'; return 'other';
-    };
-    const applySourceFilter=arr=>{
-      const selected=new Set(getSelectedSourceGroups()); if(selected.size===0||selected.size===3) return arr;
-      return (arr||[]).filter(q=>{ const g=detectSourceGroup(q.출처); if(g==='basic-advanced') return selected.has('basic')||selected.has('advanced'); return selected.has(g); });
-    };
+    const getSelectedSourceGroups=()=>{ const boxes=el.sourceGroupFilter?.querySelectorAll('input.source-filter'); if(!boxes||boxes.length===0) return JSON.parse(localStorage.getItem(SOURCE_LS)||'["basic","advanced","other"]'); const arr=[]; boxes.forEach(cb=>{ if(cb.checked) arr.push(cb.value); }); return arr; };
+    const detectSourceGroup=src=>{ const s=String(src||'').toUpperCase(), tok=s.split(/\s*[;,\/\s]\s*/).filter(Boolean); const hasBasic=tok.some(t=>BASIC_TAGS.includes(t)), hasAdv=tok.some(t=>ADV_TAGS.includes(t)); if(hasBasic && !hasAdv) return 'basic'; if(!hasBasic && hasAdv) return 'advanced'; if(hasBasic && hasAdv) return 'basic-advanced'; return 'other'; };
+    const applySourceFilter=arr=>{ const selected=new Set(getSelectedSourceGroups()); if(selected.size===0||selected.size===3) return arr; return (arr||[]).filter(q=>{ const g=detectSourceGroup(q.출처); if(g==='basic-advanced') return selected.has('basic')||selected.has('advanced'); return selected.has(g); }); };
 
-    /* ========= 파트/장 선택 반영 필터 ========= */
     function filterByChapterSelection(list){
       const sel=el.chapterSelect?.value||'';
       if(!sel) return list;
@@ -726,7 +607,6 @@
       return list.filter(q=>String(q.단원).trim()===String(sel));
     }
 
-    /* ========= 공통 필터 파이프라인 ========= */
     function getFilteredByUI(){
       const filter=el.filterSelect.value;
       let list=applySourceFilter(allData);
@@ -737,26 +617,28 @@
         if(filter==='unanswered') return !s;
         if(filter==='80') return !s || +s.score<80;
         if(filter==='60') return !s || +s.score<60;
-        return true; // all / today-review
+        return true;
       });
-      if(filter==='today-review') list=prioritizeTodayReview(list).slice(0,10);
+
+      if(filter==='today-review') {
+        // 복습 제외 표시된 문제는 오늘의 복습 후보에서 제거
+        list = list.filter(q => !questionScores[normId(q.고유ID)]?.userReviewExclude);
+        list = prioritizeTodayReview(list).slice(0,10);
+      }
       return list;
     }
     function reloadAndRefresh(){
-      // 파트 선택 시 요약판 기본을 '현재 학습단원보기'로 전환 (요구사항 맞춤)
       if(isPartValue(el.chapterSelect.value)){
         summaryViewMode='CURRENT';
         el.summaryViewCurrentBtn?.classList.add('bg-gray-100');
         el.summaryViewAllBtn?.classList.remove('bg-gray-100');
       }
-
       currentQuizData=getFilteredByUI(); currentQuestionIndex=0;
       if(currentQuizData.length){ el.quizArea.classList.remove('hidden'); el.summaryArea.classList.remove('hidden'); displayQuestion(); }
       else{ el.quizArea.classList.add('hidden'); el.summaryArea.classList.remove('hidden'); showToast('선택한 조건에 맞는 문제가 없습니다.','warn'); }
       updateSummary(); refreshPanels();
     }
 
-    /* ========= 이벤트: 학습 로딩 ========= */
     el.chapterSelect.addEventListener('change', reloadAndRefresh);
     el.filterSelect.addEventListener('change', reloadAndRefresh);
     el.loadQuizBtn.addEventListener('click', reloadAndRefresh);
@@ -766,7 +648,6 @@
       el.quizArea.classList.remove('hidden'); el.summaryArea.classList.remove('hidden'); displayQuestion(); updateSummary(); refreshPanels(); showToast('랜덤 문제 시작!');
     });
 
-    /* ========= 문제 표시/상태 ========= */
     function displayQuestion(){
       if(!currentQuizData.length){ el.quizArea.classList.add('hidden'); return; }
       const q=currentQuizData[currentQuestionIndex];
@@ -778,17 +659,23 @@
       activeHintQuestionKey=null; el.hintBox.classList.add('hidden'); el.hintBox.innerHTML='';
       el.resultBox.classList.add('hidden'); el.userAnswer.value='';
       el.loadPrevAnswerBtn.textContent='이전 답안 불러오기'; el.loadPrevAnswerBtn.removeAttribute('aria-pressed'); prevLoaded=false;
+
       const saved=questionScores[normId(q.고유ID)];
       const flagged=!!(saved?.userReviewFlag);
       el.reviewFlagToggle.setAttribute('aria-pressed', flagged?'true':'false');
       el.reviewFlagToggle.querySelector('span').textContent= flagged?'★':'☆';
+
+      const excluded = !!(saved?.userReviewExclude);
+      if (el.reviewExcludeToggle) {
+        el.reviewExcludeToggle.setAttribute('aria-pressed', excluded ? 'true' : 'false');
+      }
+
       if(saved && saved.score!==undefined) showResult(saved.score, saved.feedback, q.정답);
       el.prevBtn.disabled=(currentQuestionIndex===0);
       el.nextBtn.disabled=(currentQuizData.length-1===currentQuestionIndex);
       updateSummaryHighlight();
     }
 
-    /* ========= 복습 플래그/이전답안 ========= */
     el.reviewFlagToggle.addEventListener('click',()=>{
       if(!currentQuizData.length) return;
       const q=currentQuizData[currentQuestionIndex], key=normId(q.고유ID), rec=questionScores[key]||{}, next=!rec.userReviewFlag;
@@ -798,6 +685,23 @@
       el.reviewFlagToggle.querySelector('span').textContent= next?'★':'☆';
       showToast(next?'복습 필요에 추가':'복습 필요 해제'); refreshPanels();
     });
+
+    // NEW: 복습 제외 토글 (오늘의 복습에서 제외)
+    el.reviewExcludeToggle?.addEventListener('click', ()=>{
+      if(!currentQuizData.length) return;
+      const q=currentQuizData[currentQuestionIndex];
+      const key=normId(q.고유ID);
+      const rec=questionScores[key]||{};
+      const next = !rec.userReviewExclude;
+
+      questionScores[key] = { ...rec, userReviewExclude: next };
+      try { localStorage.setItem('auditQuizScores', JSON.stringify(questionScores)); } catch {}
+
+      el.reviewExcludeToggle.setAttribute('aria-pressed', next?'true':'false');
+      showToast(next ? '오늘의 복습에서 제외했습니다.' : '복습 제외를 해제했습니다.');
+      refreshPanels();
+    });
+
     el.loadPrevAnswerBtn.addEventListener('click',()=>{
       if(!currentQuizData.length) return;
       const q=currentQuizData[currentQuestionIndex], saved=questionScores[normId(q.고유ID)];
@@ -809,13 +713,11 @@
       }
     });
 
-    /* ========= 네비 & 입력 ========= */
     el.prevBtn.addEventListener('click',()=>{ if(currentQuestionIndex>0){ currentQuestionIndex--; displayQuestion(); } });
     el.nextBtn.addEventListener('click',()=>{ if(currentQuestionIndex<currentQuizData.length-1){ currentQuestionIndex++; displayQuestion(); } });
     el.userAnswer.addEventListener('input',()=> el.errorMessage.classList.add('hidden'));
     el.userAnswer.addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); el.gradeBtn.click(); } });
 
-    /* ========= 채점 ========= */
     el.gradeBtn.addEventListener('click',handleGrade);
     async function handleGrade(){
       if(!geminiApiKey){ openApiModal(false); showToast('Gemini API 키를 입력해주세요.','error'); return; }
@@ -825,18 +727,14 @@
       setLoading(true);
       try{
         let {score, feedback}=await callGeminiAPI(answer, q.정답, geminiApiKey);
-
-        if (selectedAiModel === 'gemini-2.5-flash-lite') {
-          score = clamp(score - 7, 0, 100);
-        }
-
+        if (selectedAiModel === 'gemini-2.5-flash-lite') score = clamp(score - 7, 0, 100);
         const usedHint=(activeHintQuestionKey===qKey);
         const finalScore= usedHint? Math.min(59, Math.round(score*0.8)) : score;
         const finalFeedback= usedHint? `${feedback?feedback+' ':''}(힌트사용으로 감점)` : feedback;
         showResult(finalScore, finalFeedback, q.정답);
 
         const existing=questionScores[qKey]||{}, newHistory=[...(existing.solveHistory||[]), {date:Date.now(), score:finalScore}];
-        questionScores[qKey]={ score:finalScore, feedback:finalFeedback, user_answer:answer, hintUsed:usedHint, isSolved:true, lastSolvedDate:Date.now(), solveHistory:newHistory, userReviewFlag:!!existing.userReviewFlag };
+        questionScores[qKey]={ score:finalScore, feedback:finalFeedback, user_answer:answer, hintUsed:usedHint, isSolved:true, lastSolvedDate:Date.now(), solveHistory:newHistory, userReviewFlag:!!existing.userReviewFlag, userReviewExclude: !!existing.userReviewExclude };
         try{ localStorage.setItem('auditQuizScores',JSON.stringify(questionScores)); }catch{ showToast('localStorage 저장 실패(용량)','error'); }
 
         const {increased, uniqueReads}=registerUniqueRead(qKey); if(increased) showToast(`회독 +1 (이 문제 고유 ${uniqueReads}회)`);
@@ -854,13 +752,9 @@
       const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
       const generationConfig={ responseMimeType:'application/json', responseSchema:{ type:'OBJECT', properties:{score:{type:'NUMBER'}, feedback:{type:'STRING'}}, required:['score','feedback'] } };
 
-      const systemText = (model === 'gemini-2.5-flash-lite')
-        ? `${BASE_SYSTEM_PROMPT}\n\n${LITE_STRICT_ADDENDUM}`
-        : BASE_SYSTEM_PROMPT;
-
+      const systemText = (model === 'gemini-2.5-flash-lite') ? `${BASE_SYSTEM_PROMPT}\n\n${LITE_STRICT_ADDENDUM}` : BASE_SYSTEM_PROMPT;
       const systemInstruction={ parts:[{ text: systemText }] };
       const userQuery=`[모범 답안]\n${correctAnswer}\n\n[사용자 답안]\n${userAnswer}\n\n[채점 요청]\n{"score": number, "feedback": string}`;
-
       const payload={ contents:[{ parts:[{ text:userQuery }] }], systemInstruction, generationConfig };
 
       try{
@@ -878,7 +772,6 @@
       }
     }
 
-    /* ========= 힌트 ========= */
     el.hintBtn.addEventListener('click',()=>{ if(currentQuizData.length) handleHint(currentQuizData[currentQuestionIndex]); });
     async function handleHint(q){
       if(!geminiApiKey){ openApiModal(false); showToast('Gemini API 키를 입력해주세요.','error'); return; }
@@ -913,7 +806,6 @@
       }
     }
 
-    /* ========= 결과 ========= */
     function showResult(scoreVal, feedback, correctAnswer){
       const s=clamp(+scoreVal,0,100);
       el.score.textContent=s.toFixed(1); el.progressBar.style.width=`${s}%`; el.progressBar.setAttribute('aria-valuenow',String(Math.round(s)));
@@ -921,7 +813,6 @@
       el.aiFeedback.textContent=String(feedback||''); el.correctAnswer.textContent=String(correctAnswer||''); el.resultBox.classList.remove('hidden');
     }
 
-    /* ========= 요약판 ========= */
     el.summaryViewAllBtn?.addEventListener('click',()=>{ summaryViewMode='ALL'; el.summaryViewAllBtn.classList.add('bg-gray-100'); el.summaryViewCurrentBtn.classList.remove('bg-gray-100'); updateSummary(); });
     el.summaryViewCurrentBtn?.addEventListener('click',()=>{ summaryViewMode='CURRENT'; el.summaryViewCurrentBtn.classList.add('bg-gray-100'); el.summaryViewAllBtn.classList.remove('bg-gray-100'); updateSummary(); });
 
@@ -982,23 +873,45 @@
 
         list.forEach(q=>{
           const btn=document.createElement('button');
-          const disp=(q.표시번호??'').toString().trim(), fallback=(q.물음번호??q.고유ID??'').toString().trim(), label=disp||fallback||'';
-          btn.textContent=label; if(label.length>=3) btn.style.fontSize='.72rem'; if(label.length>=4){ btn.style.fontSize='.66rem'; btn.style.letterSpacing='-0.2px'; }
-          const fullMeta=[q.problemTitle && String(q.problemTitle).trim(),`표시번호:${disp||'-'}`,`물음번호:${(q.물음번호??'').toString().trim()||'-'}`,`ID:${(q.고유ID??'').toString().trim()||'-'}`].filter(Boolean).join(' | ');
+
+          // 라벨 구성 (➖ 아이콘)
+          const disp=(q.표시번호??'').toString().trim();
+          const fallback=(q.물음번호??q.고유ID??'').toString().trim();
+          const baseLabel = disp || fallback || '';
+
+          const id=String(q.고유ID).trim();
+          const saved=questionScores[id];
+          const excluded = !!(saved?.userReviewExclude);
+          const isFlagged = !!(saved?.userReviewFlag);
+
+          const label = excluded ? `➖ ${baseLabel}` : baseLabel;
+          btn.textContent=label;
+          if(baseLabel.length>=3) btn.style.fontSize='.72rem';
+          if(baseLabel.length>=4){ btn.style.fontSize='.66rem'; btn.style.letterSpacing='-0.2px'; }
+
+          const metaFlags=[];
+          if(excluded) metaFlags.push('복습제외');
+          if(isFlagged) metaFlags.push('복습필요');
+
+          const fullMeta=[ q.problemTitle && String(q.problemTitle).trim(),
+            `표시번호:${disp||'-'}`, `물음번호:${(q.물음번호??'').toString().trim()||'-'}`, `ID:${(q.고유ID??'').toString().trim()||'-'}`, metaFlags.join(', ')
+          ].filter(Boolean).join(' | ');
           btn.title=fullMeta; btn.setAttribute('aria-label',fullMeta);
+
           btn.classList.add('summary-btn','font-medium','rounded-lg','border');
 
-          const saved=questionScores[String(q.고유ID)?.trim()], sc=saved? +saved.score: NaN;
+          const sc= saved? +saved.score: NaN;
           const cls= !Number.isFinite(sc)? ['bg-gray-100','text-gray-600','border-gray-300'] : sc<60? ['bg-red-100','text-red-700','border-red-300'] : sc<80? ['bg-yellow-100','text-yellow-700','border-yellow-300'] : ['bg-green-100','text-green-700','border-green-300'];
-          btn.classList.add(...cls); btn.dataset.qid=String(q.고유ID).trim();
+          btn.classList.add(...cls); btn.dataset.qid=id;
+
           btn.addEventListener('click',()=>{
-            const idx=currentQuizData.findIndex(it=>String(it.고유ID).trim()===String(q.고유ID).trim());
+            const idx=currentQuizData.findIndex(it=>String(it.고유ID).trim()===id);
             if(idx===-1){
               const chVal=String(q.단원).trim(), set=allData.filter(it=>String(it.단원).trim()===chVal);
-              if(set.length){ currentQuizData=set; currentQuestionIndex=set.findIndex(it=>String(it.고유ID).trim()===String(q.고유ID).trim()); }
+              if(set.length){ currentQuizData=set; currentQuestionIndex=set.findIndex(it=>String(it.고유ID).trim()===id); }
             } else currentQuestionIndex=idx;
             if(currentQuestionIndex<0) currentQuestionIndex=0;
-            el.quizArea.classList.remove('hidden'); displayQuestion(); showToast(`'${label}'로 이동`);
+            el.quizArea.classList.remove('hidden'); displayQuestion(); showToast(`'${baseLabel}'로 이동`);
           });
           grid.appendChild(btn);
         });
@@ -1017,7 +930,6 @@
       el.scoreSummary.querySelectorAll('button.summary-btn').forEach(b=>{ b.classList.remove('ring-2','ring-blue-500','ring-offset-2'); if(b.dataset.qid===cur) b.classList.add('ring-2','ring-blue-500','ring-offset-2'); });
     }
 
-    /* ========= 필터 초기화/리셋 ========= */
     el.clearFilterBtn.addEventListener('click',()=>{
       el.filterSelect.value='all'; el.chapterSelect.value='';
       el.sourceGroupFilter?.querySelectorAll('input.source-filter')?.forEach(cb=>cb.checked=true);
@@ -1031,9 +943,8 @@
       }
     });
 
-    /* ========= 포커스 단축키 ========= */
     function ensureResultBoxReady(){ if(currentQuizData.length){ const q=currentQuizData[currentQuestionIndex]; if(!el.correctAnswer.textContent?.trim()) el.correctAnswer.textContent=String(q.정답||''); } el.resultBox.classList.remove('hidden'); }
-    function enterFocusMode(){ lastScrollYBeforeFocus=window.pageYOffset; document.documentElement.classList.add('focus-mode'); ensureResultBoxReady(); const header=el.userAnswer; const bottom=el.resultBox; const margin=12; const y=header.getBoundingClientRect().top + window.pageYOffset - (el.fixedHeader?.getBoundingClientRect().height||0) - margin; window.scrollTo({top:Math.max(0,y),behavior:'smooth'}); ctrlNavState='focus'; }
+    function enterFocusMode(){ lastScrollYBeforeFocus=window.pageYOffset; document.documentElement.classList.add('focus-mode'); ensureResultBoxReady(); const header=el.userAnswer; const margin=12; const y=header.getBoundingClientRect().top + window.pageYOffset - (el.fixedHeader?.getBoundingClientRect().height||0) - margin; window.scrollTo({top:Math.max(0,y),behavior:'smooth'}); ctrlNavState='focus'; }
     function exitToDashboard(){ document.documentElement.classList.remove('focus-mode'); if(el.summaryArea) window.scrollTo({top:el.summaryArea.getBoundingClientRect().top + window.pageYOffset - (el.fixedHeader?.getBoundingClientRect().height||0) - 8, behavior:'smooth'}); else window.scrollTo({top:0,behavior:'smooth'}); ctrlNavState='dashboard'; }
     function backFromFocus(){ document.documentElement.classList.remove('focus-mode'); window.scrollTo({top:Math.max(0,lastScrollYBeforeFocus),behavior:'smooth'}); ctrlNavState='dashboard'; }
     const isEditing=t=> t && (t.tagName==='INPUT' || t.tagName==='TEXTAREA' || t.isContentEditable);
@@ -1047,64 +958,47 @@
       }
     });
 
-    /* ========= 스코프/달력/통계/탐색 ========= */
     const getScopeFilteredData=()=> filterByChapterSelection(applySourceFilter(allData||[]));
 
     function renderCalendarMonth() {
-      const grid = el.calendarGrid, title = el.calTitle;
-      if (!grid || !title) return;
-
+      const grid = el.calendarGrid, title = el.calTitle; if (!grid || !title) return;
       title.textContent = `${calRefDate.getFullYear()}.${String(calRefDate.getMonth()+1).padStart(2,'0')}`;
-
-      const base = getScopeFilteredData();
-      const idSet = new Set(base.map(q => String(q.고유ID).trim()));
-
+      const base = getScopeFilteredData(); const idSet = new Set(base.map(q => String(q.고유ID).trim()));
       const counts = new Map();
       for (const [qid, rec] of Object.entries(questionScores || {})) {
         if (!idSet.has(qid)) continue;
         const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
         for (const h of hist) {
-          const t = Number(h?.date);
-          if (!Number.isFinite(t)) continue;
-          const d = new Date(t);
-          d.setHours(0,0,0,0);
+          const t = Number(h?.date); if (!Number.isFinite(t)) continue;
+          const d = new Date(t); d.setHours(0,0,0,0);
           const k = ymd(d);
           counts.set(k, (counts.get(k)||0) + 1);
         }
       }
-
-      const first = new Date(calRefDate);
-      const firstDow = dowMon0(first);
-      const start = new Date(first);
-      start.setDate(first.getDate() - firstDow);
-
+      const first = new Date(calRefDate); const firstDow = dowMon0(first);
+      const start = new Date(first); start.setDate(first.getDate() - firstDow);
       const lastDay = new Date(calRefDate.getFullYear(), calRefDate.getMonth()+1, 0);
       const lastDow = dowMon0(lastDay);
-      const end = new Date(lastDay);
-      end.setDate(lastDay.getDate() + (6 - lastDow));
+      const end = new Date(lastDay); end.setDate(lastDay.getDate() + (6 - lastDow));
 
       grid.innerHTML = '';
       for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
         const inMonth = (d.getMonth() === calRefDate.getMonth() && d.getFullYear() === calRefDate.getFullYear());
         const key = ymd(d);
         const c = counts.get(key) || 0;
-
         const { bg, fg } = colorForCount(c);
         const cell = document.createElement('div');
         cell.className = `cal-cell` + (inMonth ? '' : ' muted');
         cell.title = `${key} · 풀이 ${c}회`;
         cell.style.backgroundColor = bg;
         cell.style.color = fg;
-
         const day = document.createElement('div');
         day.className = 'cal-day';
         day.textContent = String(d.getDate());
-
         cell.appendChild(day);
         grid.appendChild(cell);
       }
     }
-
     el.calPrev?.addEventListener('click', () => { calRefDate.setMonth(calRefDate.getMonth()-1); renderCalendarMonth(); });
     el.calNext?.addEventListener('click', () => { calRefDate.setMonth(calRefDate.getMonth()+1); renderCalendarMonth(); });
 
@@ -1221,13 +1115,21 @@
       el.explorerProblems.innerHTML='';
       filtered.sort((a,b)=>{ const na=+(a.물음번호||a.표시번호), nb=+(b.물음번호||b.표시번호); if(Number.isFinite(na)&&Number.isFinite(nb)) return na-nb; return String(a.표시번호||a.물음번호).localeCompare(String(b.표시번호||b.물음번호),'ko'); })
       .forEach(it=>{
-        const rec=questionScores[String(it.고유ID).trim()], score= Number.isFinite(+rec?.score)? +rec.score : null, flagged=!!(rec?.userReviewFlag);
+        const rec=questionScores[String(it.고유ID).trim()], score= Number.isFinite(+rec?.score)? +rec.score : null;
+        const flagged=!!(rec?.userReviewFlag);
+        const excluded=!!(rec?.userReviewExclude);
+
         const row=document.createElement('button'); row.className='w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded hover:bg-gray-50 border';
+
         const left=document.createElement('div'); left.className='flex items-center gap-2 text-sm';
         if(flagged){ const star=document.createElement('span'); star.textContent='★'; star.className='text-purple-500'; left.appendChild(star); }
+        if(excluded){ const minus=document.createElement('span'); minus.textContent='➖'; minus.className='text-gray-500'; left.appendChild(minus); }
+
         const title=document.createElement('span'); const label=(it.problemTitle && String(it.problemTitle).trim())||`문항 ${it.표시번호||it.물음번호||it.고유ID}`;
         title.textContent=label; title.className='block max-w-[18rem] xl:max-w-[22rem] truncate'; left.appendChild(title);
+
         const right=document.createElement('div'); right.className='text-xs'; const badge=document.createElement('span'); badge.className='px-2 py-0.5 rounded-full border '+(score==null?'text-gray-600 border-gray-300':'text-blue-700 border-blue-300'); badge.textContent= score==null?'X':`${score}`; right.appendChild(badge);
+
         row.appendChild(left); row.appendChild(right); row.title=`출처:${it.출처||'-'} | ID:${it.고유ID}`;
         row.addEventListener('click',()=>{
           const ch=String(it.단원).trim(), list=base.filter(x=>String(x.단원).trim()===ch);
@@ -1240,10 +1142,12 @@
     const moveSourceFilterToSide=()=>{ if(!el.sourceFilterSide||!el.sourceGroupFilter) return; el.sourceFilterSide.innerHTML=''; el.sourceGroupFilter.classList.remove('mb-6'); el.sourceFilterSide.appendChild(el.sourceGroupFilter); };
     const refreshPanels=()=>{ renderCalendarMonth(); renderStats(); renderExplorer(); };
 
-    /* ========= 오늘의 복습 ========= */
     const REVIEW_STRATEGY_LS='reviewStrategy_v1';
     const getReviewStrategy=()=> localStorage.getItem(REVIEW_STRATEGY_LS)||'smart';
     function prioritizeTodayReview(list){
+      // 제외 토글 선제 제거 (중복 안전장치)
+      list = (list||[]).filter(a => !questionScores[normId(a.고유ID)]?.userReviewExclude);
+
       const strat=getReviewStrategy();
       if(strat==='flag'){ const f=list.filter(a=>questionScores[normId(a.고유ID)]?.userReviewFlag); const r=list.filter(a=>!questionScores[normId(a.고유ID)]?.userReviewFlag); return f.concat(r); }
       if(strat==='low'){ return [...list].sort((a,b)=>{ const sa=questionScores[normId(a.고유ID)]?.score??101, sb=questionScores[normId(b.고유ID)]?.score??101; return sa-sb; }); }
@@ -1254,21 +1158,8 @@
     (function syncStrategy(){ const cur=getReviewStrategy(); if(el.reviewStrategySelect) el.reviewStrategySelect.value=cur; })();
     el.startReviewBtn?.addEventListener('click',()=>{ if(el.filterSelect) el.filterSelect.value='today-review'; reloadAndRefresh(); showToast('오늘의 복습 시작'); });
 
-    /* ========= 모바일 드로어 (햄버거 ↔ ✕) ========= */
-    function openDrawer(){
-      document.body.classList.add('drawer-open');
-      el.drawerBackdrop.classList.remove('hidden');
-      el.leftDashboard.classList.remove('hidden');
-      el.leftDashboard.classList.add('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900','relative');
-      el.drawerClose.classList.remove('hidden');
-    }
-    function closeDrawer(){
-      document.body.classList.remove('drawer-open');
-      el.drawerBackdrop.classList.add('hidden');
-      el.leftDashboard.classList.add('hidden');
-      el.leftDashboard.classList.remove('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900','relative');
-      el.drawerClose.classList.add('hidden');
-    }
+    function openDrawer(){ document.body.classList.add('drawer-open'); el.drawerBackdrop.classList.remove('hidden'); el.leftDashboard.classList.remove('hidden'); el.leftDashboard.classList.add('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900','relative'); el.drawerClose.classList.remove('hidden'); }
+    function closeDrawer(){ document.body.classList.remove('drawer-open'); el.drawerBackdrop.classList.add('hidden'); el.leftDashboard.classList.add('hidden'); el.leftDashboard.classList.remove('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900','relative'); el.drawerClose.classList.add('hidden'); }
     el.hamburger?.addEventListener('click', openDrawer);
     el.drawerBackdrop?.addEventListener('click', closeDrawer);
     el.drawerClose?.addEventListener('click', closeDrawer);
@@ -1279,7 +1170,6 @@
       }else{ el.leftDashboard.classList.add('hidden'); }
     });
 
-    /* ========= 초기화 ========= */
     document.addEventListener('DOMContentLoaded', async ()=>{
       try{ await loadData(); }catch(err){ console.error(err); $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).'; showToast(`문제 데이터 로드 실패: ${err.message}`,'error'); }
       loadScores(); loadApiKey(); loadSettings(); applyDarkMode(); migrateData(); backfillReadStoreFromScores(false); ensureApiKeyGate();
@@ -1290,4 +1180,3 @@
   </script>
 </body>
 </html>
-
