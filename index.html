@@ -102,12 +102,12 @@
   <!-- 메인 레이아웃 -->
   <div id="layout-root" class="pt-2 flex-1 px-4 lg:px-6 xl:px-8">
     <div class="mx-auto max-w-[1400px] 2xl:max-w-[1600px] grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6 2xl:gap-8">
-      <!-- LEFT: 대시보드 (모바일 숨김→햄버거로 드로어) -->
+      <!-- LEFT: 대시보드 -->
       <aside id="left-dashboard" class="lg:col-span-3 xl:col-span-3 2xl:col-span-3 space-y-4">
         <!-- 드로어 X 버튼(모바일 전용) -->
         <button id="drawer-close" class="hidden lg:hidden absolute top-2 right-2 z-[1101] inline-flex items-center justify-center w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700" aria-label="닫기">✕</button>
 
-        <!-- 학습 캘린더 (네비 + 월요일 시작 + 숫자 + 히트맵) -->
+        <!-- 학습 캘린더 -->
         <div class="bg-white rounded-2xl shadow-xl p-4">
           <div class="flex items-center justify-between mb-2">
             <h3 class="font-bold text-lg">학습 캘린더</h3>
@@ -153,6 +153,7 @@
               <label for="chapter-select" class="block text-sm font-medium text-gray-700 mb-1">단원 선택</label>
               <select id="chapter-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
                 <option value="">-- 전체 단원 --</option>
+                <!-- JS에서 파트 옵션과 장 옵션을 동적으로 채움 -->
               </select>
             </div>
             <div class="flex-1 w-full">
@@ -257,7 +258,7 @@
         </div>
       </main>
 
-      <!-- RIGHT: 탐색 패널 (살짝 확대) -->
+      <!-- RIGHT: 탐색 패널 -->
       <aside id="right-explorer" class="lg:col-span-3 xl:col-span-3 2xl:col-span-3 space-y-4">
         <div class="bg-white rounded-2xl shadow-xl p-4">
           <h3 class="font-bold text-lg mb-2">학습 범위 필터</h3>
@@ -439,14 +440,6 @@
     const getHeaderOffset=()=>el.fixedHeader?.getBoundingClientRect().height||0;
     const smoothScrollTo=y=>window.scrollTo({top:y,behavior:'smooth'});
     const elmTop=e=>e.getBoundingClientRect().top + window.pageYOffset;
-    const ensureRangeVisible=({topEl,bottomEl,topAlign=true})=>{
-      const header=getHeaderOffset(), margin=12;
-      if(topAlign){ const y=elmTop(topEl)-header-margin; smoothScrollTo(Math.max(0,y)); }
-      requestAnimationFrame(()=>{
-        const br=bottomEl.getBoundingClientRect(), short=br.bottom-(window.innerHeight-margin);
-        if(short>0) smoothScrollTo(window.pageYOffset+short);
-      });
-    };
 
     /* ====== 캘린더 색상 헬퍼 (노랑/초록/파랑 촘촘) ====== */
     function hslToHex(h, s, l) {
@@ -458,10 +451,9 @@
       return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
     }
     function colorForCount(c) {
-      if (!Number.isFinite(c) || c <= 0) return { bg: '#e5e7eb', fg: '#111827' }; // gray-200
+      if (!Number.isFinite(c) || c <= 0) return { bg: '#e5e7eb', fg: '#111827' };
       const fgForL = (l) => (l < 55 ? '#ffffff' : '#111827');
 
-      // 1~6: Yellow band (h≈50)
       if (c >= 1 && c <= 6) {
         const steps = 6, idx = c - 1;
         const h = 50, s = 95;
@@ -470,7 +462,6 @@
         const bg = hslToHex(h, s, l);
         return { bg, fg: fgForL(l) };
       }
-      // 7~15: Green band (h≈140)
       if (c >= 7 && c <= 15) {
         const steps = 9, idx = c - 7;
         const h = 140, s = 85;
@@ -479,7 +470,6 @@
         const bg = hslToHex(h, s, l);
         return { bg, fg: fgForL(l) };
       }
-      // 16~30: Blue band (h≈210)
       if (c >= 16 && c <= 30) {
         const steps = 15, idx = c - 16;
         const h = 210, s = 85;
@@ -488,23 +478,66 @@
         const bg = hslToHex(h, s, l);
         return { bg, fg: fgForL(l) };
       }
-      // 31+ : 매우 진한 파랑
-      return { bg: '#1e40af', fg: '#ffffff' }; // blue-800
+      return { bg: '#1e40af', fg: '#ffffff' };
     }
-    // yyyy-mm-dd (로컬)
-    function ymd(d) {
-      const y = d.getFullYear();
-      const m = String(d.getMonth()+1).padStart(2,'0');
-      const dd= String(d.getDate()).padStart(2,'0');
-      return `${y}-${m}-${dd}`;
-    }
-    // 월요일 시작 요일 인덱스: Mon=0 .. Sun=6
-    function dowMon0(d) { return (d.getDay()+6)%7; }
+    const ymd=(d)=>{ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; };
+    const dowMon0=d=> (d.getDay()+6)%7;
 
     /* ========= 라벨 ========= */
-    const CHAPTER_LABELS={1:"제1장 감사와 회계감사의 기본개념",2:"제2장 감사인의 의무, 책임 및 자격요건",3:"제3장 감사인의 독립성과 품질관리",4:"제1장 감사인의 선임",5:"제2장 감사계약",6:"제1장 회계감사수행을 위한 기초지식",7:"제2장 위험평가절차와 계획수립",8:"제1장 통제테스트와 위험평가의 확정",9:"제1-2장 데이터분석",10:"제2장 실증절차의 기초",11:"제3장 기초잔액과 거래유형별 실증절차",12:"제4장 특정항목별 감사절차",13:"제5장 테스트항목의 범위와 표본감사 데이터분석",14:"제6장 실증절차의 마무리절차",15:"제1장 미수정왜곡표시의 평가와 감사의견의 형성",16:"제2장 감사보고서의 작성과 보고",17:"제1장 인증업무개념체계와 특정목적재무보고체계, 제2장 그룹재무제표에 대한 감사",18:"제3장 내부회계관리제도에 대한 감사와 검토",19:"제4장 중간재무제표에 대한 검토",20:"제5장 소규모기업 재무제표에 대한 감사"};
-    const PART_INSERTIONS=[{before:1,label:"Part 1. 회계감사의 기초"},{before:4,label:"Part 2. 감사인의 선임과 감사계약"},{before:6,label:"Part 3. 회계감사의 시작과 위험평가절차"},{before:8,label:"Part 4. 위험평가절차에 대한 추가감사절차"},{before:15,label:"Part 5. 감사의견의 형성과 감사보고서"},{before:17,label:"Part 6. 그룹재무제표에 대한 감사와 기타인증업무"}];
-    const chapterLabelText=chStr=>{ const n=Number(chStr), t=CHAPTER_LABELS[n]; return Number.isFinite(n)? (t?`${n}. ${t}`:`단원 ${n}`):String(chStr); };
+    const CHAPTER_LABELS={
+      1:"제1장 감사와 회계감사의 기본개념",
+      2:"제2장 감사인의 의무, 책임 및 자격요건",
+      3:"제3장 감사인의 독립성과 품질관리",
+      4:"제1장 감사인의 선임",
+      5:"제2장 감사계약",
+      6:"제1장 회계감사수행을 위한 기초지식",
+      7:"제2장 위험평가절차와 계획수립",
+      8:"제1장 통제테스트와 위험평가의 확정",
+      9:"제1-2장 데이터분석",
+      10:"제2장 실증절차의 기초",
+      11:"제3장 기초잔액과 거래유형별 실증절차",
+      12:"제4장 특정항목별 감사절차",
+      13:"제5장 테스트항목의 범위와 표본감사 데이터분석",
+      14:"제6장 실증절차의 마무리절차",
+      15:"제1장 미수정왜곡표시의 평가와 감사의견의 형성",
+      16:"제2장 감사보고서의 작성과 보고",
+      17:"제1장 인증업무개념체계와 특정목적재무보고체계, 제2장 그룹재무제표에 대한 감사",
+      18:"제3장 내부회계관리제도에 대한 감사와 검토",
+      19:"제4장 중간재무제표에 대한 검토",
+      20:"제5장 소규모기업 재무제표에 대한 감사"
+    };
+    const PART_INSERTIONS=[
+      {before:1, label:"Part 1. 회계감사의 기초"},
+      {before:4, label:"Part 2. 감사인의 선임과 감사계약"},
+      {before:6, label:"Part 3. 회계감사의 시작과 위험평가절차"},
+      {before:8, label:"Part 4. 위험평가절차에 대한 추가감사절차"},
+      {before:15,label:"Part 5. 감사의견의 형성과 감사보고서"},
+      {before:17,label:"Part 6. 그룹재무제표에 대한 감사와 기타인증업무"}
+    ];
+    const chapterLabelText=chStr=>{
+      const n=Number(chStr), t=CHAPTER_LABELS[n];
+      return Number.isFinite(n)? (t?`${n}. ${t}`:`단원 ${n}`):String(chStr);
+    };
+
+    /* ========= 파트 옵션 유틸 ========= */
+    const PART_VALUE=(s,e)=>`PART:${s}-${e}`;
+    const isPartValue=v=>/^PART:\d+-\d+$/.test(v||'');
+    const parsePartValue=v=>{ const m=String(v||'').match(/^PART:(\d+)-(\d+)$/); return m?{start:+m[1], end:+m[2]}:null; };
+    const getAllChapterNums=()=>[...new Set(allData.map(i=>+i.단원).filter(Number.isFinite))].sort((a,b)=>a-b);
+    function computePartRanges(chapterNums){
+      if(!chapterNums.length) return [];
+      const parts=[...PART_INSERTIONS].sort((a,b)=>a.before-b.before);
+      const maxCh=Math.max(...chapterNums);
+      const ranges=[];
+      for(let i=0;i<parts.length;i++){
+        const start=parts[i].before;
+        const end=(i+1<parts.length)? (parts[i+1].before-1) : maxCh;
+        if(chapterNums.some(n=>n>=start && n<=end)){
+          ranges.push({start,end,label:parts[i].label});
+        }
+      }
+      return ranges;
+    }
 
     /* ========= 다크 모드 ========= */
     function applyDarkMode(){
@@ -549,21 +582,31 @@
       if(dup.length) showToast(`경고: 중복 고유ID ${dup.length}개`,'warn');
       if(!new Set(allData.map(r=>String(r.단원).trim())).size) throw new Error('단원 데이터 없음');
     }
+
+    /* ========= 단원/파트 드롭다운 구성 (신규: 파트 선택 가능) ========= */
     function populateChapterSelect(){
+      // 초기화: 기본 옵션만 남기고 제거
       while(el.chapterSelect.options.length>1) el.chapterSelect.remove(1);
-      const chapters=[...new Set(allData.map(i=>String(i.단원).trim()))].sort((a,b)=>{ const na=+a, nb=+b; if(Number.isFinite(na)&&Number.isFinite(nb)) return na-nb; if(Number.isFinite(na)) return -1; if(Number.isFinite(nb)) return 1; return a.localeCompare(b,'ko'); });
-      const inserted=new Set();
-      chapters.forEach(ch=>{
-        const n=+ch;
-        if(Number.isFinite(n)){
-          PART_INSERTIONS.forEach(p=>{
-            if(p.before===n && !inserted.has(p.before)){
-              const sep=document.createElement('option'); sep.textContent=`━━ ${p.label} ━━`; sep.disabled=true; sep.value=`__part_${p.before}`; sep.className='text-gray-500'; el.chapterSelect.appendChild(sep); inserted.add(p.before);
-            }
-          });
-        }
-        const opt=document.createElement('option'); opt.value=ch; opt.textContent=chapterLabelText(ch); el.chapterSelect.appendChild(opt);
-      });
+
+      const chNums=getAllChapterNums(); // 실제 데이터에 존재하는 장 번호
+      const ranges=computePartRanges(chNums);
+
+      // 1) 각 파트 옵션 추가 (선택 가능)
+      for(const r of ranges){
+        const opt=document.createElement('option');
+        opt.value=PART_VALUE(r.start,r.end);
+        opt.textContent=`--- ${r.label} (${r.start}~${r.end}장) ---`;
+        opt.className='text-gray-700';
+        el.chapterSelect.appendChild(opt);
+
+        // 2) 파트 하위 장 옵션들 순서대로
+        chNums.filter(n=>n>=r.start && n<=r.end).forEach(n=>{
+          const copt=document.createElement('option');
+          copt.value=String(n);
+          copt.textContent=chapterLabelText(n);
+          el.chapterSelect.appendChild(copt);
+        });
+      }
     }
 
     function loadScores(){ try{ questionScores=JSON.parse(localStorage.getItem('auditQuizScores')||'{}'); }catch{ questionScores={}; localStorage.removeItem('auditQuizScores'); } }
@@ -672,11 +715,23 @@
       return (arr||[]).filter(q=>{ const g=detectSourceGroup(q.출처); if(g==='basic-advanced') return selected.has('basic')||selected.has('advanced'); return selected.has(g); });
     };
 
+    /* ========= 파트/장 선택 반영 필터 ========= */
+    function filterByChapterSelection(list){
+      const sel=el.chapterSelect?.value||'';
+      if(!sel) return list;
+      if(isPartValue(sel)){
+        const pr=parsePartValue(sel); if(!pr) return list;
+        return list.filter(q=>{ const n=+q.단원; return Number.isFinite(n) && n>=pr.start && n<=pr.end; });
+      }
+      return list.filter(q=>String(q.단원).trim()===String(sel));
+    }
+
     /* ========= 공통 필터 파이프라인 ========= */
     function getFilteredByUI(){
-      const chapter=el.chapterSelect.value, filter=el.filterSelect.value;
-      let list=allData; if(chapter) list=list.filter(q=>String(q.단원).trim()===String(chapter));
-      list=applySourceFilter(list);
+      const filter=el.filterSelect.value;
+      let list=applySourceFilter(allData);
+      list=filterByChapterSelection(list);
+
       list=list.filter(q=>{
         const key=normId(q.고유ID), s=questionScores[key];
         if(filter==='unanswered') return !s;
@@ -688,6 +743,13 @@
       return list;
     }
     function reloadAndRefresh(){
+      // 파트 선택 시 요약판 기본을 '현재 학습단원보기'로 전환 (요구사항 맞춤)
+      if(isPartValue(el.chapterSelect.value)){
+        summaryViewMode='CURRENT';
+        el.summaryViewCurrentBtn?.classList.add('bg-gray-100');
+        el.summaryViewAllBtn?.classList.remove('bg-gray-100');
+      }
+
       currentQuizData=getFilteredByUI(); currentQuestionIndex=0;
       if(currentQuizData.length){ el.quizArea.classList.remove('hidden'); el.summaryArea.classList.remove('hidden'); displayQuestion(); }
       else{ el.quizArea.classList.add('hidden'); el.summaryArea.classList.remove('hidden'); showToast('선택한 조건에 맞는 문제가 없습니다.','warn'); }
@@ -764,7 +826,6 @@
       try{
         let {score, feedback}=await callGeminiAPI(answer, q.정답, geminiApiKey);
 
-        // (라이트 전용) -7점 보정 강제 적용
         if (selectedAiModel === 'gemini-2.5-flash-lite') {
           score = clamp(score - 7, 0, 100);
         }
@@ -793,7 +854,6 @@
       const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
       const generationConfig={ responseMimeType:'application/json', responseSchema:{ type:'OBJECT', properties:{score:{type:'NUMBER'}, feedback:{type:'STRING'}}, required:['score','feedback'] } };
 
-      // 모델별 시스템 프롬프트 구성
       const systemText = (model === 'gemini-2.5-flash-lite')
         ? `${BASE_SYSTEM_PROMPT}\n\n${LITE_STRICT_ADDENDUM}`
         : BASE_SYSTEM_PROMPT;
@@ -933,8 +993,10 @@
           btn.classList.add(...cls); btn.dataset.qid=String(q.고유ID).trim();
           btn.addEventListener('click',()=>{
             const idx=currentQuizData.findIndex(it=>String(it.고유ID).trim()===String(q.고유ID).trim());
-            if(idx===-1){ const chVal=String(q.단원).trim(), set=allData.filter(it=>String(it.단원).trim()===chVal); if(set.length){ currentQuizData=set; currentQuestionIndex=set.findIndex(it=>String(it.고유ID).trim()===String(q.고유ID).trim()); } }
-            else currentQuestionIndex=idx;
+            if(idx===-1){
+              const chVal=String(q.단원).trim(), set=allData.filter(it=>String(it.단원).trim()===chVal);
+              if(set.length){ currentQuizData=set; currentQuestionIndex=set.findIndex(it=>String(it.고유ID).trim()===String(q.고유ID).trim()); }
+            } else currentQuestionIndex=idx;
             if(currentQuestionIndex<0) currentQuestionIndex=0;
             el.quizArea.classList.remove('hidden'); displayQuestion(); showToast(`'${label}'로 이동`);
           });
@@ -971,9 +1033,9 @@
 
     /* ========= 포커스 단축키 ========= */
     function ensureResultBoxReady(){ if(currentQuizData.length){ const q=currentQuizData[currentQuestionIndex]; if(!el.correctAnswer.textContent?.trim()) el.correctAnswer.textContent=String(q.정답||''); } el.resultBox.classList.remove('hidden'); }
-    function enterFocusMode(){ lastScrollYBeforeFocus=window.pageYOffset; document.documentElement.classList.add('focus-mode'); ensureResultBoxReady(); ensureRangeVisible({topEl:el.userAnswer,bottomEl:el.resultBox,topAlign:true}); ctrlNavState='focus'; }
-    function exitToDashboard(){ document.documentElement.classList.remove('focus-mode'); if(el.summaryArea) smoothScrollTo(elmTop(el.summaryArea)-getHeaderOffset()-8); else smoothScrollTo(0); ctrlNavState='dashboard'; }
-    function backFromFocus(){ document.documentElement.classList.remove('focus-mode'); smoothScrollTo(Math.max(0,lastScrollYBeforeFocus)); ctrlNavState='dashboard'; }
+    function enterFocusMode(){ lastScrollYBeforeFocus=window.pageYOffset; document.documentElement.classList.add('focus-mode'); ensureResultBoxReady(); const header=el.userAnswer; const bottom=el.resultBox; const margin=12; const y=header.getBoundingClientRect().top + window.pageYOffset - (el.fixedHeader?.getBoundingClientRect().height||0) - margin; window.scrollTo({top:Math.max(0,y),behavior:'smooth'}); ctrlNavState='focus'; }
+    function exitToDashboard(){ document.documentElement.classList.remove('focus-mode'); if(el.summaryArea) window.scrollTo({top:el.summaryArea.getBoundingClientRect().top + window.pageYOffset - (el.fixedHeader?.getBoundingClientRect().height||0) - 8, behavior:'smooth'}); else window.scrollTo({top:0,behavior:'smooth'}); ctrlNavState='dashboard'; }
+    function backFromFocus(){ document.documentElement.classList.remove('focus-mode'); window.scrollTo({top:Math.max(0,lastScrollYBeforeFocus),behavior:'smooth'}); ctrlNavState='dashboard'; }
     const isEditing=t=> t && (t.tagName==='INPUT' || t.tagName==='TEXTAREA' || t.isContentEditable);
     document.addEventListener('keydown',e=>{
       if((e.key==='h'||e.key==='H') && !isEditing(e.target)){ e.preventDefault(); el.hintBtn?.click(); return; }
@@ -986,22 +1048,18 @@
     });
 
     /* ========= 스코프/달력/통계/탐색 ========= */
-    const getScopeFilteredData=()=>{ const bySrc=applySourceFilter(allData||[]), ch=el.chapterSelect?.value||''; return ch? bySrc.filter(q=>String(q.단원).trim()===String(ch)) : bySrc; };
+    const getScopeFilteredData=()=> filterByChapterSelection(applySourceFilter(allData||[]));
 
-    // 월간 렌더러 (월요일 시작 + ◀ ▶ 네비 + 로컬 날짜 키 + 색상 그라데이션)
     function renderCalendarMonth() {
       const grid = el.calendarGrid, title = el.calTitle;
       if (!grid || !title) return;
 
-      // 타이틀
       title.textContent = `${calRefDate.getFullYear()}.${String(calRefDate.getMonth()+1).padStart(2,'0')}`;
 
-      // 범위 데이터(현재 필터 반영)
       const base = getScopeFilteredData();
       const idSet = new Set(base.map(q => String(q.고유ID).trim()));
 
-      // solveHistory를 일자별 count로 집계(로컬 0시 기준)
-      const counts = new Map(); // 'yyyy-mm-dd' -> n
+      const counts = new Map();
       for (const [qid, rec] of Object.entries(questionScores || {})) {
         if (!idSet.has(qid)) continue;
         const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
@@ -1015,18 +1073,16 @@
         }
       }
 
-      // 달력 범위 계산 (월요일 시작)
-      const first = new Date(calRefDate); // 1일
+      const first = new Date(calRefDate);
       const firstDow = dowMon0(first);
       const start = new Date(first);
-      start.setDate(first.getDate() - firstDow); // 그 주의 월요일
+      start.setDate(first.getDate() - firstDow);
 
       const lastDay = new Date(calRefDate.getFullYear(), calRefDate.getMonth()+1, 0);
       const lastDow = dowMon0(lastDay);
       const end = new Date(lastDay);
-      end.setDate(lastDay.getDate() + (6 - lastDow)); // 그 주의 일요일
+      end.setDate(lastDay.getDate() + (6 - lastDow));
 
-      // 렌더
       grid.innerHTML = '';
       for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
         const inMonth = (d.getMonth() === calRefDate.getMonth() && d.getFullYear() === calRefDate.getFullYear());
@@ -1049,7 +1105,6 @@
       }
     }
 
-    // 캘린더 네비
     el.calPrev?.addEventListener('click', () => { calRefDate.setMonth(calRefDate.getMonth()-1); renderCalendarMonth(); });
     el.calNext?.addEventListener('click', () => { calRefDate.setMonth(calRefDate.getMonth()+1); renderCalendarMonth(); });
 
@@ -1141,7 +1196,7 @@
       const closeMenu=()=>{ menu.classList.add('hidden'); caret.style.transform='rotate(0deg)'; };
       btn?.addEventListener('click',e=>{ e.stopPropagation(); if(menu.classList.contains('hidden')) openMenu(); else closeMenu(); });
       document.addEventListener('click', closeMenu, {once:true});
-      menu?.querySelectorAll('[data-view]').forEach(i=> i.addEventListener('click',()=>{ const v=i.getAttribute('data-view'); statsView=v; localStorage.setItem('statsView_v1',v); renderStats(); }) );
+      menu?.querySelectorAll('[data-view]')?.forEach(i=> i.addEventListener('click',()=>{ const v=i.getAttribute('data-view'); statsView=v; localStorage.setItem('statsView_v1',v); renderStats(); }) );
       $('apply-stats-target')?.addEventListener('click',()=>{ const v=Math.max(1,Math.min(9999,Math.round(+($('stats-target-input')?.value||1)))); localStorage.setItem(targetKey,String(v)); renderStats(); });
       el.statsOverview.querySelectorAll('[data-go-ch]')?.forEach(b=> b.addEventListener('click',()=>{ const ch=b.getAttribute('data-go-ch')||''; if(ch){ el.chapterSelect.value=ch; reloadAndRefresh(); showToast(`${chapterLabelText(ch)} 로 이동`);} }));
     }
@@ -1155,7 +1210,9 @@
       el.explorerChapters.innerHTML='';
       chapters.forEach(ch=>{
         const btn=document.createElement('button'); btn.className='w-full text-left px-3 py-2 rounded border hover:bg-gray-50'; btn.textContent=chapterLabelText(ch);
-        btn.addEventListener('click',()=>{ const list=group.get(ch)||[]; if(list.length){ currentQuizData=list; currentQuestionIndex=0; el.quizArea.classList.remove('hidden'); displayQuestion(); showToast(`${chapterLabelText(ch)} 로 이동`); updateSummaryHighlight(); } });
+        btn.addEventListener('click',()=>{
+          const list=group.get(ch)||[]; if(list.length){ currentQuizData=list; currentQuestionIndex=0; el.quizArea.classList.remove('hidden'); displayQuestion(); showToast(`${chapterLabelText(ch)} 로 이동`); updateSummaryHighlight(); }
+        });
         el.explorerChapters.appendChild(btn);
       });
 
@@ -1203,20 +1260,20 @@
       el.drawerBackdrop.classList.remove('hidden');
       el.leftDashboard.classList.remove('hidden');
       el.leftDashboard.classList.add('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900','relative');
-      el.drawerClose.classList.remove('hidden'); // ✕ 버튼 표시
+      el.drawerClose.classList.remove('hidden');
     }
     function closeDrawer(){
       document.body.classList.remove('drawer-open');
       el.drawerBackdrop.classList.add('hidden');
       el.leftDashboard.classList.add('hidden');
       el.leftDashboard.classList.remove('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900','relative');
-      el.drawerClose.classList.add('hidden'); // ✕ 버튼 숨김
+      el.drawerClose.classList.add('hidden');
     }
     el.hamburger?.addEventListener('click', openDrawer);
     el.drawerBackdrop?.addEventListener('click', closeDrawer);
     el.drawerClose?.addEventListener('click', closeDrawer);
     window.addEventListener('resize',()=>{
-      if(window.innerWidth>=1024){ // lg↑
+      if(window.innerWidth>=1024){
         el.leftDashboard.classList.remove('hidden'); el.drawerBackdrop.classList.add('hidden'); document.body.classList.remove('drawer-open');
         el.leftDashboard.classList.remove('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900','relative'); el.drawerClose.classList.add('hidden');
       }else{ el.leftDashboard.classList.add('hidden'); }
