@@ -103,7 +103,7 @@
             <div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div><div>일</div>
           </div>
           <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
-          <div class="mt-2 text-[11px] text-gray-500">색 = 해당일 풀이량 (노랑→초록→파랑)</div>
+          <div class="mt-2 text-[11px] text-gray-500">색 = 해당일 풀이량 (노랑→초록→파랑, 촘촘)</div>
         </div>
 
         <div class="bg-white rounded-2xl shadow-xl p-4">
@@ -168,11 +168,12 @@
                 <button id="hint-btn" class="text-sm bg-purple-600 text-white px-3 py-1.5 rounded-md shadow hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">힌트</button>
 
                 <div class="flex items-center gap-2">
+                  <!-- 복습추가(★) -->
                   <button id="review-flag-toggle" class="text-sm px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100 flex items-center gap-1" aria-pressed="false" title="복습 필요 토글">
-                    <span class="text-yellow-500">☆</span><span>복습 필요</span>
+                    <span class="text-yellow-500">☆</span><span>복습 추가</span>
                   </button>
 
-                  <!-- NEW: 복습 제외 토글 (오늘의 복습에서 제외) -->
+                  <!-- 복습 제외(➖) -->
                   <button id="review-exclude-toggle" class="text-sm px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100 flex items-center gap-1" aria-pressed="false" title="오늘의 복습에서 제외/해제">
                     <span class="text-gray-600">➖</span><span>복습 제외</span>
                   </button>
@@ -186,7 +187,7 @@
               <label for="user-answer" class="text-sm font-medium text-gray-700">답안 입력</label>
               <button id="load-prev-answer-btn" class="text-xs text-blue-600 hover:underline">이전 답안 불러오기</button>
             </div>
-            <textarea id="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark=text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=포커스/현황판)"></textarea>
+            <textarea id="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=포커스/현황판)"></textarea>
             <p id="error-message" class="text-red-500 text-sm mt-2 hidden">답안을 입력해주세요.</p>
             <p id="hotkey-guide" class="text-xs text-gray-500 mt-2">
               단축키: Ctrl+←/→ 이전/다음 · Enter 채점 · Shift+Enter 줄바꿈 · H 힌트 · Ctrl+[ 이전 · Ctrl+] 포커스/현황판
@@ -412,7 +413,7 @@
       const color= type==='error'?'bg-red-600 text-white': type==='warn'?'bg-yellow-500 text-white':'bg-gray-900 text-white';
       el.toast.classList.remove('hidden');
       const item=document.createElement('div'); item.className=`${base} ${color}`; item.textContent=msg; el.toast.appendChild(item);
-      setTimeout(()=>{ item.remove(); if(!el.toast.hasChildNodes()) el.toast.classList.add('hidden'); }, 3000);
+      setTimeout(()=>{ item.remove(); if(!el.toast.hasChildNodes()) el.toast.classList.add('hidden'); }, 2500);
     };
     const getHeaderOffset=()=>el.fixedHeader?.getBoundingClientRect().height||0;
     const smoothScrollTo=y=>window.scrollTo({top:y,behavior:'smooth'});
@@ -517,10 +518,34 @@
         allData.forEach(q=>{ const disp=String(q.표시번호??'').trim(), num=String(q.물음번호??'').trim(); if(disp) map[disp]=q.고유ID; if(num) map[num]=q.고유ID; });
         Object.keys(parsed).forEach(k=>{
           const nk=map[k]||k, ov=parsed[k]||{}, hist=Array.isArray(ov.solveHistory)?ov.solveHistory:(ov.score!=null?[{date:Date.now(),score:+ov.score||0}]:[]);
-          newScores[nk]={ score:+(ov.score??0), feedback:String(ov.feedback??''), user_answer:String(ov.user_answer??''), hintUsed:!!ov.hintUsed, isSolved:!!(ov.isSolved||(ov.score!=null)), lastSolvedDate:+(ov.lastSolvedDate??(hist.at(-1)?.date||Date.now())), solveHistory:hist, userReviewFlag:!!ov.userReviewFlag };
+          newScores[nk]={ score:+(ov.score??0), feedback:String(ov.feedback??''), user_answer:String(ov.user_answer??''), hintUsed:!!ov.hintUsed, isSolved:!!(ov.isSolved||(ov.score!=null)), lastSolvedDate:+(ov.lastSolvedDate??(hist.at(-1)?.date||Date.now())), solveHistory:hist, userReviewFlag:!!ov.userReviewFlag, userReviewExclude: !!ov.userReviewExclude };
         });
         localStorage.setItem('auditQuizScores',JSON.stringify(newScores)); localStorage.setItem('schemaVersion','2'); questionScores=newScores; showToast('데이터 마이그레이션 완료','info');
       }catch(e){ console.error(e); showToast('마이그레이션 오류','error'); }
+    }
+
+    /* === 상호배타(★ vs ➖) 정합성 보정 === */
+    function enforceExclusiveFlagsOnAll() {
+      let changed=0;
+      for (const [qid, rec] of Object.entries(questionScores||{})) {
+        if (rec?.userReviewFlag && rec?.userReviewExclude) {
+          // 정책: '제외(➖) 우선'
+          rec.userReviewFlag = false;
+          changed++;
+        }
+      }
+      if (changed) {
+        try { localStorage.setItem('auditQuizScores', JSON.stringify(questionScores)); } catch {}
+      }
+    }
+    function setFlagState(qid, {flag=false, exclude=false, silent=false}) {
+      const rec = questionScores[qid] || {};
+      // 상호배타 적용
+      if (exclude) flag = false;
+      if (flag) exclude = false;
+      questionScores[qid] = { ...rec, userReviewFlag: !!flag, userReviewExclude: !!exclude };
+      try { localStorage.setItem('auditQuizScores', JSON.stringify(questionScores)); } catch {}
+      if (!silent) refreshPanels(); // 좌/우 패널 동기화
     }
 
     function openApiModal(initial=false){ if(initial) el.apiModalCancelBtn.classList.add('hidden'); else el.apiModalCancelBtn.classList.remove('hidden');
@@ -564,6 +589,8 @@
           if(data.aiModel){ localStorage.setItem('aiModel',data.aiModel); selectedAiModel=data.aiModel; if(el.aiModelSelect) el.aiModelSelect.value=data.aiModel; }
           if(data.darkMode){ localStorage.setItem('darkMode',data.darkMode); darkMode=data.darkMode; applyDarkMode(); }
           if(data.schemaVersion) localStorage.setItem('schemaVersion',String(data.schemaVersion));
+          // 가져오자마자 상호배타 보정
+          enforceExclusiveFlagsOnAll();
           showToast('데이터 가져오기 완료'); setTimeout(()=>location.reload(),600);
         }catch(err){ console.error(err); showToast(`가져오기 실패: ${err.message}`,'error'); }
       };
@@ -621,7 +648,7 @@
       });
 
       if(filter==='today-review') {
-        // 복습 제외 표시된 문제는 오늘의 복습 후보에서 제거
+        // 제외 표시는 오늘의 복습 후보에서 제거
         list = list.filter(q => !questionScores[normId(q.고유ID)]?.userReviewExclude);
         list = prioritizeTodayReview(list).slice(0,10);
       }
@@ -648,6 +675,19 @@
       el.quizArea.classList.remove('hidden'); el.summaryArea.classList.remove('hidden'); displayQuestion(); updateSummary(); refreshPanels(); showToast('랜덤 문제 시작!');
     });
 
+    function updateFlagButtonsUI(saved) {
+      const flagged = !!(saved?.userReviewFlag);
+      const excluded = !!(saved?.userReviewExclude);
+      // 상호배타: excluded가 true면 flagged는 false처럼 표현
+      const flagVisual = flagged && !excluded;
+
+      // ★/☆ 표시
+      const starEl = el.reviewFlagToggle?.querySelector('span');
+      if (starEl) starEl.textContent = flagVisual ? '★' : '☆';
+      el.reviewFlagToggle?.setAttribute('aria-pressed', flagVisual ? 'true':'false');
+      el.reviewExcludeToggle?.setAttribute('aria-pressed', excluded ? 'true':'false');
+    }
+
     function displayQuestion(){
       if(!currentQuizData.length){ el.quizArea.classList.add('hidden'); return; }
       const q=currentQuizData[currentQuestionIndex];
@@ -661,14 +701,7 @@
       el.loadPrevAnswerBtn.textContent='이전 답안 불러오기'; el.loadPrevAnswerBtn.removeAttribute('aria-pressed'); prevLoaded=false;
 
       const saved=questionScores[normId(q.고유ID)];
-      const flagged=!!(saved?.userReviewFlag);
-      el.reviewFlagToggle.setAttribute('aria-pressed', flagged?'true':'false');
-      el.reviewFlagToggle.querySelector('span').textContent= flagged?'★':'☆';
-
-      const excluded = !!(saved?.userReviewExclude);
-      if (el.reviewExcludeToggle) {
-        el.reviewExcludeToggle.setAttribute('aria-pressed', excluded ? 'true' : 'false');
-      }
+      updateFlagButtonsUI(saved);
 
       if(saved && saved.score!==undefined) showResult(saved.score, saved.feedback, q.정답);
       el.prevBtn.disabled=(currentQuestionIndex===0);
@@ -676,29 +709,39 @@
       updateSummaryHighlight();
     }
 
+    // 복습추가(★) 클릭 → 제외(➖)와 상호배타
     el.reviewFlagToggle.addEventListener('click',()=>{
       if(!currentQuizData.length) return;
-      const q=currentQuizData[currentQuestionIndex], key=normId(q.고유ID), rec=questionScores[key]||{}, next=!rec.userReviewFlag;
-      questionScores[key]={...rec, userReviewFlag:next};
-      try{ localStorage.setItem('auditQuizScores',JSON.stringify(questionScores)); }catch{}
-      el.reviewFlagToggle.setAttribute('aria-pressed', next?'true':'false');
-      el.reviewFlagToggle.querySelector('span').textContent= next?'★':'☆';
-      showToast(next?'복습 필요에 추가':'복습 필요 해제'); refreshPanels();
+      const q=currentQuizData[currentQuestionIndex], key=normId(q.고유ID), rec=questionScores[key]||{};
+      const willFlag = !(rec.userReviewFlag && !rec.userReviewExclude); // 시각상 Flag 활성 여부
+      if (willFlag) {
+        // 추가로 전환: 제외를 해제
+        setFlagState(key, { flag:true, exclude:false });
+        showToast('복습 추가로 전환(➖ 해제)');
+      } else {
+        // 추가 해제
+        setFlagState(key, { flag:false, exclude:!!rec.userReviewExclude });
+        showToast('복습 추가 해제');
+      }
+      updateFlagButtonsUI(questionScores[key]);
+      refreshPanels();
     });
 
-    // NEW: 복습 제외 토글 (오늘의 복습에서 제외)
+    // 복습제외(➖) 클릭 → 추가(★)와 상호배타
     el.reviewExcludeToggle?.addEventListener('click', ()=>{
       if(!currentQuizData.length) return;
-      const q=currentQuizData[currentQuestionIndex];
-      const key=normId(q.고유ID);
-      const rec=questionScores[key]||{};
-      const next = !rec.userReviewExclude;
-
-      questionScores[key] = { ...rec, userReviewExclude: next };
-      try { localStorage.setItem('auditQuizScores', JSON.stringify(questionScores)); } catch {}
-
-      el.reviewExcludeToggle.setAttribute('aria-pressed', next?'true':'false');
-      showToast(next ? '오늘의 복습에서 제외했습니다.' : '복습 제외를 해제했습니다.');
+      const q=currentQuizData[currentQuestionIndex], key=normId(q.고유ID), rec=questionScores[key]||{};
+      const willExclude = !rec.userReviewExclude;
+      if (willExclude) {
+        // 제외로 전환: 추가를 해제
+        setFlagState(key, { flag:false, exclude:true });
+        showToast('오늘의 복습에서 제외로 전환(★ 해제)');
+      } else {
+        // 제외 해제 (필요시 사용자가 별도로 ★ 추가)
+        setFlagState(key, { flag:!!rec.userReviewFlag, exclude:false });
+        showToast('복습 제외 해제');
+      }
+      updateFlagButtonsUI(questionScores[key]);
       refreshPanels();
     });
 
@@ -735,6 +778,8 @@
 
         const existing=questionScores[qKey]||{}, newHistory=[...(existing.solveHistory||[]), {date:Date.now(), score:finalScore}];
         questionScores[qKey]={ score:finalScore, feedback:finalFeedback, user_answer:answer, hintUsed:usedHint, isSolved:true, lastSolvedDate:Date.now(), solveHistory:newHistory, userReviewFlag:!!existing.userReviewFlag, userReviewExclude: !!existing.userReviewExclude };
+        // 상호배타 재보정(혹시라도 외부 백업 복원으로 둘다 true된 경우)
+        enforceExclusiveFlagsOnAll();
         try{ localStorage.setItem('auditQuizScores',JSON.stringify(questionScores)); }catch{ showToast('localStorage 저장 실패(용량)','error'); }
 
         const {increased, uniqueReads}=registerUniqueRead(qKey); if(increased) showToast(`회독 +1 (이 문제 고유 ${uniqueReads}회)`);
@@ -880,9 +925,9 @@
           const baseLabel = disp || fallback || '';
 
           const id=String(q.고유ID).trim();
-          const saved=questionScores[id];
-          const excluded = !!(saved?.userReviewExclude);
-          const isFlagged = !!(saved?.userReviewFlag);
+          const saved=questionScores[id]||{};
+          const excluded = !!saved.userReviewExclude;
+          const flagged = !!saved.userReviewFlag && !excluded; // 제외 우선
 
           const label = excluded ? `➖ ${baseLabel}` : baseLabel;
           btn.textContent=label;
@@ -891,7 +936,7 @@
 
           const metaFlags=[];
           if(excluded) metaFlags.push('복습제외');
-          if(isFlagged) metaFlags.push('복습필요');
+          else if(flagged) metaFlags.push('복습추가');
 
           const fullMeta=[ q.problemTitle && String(q.problemTitle).trim(),
             `표시번호:${disp||'-'}`, `물음번호:${(q.물음번호??'').toString().trim()||'-'}`, `ID:${(q.고유ID??'').toString().trim()||'-'}`, metaFlags.join(', ')
@@ -900,7 +945,7 @@
 
           btn.classList.add('summary-btn','font-medium','rounded-lg','border');
 
-          const sc= saved? +saved.score: NaN;
+          const sc= Number.isFinite(+saved?.score)? +saved.score : NaN;
           const cls= !Number.isFinite(sc)? ['bg-gray-100','text-gray-600','border-gray-300'] : sc<60? ['bg-red-100','text-red-700','border-red-300'] : sc<80? ['bg-yellow-100','text-yellow-700','border-yellow-300'] : ['bg-green-100','text-green-700','border-green-300'];
           btn.classList.add(...cls); btn.dataset.qid=id;
 
@@ -1014,7 +1059,7 @@
       for(const q of base){
         const id=String(q.고유ID).trim(), rec=questionScores[id];
         if(rec && Number.isFinite(+rec.score)){ solved++; sum+=+rec.score; }
-        if(rec?.userReviewFlag) flagged++;
+        if(rec?.userReviewFlag && !rec.userReviewExclude) flagged++; // 제외가 우선
         if(rec?.lastSolvedDate && rec.lastSolvedDate>last) last=rec.lastSolvedDate;
         (Array.isArray(rec?.solveHistory)?rec.solveHistory:[]).forEach(h=>{ const t=+h?.date; if(!Number.isFinite(t)) return; const d=new Date(t); d.setHours(0,0,0,0); daySet.add(ymd(d)); });
       }
@@ -1031,6 +1076,7 @@
         for(const h of hist){ const t=+h?.date, sc=+h?.score; if(!Number.isFinite(t)) continue; if(t>=+start && t<=+end){ periodSolves++; if(Number.isFinite(sc)) periodSum+=sc; const slot=chRec(ch); slot.solves++; if(Number.isFinite(sc)) slot.sum+=sc; } }
       }
       const periodAvg=periodSolves? (periodSum/periodSolves):null;
+
       const weak=[]; byCh.forEach((v,ch)=>{ if(v.solves>=3) weak.push({ch,avg:v.sum/v.solves,cnt:v.solves}); }); weak.sort((a,b)=>a.avg-b.avg); const weakTop=weak.slice(0,3);
 
       const baseDaily=+(localStorage.getItem('dailyTarget_v1')||20);
@@ -1082,7 +1128,7 @@
             </div>
           </div>
 
-          <div class="text-[12px] text-gray-500 mt-2">최근 학습: <strong class="text-gray-700">${recentTxt}</strong> · 복습 필요(★): <strong class="text-gray-700">${flagged}</strong></div>
+          <div class="text-[12px] text-gray-500 mt-2">최근 학습: <strong class="text-gray-700">${recentTxt}</strong> · 복습 추가(★): <strong class="text-gray-700">${flagged}</strong></div>
         </div>`;
 
       const btn=$('stats-view-btn'), caret=$('stats-caret'), menu=$('stats-view-menu');
@@ -1115,9 +1161,10 @@
       el.explorerProblems.innerHTML='';
       filtered.sort((a,b)=>{ const na=+(a.물음번호||a.표시번호), nb=+(b.물음번호||b.표시번호); if(Number.isFinite(na)&&Number.isFinite(nb)) return na-nb; return String(a.표시번호||a.물음번호).localeCompare(String(b.표시번호||b.물음번호),'ko'); })
       .forEach(it=>{
-        const rec=questionScores[String(it.고유ID).trim()], score= Number.isFinite(+rec?.score)? +rec.score : null;
-        const flagged=!!(rec?.userReviewFlag);
-        const excluded=!!(rec?.userReviewExclude);
+        const rec=questionScores[String(it.고유ID).trim()]||{};
+        const score= Number.isFinite(+rec?.score)? +rec.score : null;
+        const excluded=!!rec.userReviewExclude;
+        const flagged=!!rec.userReviewFlag && !excluded; // 제외 우선
 
         const row=document.createElement('button'); row.className='w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded hover:bg-gray-50 border';
 
@@ -1145,14 +1192,12 @@
     const REVIEW_STRATEGY_LS='reviewStrategy_v1';
     const getReviewStrategy=()=> localStorage.getItem(REVIEW_STRATEGY_LS)||'smart';
     function prioritizeTodayReview(list){
-      // 제외 토글 선제 제거 (중복 안전장치)
       list = (list||[]).filter(a => !questionScores[normId(a.고유ID)]?.userReviewExclude);
-
       const strat=getReviewStrategy();
-      if(strat==='flag'){ const f=list.filter(a=>questionScores[normId(a.고유ID)]?.userReviewFlag); const r=list.filter(a=>!questionScores[normId(a.고유ID)]?.userReviewFlag); return f.concat(r); }
+      if(strat==='flag'){ const f=list.filter(a=>questionScores[normId(a.고유ID)]?.userReviewFlag && !questionScores[normId(a.고유ID)]?.userReviewExclude); const r=list.filter(a=>!(questionScores[normId(a.고유ID)]?.userReviewFlag && !questionScores[normId(a.고유ID)]?.userReviewExclude)); return f.concat(r); }
       if(strat==='low'){ return [...list].sort((a,b)=>{ const sa=questionScores[normId(a.고유ID)]?.score??101, sb=questionScores[normId(b.고유ID)]?.score??101; return sa-sb; }); }
       if(strat==='recentWrong'){ return [...list].sort((a,b)=>{ const sa=questionScores[normId(a.고유ID)], sb=questionScores[normId(b.고유ID)], as=sa?.score??101, bs=sb?.score??101, ad=sa?.lastSolvedDate??0, bd=sb?.lastSolvedDate??0; return (as-bs)||(ad-bd); }); }
-      return [...list].sort((a,b)=>{ const sa=questionScores[normId(a.고유ID)], sb=questionScores[normId(b.고유ID)], af=sa?.userReviewFlag?0:1, bf=sb?.userReviewFlag?0:1, aUn=sa?1:0, bUn=sb?1:0, aS=sa?.score??101, bS=sb?.score??101, aD=sa?.lastSolvedDate??0, bD=sb?.lastSolvedDate??0; return (af-bf)||(aUn-bUn)||(aS-bS)||(aD-bD); });
+      return [...list].sort((a,b)=>{ const sa=questionScores[normId(a.고유ID)], sb=questionScores[normId(b.고유ID)], af=(sa?.userReviewFlag && !sa?.userReviewExclude)?0:1, bf=(sb?.userReviewFlag && !sb?.userReviewExclude)?0:1, aUn=sa?1:0, bUn=sb?1:0, aS=sa?.score??101, bS=sb?.score??101, aD=sa?.lastSolvedDate??0, bD=sb?.lastSolvedDate??0; return (af-bf)||(aUn-bUn)||(aS-bS)||(aD-bD); });
     }
     el.reviewStrategySelect?.addEventListener('change',e=>{ localStorage.setItem(REVIEW_STRATEGY_LS, e.target.value); showToast(`오늘의 복습 전략: ${e.target.value}`); refreshPanels(); });
     (function syncStrategy(){ const cur=getReviewStrategy(); if(el.reviewStrategySelect) el.reviewStrategySelect.value=cur; })();
@@ -1172,7 +1217,10 @@
 
     document.addEventListener('DOMContentLoaded', async ()=>{
       try{ await loadData(); }catch(err){ console.error(err); $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).'; showToast(`문제 데이터 로드 실패: ${err.message}`,'error'); }
-      loadScores(); loadApiKey(); loadSettings(); applyDarkMode(); migrateData(); backfillReadStoreFromScores(false); ensureApiKeyGate();
+      loadScores(); loadApiKey(); loadSettings(); applyDarkMode(); migrateData();
+      // 상호배타 정합성 1차 보정
+      enforceExclusiveFlagsOnAll();
+      backfillReadStoreFromScores(false); ensureApiKeyGate();
       buildSourceFilterUI(); moveSourceFilterToSide();
       el.explorerSearch?.addEventListener('input', renderExplorer);
       refreshPanels();
@@ -1180,4 +1228,3 @@
   </script>
 </body>
 </html>
-
