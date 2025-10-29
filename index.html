@@ -1227,7 +1227,7 @@
         if(flagged){ const star=document.createElement('span'); star.textContent='★'; star.className='text-purple-500'; left.appendChild(star); }
         const title=document.createElement('span'); const label=(it.problemTitle && String(it.problemTitle).trim())||`문항 ${it.표시번호||it.물음번호||it.고유ID}`;
         title.textContent=label; title.className='block max-w-[18rem] xl:max-w-[22rem] truncate'; left.appendChild(title);
-        const right=document.createElement('div'); right.className='text-xs'; const badge=document.createElement('span'); badge.className='px-2 py-0.5 rounded-full border '+(score==null?'text-gray-600 border-gray-300':'text-blue-700 border-blue-300'); badge.textContent= score==null?'미풀이':`${score}`; right.appendChild(badge);
+        const right=document.createElement('div'); right.className='text-xs'; const badge=document.createElement('span'); badge.className='px-2 py-0.5 rounded-full border '+(score==null?'text-gray-600 border-gray-300':'text-blue-700 border-blue-300'); badge.textContent= score==null?'X':`${score}`; right.appendChild(badge);
         row.appendChild(left); row.appendChild(right); row.title=`출처:${it.출처||'-'} | ID:${it.고유ID}`;
         row.addEventListener('click',()=>{
           const ch=String(it.단원).trim(), list=base.filter(x=>String(x.단원).trim()===ch);
@@ -1290,3 +1290,4 @@
   </script>
 </body>
 </html>
+
