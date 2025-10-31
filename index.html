@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -13,12 +14,12 @@
 </script>
   <!-- Google Tag Manager -->
 <script>(function (w, d, s, l, i) {
-w[l] = w[l] || []; w[l].push({
-'gtm.start':
-new Date().getTime(), event: 'gtm.js'
-}); var f = d.getElementsByTagName(s)[0],
-j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+    w[l] = w[l] || []; w[l].push({
+        'gtm.start':
+        new Date().getTime(), event: 'gtm.js'
+    }); var f = d.getElementsByTagName(s)[0],
+    j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
 })(window, document, 'script', 'dataLayer', 'GTM-TC8G7NJD');</script>
 <!-- End Google Tag Manager -->
   <meta charset="UTF-8" />
@@ -399,9 +400,33 @@ j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; 
     let ctrlNavState='dashboard', lastScrollYBeforeFocus=0;
 
     let calRefDate = (() => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(1); return d; })();
-      // [신규 추가] 통계 패널이 보여줄 날짜를 저장하는 변수
-    let statsRefDate = new Date();
-    statsRefDate.setHours(0,0,0,0);
+let statsRefDate = new Date();
+statsRefDate.setHours(0,0,0,0);
+
+// ↓ 아래 코드 추가
+const STATS_DATE_KEY = 'statsDisplayDate_v1';
+
+function initStatsDate() {
+  const saved = localStorage.getItem(STATS_DATE_KEY);
+  if (saved) {
+    const d = new Date(saved + 'T00:00:00');
+    if (!isNaN(d.getTime())) {
+      statsRefDate = d;
+      return;
+    }
+  }
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  statsRefDate = now;
+}
+
+function saveStatsDate() {
+  const y = statsRefDate.getFullYear();
+  const m = String(statsRefDate.getMonth() + 1).padStart(2, '0');
+  const d = String(statsRefDate.getDate()).padStart(2, '0');
+  localStorage.setItem(STATS_DATE_KEY, `${y}-${m}-${d}`);
+}
+ 
 
     const $ = id=>document.getElementById(id);
     const el = {
@@ -1066,104 +1091,311 @@ j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; 
         cell.appendChild(day);
         grid.appendChild(cell);
       }
+      bindCalendarDateClick();
     }
+      function bindCalendarDateClick() {
+  const cells = el.calendarGrid?.querySelectorAll('.cal-cell');
+  cells?.forEach(cell => {
+    cell.style.cursor = 'pointer';
+    
+    cell.addEventListener('click', (e) => {
+      const title = cell.title;
+      if (!title) return;
+      
+      const dateStr = title.split(' ')[0];
+      const clickedDate = new Date(dateStr + 'T00:00:00');
+      if (isNaN(clickedDate.getTime())) return;
+      
+      statsRefDate = clickedDate;
+      saveStatsDate();
+      renderStats();
+      
+      showToast(`${dateStr} 통계로 이동`, 'info');
+      
+      setTimeout(() => {
+        const offset = getHeaderOffset();
+        const statsBox = el.statsOverview?.closest('.bg-white');
+        if (statsBox) {
+          const y = statsBox.getBoundingClientRect().top + window.pageYOffset - offset - 8;
+          window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+        }
+      }, 100);
+    });
+  });
+}
+
     el.calPrev?.addEventListener('click', () => { calRefDate.setMonth(calRefDate.getMonth()-1); renderCalendarMonth(); });
     el.calNext?.addEventListener('click', () => { calRefDate.setMonth(calRefDate.getMonth()+1); renderCalendarMonth(); });
 
-    function renderStats(){
-      if(!el.statsOverview) return;
-      const now=new Date(), startOfDay=d=>{const t=new Date(d); t.setHours(0,0,0,0); return t;}, endOfDay=d=>{const t=new Date(d); t.setHours(23,59,59,999); return t;}, startOfWeek=d=>{const t=startOfDay(d); const dow=(t.getDay()+6)%7; t.setDate(t.getDate()-dow); return t;}, startOfMonth=d=>startOfDay(new Date(d.getFullYear(), d.getMonth(),1));
-      let title='오늘의 통계', label='오늘', start=startOfDay(now), end=endOfDay(now);
-      if(statsView==='week'){ title='주간 통계'; label='주간'; start=startOfWeek(now); }
-      if(statsView==='month'){ title='월간 통계'; label='월간'; start=startOfMonth(now); }
-
-      const base=getScopeFilteredData(), idSet=new Set(base.map(q=>String(q.고유ID).trim()));
-      let solved=0,sum=0, flagged=0,last=0; const daySet=new Set();
-      for(const q of base){
-        const id=String(q.고유ID).trim(), rec=questionScores[id];
-        if(rec && Number.isFinite(+rec.score)){ solved++; sum+=+rec.score; }
-        if(rec?.userReviewFlag && !rec.userReviewExclude) flagged++; // 제외가 우선
-        if(rec?.lastSolvedDate && rec.lastSolvedDate>last) last=rec.lastSolvedDate;
-        (Array.isArray(rec?.solveHistory)?rec.solveHistory:[]).forEach(h=>{ const t=+h?.date; if(!Number.isFinite(t)) return; const d=new Date(t); d.setHours(0,0,0,0); daySet.add(ymd(d)); });
+function renderStatsDateNav() {
+  const existingNav = el.statsOverview?.querySelector('#stats-date-nav');
+  if (existingNav) existingNav.remove();
+  
+  const nav = document.createElement('div');
+  nav.id = 'stats-date-nav';
+  nav.className = 'flex items-center justify-between mb-3 pb-3 border-b';
+  
+  const displayY = statsRefDate.getFullYear();
+  const displayM = String(statsRefDate.getMonth() + 1).padStart(2, '0');
+  const displayD = String(statsRefDate.getDate()).padStart(2, '0');
+  const displayStr = `${displayY}-${displayM}-${displayD}`;
+  
+  nav.innerHTML = `
+    <div class="flex items-center gap-2">
+      <button id="stats-prev-day" class="w-7 h-7 flex items-center justify-center rounded border hover:bg-gray-100 text-sm" title="이전 날">◀</button>
+      <input id="stats-date-input" type="date" class="px-2 py-1 border rounded text-sm" value="${displayStr}">
+      <button id="stats-next-day" class="w-7 h-7 flex items-center justify-center rounded border hover:bg-gray-100 text-sm" title="다음 날">▶</button>
+    </div>
+    <button id="stats-today-btn" class="text-xs px-2 py-1 border rounded hover:bg-gray-100">오늘</button>
+  `;
+  
+  el.statsOverview.insertBefore(nav, el.statsOverview.firstChild);
+  
+  const prevBtn = el.statsOverview.querySelector('#stats-prev-day');
+  const nextBtn = el.statsOverview.querySelector('#stats-next-day');
+  const todayBtn = el.statsOverview.querySelector('#stats-today-btn');
+  const dateInput = el.statsOverview.querySelector('#stats-date-input');
+  
+  prevBtn?.addEventListener('click', () => {
+    statsRefDate.setDate(statsRefDate.getDate() - 1);
+    saveStatsDate();
+    renderStats();
+  });
+  
+  nextBtn?.addEventListener('click', () => {
+    statsRefDate.setDate(statsRefDate.getDate() + 1);
+    saveStatsDate();
+    renderStats();
+  });
+  
+  todayBtn?.addEventListener('click', () => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    statsRefDate = now;
+    saveStatsDate();
+    renderStats();
+  });
+  
+  dateInput?.addEventListener('change', (e) => {
+    if (e.target.value) {
+      const newDate = new Date(e.target.value + 'T00:00:00');
+      if (!isNaN(newDate.getTime())) {
+        statsRefDate = newDate;
+        saveStatsDate();
+        renderStats();
       }
-      const avgAll=solved?(sum/solved):null;
-      const recentTxt= last? ((d=>d===0?'오늘':d===1?'어제':`${d}일 전`)(Math.floor((Date.now()-last)/86400000))):'기록 없음';
-      const hasSolved=dayKey=> daySet.has(dayKey);
-      let streak=0, cur=new Date(); cur.setHours(0,0,0,0);
-      while(hasSolved(ymd(cur))){ streak++; cur.setDate(cur.getDate()-1); }
-      const bestKey='bestStreak_v1', best=Math.max(streak, +(localStorage.getItem(bestKey)||0)); if(best>+(localStorage.getItem(bestKey)||0)) localStorage.setItem(bestKey,String(best));
-
-      let periodSolves=0, periodSum=0; const byCh=new Map(), chRec=ch=>{ if(!byCh.has(ch)) byCh.set(ch,{solves:0,sum:0}); return byCh.get(ch); };
-      for(const q of base){
-        const id=String(q.고유ID).trim(), ch=String(q.단원).trim(), rec=questionScores[id], hist=Array.isArray(rec?.solveHistory)?rec.solveHistory:[];
-        for(const h of hist){ const t=+h?.date, sc=+h?.score; if(!Number.isFinite(t)) continue; if(t>=+start && t<=+end){ periodSolves++; if(Number.isFinite(sc)) periodSum+=sc; const slot=chRec(ch); slot.solves++; if(Number.isFinite(sc)) slot.sum+=sc; } }
-      }
-      const periodAvg=periodSolves? (periodSum/periodSolves):null;
-
-      const weak=[]; byCh.forEach((v,ch)=>{ if(v.solves>=3) weak.push({ch,avg:v.sum/v.solves,cnt:v.solves}); }); weak.sort((a,b)=>a.avg-b.avg); const weakTop=weak.slice(0,3);
-
-      const baseDaily=+(localStorage.getItem('dailyTarget_v1')||20);
-      if(!localStorage.getItem('weeklyTarget_v1')) localStorage.setItem('weeklyTarget_v1', String(baseDaily*7));
-      if(!localStorage.getItem('monthlyTarget_v1')) localStorage.setItem('monthlyTarget_v1', String(baseDaily*30));
-      const targetKey= statsView==='day'?'dailyTarget_v1': statsView==='week'?'weeklyTarget_v1':'monthlyTarget_v1';
-      const targetLabel= statsView==='day'?'오늘 목표': statsView==='week'?'이번 주 목표':'이번 달 목표';
-      const targetVal= +(localStorage.getItem(targetKey) || (statsView==='day'?baseDaily: (statsView==='week'? baseDaily*7: baseDaily*30)));
-      const pct=Math.max(0,Math.min(100,Math.round((periodSolves/Math.max(1,targetVal))*100)));
-      const fmt=v=> v==null?'-':(Math.round(v*10)/10).toFixed(1);
-      const chip=txt=>`<button data-go-ch="${txt}" class="px-2 py-0.5 text-xs rounded border hover:bg-gray-50">${chapterLabelText(txt)}</button>`;
-      const weakHtml= weakTop.length? weakTop.map(w=>`${chip(w.ch)} <span class="text-xs text-red-600 ml-1">${fmt(w.avg)}점·${w.cnt}회</span>`).join('<br>'):'데이터 부족';
-
-      el.statsOverview.innerHTML=`
-        <div class="border rounded p-3 relative">
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="font-bold" id="stats-title">${title}</h3>
-            <div class="relative">
-              <button id="stats-view-btn" class="flex items-center gap-1 text-sm px-2 py-1 rounded border hover:bg-gray-50"><span id="stats-view-label">${label}</span><span id="stats-caret" class="inline-block transition-transform">▼</span></button>
-              <div id="stats-view-menu" class="hidden absolute right-0 mt-1 w-28 bg-white dark:bg-gray-900 border rounded shadow-md overflow-hidden z-10">
-                <button data-view="day" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50">오늘</button>
-                <button data-view="week" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50">주간</button>
-                <button data-view="month" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50">월간</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div class="p-2 rounded border"><div class="text-[12px] text-gray-500">기간 풀이</div><div class="text-lg font-semibold">${periodSolves} 개</div></div>
-            <div class="p-2 rounded border"><div class="text-[12px] text-gray-500">기간 평균</div><div class="text-lg font-semibold">${fmt(periodAvg)} 점</div></div>
-            <div class="p-2 rounded border"><div class="text-[12px] text-gray-500">출석</div><div class="text-lg font-semibold">${streak} 일째 <span class="text-xs text-gray-500">(최고 ${best}일)</span></div></div>
-            <div class="p-2 rounded border"><div class="text-[12px] text-gray-500">스코프 평균</div><div class="text-lg font-semibold">${fmt(avgAll)} 점</div></div>
-          </div>
-
-          <div class="mt-3">
-            <div class="flex items-center justify-between"><div class="text-[12px] text-gray-500">${targetLabel} ${targetVal}개</div><div class="text-[12px] text-gray-500">${pct}%</div></div>
-            <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden"><div class="h-2 ${pct<60?'bg-red-500':(pct<100?'bg-yellow-500':'bg-green-600')}" style="width:${pct}%"></div></div>
-            <div class="flex items-center gap-2 mt-2">
-              <label for="stats-target-input" class="text-xs text-gray-500">목표:</label>
-              <input id="stats-target-input" type="number" min="1" class="w-20 px-2 py-1 text-xs border rounded" value="${targetVal}">
-              <button id="apply-stats-target" class="text-xs px-2 py-1 border rounded hover:bg-gray-50">적용</button>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 gap-3 mt-3">
-            <div class="p-2 rounded border">
-              <div class="text-[12px] text-gray-500 mb-1">약한 단원 Top 3 <span class="text-[11px] text-gray-400">(기간 기준)</span></div>
-              <div class="text-sm leading-5">${weakHtml}</div>
-            </div>
-          </div>
-
-          <div class="text-[12px] text-gray-500 mt-2">최근 학습: <strong class="text-gray-700">${recentTxt}</strong> · 복습 추가(★): <strong class="text-gray-700">${flagged}</strong></div>
-        </div>`;
-
-      const btn=$('stats-view-btn'), caret=$('stats-caret'), menu=$('stats-view-menu');
-      const openMenu=()=>{ menu.classList.remove('hidden'); caret.style.transform='rotate(180deg)'; };
-      const closeMenu=()=>{ menu.classList.add('hidden'); caret.style.transform='rotate(0deg)'; };
-      btn?.addEventListener('click',e=>{ e.stopPropagation(); if(menu.classList.contains('hidden')) openMenu(); else closeMenu(); });
-      document.addEventListener('click', closeMenu, {once:true});
-      menu?.querySelectorAll('[data-view]')?.forEach(i=> i.addEventListener('click',()=>{ const v=i.getAttribute('data-view'); statsView=v; localStorage.setItem('statsView_v1',v); renderStats(); }) );
-      $('apply-stats-target')?.addEventListener('click',()=>{ const v=Math.max(1,Math.min(9999,Math.round(+($('stats-target-input')?.value||1)))); localStorage.setItem(targetKey,String(v)); renderStats(); });
-      el.statsOverview.querySelectorAll('[data-go-ch]')?.forEach(b=> b.addEventListener('click',()=>{ const ch=b.getAttribute('data-go-ch')||''; if(ch){ el.chapterSelect.value=ch; reloadAndRefresh(); showToast(`${chapterLabelText(ch)} 로 이동`);} }));
     }
+  });
+}
+function renderStats(){
+  if(!el.statsOverview) return;
+  
+  renderStatsDateNav();
+  
+  const startOfDay=d=>{const t=new Date(d); t.setHours(0,0,0,0); return t;};
+  const endOfDay=d=>{const t=new Date(d); t.setHours(23,59,59,999); return t;};
+  
+  // ✅ 주간: 월요일 시작 ~ 일요일 끝
+  const startOfWeek=d=>{
+    const t=new Date(d); 
+    t.setHours(0,0,0,0);
+    const dow = (t.getDay() + 6) % 7; // 0=월, 6=일
+    t.setDate(t.getDate() - dow);
+    return t;
+  };
+  
+  const endOfWeek=d=>{
+    const t=new Date(d);
+    t.setHours(23,59,59,999);
+    const dow = (t.getDay() + 6) % 7;
+    t.setDate(t.getDate() + (6 - dow));
+    return t;
+  };
+  
+  // ✅ 월간: 해당 월의 1일 시작 ~ 마지막일 끝
+  const startOfMonth=d=>{
+    const t=new Date(d.getFullYear(), d.getMonth(), 1);
+    t.setHours(0,0,0,0);
+    return t;
+  };
+  
+  const endOfMonth=d=>{
+    const t=new Date(d.getFullYear(), d.getMonth() + 1, 0); // 다음 달 0일 = 이번 달 마지막 날
+    t.setHours(23,59,59,999);
+    return t;
+  };
+  
+  // ✅ 기간 설정 (변경된 부분)
+  let title='오늘의 통계', label='오늘', start=startOfDay(statsRefDate), end=endOfDay(statsRefDate);
+  
+  if(statsView==='week'){ 
+    title='주간 통계'; 
+    label='주간'; 
+    start=startOfWeek(statsRefDate);
+    end=endOfWeek(statsRefDate);
+  }
+  
+  if(statsView==='month'){ 
+    title='월간 통계'; 
+    label='월간'; 
+    start=startOfMonth(statsRefDate);
+    end=endOfMonth(statsRefDate);
+  }
 
+  // 나머지 코드는 동일...
+  const base=getScopeFilteredData(), idSet=new Set(base.map(q=>String(q.고유ID).trim()));
+  let solved=0,sum=0, flagged=0,last=0; const daySet=new Set();
+  
+  for(const q of base){
+    const id=String(q.고유ID).trim(), rec=questionScores[id];
+    if(rec && Number.isFinite(+rec.score)){ solved++; sum+=+rec.score; }
+    if(rec?.userReviewFlag && !rec.userReviewExclude) flagged++;
+    if(rec?.lastSolvedDate && rec.lastSolvedDate>last) last=rec.lastSolvedDate;
+    (Array.isArray(rec?.solveHistory)?rec.solveHistory:[]).forEach(h=>{ 
+      const t=+h?.date; 
+      if(!Number.isFinite(t)) return; 
+      const d=new Date(t); 
+      d.setHours(0,0,0,0); 
+      daySet.add(ymd(d)); 
+    });
+  }
+  
+  const avgAll=solved?(sum/solved):null;
+  const recentTxt= last? ((d=>d===0?'오늘':d===1?'어제':`${d}일 전`)(Math.floor((Date.now()-last)/86400000))):'기록 없음';
+  const hasSolved=dayKey=> daySet.has(dayKey);
+  
+  let streak=0, cur=new Date(); 
+  cur.setHours(0,0,0,0);
+  while(hasSolved(ymd(cur))){ streak++; cur.setDate(cur.getDate()-1); }
+  
+  const bestKey='bestStreak_v1', best=Math.max(streak, +(localStorage.getItem(bestKey)||0)); 
+  if(best>+(localStorage.getItem(bestKey)||0)) localStorage.setItem(bestKey,String(best));
+
+  // ✅ 기간 내 풀이 집계 (변경된 부분 - start와 end 사용)
+  let periodSolves=0, periodSum=0; 
+  const byCh=new Map(), chRec=ch=>{ 
+    if(!byCh.has(ch)) byCh.set(ch,{solves:0,sum:0}); 
+    return byCh.get(ch); 
+  };
+  
+  for(const q of base){
+    const id=String(q.고유ID).trim(), ch=String(q.단원).trim(), rec=questionScores[id];
+    const hist=Array.isArray(rec?.solveHistory)?rec.solveHistory:[];
+    
+    for(const h of hist){ 
+      const t=+h?.date, sc=+h?.score; 
+      if(!Number.isFinite(t)) continue; 
+      
+      // ✅ 기간 체크: start <= t <= end
+      if(t >= +start && t <= +end){ 
+        periodSolves++; 
+        if(Number.isFinite(sc)) periodSum+=sc; 
+        const slot=chRec(ch); 
+        slot.solves++; 
+        if(Number.isFinite(sc)) slot.sum+=sc; 
+      } 
+    }
+  }
+  
+  const periodAvg=periodSolves? (periodSum/periodSolves):null;
+
+  const weak=[]; 
+  byCh.forEach((v,ch)=>{ 
+    if(v.solves>=3) weak.push({ch,avg:v.sum/v.solves,cnt:v.solves}); 
+  }); 
+  weak.sort((a,b)=>a.avg-b.avg); 
+  const weakTop=weak.slice(0,3);
+
+  const baseDaily=+(localStorage.getItem('dailyTarget_v1')||20);
+  if(!localStorage.getItem('weeklyTarget_v1')) localStorage.setItem('weeklyTarget_v1', String(baseDaily*7));
+  if(!localStorage.getItem('monthlyTarget_v1')) localStorage.setItem('monthlyTarget_v1', String(baseDaily*30));
+  
+  const targetKey= statsView==='day'?'dailyTarget_v1': statsView==='week'?'weeklyTarget_v1':'monthlyTarget_v1';
+  
+  // ✅ 목표 라벨 변경
+  const targetLabel= statsView==='day'?'오늘 목표': statsView==='week'?'이번 주 목표 (월~일)':'이번 달 목표';
+  
+  const targetVal= +(localStorage.getItem(targetKey) || (statsView==='day'?baseDaily: (statsView==='week'? baseDaily*7: baseDaily*30)));
+  const pct=Math.max(0,Math.min(100,Math.round((periodSolves/Math.max(1,targetVal))*100)));
+  const fmt=v=> v==null?'-':(Math.round(v*10)/10).toFixed(1);
+  const chip=txt=>`<button data-go-ch="${txt}" class="px-2 py-0.5 text-xs rounded border hover:bg-gray-50">${chapterLabelText(txt)}</button>`;
+  const weakHtml= weakTop.length? weakTop.map(w=>`${chip(w.ch)} <span class="text-xs text-red-600 ml-1">${fmt(w.avg)}점·${w.cnt}회</span>`).join('<br>'):'데이터 부족';
+
+  // ✅ 기간 표시 추가 (선택사항)
+  let periodInfo = '';
+  if(statsView === 'week') {
+    const startStr = `${start.getMonth()+1}/${start.getDate()}`;
+    const endStr = `${end.getMonth()+1}/${end.getDate()}`;
+    periodInfo = `<div class="text-[11px] text-gray-400 mb-1">${startStr} ~ ${endStr}</div>`;
+  } else if(statsView === 'month') {
+    periodInfo = `<div class="text-[11px] text-gray-400 mb-1">${statsRefDate.getFullYear()}년 ${statsRefDate.getMonth()+1}월</div>`;
+  }
+
+  // 기존 HTML 렌더링 코드에 periodInfo 추가
+  const existingNav = el.statsOverview.querySelector('#stats-date-nav');
+  const statsContent = document.createElement('div');
+  statsContent.id = 'stats-content';
+  statsContent.innerHTML = `
+    <div class="border rounded p-3 relative">
+      <div class="flex items-center justify-between mb-2">
+        <div>
+          <h3 class="font-bold" id="stats-title">${title}</h3>
+          ${periodInfo}
+        </div>
+        <div class="relative">
+          <button id="stats-view-btn" class="flex items-center gap-1 text-sm px-2 py-1 rounded border hover:bg-gray-50">
+            <span id="stats-view-label">${label}</span>
+            <span id="stats-caret" class="inline-block transition-transform">▼</span>
+          </button>
+          <div id="stats-view-menu" class="hidden absolute right-0 mt-1 w-28 bg-white dark:bg-gray-900 border rounded shadow-md overflow-hidden z-10">
+            <button data-view="day" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50">오늘</button>
+            <button data-view="week" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50">주간</button>
+            <button data-view="month" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50">월간</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div class="p-2 rounded border"><div class="text-[12px] text-gray-500">기간 풀이</div><div class="text-lg font-semibold">${periodSolves} 개</div></div>
+        <div class="p-2 rounded border"><div class="text-[12px] text-gray-500">기간 평균</div><div class="text-lg font-semibold">${fmt(periodAvg)} 점</div></div>
+        <div class="p-2 rounded border"><div class="text-[12px] text-gray-500">출석</div><div class="text-lg font-semibold">${streak} 일째 <span class="text-xs text-gray-500">(최고 ${best}일)</span></div></div>
+        <div class="p-2 rounded border"><div class="text-[12px] text-gray-500">스코프 평균</div><div class="text-lg font-semibold">${fmt(avgAll)} 점</div></div>
+      </div>
+
+      <div class="mt-3">
+        <div class="flex items-center justify-between"><div class="text-[12px] text-gray-500">${targetLabel} ${targetVal}개</div><div class="text-[12px] text-gray-500">${pct}%</div></div>
+        <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden"><div class="h-2 ${pct<60?'bg-red-500':(pct<100?'bg-yellow-500':'bg-green-600')}" style="width:${pct}%"></div></div>
+        <div class="flex items-center gap-2 mt-2">
+          <label for="stats-target-input" class="text-xs text-gray-500">목표:</label>
+          <input id="stats-target-input" type="number" min="1" class="w-20 px-2 py-1 text-xs border rounded" value="${targetVal}">
+          <button id="apply-stats-target" class="text-xs px-2 py-1 border rounded hover:bg-gray-50">적용</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-3 mt-3">
+        <div class="p-2 rounded border">
+          <div class="text-[12px] text-gray-500 mb-1">약한 단원 Top 3 <span class="text-[11px] text-gray-400">(기간 기준)</span></div>
+          <div class="text-sm leading-5">${weakHtml}</div>
+        </div>
+      </div>
+
+      <div class="text-[12px] text-gray-500 mt-2">최근 학습: <strong class="text-gray-700">${recentTxt}</strong> · 복습 추가(★): <strong class="text-gray-700">${flagged}</strong></div>
+    </div>`;
+
+  // 기존 stats-content 제거 후 새로 추가
+  const oldContent = el.statsOverview.querySelector('#stats-content');
+  if (oldContent) oldContent.remove();
+  el.statsOverview.appendChild(statsContent);
+
+  const btn=$('stats-view-btn'), caret=$('stats-caret'), menu=$('stats-view-menu');
+  const openMenu=()=>{ menu.classList.remove('hidden'); caret.style.transform='rotate(180deg)'; };
+  const closeMenu=()=>{ menu.classList.add('hidden'); caret.style.transform='rotate(0deg)'; };
+  btn?.addEventListener('click',e=>{ e.stopPropagation(); if(menu.classList.contains('hidden')) openMenu(); else closeMenu(); });
+  document.addEventListener('click', closeMenu, {once:true});
+  menu?.querySelectorAll('[data-view]')?.forEach(i=> i.addEventListener('click',()=>{ const v=i.getAttribute('data-view'); statsView=v; localStorage.setItem('statsView_v1',v); renderStats(); }) );
+  $('apply-stats-target')?.addEventListener('click',()=>{ const v=Math.max(1,Math.min(9999,Math.round(+($('stats-target-input')?.value||1)))); localStorage.setItem(targetKey,String(v)); renderStats(); });
+  el.statsOverview.querySelectorAll('[data-go-ch]')?.forEach(b=> b.addEventListener('click',()=>{ const ch=b.getAttribute('data-go-ch')||''; if(ch){ el.chapterSelect.value=ch; reloadAndRefresh(); showToast(`${chapterLabelText(ch)} 로 이동`);} }));
+}
     function renderExplorer(){
       if(!el.explorerChapters||!el.explorerProblems) return;
       const base=getScopeFilteredData(), group=new Map();
@@ -1248,7 +1480,7 @@ j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; 
 
     document.addEventListener('DOMContentLoaded', async ()=>{
       try{ await loadData(); }catch(err){ console.error(err); $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).'; showToast(`문제 데이터 로드 실패: ${err.message}`,'error'); }
-      loadScores(); loadApiKey(); loadSettings(); applyDarkMode(); migrateData();
+      loadScores();initStatsDate();   loadApiKey(); loadSettings(); applyDarkMode(); migrateData();
       // 상호배타 정합성 1차 보정
       enforceExclusiveFlagsOnAll();
       backfillReadStoreFromScores(false); ensureApiKeyGate();
@@ -1263,8 +1495,4 @@ j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; 
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
 </html>
-
-
-
-
 
