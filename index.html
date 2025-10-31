@@ -1,21 +1,25 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-20Q61B31CM"></script>
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
 
-  gtag('config', 'G-20Q61B31CM');
+    gtag('config', 'G-20Q61B31CM');
 </script>
   <!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-TC8G7NJD');</script>
+<script>(function (w, d, s, l, i) {
+w[l] = w[l] || []; w[l].push({
+'gtm.start':
+new Date().getTime(), event: 'gtm.js'
+}); var f = d.getElementsByTagName(s)[0],
+j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+})(window, document, 'script', 'dataLayer', 'GTM-TC8G7NJD');</script>
 <!-- End Google Tag Manager -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -395,6 +399,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     let ctrlNavState='dashboard', lastScrollYBeforeFocus=0;
 
     let calRefDate = (() => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(1); return d; })();
+      // [신규 추가] 통계 패널이 보여줄 날짜를 저장하는 변수
+    let statsRefDate = new Date();
+    statsRefDate.setHours(0,0,0,0);
 
     const $ = id=>document.getElementById(id);
     const el = {
@@ -1219,8 +1226,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     (function syncStrategy(){ const cur=getReviewStrategy(); if(el.reviewStrategySelect) el.reviewStrategySelect.value=cur; })();
     el.startReviewBtn?.addEventListener('click',()=>{ if(el.filterSelect) el.filterSelect.value='today-review'; reloadAndRefresh(); showToast('오늘의 복습 시작'); });
 
-    function openDrawer(){ document.body.classList.add('drawer-open'); el.drawerBackdrop.classList.remove('hidden'); el.leftDashboard.classList.remove('hidden'); el.leftDashboard.classList.add('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900','relative'); el.drawerClose.classList.remove('hidden'); }
-    function closeDrawer(){ document.body.classList.remove('drawer-open'); el.drawerBackdrop.classList.add('hidden'); el.leftDashboard.classList.add('hidden'); el.leftDashboard.classList.remove('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900','relative'); el.drawerClose.classList.add('hidden'); }
+    function openDrawer(){ 
+      //document.body.classList.add('drawer-open'); 
+      el.drawerBackdrop.classList.remove('hidden'); 
+      el.leftDashboard.classList.remove('hidden'); el.leftDashboard.classList.add('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900','relative'); 
+      el.drawerClose.classList.remove('hidden'); }
+    function closeDrawer(){
+      //document.body.classList.remove('drawer-open'); 
+      el.drawerBackdrop.classList.add('hidden'); 
+      el.leftDashboard.classList.add('hidden'); el.leftDashboard.classList.remove('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900','relative'); 
+      el.drawerClose.classList.add('hidden'); }
     el.hamburger?.addEventListener('click', openDrawer);
     el.drawerBackdrop?.addEventListener('click', closeDrawer);
     el.drawerClose?.addEventListener('click', closeDrawer);
