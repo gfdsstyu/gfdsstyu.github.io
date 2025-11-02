@@ -658,17 +658,17 @@ function saveStatsDate() {
           // 새로운 문제 ID - 그냥 추가
           result[qid]=importedData;
         }else{
-          // 기존 문제 ID - 병합
+          // 기존 문제 ID - 병합 (최신 풀이 데이터 우선)
           const existingData=result[qid];
           const useImported=(importedData.lastSolvedDate||0)>(existingData.lastSolvedDate||0);
           // solveHistory 병합 (날짜 기준 중복 제거)
           const combinedHistory=[...(existingData.solveHistory||[]),...(importedData.solveHistory||[])];
           const uniqueHistory=Array.from(new Map(combinedHistory.map(h=>[h.date,h])).values()).sort((a,b)=>a.date-b.date);
           result[qid]={
-            score:Math.max(existingData.score||0,importedData.score||0),
+            score:useImported?(importedData.score||0):(existingData.score||0),
             feedback:useImported?importedData.feedback:existingData.feedback,
             user_answer:useImported?importedData.user_answer:existingData.user_answer,
-            hintUsed:existingData.hintUsed||importedData.hintUsed,
+            hintUsed:useImported?importedData.hintUsed:existingData.hintUsed,
             isSolved:existingData.isSolved||importedData.isSolved,
             lastSolvedDate:Math.max(existingData.lastSolvedDate||0,importedData.lastSolvedDate||0),
             solveHistory:uniqueHistory,
