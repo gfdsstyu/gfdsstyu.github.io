@@ -660,7 +660,7 @@ function saveStatsDate() {
         }else{
           // 기존 문제 ID - 병합
           const existingData=result[qid];
-          const useImported=(importedData.score||0)>(existingData.score||0);
+          const useImported=(importedData.lastSolvedDate||0)>(existingData.lastSolvedDate||0);
           // solveHistory 병합 (날짜 기준 중복 제거)
           const combinedHistory=[...(existingData.solveHistory||[]),...(importedData.solveHistory||[])];
           const uniqueHistory=Array.from(new Map(combinedHistory.map(h=>[h.date,h])).values()).sort((a,b)=>a.date-b.date);
