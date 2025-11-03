@@ -127,6 +127,7 @@
         <span class="hidden sm:inline text-xs text-gray-500 dark:text-gray-400">회계감사 암기 도우미 v3.3</span>
       </div>
       <nav class="flex items-center gap-2">
+        <span id="dday-display" class="hidden sm:inline text-sm font-bold px-3 py-1.5 rounded-lg bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-md cursor-pointer hover:from-red-600 hover:to-pink-600 transition" title="시험날짜 설정은 설정 메뉴에서">D-DAY</span>
         <a id="help-button" href="README.html" target="_blank" class="hidden sm:inline text-sm text-gray-700 hover:text-blue-700 dark:text-gray-300 dark:hover:text-white">도움말</a>
         <button id="settings-btn" class="ml-1 inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600" aria-haspopup="dialog">
           <span>설정</span><span aria-hidden>⚙️</span>
@@ -415,6 +416,13 @@
       </div>
 
       <div class="mb-6 pb-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">📅 시험 날짜 (D-DAY)</h3>
+        <input type="date" id="exam-date-input" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100" />
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">시험 날짜를 설정하면 상단바에 D-DAY가 표시됩니다.</p>
+        <button id="save-exam-date-btn" class="mt-3 w-full bg-red-50 border border-red-300 text-red-700 font-medium py-2 px-4 rounded-lg hover:bg-red-100 transition">D-DAY 저장</button>
+      </div>
+
+      <div class="mb-6 pb-6 border-b">
         <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">AI 모델 선택</h3>
         <select id="ai-model-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700">
           <option value="gemini-2.5-flash">Gemini 2.5 Flash (기본)</option>
@@ -631,6 +639,7 @@ statsRefDate.setHours(0,0,0,0);
 
 // ↓ 아래 코드 추가
 const STATS_DATE_KEY = 'statsDisplayDate_v1';
+const EXAM_DATE_KEY = 'examDate_v1';
 
 function initStatsDate() {
   const saved = localStorage.getItem(STATS_DATE_KEY);
@@ -651,6 +660,54 @@ function saveStatsDate() {
   const m = String(statsRefDate.getMonth() + 1).padStart(2, '0');
   const d = String(statsRefDate.getDate()).padStart(2, '0');
   localStorage.setItem(STATS_DATE_KEY, `${y}-${m}-${d}`);
+}
+
+// D-DAY 관련 함수
+function loadExamDate() {
+  const saved = localStorage.getItem(EXAM_DATE_KEY);
+  if (saved) {
+    return saved; // YYYY-MM-DD format
+  }
+  return '2026-06-27'; // 기본값
+}
+
+function saveExamDate(dateStr) {
+  localStorage.setItem(EXAM_DATE_KEY, dateStr);
+}
+
+function calculateDDay(examDateStr) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const examDate = new Date(examDateStr + 'T00:00:00');
+  if (isNaN(examDate.getTime())) {
+    return null;
+  }
+
+  const diffTime = examDate.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  return diffDays;
+}
+
+function updateDDayDisplay() {
+  if (!el.ddayDisplay) return;
+
+  const examDate = loadExamDate();
+  const dday = calculateDDay(examDate);
+
+  if (dday === null) {
+    el.ddayDisplay.textContent = 'D-DAY';
+    return;
+  }
+
+  if (dday > 0) {
+    el.ddayDisplay.textContent = `D-${dday}`;
+  } else if (dday === 0) {
+    el.ddayDisplay.textContent = 'D-DAY';
+  } else {
+    el.ddayDisplay.textContent = `D+${Math.abs(dday)}`;
+  }
 }
  
 
@@ -686,7 +743,8 @@ function saveStatsDate() {
       flashcardModeBtn:$('flashcard-mode-btn'), flashcardArea:$('flashcard-area'), flashcardTitle:$('flashcard-title'),
       flashcardQuestion:$('flashcard-question'), flashcardAnswer:$('flashcard-answer'), flashcardCounter:$('flashcard-counter'),
       flashcardToggleAnswer:$('flashcard-toggle-answer'), flashcardAnswerBox:$('flashcard-answer-box'), flashcardAnswerHidden:$('flashcard-answer-hidden'),
-      flashcardPrevBtn:$('flashcard-prev-btn'), flashcardNextBtn:$('flashcard-next-btn'), flashcardExitBtn:$('flashcard-exit-btn')
+      flashcardPrevBtn:$('flashcard-prev-btn'), flashcardNextBtn:$('flashcard-next-btn'), flashcardExitBtn:$('flashcard-exit-btn'),
+      ddayDisplay:$('dday-display'), examDateInput:$('exam-date-input'), saveExamDateBtn:$('save-exam-date-btn')
     };
 
     const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
@@ -860,7 +918,13 @@ function saveStatsDate() {
       }
     });
 
-    function openSettingsModal(){ el.settingsModal.classList.remove('hidden'); el.settingsModal.classList.add('flex'); if(el.aiModelSelect) el.aiModelSelect.value=selectedAiModel; if(el.darkModeSelect) el.darkModeSelect.value=darkMode; }
+    function openSettingsModal(){
+      el.settingsModal.classList.remove('hidden');
+      el.settingsModal.classList.add('flex');
+      if(el.aiModelSelect) el.aiModelSelect.value=selectedAiModel;
+      if(el.darkModeSelect) el.darkModeSelect.value=darkMode;
+      if(el.examDateInput) el.examDateInput.value=loadExamDate();
+    }
     function closeSettingsModal(){ el.settingsModal.classList.add('hidden'); el.settingsModal.classList.remove('flex'); }
     el.settingsBtn.addEventListener('click',openSettingsModal);
     el.settingsCloseBtn.addEventListener('click',closeSettingsModal);
@@ -868,6 +932,22 @@ function saveStatsDate() {
     el.openApiKeyModalBtn?.addEventListener('click',()=>{ closeSettingsModal(); openApiModal(false); });
     el.aiModelSelect?.addEventListener('change',e=>{ selectedAiModel=e.target.value; localStorage.setItem('aiModel',selectedAiModel); showToast(`AI 모델 변경: ${selectedAiModel}`); });
     el.darkModeSelect?.addEventListener('change',e=>{ localStorage.setItem('darkMode',e.target.value); applyDarkMode(); showToast('다크 모드 설정 변경됨'); });
+
+    // D-DAY 관련 이벤트 리스너
+    el.saveExamDateBtn?.addEventListener('click', () => {
+      const dateStr = el.examDateInput?.value;
+      if (!dateStr) {
+        showToast('날짜를 선택해주세요', 'warn');
+        return;
+      }
+      saveExamDate(dateStr);
+      updateDDayDisplay();
+      showToast('시험 날짜가 저장되었습니다');
+    });
+
+    el.ddayDisplay?.addEventListener('click', () => {
+      openSettingsModal();
+    });
 
     el.exportDataBtn?.addEventListener('click',()=>{
       try{
@@ -2718,7 +2798,7 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
 
     document.addEventListener('DOMContentLoaded', async ()=>{
       try{ await loadData(); }catch(err){ console.error(err); $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).'; showToast(`문제 데이터 로드 실패: ${err.message}`,'error'); }
-      loadScores();initStatsDate();   loadApiKey(); loadSettings(); applyDarkMode(); migrateData();
+      loadScores();initStatsDate();updateDDayDisplay();loadApiKey(); loadSettings(); applyDarkMode(); migrateData();
       // 상호배타 정합성 1차 보정
       enforceExclusiveFlagsOnAll();
       backfillReadStoreFromScores(false); ensureApiKeyGate();
