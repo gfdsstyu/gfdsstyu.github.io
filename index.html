@@ -2586,7 +2586,7 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
 
     function startFlashcardMode() {
       // Get filtered data based on current selection
-      const filtered = getFilteredQuiz();
+      const filtered = getFilteredByUI();
       if (!filtered || filtered.length === 0) {
         showToast('선택한 조건에 해당하는 문제가 없습니다', 'warn');
         return;
