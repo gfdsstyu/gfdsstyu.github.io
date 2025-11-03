@@ -1398,7 +1398,7 @@ function updateDDayDisplay() {
           ].filter(Boolean).join(' | ');
           btn.title=fullMeta; btn.setAttribute('aria-label',fullMeta);
 
-          btn.classList.add('summary-btn','font-medium','rounded-lg','border');
+          btn.classList.add('summary-btn','font-medium','rounded-lg','border','text-left');
 
           const sc= Number.isFinite(+saved?.score)? +saved.score : NaN;
           const cls= !Number.isFinite(sc)? ['bg-gray-100','text-gray-600','border-gray-300'] : sc<60? ['bg-red-100','text-red-700','border-red-300'] : sc<80? ['bg-yellow-100','text-yellow-700','border-yellow-300'] : ['bg-green-100','text-green-700','border-green-300'];
@@ -1855,7 +1855,7 @@ function renderStats(){
         const excluded=!!rec.userReviewExclude;
         const flagged=!!rec.userReviewFlag && !excluded; // 제외 우선
 
-        const row=document.createElement('button'); row.className='w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded hover:bg-gray-50 border';
+        const row=document.createElement('button'); row.className='w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded hover:bg-gray-50 border text-left';
 
         const left=document.createElement('div'); left.className='flex items-center gap-2 text-sm';
         if(flagged){ const star=document.createElement('span'); star.textContent='★'; star.className='text-purple-500'; left.appendChild(star); }
