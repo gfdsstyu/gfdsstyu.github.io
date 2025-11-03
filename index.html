@@ -1205,6 +1205,27 @@ function saveStatsDate() {
       }
     }
 
+    // Generic text generation API for Deep-Learning Report and other features
+    async function callGeminiTextAPI(prompt, apiKey, retries=2, delay=800){
+      const modelMap={'gemini-2.5-flash':'gemini-2.5-flash','gemini-2.5-flash-lite':'gemini-2.5-flash-lite'};
+      const model=modelMap[selectedAiModel]||'gemini-2.5-flash';
+      const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const payload={ contents:[{ parts:[{ text:prompt }] }] };
+      try{
+        const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        if(!res.ok){ const body=await res.json().catch(()=>({})); const msg=body?.error?.message||res.statusText;
+          if((res.status===404||res.status===400)&&/model/i.test(msg)) throw new Error(`모델/버전 불일치: ${msg}`);
+          if(res.status===401||res.status===403) throw new Error(`API 키 오류 (${res.status}): API 키를 확인하세요`);
+          if(res.status===429) throw new Error(`API 할당량 초과 (429)`); if(res.status>=500) throw new Error(`서버 오류 (${res.status})`); throw new Error(msg);
+        }
+        const data=await res.json(); const raw=data?.candidates?.[0]?.content?.parts?.[0]?.text??'';
+        return raw.trim();
+      }catch(err){
+        if(retries>0 && (String(err.message).includes('429') || /^서버 오류/.test(String(err.message)))){ await new Promise(r=>setTimeout(r,delay)); return callGeminiTextAPI(prompt, apiKey, retries-1, delay*1.6); }
+        throw err;
+      }
+    }
+
     function showResult(scoreVal, feedback, correctAnswer){
       const s=clamp(+scoreVal,0,100);
       el.score.textContent=s.toFixed(1); el.progressBar.style.width=`${s}%`; el.progressBar.setAttribute('aria-valuenow',String(Math.round(s)));
@@ -2460,6 +2481,13 @@ function renderStats(){
       const loading = $('ai-analysis-loading');
       const result = $('ai-analysis-result');
 
+      // Check API key first
+      if(!geminiApiKey){
+        openApiModal(false);
+        showToast('Gemini API 키를 입력해주세요.','error');
+        return;
+      }
+
       if (startBtn) startBtn.parentElement.classList.add('hidden');
       if (loading) loading.classList.remove('hidden');
 
@@ -2494,7 +2522,7 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
 
 마크다운 형식으로 답변하세요.`;
 
-        const response = await callGeminiAPI(prompt);
+        const response = await callGeminiTextAPI(prompt, geminiApiKey);
 
         if (loading) loading.classList.add('hidden');
         if (result) result.classList.remove('hidden');
