@@ -1729,6 +1729,66 @@ function renderStats(){
       return { h_pred, p_current, timeSinceLastReview };
     }
 
+    /**
+     * HLR 알고리즘 테스트 함수 (개발자 콘솔에서 사용)
+     * 사용법: testHLR() - 전체 문제 HLR 분석
+     *        testHLR('Q001') - 특정 문제 분석
+     */
+    window.testHLR = function(qid = null) {
+      console.log('=== HLR 알고리즘 테스트 ===\n');
+
+      if (qid) {
+        // 특정 문제 테스트
+        const rec = questionScores[normId(qid)];
+        if (!rec) {
+          console.log(`❌ 문제 ${qid}를 찾을 수 없습니다.`);
+          return;
+        }
+
+        const features = buildFeaturesForQID(qid);
+        if (!features) {
+          console.log(`❌ 문제 ${qid}의 학습 이력이 없습니다.`);
+          return;
+        }
+
+        const hlrData = calculateRecallProbability(qid);
+        console.log(`문제 ID: ${qid}`);
+        console.log(`피처:`, features);
+        console.log(`반감기 (h): ${hlrData.h_pred.toFixed(2)}일`);
+        console.log(`마지막 풀이: ${hlrData.timeSinceLastReview.toFixed(2)}일 전`);
+        console.log(`회상 확률: ${(hlrData.p_current * 100).toFixed(1)}%`);
+        console.log(`다음 복습 권장: ${hlrPredictor.getNextReviewDelta(hlrData.h_pred, 0.9).toFixed(1)}일 후\n`);
+      } else {
+        // 전체 문제 통계
+        const results = [];
+        let totalCount = 0, recallSum = 0, forgettingCount = 0;
+
+        for (const [qid, rec] of Object.entries(questionScores || {})) {
+          const hlrData = calculateRecallProbability(qid);
+          if (hlrData) {
+            totalCount++;
+            recallSum += hlrData.p_current;
+            if (hlrData.p_current < 0.5) forgettingCount++;
+            results.push({ qid, ...hlrData });
+          }
+        }
+
+        console.log(`총 문제 수: ${totalCount}개`);
+        console.log(`평균 회상 확률: ${(recallSum / totalCount * 100).toFixed(1)}%`);
+        console.log(`망각 임박 (회상<50%): ${forgettingCount}개`);
+        console.log(`평균 반감기: ${(results.reduce((sum, r) => sum + r.h_pred, 0) / totalCount).toFixed(2)}일\n`);
+
+        // 상위 10개 문제 (회상 확률 낮은 순)
+        const top10 = results.sort((a, b) => a.p_current - b.p_current).slice(0, 10);
+        console.log('회상 확률 낮은 TOP 10:');
+        top10.forEach((r, i) => {
+          console.log(`${i+1}. ${r.qid} - 회상 ${(r.p_current*100).toFixed(1)}% (반감기 ${r.h_pred.toFixed(1)}일, ${r.timeSinceLastReview.toFixed(1)}일 전)`);
+        });
+      }
+
+      console.log('\n=== 테스트 완료 ===');
+    };
+
     const REVIEW_STRATEGY_LS='reviewStrategy_v1';
     const getReviewStrategy=()=> localStorage.getItem(REVIEW_STRATEGY_LS)||'smart';
     function prioritizeTodayReview(list){
@@ -1779,7 +1839,7 @@ function renderStats(){
 
       if(strat==='flag'){ const f=list.filter(a=>questionScores[normId(a.고유ID)]?.userReviewFlag && !questionScores[normId(a.고유ID)]?.userReviewExclude); const r=list.filter(a=>!(questionScores[normId(a.고유ID)]?.userReviewFlag && !questionScores[normId(a.고유ID)]?.userReviewExclude)); return f.concat(r); }
       if(strat==='low'){ return [...list].sort((a,b)=>{ const sa=questionScores[normId(a.고유ID)]?.score??101, sb=questionScores[normId(b.고유ID)]?.score??101; return sa-sb; }); }
-      if(strat==='recentWrong'){ return [...list].sort((a,b)=>{ const sa=questionScores[normId(a.고유ID)], sb=questionScores[normId(b.고유ID)], as=sa?.score??101, bs=sb?.score??101, ad=sa?.lastSolvedDate??0, bd=sb?.lastSolvedDate??0; return (as-bs)||(ad-bd); }); }
+      if(strat==='recentWrong'){ return [...list].sort((a,b)=>{ const sa=questionScores[normId(a.고유ID)], sb=questionScores[normId(b.고유ID)], as=sa?.score??101, bs=sb?.score??101, ad=sa?.lastSolvedDate??0, bd=sb?.lastSolvedDate??0; return (as-bs)||(bd-ad); }); }
       return [...list].sort((a,b)=>{ const sa=questionScores[normId(a.고유ID)], sb=questionScores[normId(b.고유ID)], af=(sa?.userReviewFlag && !sa?.userReviewExclude)?0:1, bf=(sb?.userReviewFlag && !sb?.userReviewExclude)?0:1, aUn=sa?1:0, bUn=sb?1:0, aS=sa?.score??101, bS=sb?.score??101, aD=sa?.lastSolvedDate??0, bD=sb?.lastSolvedDate??0; return (af-bf)||(aUn-bUn)||(aS-bS)||(aD-bD); });
     }
     el.reviewStrategySelect?.addEventListener('change',e=>{ localStorage.setItem(REVIEW_STRATEGY_LS, e.target.value); showToast(`오늘의 복습 전략: ${e.target.value}`); refreshPanels(); });
