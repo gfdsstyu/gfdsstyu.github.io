@@ -1957,7 +1957,25 @@ function renderStats(){
       chapters.forEach(ch=>{
         const btn=document.createElement('button'); btn.className='w-full text-left px-3 py-2 rounded border hover:bg-gray-50'; btn.textContent=chapterLabelText(ch);
         btn.addEventListener('click',()=>{
-          const list=group.get(ch)||[]; if(list.length){ currentQuizData=list; currentQuestionIndex=0; el.quizArea.classList.remove('hidden'); displayQuestion(); showToast(`${chapterLabelText(ch)} 로 이동`); updateSummaryHighlight(); }
+          const list=group.get(ch)||[];
+          if(!list.length) return;
+
+          if (isFlashcardMode) {
+            // Flashcard mode: update flashcard data
+            flashcardData = list;
+            flashcardIndex = 0;
+            displayFlashcard();
+            updateSummaryHighlight();
+            showToast(`${chapterLabelText(ch)} 플래시카드로 이동`);
+          } else {
+            // Quiz mode: update quiz data
+            currentQuizData = list;
+            currentQuestionIndex = 0;
+            el.quizArea.classList.remove('hidden');
+            displayQuestion();
+            updateSummaryHighlight();
+            showToast(`${chapterLabelText(ch)} 로 이동`);
+          }
         });
         el.explorerChapters.appendChild(btn);
       });
@@ -1985,9 +2003,27 @@ function renderStats(){
 
         row.appendChild(left); row.appendChild(right); row.title=`출처:${it.출처||'-'} | ID:${it.고유ID}`;
         row.addEventListener('click',()=>{
-          const ch=String(it.단원).trim(), list=base.filter(x=>String(x.단원).trim()===ch);
-          currentQuizData=list.length?list:[it]; currentQuestionIndex=list.findIndex(x=>String(x.고유ID).trim()===String(it.고유ID).trim()); if(currentQuestionIndex<0) currentQuestionIndex=0;
-          el.quizArea.classList.remove('hidden'); displayQuestion(); showToast(`'${label}' 로 이동`);
+          const ch = String(it.단원).trim();
+          const list = base.filter(x => String(x.단원).trim() === ch);
+
+          if (isFlashcardMode) {
+            // Flashcard mode
+            flashcardData = list.length ? list : [it];
+            flashcardIndex = list.findIndex(x => String(x.고유ID).trim() === String(it.고유ID).trim());
+            if (flashcardIndex < 0) flashcardIndex = 0;
+            displayFlashcard();
+            updateSummaryHighlight();
+            showToast(`'${label}' 플래시카드로 이동`);
+          } else {
+            // Quiz mode
+            currentQuizData = list.length ? list : [it];
+            currentQuestionIndex = list.findIndex(x => String(x.고유ID).trim() === String(it.고유ID).trim());
+            if (currentQuestionIndex < 0) currentQuestionIndex = 0;
+            el.quizArea.classList.remove('hidden');
+            displayQuestion();
+            updateSummaryHighlight();
+            showToast(`'${label}' 로 이동`);
+          }
         });
         el.explorerProblems.appendChild(row);
       });
