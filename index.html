@@ -112,7 +112,7 @@
       #report-modal { display: block !important; position: relative; background: white; }
       #report-modal > div { max-height: none; overflow: visible; box-shadow: none; }
       .report-tab, #report-close-btn, #report-refresh-btn,
-      #report-save-snapshot-btn, #report-print-btn { display: none !important; }
+      #report-save-snapshot-btn, #report-load-snapshot-btn, #report-print-btn { display: none !important; }
       #report-content-2, #report-content-3 { display: block !important; }
       .border-b { page-break-after: avoid; }
     }
@@ -259,7 +259,10 @@
               <div class="space-y-3 mt-6">
                 <div class="flex justify-between items-center gap-4">
                   <button id="flashcard-prev-btn" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">← 이전</button>
-                  <button id="flashcard-exit-btn" class="px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition">종료 (Esc)</button>
+                  <div class="flex gap-2">
+                    <button id="flashcard-random-btn" class="px-4 py-3 bg-purple-500 text-white font-medium rounded-lg hover:bg-purple-600 transition">🎲 랜덤</button>
+                    <button id="flashcard-exit-btn" class="px-4 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition">종료 (Esc)</button>
+                  </div>
                   <button id="flashcard-next-btn" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">다음 →</button>
                 </div>
                 <div class="text-center text-xs text-gray-500 dark:text-gray-400">
@@ -502,7 +505,9 @@
           <div class="flex items-center gap-2 flex-wrap">
             <button id="report-refresh-btn" class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap">새로고침</button>
             <button id="report-save-snapshot-btn" class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap">💾 저장</button>
-            <button id="report-print-btn" class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap">📥 PDF/인쇄</button>
+            <button id="report-load-snapshot-btn" class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap">📂 불러오기</button>
+            <input type="file" id="report-load-snapshot-input" accept=".json" style="display: none;">
+            <button id="report-print-btn" class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap">📤 내보내기/공유</button>
           </div>
         </div>
       </div>
@@ -756,13 +761,13 @@ function updateDDayDisplay() {
       openReportBtn:$('open-report-btn'), reportModal:$('report-modal'), reportCloseBtn:$('report-close-btn'),
       reportPeriodSelect:$('report-period-select'), reportThresholdSelect:$('report-threshold-select'),
       chartScopeSelect:$('chart-scope-select'),
-      reportRefreshBtn:$('report-refresh-btn'), reportSaveSnapshotBtn:$('report-save-snapshot-btn'), reportPrintBtn:$('report-print-btn'),
+      reportRefreshBtn:$('report-refresh-btn'), reportSaveSnapshotBtn:$('report-save-snapshot-btn'), reportLoadSnapshotBtn:$('report-load-snapshot-btn'), reportLoadSnapshotInput:$('report-load-snapshot-input'), reportPrintBtn:$('report-print-btn'),
       aiAnalysisStartBtn:$('ai-analysis-start-btn'), aiAnalysisResult:$('ai-analysis-result'), aiAnalysisLoading:$('ai-analysis-loading'),
       aiAnalysisCopyBtn:$('ai-analysis-copy-btn'), aiErrorPattern:$('ai-error-pattern'), aiConceptWeakness:$('ai-concept-weakness'),
       flashcardModeBtn:$('flashcard-mode-btn'), flashcardArea:$('flashcard-area'), flashcardTitle:$('flashcard-title'),
       flashcardQuestion:$('flashcard-question'), flashcardAnswer:$('flashcard-answer'), flashcardCounter:$('flashcard-counter'),
       flashcardToggleAnswer:$('flashcard-toggle-answer'), flashcardAnswerBox:$('flashcard-answer-box'), flashcardAnswerHidden:$('flashcard-answer-hidden'),
-      flashcardPrevBtn:$('flashcard-prev-btn'), flashcardNextBtn:$('flashcard-next-btn'), flashcardExitBtn:$('flashcard-exit-btn'),
+      flashcardPrevBtn:$('flashcard-prev-btn'), flashcardNextBtn:$('flashcard-next-btn'), flashcardRandomBtn:$('flashcard-random-btn'), flashcardExitBtn:$('flashcard-exit-btn'),
       ddayDisplay:$('dday-display'), examDateInput:$('exam-date-input'), saveExamDateBtn:$('save-exam-date-btn')
     };
 
@@ -1114,8 +1119,15 @@ function updateDDayDisplay() {
         el.summaryViewAllBtn?.classList.remove('bg-gray-100');
       }
       currentQuizData=getFilteredByUI(); currentQuestionIndex=0;
-      if(currentQuizData.length){ el.quizArea.classList.remove('hidden'); el.summaryArea.classList.remove('hidden'); displayQuestion(); }
-      else{ el.quizArea.classList.add('hidden'); el.summaryArea.classList.remove('hidden'); showToast('선택한 조건에 맞는 문제가 없습니다.','warn'); }
+
+      // Update flashcard mode if active
+      if (isFlashcardMode) {
+        refreshFlashcardData();
+      } else {
+        if(currentQuizData.length){ el.quizArea.classList.remove('hidden'); el.summaryArea.classList.remove('hidden'); displayQuestion(); }
+        else{ el.quizArea.classList.add('hidden'); el.summaryArea.classList.remove('hidden'); showToast('선택한 조건에 맞는 문제가 없습니다.','warn'); }
+      }
+
       updateSummary(); refreshPanels();
     }
 
@@ -1430,7 +1442,16 @@ function updateDDayDisplay() {
               if(set.length){ currentQuizData=set; currentQuestionIndex=set.findIndex(it=>String(it.고유ID).trim()===id); }
             } else currentQuestionIndex=idx;
             if(currentQuestionIndex<0) currentQuestionIndex=0;
-            el.quizArea.classList.remove('hidden'); displayQuestion(); showToast(`'${baseLabel}'로 이동`);
+
+            // Update flashcard mode if active
+            if (isFlashcardMode) {
+              flashcardData = currentQuizData;
+              flashcardIndex = currentQuestionIndex;
+              displayFlashcard();
+              showToast(`'${baseLabel}'로 이동`);
+            } else {
+              el.quizArea.classList.remove('hidden'); displayQuestion(); showToast(`'${baseLabel}'로 이동`);
+            }
           });
           grid.appendChild(btn);
         });
@@ -3187,32 +3208,98 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
       });
     });
 
-    // Save snapshot functionality
+    // Save snapshot functionality - AI Analysis & Action Plan only
     el.reportSaveSnapshotBtn?.addEventListener('click', () => {
       const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
       const snapshot = {
         timestamp: new Date().toISOString(),
         period: reportData.period,
         threshold: reportData.threshold,
-        charts: {
-          dailyVolume: reportCharts.dailyVolume?.data,
-          scoreTrend: reportCharts.scoreTrend?.data,
-          chapterWeakness: reportCharts.chapterWeakness?.data
+        aiAnalysis: {
+          errorPattern: document.getElementById('ai-error-pattern')?.innerHTML || null,
+          conceptWeakness: document.getElementById('ai-concept-weakness')?.innerHTML || null
         },
-        aiAnalysis: document.getElementById('ai-error-pattern')?.innerHTML || null
+        actionPlan: document.getElementById('report-content-3')?.innerHTML || null
       };
 
       const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `학습리포트_${timestamp}.json`;
+      a.download = `학습분석_${timestamp}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      showToast('리포트 스냅샷이 저장되었습니다');
+      showToast('AI 분석 및 액션 플랜이 저장되었습니다');
+    });
+
+    // Load snapshot functionality
+    el.reportLoadSnapshotBtn?.addEventListener('click', () => {
+      el.reportLoadSnapshotInput?.click();
+    });
+
+    el.reportLoadSnapshotInput?.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const snapshot = JSON.parse(text);
+
+        // Validate snapshot structure (new format: AI analysis + action plan)
+        if (!snapshot.timestamp || !snapshot.aiAnalysis) {
+          showToast('올바른 학습 분석 파일이 아닙니다', 'error');
+          return;
+        }
+
+        // Restore AI analysis
+        if (snapshot.aiAnalysis.errorPattern) {
+          const aiErrorPattern = $('ai-error-pattern');
+          if (aiErrorPattern) {
+            aiErrorPattern.innerHTML = snapshot.aiAnalysis.errorPattern;
+          }
+        }
+
+        if (snapshot.aiAnalysis.conceptWeakness) {
+          const aiConceptWeakness = $('ai-concept-weakness');
+          if (aiConceptWeakness) {
+            aiConceptWeakness.innerHTML = snapshot.aiAnalysis.conceptWeakness;
+          }
+        }
+
+        // Show AI analysis section
+        const aiResult = $('ai-analysis-result');
+        const aiLoading = $('ai-analysis-loading');
+        if (aiResult) aiResult.classList.remove('hidden');
+        if (aiLoading) aiLoading.classList.add('hidden');
+
+        // Restore action plan
+        if (snapshot.actionPlan) {
+          const actionPlanContent = $('report-content-3');
+          if (actionPlanContent) {
+            actionPlanContent.innerHTML = snapshot.actionPlan;
+          }
+        }
+
+        // Update report metadata
+        reportData.period = snapshot.period;
+        reportData.threshold = snapshot.threshold;
+
+        // Switch to AI analysis tab
+        switchReportTab(2);
+
+        const snapshotDate = new Date(snapshot.timestamp).toLocaleString('ko-KR');
+        showToast(`학습 분석 불러오기 완료 (저장 시각: ${snapshotDate})`);
+
+        // Reset file input for next use
+        e.target.value = '';
+
+      } catch (err) {
+        showToast('파일 읽기 실패: ' + err.message, 'error');
+        e.target.value = '';
+      }
     });
 
     // Print functionality - only print report modal content
@@ -3239,6 +3326,7 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
     let flashcardData = [];
     let flashcardIndex = 0;
     let flashcardAnswerVisible = false;
+    let isFlashcardMode = false;
 
     function startFlashcardMode() {
       // Use current quiz data if already loaded, otherwise get filtered data
@@ -3257,6 +3345,7 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
         ? currentQuestionIndex
         : 0;
       flashcardAnswerVisible = false;
+      isFlashcardMode = true;
 
       // Hide quiz area, show flashcard area
       el.quizArea?.classList.add('hidden');
@@ -3266,6 +3355,33 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
 
       displayFlashcard();
       showToast(`플래시카드 모드 시작 (${flashcardData.length}개 문제)`);
+    }
+
+    function refreshFlashcardData() {
+      if (!isFlashcardMode) return;
+
+      // Get updated data based on current filter settings
+      const newData = getFilteredByUI();
+
+      if (!newData || newData.length === 0) {
+        showToast('선택한 조건에 맞는 문제가 없습니다', 'warn');
+        return;
+      }
+
+      // Try to maintain current position if possible
+      const currentId = flashcardData[flashcardIndex]?.고유ID;
+      flashcardData = newData;
+
+      // Find current card in new data
+      if (currentId) {
+        const newIndex = flashcardData.findIndex(q => q.고유ID === currentId);
+        flashcardIndex = newIndex >= 0 ? newIndex : 0;
+      } else {
+        flashcardIndex = 0;
+      }
+
+      displayFlashcard();
+      showToast(`플래시카드 업데이트 (${flashcardData.length}개 문제)`);
     }
 
     function displayFlashcard() {
@@ -3344,11 +3460,22 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
       }
     }
 
+    function flashcardRandom() {
+      if (flashcardData.length > 0) {
+        flashcardIndex = Math.floor(Math.random() * flashcardData.length);
+        displayFlashcard();
+        showToast('랜덤 문제로 이동');
+      }
+    }
+
     function exitFlashcardMode() {
       el.flashcardArea?.classList.add('hidden');
+      el.quizArea?.classList.remove('hidden');
+      el.summaryArea?.classList.remove('hidden');
       flashcardData = [];
       flashcardIndex = 0;
       flashcardAnswerVisible = false;
+      isFlashcardMode = false;
       showToast('플래시카드 모드 종료');
     }
 
@@ -3357,6 +3484,7 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
     el.flashcardToggleAnswer?.addEventListener('click', toggleFlashcardAnswer);
     el.flashcardPrevBtn?.addEventListener('click', flashcardPrev);
     el.flashcardNextBtn?.addEventListener('click', flashcardNext);
+    el.flashcardRandomBtn?.addEventListener('click', flashcardRandom);
     el.flashcardExitBtn?.addEventListener('click', exitFlashcardMode);
 
     // Keyboard shortcuts for flashcard mode
