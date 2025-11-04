@@ -469,8 +469,8 @@
   </div>
 
   <!-- Deep-Learning Report 모달 -->
-  <div id="report-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1002] p-4">
-    <div role="dialog" aria-modal="true" aria-labelledby="report-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-5xl shadow-xl max-h-[90vh] overflow-y-auto">
+  <div id="report-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1002] p-4 overflow-y-auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="report-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-5xl shadow-xl max-h-[90vh] overflow-y-auto" style="-webkit-overflow-scrolling: touch;">
       <!-- 헤더 -->
       <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-6 z-10">
   <div class="flex items-center justify-between mb-4">
@@ -511,8 +511,8 @@
       <div class="border-b border-gray-200 dark:border-gray-700 px-6">
         <nav class="flex gap-4" role="tablist">
           <button id="report-tab-1" class="report-tab py-3 px-4 font-medium border-b-2 border-blue-600 text-blue-600" role="tab" aria-selected="true" data-tab="1">1. 요약 및 차트</button>
-          <button id="report-tab-2" class="report-tab py-3 px-4 font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" role="tab" aria-selected="false" data-tab="2">2. AI 심층 분석</button>
-          <button id="report-tab-3" class="report-tab py-3 px-4 font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" role="tab" aria-selected="false" data-tab="3">3. 액션 플랜</button>
+          <button id="report-tab-2" class="report-tab py-3 px-4 font-medium border-b-2 border-transparent text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" role="tab" aria-selected="false" data-tab="2">2. AI 심층 분석</button>
+          <button id="report-tab-3" class="report-tab py-3 px-4 font-medium border-b-2 border-transparent text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" role="tab" aria-selected="false" data-tab="3">3. 액션 플랜</button>
         </nav>
       </div>
 
@@ -566,7 +566,7 @@
             <button id="ai-analysis-start-btn" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium">
               🤖 Gemini Pro로 심층 분석 시작
             </button>
-            <p class="text-sm text-gray-500 mt-2">AI가 오답 패턴과 개념 약점을 분석합니다</p>
+            <p class="text-sm text-gray-700 dark:text-gray-300 mt-2">AI가 오답 패턴과 개념 약점을 분석합니다</p>
           </div>
           <div id="ai-analysis-result" class="hidden">
             <div class="flex justify-end mb-4">
@@ -604,7 +604,7 @@
             </div>
             <div class="border rounded-lg p-6">
               <h3 class="text-lg font-bold mb-3">인터랙티브 오답노트</h3>
-              <p class="text-sm text-gray-600 mb-4">클릭하여 모범 답안과 AI 총평을 확인하세요</p>
+              <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">클릭하여 모범 답안과 AI 총평을 확인하세요</p>
               <div id="action-wrong-answers" class="space-y-3"></div>
             </div>
           </div>
@@ -2190,6 +2190,9 @@ function renderStats(){
     let reportData = { period: 30, threshold: 60 };
 
     function openReportModal() {
+      // Close hamburger menu if open (mobile)
+      closeDrawer();
+
       el.reportModal?.classList.remove('hidden');
       el.reportModal?.classList.add('flex');
       // Delay chart generation to ensure modal is rendered
@@ -3176,9 +3179,50 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
       });
     });
 
-    // Print functionality
+    // Save snapshot functionality
+    el.reportSaveSnapshotBtn?.addEventListener('click', () => {
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      const snapshot = {
+        timestamp: new Date().toISOString(),
+        period: reportData.period,
+        threshold: reportData.threshold,
+        charts: {
+          dailyVolume: reportCharts.dailyVolume?.data,
+          scoreTrend: reportCharts.scoreTrend?.data,
+          chapterWeakness: reportCharts.chapterWeakness?.data
+        },
+        aiAnalysis: document.getElementById('ai-error-pattern')?.innerHTML || null
+      };
+
+      const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `학습리포트_${timestamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast('리포트 스냅샷이 저장되었습니다');
+    });
+
+    // Print functionality - only print report modal content
     el.reportPrintBtn?.addEventListener('click', () => {
+      const printContent = document.getElementById('report-modal');
+      const originalDisplay = printContent.style.display;
+
+      // Temporarily show modal for printing
+      printContent.style.display = 'block';
+      printContent.style.position = 'relative';
+      printContent.style.background = 'white';
+
       window.print();
+
+      // Restore original state
+      printContent.style.display = originalDisplay;
+      printContent.style.position = '';
+      printContent.style.background = '';
     });
 
     /* ========================================
