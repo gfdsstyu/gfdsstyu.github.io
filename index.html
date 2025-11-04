@@ -4039,17 +4039,30 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
 
       list.innerHTML = '';
 
-      const achievementsList = Object.values(ACHIEVEMENTS).filter(a => filterTier === 'all' || a.tier === filterTier);
+      // Filter achievements - hide locked hidden achievements
+      let achievementsList = Object.values(ACHIEVEMENTS).filter(a => {
+        // If it's a hidden achievement and not unlocked, don't show it at all
+        if (a.tier === 'hidden' && !achievementsData[a.id]) {
+          return false;
+        }
+        // Otherwise apply tier filter
+        return filterTier === 'all' || a.tier === filterTier;
+      });
+
       const unlocked = achievementsList.filter(a => achievementsData[a.id]);
       const locked = achievementsList.filter(a => !achievementsData[a.id]);
 
-      // Update stats
-      const totalCount = Object.keys(ACHIEVEMENTS).length;
+      // Update stats - exclude locked hidden achievements from total
+      const visibleTotal = Object.values(ACHIEVEMENTS).filter(a => a.tier !== 'hidden' || achievementsData[a.id]).length;
       const unlockedCount = Object.keys(achievementsData).length;
-      const progressPercent = Math.round((unlockedCount / totalCount) * 100);
-      const totalPoints = unlockedCount * 10; // Simplified
+      const progressPercent = visibleTotal > 0 ? Math.round((unlockedCount / visibleTotal) * 100) : 0;
 
-      if (el.achievementCountTotal) el.achievementCountTotal.textContent = totalCount;
+      // Calculate actual points
+      const totalPoints = Object.keys(achievementsData).reduce((sum, id) => {
+        return sum + (ACHIEVEMENTS[id]?.points || 0);
+      }, 0);
+
+      if (el.achievementCountTotal) el.achievementCountTotal.textContent = visibleTotal;
       if (el.achievementCountUnlocked) el.achievementCountUnlocked.textContent = unlockedCount;
       if (el.achievementProgressPercent) el.achievementProgressPercent.textContent = progressPercent;
       if (el.achievementPoints) el.achievementPoints.textContent = totalPoints;
@@ -4060,7 +4073,7 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
         list.appendChild(card);
       });
 
-      // Then locked
+      // Then locked (hidden achievements won't be here)
       locked.forEach(achievement => {
         const card = createAchievementCard(achievement, false);
         list.appendChild(card);
