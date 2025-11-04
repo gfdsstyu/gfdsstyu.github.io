@@ -132,6 +132,10 @@
       <nav class="flex items-center gap-2">
         <a href="https://docs.google.com/spreadsheets/d/1PEZHUUHIveVD91eZma8MiW2j7_B197o597YjpTY1CRc/edit?usp=sharing" target="_blank" class="hidden sm:inline text-sm font-bold px-3 py-1.5 rounded-lg bg-blue-600 text-white shadow-md hover:bg-blue-700 transition" title="문제DB 구성을 위한 구글 스프레드시트">문제DB구성에 참여</a>
         <span id="dday-display" class="hidden sm:inline text-sm font-bold px-3 py-1.5 rounded-lg bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-md cursor-pointer hover:from-red-600 hover:to-pink-600 transition" title="시험날짜 설정은 설정 메뉴에서">D-DAY</span>
+        <button id="open-achievements-btn" class="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-gray-900 shadow-md transition relative" title="나의 업적">
+          <span class="hidden sm:inline">업적</span><span>🏆</span>
+          <span id="new-achievement-badge" class="hidden absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+        </button>
         <a id="help-button" href="README.html" target="_blank" class="hidden sm:inline text-sm text-gray-700 hover:text-blue-700 dark:text-gray-300 dark:hover:text-white">도움말</a>
         <button id="settings-btn" class="ml-1 inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600" aria-haspopup="dialog">
           <span>설정</span><span aria-hidden>⚙️</span>
@@ -410,6 +414,50 @@
       <div class="mt-5 flex justify-end gap-2">
         <button id="api-cancel-btn" class="px-3 py-2 text-sm text-gray-600 hover:text-gray-900">취소</button>
         <button id="api-save-btn" class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 업적 모달 -->
+  <div id="achievements-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1002] p-4 overflow-y-auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="achievements-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-4xl shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+        <h2 id="achievements-title" class="text-2xl font-bold">🏆 나의 업적</h2>
+        <button id="achievements-close-btn" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl leading-none" aria-label="닫기">×</button>
+      </div>
+
+      <div class="p-6">
+        <!-- 업적 통계 -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div class="bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-gray-800 dark:to-gray-700 rounded-lg p-4 text-center border border-yellow-200 dark:border-gray-600">
+            <div class="text-3xl font-bold text-yellow-600 dark:text-yellow-400"><span id="achievement-count-total">0</span></div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">전체 업적</div>
+          </div>
+          <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-700 rounded-lg p-4 text-center border border-green-200 dark:border-gray-600">
+            <div class="text-3xl font-bold text-green-600 dark:text-green-400"><span id="achievement-count-unlocked">0</span></div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">달성 완료</div>
+          </div>
+          <div class="bg-gradient-to-br from-blue-50 to-sky-50 dark:from-gray-800 dark:to-gray-700 rounded-lg p-4 text-center border border-blue-200 dark:border-gray-600">
+            <div class="text-3xl font-bold text-blue-600 dark:text-blue-400"><span id="achievement-progress-percent">0</span>%</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">달성률</div>
+          </div>
+          <div class="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-gray-800 dark:to-gray-700 rounded-lg p-4 text-center border border-purple-200 dark:border-gray-600">
+            <div class="text-3xl font-bold text-purple-600 dark:text-purple-400"><span id="achievement-points">0</span>P</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">업적 포인트</div>
+          </div>
+        </div>
+
+        <!-- 티어 필터 -->
+        <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-tier="all">전체</button>
+          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-200" data-tier="bronze">🥉 브론즈</button>
+          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-300 text-gray-800 dark:bg-gray-600 dark:text-gray-200 hover:bg-gray-400" data-tier="silver">🥈 실버</button>
+          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 hover:bg-yellow-200" data-tier="gold">🥇 골드</button>
+          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 hover:bg-purple-200" data-tier="hidden">🤫 히든</button>
+        </div>
+
+        <!-- 업적 리스트 -->
+        <div id="achievements-list" class="space-y-3"></div>
       </div>
     </div>
   </div>
@@ -765,6 +813,9 @@ function updateDDayDisplay() {
       reportRefreshBtn:$('report-refresh-btn'), reportSaveSnapshotBtn:$('report-save-snapshot-btn'), reportLoadSnapshotBtn:$('report-load-snapshot-btn'), reportLoadSnapshotInput:$('report-load-snapshot-input'), reportPrintBtn:$('report-print-btn'),
       aiAnalysisStartBtn:$('ai-analysis-start-btn'), aiAnalysisResult:$('ai-analysis-result'), aiAnalysisLoading:$('ai-analysis-loading'),
       aiAnalysisCopyBtn:$('ai-analysis-copy-btn'), aiErrorPattern:$('ai-error-pattern'), aiConceptWeakness:$('ai-concept-weakness'),
+      openAchievementsBtn:$('open-achievements-btn'), achievementsModal:$('achievements-modal'), achievementsCloseBtn:$('achievements-close-btn'),
+      achievementCountTotal:$('achievement-count-total'), achievementCountUnlocked:$('achievement-count-unlocked'),
+      achievementProgressPercent:$('achievement-progress-percent'), achievementPoints:$('achievement-points'), achievementsList:$('achievements-list'),
       flashcardModeBtn:$('flashcard-mode-btn'), flashcardArea:$('flashcard-area'), flashcardTitle:$('flashcard-title'),
       flashcardQuestion:$('flashcard-question'), flashcardAnswer:$('flashcard-answer'), flashcardCounter:$('flashcard-counter'),
       flashcardToggleAnswer:$('flashcard-toggle-answer'), flashcardAnswerBox:$('flashcard-answer-box'), flashcardAnswerHidden:$('flashcard-answer-hidden'),
@@ -1250,6 +1301,7 @@ function updateDDayDisplay() {
 
         const {increased, uniqueReads}=registerUniqueRead(qKey); if(increased) showToast(`회독 +1 (이 문제 고유 ${uniqueReads}회)`);
         updateSummary(); refreshPanels();
+        checkAchievements(); // Check for new achievements after grading
       }catch(e){
         console.error('채점 오류:',e); el.aiFeedback.textContent=`채점 중 오류: ${e.message}`; el.score.textContent='Error'; el.progressBar.style.width='0%'; el.resultBox.classList.remove('hidden');
         showToast('채점 요청 실패: API 키/네트워크/할당량 확인.','error');
@@ -3536,6 +3588,233 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
       }
     });
 
+    /* ========================================
+     * ACHIEVEMENT SYSTEM
+     * ======================================== */
+    const ACHIEVEMENTS_LS_KEY = 'achievements_v1';
+    let achievementsData = {};
+
+    // Achievement definitions (partial - more to be added)
+    const ACHIEVEMENTS = {
+      first_problem: { id: 'first_problem', name: '첫걸음', desc: '첫 번째 문제 풀이 및 채점 완료', icon: '🎯', tier: 'bronze', points: 10 },
+      first_80: { id: 'first_80', name: '첫 80점', desc: '최초로 AI 채점 80점 이상 달성', icon: '📈', tier: 'bronze', points: 10 },
+      first_90: { id: 'first_90', name: '고수의 반열', desc: '최초로 90점 이상 달성', icon: '🎖️', tier: 'silver', points: 20 },
+      first_100: { id: 'first_100', name: '완벽한 이해', desc: '최초로 100점 달성', icon: '💯', tier: 'silver', points: 30 },
+      problems_100: { id: 'problems_100', name: '성실의 증표', desc: '총 풀이 문제 100개 돌파', icon: '📚', tier: 'bronze', points: 20 },
+      problems_1000: { id: 'problems_1000', name: '천리길', desc: '총 풀이 문제 1,000개 돌파', icon: '🌟', tier: 'silver', points: 100 },
+      streak_3: { id: 'streak_3', name: '불타는 3일', desc: '3일 연속 학습', icon: '🔥', tier: 'bronze', points: 10 },
+      streak_7: { id: 'streak_7', name: '일주일의 습관', desc: '7일 연속 학습', icon: '📅', tier: 'bronze', points: 20 },
+      streak_30: { id: 'streak_30', name: '한 달의 끈기', desc: '30일 연속 학습', icon: '💪', tier: 'silver', points: 50 },
+      avg_80: { id: 'avg_80', name: '안정권 진입', desc: '전체 문제 누적 평균 점수 80점 돌파', icon: '🎯', tier: 'silver', points: 30 },
+      avg_90: { id: 'avg_90', name: '칭호: 예비 회계사', desc: '전체 문제 누적 평균 점수 90점 돌파', icon: '🏆', tier: 'gold', points: 100 }
+    };
+
+    function loadAchievements() {
+      const stored = localStorage.getItem(ACHIEVEMENTS_LS_KEY);
+      if (stored) {
+        try {
+          achievementsData = JSON.parse(stored);
+        } catch {}
+      }
+    }
+
+    function saveAchievements() {
+      try {
+        localStorage.setItem(ACHIEVEMENTS_LS_KEY, JSON.stringify(achievementsData));
+      } catch {}
+    }
+
+    function unlockAchievement(achievementId) {
+      if (achievementsData[achievementId]) return; // Already unlocked
+
+      const achievement = ACHIEVEMENTS[achievementId];
+      if (!achievement) return;
+
+      achievementsData[achievementId] = {
+        unlockedAt: Date.now(),
+        seen: false
+      };
+
+      saveAchievements();
+
+      // Show notification
+      showAchievementNotification(achievement);
+
+      // Update badge
+      updateAchievementBadge();
+    }
+
+    function showAchievementNotification(achievement) {
+      const tierColors = {
+        bronze: 'from-amber-500 to-yellow-600',
+        silver: 'from-gray-400 to-gray-500',
+        gold: 'from-yellow-400 to-amber-500',
+        hidden: 'from-purple-500 to-pink-600'
+      };
+
+      const notification = document.createElement('div');
+      notification.className = `fixed top-20 right-4 z-[9999] bg-gradient-to-r ${tierColors[achievement.tier]} text-white px-6 py-4 rounded-lg shadow-2xl animate-bounce`;
+      notification.innerHTML = `
+        <div class="flex items-center gap-3">
+          <span class="text-3xl">${achievement.icon}</span>
+          <div>
+            <div class="font-bold">업적 달성!</div>
+            <div class="text-sm">${achievement.name}</div>
+            <div class="text-xs opacity-90">${achievement.desc}</div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(notification);
+
+      setTimeout(() => {
+        notification.classList.remove('animate-bounce');
+        notification.classList.add('opacity-0', 'transition-opacity');
+        setTimeout(() => notification.remove(), 500);
+      }, 4000);
+    }
+
+    function updateAchievementBadge() {
+      const unseenCount = Object.keys(achievementsData).filter(id => !achievementsData[id].seen).length;
+      const badge = document.getElementById('new-achievement-badge');
+      if (badge) {
+        if (unseenCount > 0) {
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
+    }
+
+    function checkAchievements() {
+      // Check first problem
+      if (Object.keys(questionScores).length >= 1) {
+        unlockAchievement('first_problem');
+      }
+
+      // Check score achievements
+      const scores = Object.values(questionScores).map(s => s.score).filter(s => s !== undefined);
+      if (scores.length > 0) {
+        const maxScore = Math.max(...scores);
+        if (maxScore >= 80) unlockAchievement('first_80');
+        if (maxScore >= 90) unlockAchievement('first_90');
+        if (maxScore === 100) unlockAchievement('first_100');
+      }
+
+      // Check problem count
+      const totalProblems = Object.keys(questionScores).length;
+      if (totalProblems >= 100) unlockAchievement('problems_100');
+      if (totalProblems >= 1000) unlockAchievement('problems_1000');
+
+      // Check average score
+      if (scores.length > 0) {
+        const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+        if (avgScore >= 80) unlockAchievement('avg_80');
+        if (avgScore >= 90) unlockAchievement('avg_90');
+      }
+
+      // TODO: Check streak, daily goals, etc.
+    }
+
+    function openAchievementsModal() {
+      loadAchievements();
+      renderAchievements();
+      el.achievementsModal?.classList.remove('hidden');
+      el.achievementsModal?.classList.add('flex');
+
+      // Mark all as seen
+      Object.keys(achievementsData).forEach(id => {
+        achievementsData[id].seen = true;
+      });
+      saveAchievements();
+      updateAchievementBadge();
+    }
+
+    function closeAchievementsModal() {
+      el.achievementsModal?.classList.add('hidden');
+      el.achievementsModal?.classList.remove('flex');
+    }
+
+    function renderAchievements(filterTier = 'all') {
+      const list = el.achievementsList;
+      if (!list) return;
+
+      list.innerHTML = '';
+
+      const achievementsList = Object.values(ACHIEVEMENTS).filter(a => filterTier === 'all' || a.tier === filterTier);
+      const unlocked = achievementsList.filter(a => achievementsData[a.id]);
+      const locked = achievementsList.filter(a => !achievementsData[a.id]);
+
+      // Update stats
+      const totalCount = Object.keys(ACHIEVEMENTS).length;
+      const unlockedCount = Object.keys(achievementsData).length;
+      const progressPercent = Math.round((unlockedCount / totalCount) * 100);
+      const totalPoints = unlockedCount * 10; // Simplified
+
+      if (el.achievementCountTotal) el.achievementCountTotal.textContent = totalCount;
+      if (el.achievementCountUnlocked) el.achievementCountUnlocked.textContent = unlockedCount;
+      if (el.achievementProgressPercent) el.achievementProgressPercent.textContent = progressPercent;
+      if (el.achievementPoints) el.achievementPoints.textContent = totalPoints;
+
+      // Render unlocked first
+      unlocked.forEach(achievement => {
+        const card = createAchievementCard(achievement, true);
+        list.appendChild(card);
+      });
+
+      // Then locked
+      locked.forEach(achievement => {
+        const card = createAchievementCard(achievement, false);
+        list.appendChild(card);
+      });
+    }
+
+    function createAchievementCard(achievement, isUnlocked) {
+      const div = document.createElement('div');
+      const tierColors = {
+        bronze: 'from-amber-100 to-yellow-100 border-amber-300',
+        silver: 'from-gray-200 to-gray-300 border-gray-400',
+        gold: 'from-yellow-100 to-amber-200 border-yellow-400',
+        hidden: 'from-purple-100 to-pink-100 border-purple-300'
+      };
+
+      const tierIcons = {
+        bronze: '🥉',
+        silver: '🥈',
+        gold: '🥇',
+        hidden: '🤫'
+      };
+
+      div.className = `bg-gradient-to-r ${tierColors[achievement.tier]} dark:from-gray-800 dark:to-gray-700 border rounded-lg p-4 ${isUnlocked ? '' : 'opacity-50 grayscale'}`;
+      div.innerHTML = `
+        <div class="flex items-start gap-3">
+          <span class="text-4xl">${achievement.icon}</span>
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-1">
+              <h3 class="font-bold text-gray-900 dark:text-gray-100">${achievement.name}</h3>
+              <span class="text-xs">${tierIcons[achievement.tier]}</span>
+              ${isUnlocked ? '<span class="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">달성</span>' : ''}
+            </div>
+            <p class="text-sm text-gray-700 dark:text-gray-300">${achievement.desc}</p>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">+ ${achievement.points}P</div>
+          </div>
+        </div>
+      `;
+
+      return div;
+    }
+
+    // Event listeners
+    el.openAchievementsBtn?.addEventListener('click', openAchievementsModal);
+    el.achievementsCloseBtn?.addEventListener('click', closeAchievementsModal);
+
+    document.querySelectorAll('.achievement-tier-filter').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tier = btn.getAttribute('data-tier');
+        renderAchievements(tier);
+      });
+    });
+
     document.addEventListener('DOMContentLoaded', async ()=>{
       try{ await loadData(); }catch(err){ console.error(err); $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).'; showToast(`문제 데이터 로드 실패: ${err.message}`,'error'); }
       loadScores();initStatsDate();updateDDayDisplay();loadApiKey(); loadSettings(); applyDarkMode(); migrateData();
@@ -3545,6 +3824,11 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
       buildSourceFilterUI(); moveSourceFilterToSide();
       el.explorerSearch?.addEventListener('input', renderExplorer);
       refreshPanels();
+
+      // Initialize achievement system
+      loadAchievements();
+      checkAchievements();
+      updateAchievementBadge();
     });
   </script>
 </body>
