@@ -2365,10 +2365,41 @@ function renderStats(){
         return Math.round(avg * 10) / 10;
       });
 
+      // Calculate cumulative average (총누적평균선)
+      const cumulativeAvg = [];
+      let sum = 0, count = 0;
+      for (let i = 0; i < avgScores.length; i++) {
+        if (avgScores[i] !== null) {
+          sum += avgScores[i];
+          count++;
+        }
+        cumulativeAvg.push(count > 0 ? Math.round((sum / count) * 10) / 10 : null);
+      }
+
       // Calculate moving averages
       const ma5 = calculateMovingAverage(avgScores.map(v => v || 0), 5);
       const ma20 = calculateMovingAverage(avgScores.map(v => v || 0), 20);
       const ma60 = calculateMovingAverage(avgScores.map(v => v || 0), 60);
+
+      // Detect Golden Cross and Dead Cross points
+      const goldenCross = [], deadCross = [];
+      for (let i = 1; i < ma5.length; i++) {
+        if (ma5[i] !== null && ma20[i] !== null && ma5[i-1] !== null && ma20[i-1] !== null) {
+          // Golden Cross: MA5 crosses above MA20
+          if (ma5[i-1] <= ma20[i-1] && ma5[i] > ma20[i]) {
+            goldenCross.push({ x: i, y: ma5[i] });
+          }
+          // Dead Cross: MA5 crosses below MA20
+          if (ma5[i-1] >= ma20[i-1] && ma5[i] < ma20[i]) {
+            deadCross.push({ x: i, y: ma5[i] });
+          }
+        }
+      }
+
+      // Check perfect order (정배열) at last point
+      const lastIdx = ma5.length - 1;
+      const isPerfectOrder = ma5[lastIdx] && ma20[lastIdx] && ma60[lastIdx] &&
+                            ma5[lastIdx] > ma20[lastIdx] && ma20[lastIdx] > ma60[lastIdx];
 
       reportCharts.scoreTrend = new Chart(ctx, {
         type: 'line',
@@ -2385,31 +2416,65 @@ function renderStats(){
               borderWidth: 2
             },
             {
-              label: 'MA5',
+              label: 'MA5 (단기)',
               data: ma5,
               borderColor: 'rgba(34, 197, 94, 0.8)',
-              borderWidth: 1.5,
+              borderWidth: 2,
               tension: 0.3,
               pointRadius: 0,
               fill: false
             },
             {
-              label: 'MA20',
+              label: 'MA20 (중기★)',
               data: ma20,
               borderColor: 'rgba(234, 179, 8, 0.8)',
-              borderWidth: 1.5,
+              borderWidth: 2,
               tension: 0.3,
               pointRadius: 0,
               fill: false
             },
             {
-              label: 'MA60',
+              label: 'MA60 (장기)',
               data: ma60,
               borderColor: 'rgba(239, 68, 68, 0.8)',
-              borderWidth: 1.5,
+              borderWidth: 2,
               tension: 0.3,
               pointRadius: 0,
               fill: false
+            },
+            {
+              label: '총누적평균',
+              data: cumulativeAvg,
+              borderColor: 'rgba(107, 114, 128, 0.5)',
+              borderWidth: 1.5,
+              borderDash: [5, 5],
+              tension: 0.3,
+              pointRadius: 0,
+              fill: false
+            },
+            // Golden Cross markers
+            {
+              label: '골든 크로스',
+              data: goldenCross,
+              type: 'scatter',
+              pointRadius: 8,
+              pointHoverRadius: 10,
+              pointBackgroundColor: 'rgba(34, 197, 94, 1)',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              showLine: false
+            },
+            // Dead Cross markers
+            {
+              label: '데드 크로스',
+              data: deadCross,
+              type: 'scatter',
+              pointRadius: 8,
+              pointHoverRadius: 10,
+              pointBackgroundColor: 'rgba(239, 68, 68, 1)',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              showLine: false
             }
           ]
         },
@@ -2420,7 +2485,22 @@ function renderStats(){
             legend: { display: true, position: 'top' },
             tooltip: {
               mode: 'index',
-              intersect: false
+              intersect: false,
+              callbacks: {
+                footer: (items) => {
+                  const idx = items[0].dataIndex;
+                  if (isPerfectOrder && idx === lastIdx) {
+                    return '\n🚀 정배열 상태!';
+                  }
+                  return '';
+                }
+              }
+            },
+            title: {
+              display: isPerfectOrder,
+              text: '🚀 현재 정배열 상태! (5일 > 20일 > 60일)',
+              color: 'rgba(34, 197, 94, 1)',
+              font: { size: 14, weight: 'bold' }
             }
           },
           scales: {
@@ -2520,10 +2600,36 @@ function renderStats(){
       const labels = dailyData.map(d => d.date.slice(5));
       const avgScores = dailyData.map(d => Math.round(d.avg * 10) / 10);
 
+      // Calculate cumulative average
+      const cumulativeAvg = [];
+      let sum = 0;
+      for (let i = 0; i < avgScores.length; i++) {
+        sum += avgScores[i];
+        cumulativeAvg.push(Math.round((sum / (i + 1)) * 10) / 10);
+      }
+
       // Calculate moving averages
       const ma5 = calculateMovingAverage(avgScores, 5);
       const ma20 = calculateMovingAverage(avgScores, 20);
       const ma60 = calculateMovingAverage(avgScores, 60);
+
+      // Detect Golden Cross and Dead Cross
+      const goldenCross = [], deadCross = [];
+      for (let i = 1; i < ma5.length; i++) {
+        if (ma5[i] !== null && ma20[i] !== null && ma5[i-1] !== null && ma20[i-1] !== null) {
+          if (ma5[i-1] <= ma20[i-1] && ma5[i] > ma20[i]) {
+            goldenCross.push({ x: i, y: ma5[i] });
+          }
+          if (ma5[i-1] >= ma20[i-1] && ma5[i] < ma20[i]) {
+            deadCross.push({ x: i, y: ma5[i] });
+          }
+        }
+      }
+
+      // Check perfect order
+      const lastIdx = ma5.length - 1;
+      const isPerfectOrder = ma5[lastIdx] && ma20[lastIdx] && ma60[lastIdx] &&
+                            ma5[lastIdx] > ma20[lastIdx] && ma20[lastIdx] > ma60[lastIdx];
 
       if (reportCharts.chapterDetail) reportCharts.chapterDetail.destroy();
 
@@ -2542,31 +2648,63 @@ function renderStats(){
               borderWidth: 2
             },
             {
-              label: 'MA5',
+              label: 'MA5 (단기)',
               data: ma5,
               borderColor: 'rgba(34, 197, 94, 0.8)',
-              borderWidth: 1.5,
+              borderWidth: 2,
               tension: 0.3,
               pointRadius: 0,
               fill: false
             },
             {
-              label: 'MA20',
+              label: 'MA20 (중기★)',
               data: ma20,
               borderColor: 'rgba(234, 179, 8, 0.8)',
-              borderWidth: 1.5,
+              borderWidth: 2,
               tension: 0.3,
               pointRadius: 0,
               fill: false
             },
             {
-              label: 'MA60',
+              label: 'MA60 (장기)',
               data: ma60,
               borderColor: 'rgba(239, 68, 68, 0.8)',
-              borderWidth: 1.5,
+              borderWidth: 2,
               tension: 0.3,
               pointRadius: 0,
               fill: false
+            },
+            {
+              label: '총누적평균',
+              data: cumulativeAvg,
+              borderColor: 'rgba(107, 114, 128, 0.5)',
+              borderWidth: 1.5,
+              borderDash: [5, 5],
+              tension: 0.3,
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              label: '골든 크로스',
+              data: goldenCross,
+              type: 'scatter',
+              pointRadius: 8,
+              pointHoverRadius: 10,
+              pointBackgroundColor: 'rgba(34, 197, 94, 1)',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              showLine: false
+            },
+            {
+              label: '데드 크로스',
+              data: deadCross,
+              type: 'scatter',
+              pointRadius: 8,
+              pointHoverRadius: 10,
+              pointBackgroundColor: 'rgba(239, 68, 68, 1)',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              showLine: false
             }
           ]
         },
@@ -2577,11 +2715,20 @@ function renderStats(){
             legend: { display: true, position: 'top' },
             title: {
               display: true,
-              text: chapterLabelText(chapter) + ' - 점수 추이 (일평균)'
+              text: chapterLabelText(chapter) + ' - 점수 추이 (일평균)' + (isPerfectOrder ? ' 🚀 정배열!' : '')
             },
             tooltip: {
               mode: 'index',
-              intersect: false
+              intersect: false,
+              callbacks: {
+                footer: (items) => {
+                  const idx = items[0].dataIndex;
+                  if (isPerfectOrder && idx === lastIdx) {
+                    return '\n🚀 정배열 상태!';
+                  }
+                  return '';
+                }
+              }
             }
           },
           scales: {
