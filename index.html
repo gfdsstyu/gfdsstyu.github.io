@@ -1489,6 +1489,21 @@ function updateDDayDisplay() {
           btn.classList.add(...cls); btn.dataset.qid=id;
 
           btn.addEventListener('click',()=>{
+            // Handle flashcard mode separately
+            if (isFlashcardMode) {
+              const idx = flashcardData.findIndex(it => String(it.고유ID).trim() === id);
+              if (idx !== -1) {
+                flashcardIndex = idx;
+                displayFlashcard();
+                updateSummaryHighlight();
+                showToast(`'${baseLabel}'로 이동`);
+              } else {
+                showToast('현재 필터에 없는 문제입니다', 'warning');
+              }
+              return;
+            }
+
+            // Handle regular quiz mode
             const idx=currentQuizData.findIndex(it=>String(it.고유ID).trim()===id);
             if(idx===-1){
               const chVal=String(q.단원).trim(), set=allData.filter(it=>String(it.단원).trim()===chVal);
@@ -1496,15 +1511,10 @@ function updateDDayDisplay() {
             } else currentQuestionIndex=idx;
             if(currentQuestionIndex<0) currentQuestionIndex=0;
 
-            // Update flashcard mode if active
-            if (isFlashcardMode) {
-              flashcardData = currentQuizData;
-              flashcardIndex = currentQuestionIndex;
-              displayFlashcard();
-              showToast(`'${baseLabel}'로 이동`);
-            } else {
-              el.quizArea.classList.remove('hidden'); displayQuestion(); showToast(`'${baseLabel}'로 이동`);
-            }
+            el.quizArea.classList.remove('hidden');
+            displayQuestion();
+            updateSummaryHighlight();
+            showToast(`'${baseLabel}'로 이동`);
           });
           grid.appendChild(btn);
         });
