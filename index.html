@@ -2358,30 +2358,28 @@ function renderStats(){
       const ctx = $('chart-score-trend');
       if (!ctx || !window.Chart) return;
 
-      const filledData = fillMissingDates(dailyData);
-      const sorted = Array.from(filledData.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      // Only use days with actual data (no empty days)
+      const sorted = Array.from(dailyData.entries())
+        .filter(([, v]) => v.scores.length > 0)
+        .sort((a, b) => a[0].localeCompare(b[0]));
       const labels = sorted.map(([date]) => date.slice(5));
       const avgScores = sorted.map(([, v]) => {
-        if (v.scores.length === 0) return null;
         const avg = v.scores.reduce((a, b) => a + b, 0) / v.scores.length;
         return Math.round(avg * 10) / 10;
       });
 
       // Calculate cumulative average (총누적평균선)
       const cumulativeAvg = [];
-      let sum = 0, count = 0;
+      let sum = 0;
       for (let i = 0; i < avgScores.length; i++) {
-        if (avgScores[i] !== null) {
-          sum += avgScores[i];
-          count++;
-        }
-        cumulativeAvg.push(count > 0 ? Math.round((sum / count) * 10) / 10 : null);
+        sum += avgScores[i];
+        cumulativeAvg.push(Math.round((sum / (i + 1)) * 10) / 10);
       }
 
       // Calculate moving averages
-      const ma5 = calculateMovingAverage(avgScores.map(v => v || 0), 5);
-      const ma20 = calculateMovingAverage(avgScores.map(v => v || 0), 20);
-      const ma60 = calculateMovingAverage(avgScores.map(v => v || 0), 60);
+      const ma5 = calculateMovingAverage(avgScores, 5);
+      const ma20 = calculateMovingAverage(avgScores, 20);
+      const ma60 = calculateMovingAverage(avgScores, 60);
 
       // Detect Golden Cross and Dead Cross points
       const goldenCross = [], deadCross = [];
@@ -2484,7 +2482,20 @@ function renderStats(){
           responsive: true,
           maintainAspectRatio: true,
           plugins: {
-            legend: { display: true, position: 'top' },
+            legend: {
+              display: true,
+              position: 'top',
+              onClick: (e, legendItem, legend) => {
+                const index = legendItem.datasetIndex;
+                // Disable click for golden/dead cross markers (indices 5 and 6)
+                if (index === 5 || index === 6) return;
+                // Default behavior for other datasets
+                const chart = legend.chart;
+                const meta = chart.getDatasetMeta(index);
+                meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
+                chart.update();
+              }
+            },
             tooltip: {
               mode: 'index',
               intersect: false,
@@ -2714,7 +2725,20 @@ function renderStats(){
           responsive: true,
           maintainAspectRatio: true,
           plugins: {
-            legend: { display: true, position: 'top' },
+            legend: {
+              display: true,
+              position: 'top',
+              onClick: (e, legendItem, legend) => {
+                const index = legendItem.datasetIndex;
+                // Disable click for golden/dead cross markers (indices 5 and 6)
+                if (index === 5 || index === 6) return;
+                // Default behavior for other datasets
+                const chart = legend.chart;
+                const meta = chart.getDatasetMeta(index);
+                meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
+                chart.update();
+              }
+            },
             title: {
               display: true,
               text: chapterLabelText(chapter) + ' - 점수 추이 (일평균)' + (isPerfectOrder ? ' 🚀 정배열!' : '')
@@ -3118,15 +3142,14 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
     let flashcardAnswerVisible = false;
 
     function startFlashcardMode() {
-      // Get filtered data based on current selection
-      const filtered = getFilteredByUI();
-      if (!filtered || filtered.length === 0) {
+      // Use current quiz data to sync with problem mode selection
+      if (!currentQuizData || currentQuizData.length === 0) {
         showToast('선택한 조건에 해당하는 문제가 없습니다', 'warn');
         return;
       }
 
-      flashcardData = filtered;
-      flashcardIndex = 0;
+      flashcardData = currentQuizData;
+      flashcardIndex = currentQuestionIndex; // Start from current problem
       flashcardAnswerVisible = false;
 
       // Hide quiz area, show flashcard area
