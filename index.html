@@ -70,6 +70,7 @@
     html.dark .summary-btn.bg-red-100{ background-color:#7f1d1d; color:#fecaca; border-color:#991b1b }
     html.dark .summary-btn.bg-yellow-100{ background-color:#78350f; color:#fde68a; border-color:#92400e }
     html.dark .summary-btn.bg-green-100{ background-color:#14532d; color:#bbf7d0; border-color:#166534 }
+    html.dark .summary-btn.bg-blue-100{ background-color:#1e3a8a; color:#bfdbfe; border-color:#1e40af }
   </style>
 
   <style id="focus-mode-css">
@@ -1432,7 +1433,7 @@ function updateDDayDisplay() {
           btn.classList.add('summary-btn','font-medium','rounded-lg','border','text-left');
 
           const sc= Number.isFinite(+saved?.score)? +saved.score : NaN;
-          const cls= !Number.isFinite(sc)? ['bg-gray-100','text-gray-600','border-gray-300'] : sc<60? ['bg-red-100','text-red-700','border-red-300'] : sc<80? ['bg-yellow-100','text-yellow-700','border-yellow-300'] : ['bg-green-100','text-green-700','border-green-300'];
+          const cls= !Number.isFinite(sc)? ['bg-gray-100','text-gray-600','border-gray-300'] : sc<60? ['bg-red-100','text-red-700','border-red-300'] : sc<80? ['bg-yellow-100','text-yellow-700','border-yellow-300'] : sc<90? ['bg-green-100','text-green-700','border-green-300'] : ['bg-blue-100','text-blue-700','border-blue-300'];
           btn.classList.add(...cls); btn.dataset.qid=id;
 
           btn.addEventListener('click',()=>{
