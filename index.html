@@ -3494,6 +3494,17 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
       flashcardIndex = 0;
       flashcardAnswerVisible = false;
       isFlashcardMode = false;
+
+      // Refresh quiz area and panels
+      if (currentQuizData && currentQuizData.length > 0) {
+        displayQuestion();
+      } else {
+        el.quizArea?.classList.add('hidden');
+      }
+
+      updateSummary();
+      refreshPanels();
+
       showToast('플래시카드 모드 종료');
     }
 
