@@ -1108,9 +1108,12 @@ function updateDDayDisplay() {
 
       list=list.filter(q=>{
         const key=normId(q.고유ID), s=questionScores[key];
-        if(filter==='unanswered') return !s;
-        if(filter==='80') return !s || +s.score<80;
-        if(filter==='60') return !s || +s.score<60;
+        // 안푼문제: questionScores에 없거나, score가 null/undefined인 경우
+        if(filter==='unanswered') return !s || s.score == null || s.score === undefined;
+        // 80점 미만: 점수가 없거나 80점 미만
+        if(filter==='80') return !s || s.score == null || s.score === undefined || +s.score<80;
+        // 60점 미만: 점수가 없거나 60점 미만
+        if(filter==='60') return !s || s.score == null || s.score === undefined || +s.score<60;
         return true;
       });
 
