@@ -233,30 +233,35 @@
 
                 <div class="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-md">
                   <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">물음</h3>
-                  <p id="flashcard-question" class="text-base text-gray-700 dark:text-gray-200 leading-relaxed">-</p>
+                  <p id="flashcard-question" class="text-base text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">-</p>
                 </div>
 
                 <div class="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-md">
                   <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400">답변</h3>
+                    <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400">답변 (스페이스바로 토글)</h3>
                     <button id="flashcard-toggle-answer" class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition">
                       답변 보기 👁️
                     </button>
                   </div>
                   <div id="flashcard-answer-box" class="hidden">
-                    <pre id="flashcard-answer" class="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">-</pre>
+                    <p id="flashcard-answer" class="text-base text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">-</p>
                   </div>
                   <div id="flashcard-answer-hidden" class="text-center py-8 text-gray-400">
                     <p>답변이 숨겨져 있습니다</p>
-                    <p class="text-xs mt-2">위 버튼을 클릭하여 확인하세요</p>
+                    <p class="text-xs mt-2">위 버튼 또는 스페이스바를 눌러 확인하세요</p>
                   </div>
                 </div>
               </div>
 
-              <div class="flex justify-between items-center mt-6 gap-4">
-                <button id="flashcard-prev-btn" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">← 이전</button>
-                <button id="flashcard-exit-btn" class="px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition">종료</button>
-                <button id="flashcard-next-btn" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">다음 →</button>
+              <div class="space-y-3 mt-6">
+                <div class="flex justify-between items-center gap-4">
+                  <button id="flashcard-prev-btn" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">← 이전</button>
+                  <button id="flashcard-exit-btn" class="px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition">종료 (Esc)</button>
+                  <button id="flashcard-next-btn" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">다음 →</button>
+                </div>
+                <div class="text-center text-xs text-gray-500 dark:text-gray-400">
+                  단축키: ← 이전 | → 다음 | Space 답변보기 | Esc 종료
+                </div>
               </div>
             </div>
           </div>
@@ -514,14 +519,27 @@
         <div id="report-content-1" class="report-content">
           <div class="space-y-6">
             <div>
-              <h3 class="text-lg font-bold mb-3">학습 성과 추이</h3>
+              <div class="flex justify-between items-center mb-3">
+                <h3 class="text-lg font-bold">학습 성과 추이</h3>
+                <div class="flex items-center gap-2">
+                  <label class="text-sm text-gray-600 dark:text-gray-400">차트 스코프:</label>
+                  <select id="chart-scope-select" class="px-2 py-1 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700">
+                    <option value="daily">일간</option>
+                    <option value="weekly">주간</option>
+                    <option value="monthly">월간</option>
+                  </select>
+                </div>
+              </div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="border rounded-lg p-4">
                   <h4 class="text-sm font-semibold mb-2">일일 학습량</h4>
                   <canvas id="chart-daily-volume"></canvas>
                 </div>
                 <div class="border rounded-lg p-4">
-                  <h4 class="text-sm font-semibold mb-2">전체 점수 추이</h4>
+                  <div class="flex justify-between items-center mb-2">
+                    <h4 class="text-sm font-semibold">전체 점수 추이</h4>
+                    <a href="trendhelp.html" target="_blank" class="text-xs text-blue-600 hover:underline dark:text-blue-400">도움말</a>
+                  </div>
                   <canvas id="chart-score-trend"></canvas>
                 </div>
               </div>
@@ -547,17 +565,12 @@
             </button>
             <p class="text-sm text-gray-500 mt-2">AI가 오답 패턴과 개념 약점을 분석합니다</p>
           </div>
-          <div id="ai-analysis-result" class="hidden space-y-6">
-            <div class="flex justify-end">
+          <div id="ai-analysis-result" class="hidden">
+            <div class="flex justify-end mb-4">
               <button id="ai-analysis-copy-btn" class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">📋 분석 내용 복사</button>
             </div>
-            <div class="border rounded-lg p-6">
-              <h3 class="text-lg font-bold mb-3">실수 유형 분석</h3>
-              <div id="ai-error-pattern" class="prose dark:prose-invert max-w-none"></div>
-            </div>
-            <div class="border rounded-lg p-6">
-              <h3 class="text-lg font-bold mb-3">주요 개념 약점 진단</h3>
-              <div id="ai-concept-weakness" class="prose dark:prose-invert max-w-none"></div>
+            <div class="border rounded-lg p-6 bg-white dark:bg-gray-800">
+              <div id="ai-error-pattern" class="prose prose-slate max-w-none dark:prose-invert text-gray-900 dark:text-gray-100"></div>
             </div>
           </div>
           <div id="ai-analysis-loading" class="hidden text-center py-12">
@@ -739,6 +752,7 @@ function updateDDayDisplay() {
       calPrev:$('cal-prev'), calNext:$('cal-next'), calTitle:$('cal-title'), calendarGrid:$('calendar-grid'),
       openReportBtn:$('open-report-btn'), reportModal:$('report-modal'), reportCloseBtn:$('report-close-btn'),
       reportPeriodSelect:$('report-period-select'), reportThresholdSelect:$('report-threshold-select'),
+      chartScopeSelect:$('chart-scope-select'),
       reportRefreshBtn:$('report-refresh-btn'), reportSaveSnapshotBtn:$('report-save-snapshot-btn'), reportPrintBtn:$('report-print-btn'),
       aiAnalysisStartBtn:$('ai-analysis-start-btn'), aiAnalysisResult:$('ai-analysis-result'), aiAnalysisLoading:$('ai-analysis-loading'),
       aiAnalysisCopyBtn:$('ai-analysis-copy-btn'), aiErrorPattern:$('ai-error-pattern'), aiConceptWeakness:$('ai-concept-weakness'),
@@ -2269,11 +2283,36 @@ function renderStats(){
       renderActionPlan(data.weakProblems);
     }
 
+    // Helper: Fill missing dates with zero
+    function fillMissingDates(dailyData) {
+      if (dailyData.size === 0) return new Map();
+
+      const sorted = Array.from(dailyData.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      const startDate = new Date(sorted[0][0]);
+      const endDate = new Date(sorted[sorted.length - 1][0]);
+
+      const filled = new Map();
+      const currentDate = new Date(startDate);
+
+      while (currentDate <= endDate) {
+        const dateStr = currentDate.toISOString().slice(0, 10);
+        if (dailyData.has(dateStr)) {
+          filled.set(dateStr, dailyData.get(dateStr));
+        } else {
+          filled.set(dateStr, { count: 0, scores: [] });
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      return filled;
+    }
+
     function renderDailyVolumeChart(dailyData) {
       const ctx = $('chart-daily-volume');
       if (!ctx || !window.Chart) return;
 
-      const sorted = Array.from(dailyData.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      const filledData = fillMissingDates(dailyData);
+      const sorted = Array.from(filledData.entries()).sort((a, b) => a[0].localeCompare(b[0]));
       const labels = sorted.map(([date]) => date.slice(5));
       const data = sorted.map(([, v]) => v.count);
 
@@ -2300,24 +2339,69 @@ function renderStats(){
       });
     }
 
+    // Helper: Calculate moving average
+    function calculateMovingAverage(data, period) {
+      const result = [];
+      for (let i = 0; i < data.length; i++) {
+        if (i < period - 1) {
+          result.push(null); // Not enough data for this period
+        } else {
+          const slice = data.slice(i - period + 1, i + 1);
+          const avg = slice.reduce((a, b) => a + b, 0) / slice.length;
+          result.push(Math.round(avg * 10) / 10);
+        }
+      }
+      return result;
+    }
+
     function renderScoreTrendChart(dailyData) {
       const ctx = $('chart-score-trend');
       if (!ctx || !window.Chart) return;
 
-      const sorted = Array.from(dailyData.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+      const filledData = fillMissingDates(dailyData);
+      const sorted = Array.from(filledData.entries()).sort((a, b) => a[0].localeCompare(b[0]));
       const labels = sorted.map(([date]) => date.slice(5));
       const avgScores = sorted.map(([, v]) => {
+        if (v.scores.length === 0) return null;
         const avg = v.scores.reduce((a, b) => a + b, 0) / v.scores.length;
-        return Math.round(avg);
+        return Math.round(avg * 10) / 10;
       });
 
-      // Moving average
-      const movingAvg = [];
+      // Calculate cumulative average (총누적평균선)
+      const cumulativeAvg = [];
+      let sum = 0, count = 0;
       for (let i = 0; i < avgScores.length; i++) {
-        const start = Math.max(0, i - 2);
-        const slice = avgScores.slice(start, i + 1);
-        movingAvg.push(Math.round(slice.reduce((a, b) => a + b, 0) / slice.length));
+        if (avgScores[i] !== null) {
+          sum += avgScores[i];
+          count++;
+        }
+        cumulativeAvg.push(count > 0 ? Math.round((sum / count) * 10) / 10 : null);
       }
+
+      // Calculate moving averages
+      const ma5 = calculateMovingAverage(avgScores.map(v => v || 0), 5);
+      const ma20 = calculateMovingAverage(avgScores.map(v => v || 0), 20);
+      const ma60 = calculateMovingAverage(avgScores.map(v => v || 0), 60);
+
+      // Detect Golden Cross and Dead Cross points
+      const goldenCross = [], deadCross = [];
+      for (let i = 1; i < ma5.length; i++) {
+        if (ma5[i] !== null && ma20[i] !== null && ma5[i-1] !== null && ma20[i-1] !== null) {
+          // Golden Cross: MA5 crosses above MA20
+          if (ma5[i-1] <= ma20[i-1] && ma5[i] > ma20[i]) {
+            goldenCross.push({ x: i, y: ma5[i] });
+          }
+          // Dead Cross: MA5 crosses below MA20
+          if (ma5[i-1] >= ma20[i-1] && ma5[i] < ma20[i]) {
+            deadCross.push({ x: i, y: ma5[i] });
+          }
+        }
+      }
+
+      // Check perfect order (정배열) at last point
+      const lastIdx = ma5.length - 1;
+      const isPerfectOrder = ma5[lastIdx] && ma20[lastIdx] && ma60[lastIdx] &&
+                            ma5[lastIdx] > ma20[lastIdx] && ma20[lastIdx] > ma60[lastIdx];
 
       reportCharts.scoreTrend = new Chart(ctx, {
         type: 'line',
@@ -2329,23 +2413,109 @@ function renderStats(){
               data: avgScores,
               borderColor: 'rgba(59, 130, 246, 1)',
               backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              tension: 0.3
+              tension: 0.1,
+              pointRadius: 2,
+              borderWidth: 2
             },
             {
-              label: '누적 이동평균',
-              data: movingAvg,
-              borderColor: 'rgba(107, 114, 128, 1)',
-              backgroundColor: 'rgba(107, 114, 128, 0.1)',
-              tension: 0.3
+              label: 'MA5 (단기)',
+              data: ma5,
+              borderColor: 'rgba(34, 197, 94, 0.8)',
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              label: 'MA20 (중기★)',
+              data: ma20,
+              borderColor: 'rgba(234, 179, 8, 0.8)',
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              label: 'MA60 (장기)',
+              data: ma60,
+              borderColor: 'rgba(239, 68, 68, 0.8)',
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              label: '총누적평균',
+              data: cumulativeAvg,
+              borderColor: 'rgba(107, 114, 128, 0.5)',
+              borderWidth: 1.5,
+              borderDash: [5, 5],
+              tension: 0.3,
+              pointRadius: 0,
+              fill: false
+            },
+            // Golden Cross markers
+            {
+              label: '골든 크로스',
+              data: goldenCross,
+              type: 'scatter',
+              pointRadius: 8,
+              pointHoverRadius: 10,
+              pointBackgroundColor: 'rgba(34, 197, 94, 1)',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              showLine: false
+            },
+            // Dead Cross markers
+            {
+              label: '데드 크로스',
+              data: deadCross,
+              type: 'scatter',
+              pointRadius: 8,
+              pointHoverRadius: 10,
+              pointBackgroundColor: 'rgba(239, 68, 68, 1)',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              showLine: false
             }
           ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: true,
-          plugins: { legend: { display: true, position: 'top' } },
+          plugins: {
+            legend: { display: true, position: 'top' },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+              callbacks: {
+                footer: (items) => {
+                  const idx = items[0].dataIndex;
+                  if (isPerfectOrder && idx === lastIdx) {
+                    return '\n🚀 정배열 상태!';
+                  }
+                  return '';
+                }
+              }
+            },
+            title: {
+              display: isPerfectOrder,
+              text: '🚀 현재 정배열 상태! (5일 > 20일 > 60일)',
+              color: 'rgba(34, 197, 94, 1)',
+              font: { size: 14, weight: 'bold' }
+            }
+          },
           scales: {
-            y: { beginAtZero: true, max: 100 }
+            y: {
+              beginAtZero: true,
+              max: 100,
+              ticks: { stepSize: 10 }
+            }
+          },
+          interaction: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false
           }
         }
       });
@@ -2411,12 +2581,57 @@ function renderStats(){
       const ctx = $('chart-chapter-detail');
       if (!ctx || !window.Chart) return;
 
-      // Sort by date
-      const combined = data.dates.map((date, i) => ({ date, score: data.scores[i] }))
-        .sort((a, b) => a.date - b.date);
+      // Group by date and calculate daily average
+      const dailyMap = new Map();
+      data.dates.forEach((timestamp, i) => {
+        const dateStr = new Date(timestamp).toISOString().slice(0, 10);
+        if (!dailyMap.has(dateStr)) {
+          dailyMap.set(dateStr, []);
+        }
+        dailyMap.get(dateStr).push(data.scores[i]);
+      });
 
-      const labels = combined.map(d => new Date(d.date).toISOString().slice(5, 10));
-      const scores = combined.map(d => d.score);
+      // Calculate daily averages
+      const dailyData = Array.from(dailyMap.entries())
+        .map(([date, scores]) => ({
+          date,
+          avg: scores.reduce((a, b) => a + b, 0) / scores.length
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      const labels = dailyData.map(d => d.date.slice(5));
+      const avgScores = dailyData.map(d => Math.round(d.avg * 10) / 10);
+
+      // Calculate cumulative average
+      const cumulativeAvg = [];
+      let sum = 0;
+      for (let i = 0; i < avgScores.length; i++) {
+        sum += avgScores[i];
+        cumulativeAvg.push(Math.round((sum / (i + 1)) * 10) / 10);
+      }
+
+      // Calculate moving averages
+      const ma5 = calculateMovingAverage(avgScores, 5);
+      const ma20 = calculateMovingAverage(avgScores, 20);
+      const ma60 = calculateMovingAverage(avgScores, 60);
+
+      // Detect Golden Cross and Dead Cross
+      const goldenCross = [], deadCross = [];
+      for (let i = 1; i < ma5.length; i++) {
+        if (ma5[i] !== null && ma20[i] !== null && ma5[i-1] !== null && ma20[i-1] !== null) {
+          if (ma5[i-1] <= ma20[i-1] && ma5[i] > ma20[i]) {
+            goldenCross.push({ x: i, y: ma5[i] });
+          }
+          if (ma5[i-1] >= ma20[i-1] && ma5[i] < ma20[i]) {
+            deadCross.push({ x: i, y: ma5[i] });
+          }
+        }
+      }
+
+      // Check perfect order
+      const lastIdx = ma5.length - 1;
+      const isPerfectOrder = ma5[lastIdx] && ma20[lastIdx] && ma60[lastIdx] &&
+                            ma5[lastIdx] > ma20[lastIdx] && ma20[lastIdx] > ma60[lastIdx];
 
       if (reportCharts.chapterDetail) reportCharts.chapterDetail.destroy();
 
@@ -2424,20 +2639,111 @@ function renderStats(){
         type: 'line',
         data: {
           labels,
-          datasets: [{
-            label: chapterLabelText(chapter),
-            data: scores,
-            borderColor: 'rgba(147, 51, 234, 1)',
-            backgroundColor: 'rgba(147, 51, 234, 0.1)',
-            tension: 0.3
-          }]
+          datasets: [
+            {
+              label: '일평균',
+              data: avgScores,
+              borderColor: 'rgba(147, 51, 234, 1)',
+              backgroundColor: 'rgba(147, 51, 234, 0.1)',
+              tension: 0.1,
+              pointRadius: 2,
+              borderWidth: 2
+            },
+            {
+              label: 'MA5 (단기)',
+              data: ma5,
+              borderColor: 'rgba(34, 197, 94, 0.8)',
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              label: 'MA20 (중기★)',
+              data: ma20,
+              borderColor: 'rgba(234, 179, 8, 0.8)',
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              label: 'MA60 (장기)',
+              data: ma60,
+              borderColor: 'rgba(239, 68, 68, 0.8)',
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              label: '총누적평균',
+              data: cumulativeAvg,
+              borderColor: 'rgba(107, 114, 128, 0.5)',
+              borderWidth: 1.5,
+              borderDash: [5, 5],
+              tension: 0.3,
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              label: '골든 크로스',
+              data: goldenCross,
+              type: 'scatter',
+              pointRadius: 8,
+              pointHoverRadius: 10,
+              pointBackgroundColor: 'rgba(34, 197, 94, 1)',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              showLine: false
+            },
+            {
+              label: '데드 크로스',
+              data: deadCross,
+              type: 'scatter',
+              pointRadius: 8,
+              pointHoverRadius: 10,
+              pointBackgroundColor: 'rgba(239, 68, 68, 1)',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              showLine: false
+            }
+          ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: true,
-          plugins: { legend: { display: true } },
+          plugins: {
+            legend: { display: true, position: 'top' },
+            title: {
+              display: true,
+              text: chapterLabelText(chapter) + ' - 점수 추이 (일평균)' + (isPerfectOrder ? ' 🚀 정배열!' : '')
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+              callbacks: {
+                footer: (items) => {
+                  const idx = items[0].dataIndex;
+                  if (isPerfectOrder && idx === lastIdx) {
+                    return '\n🚀 정배열 상태!';
+                  }
+                  return '';
+                }
+              }
+            }
+          },
           scales: {
-            y: { beginAtZero: true, max: 100 }
+            y: {
+              beginAtZero: true,
+              max: 100,
+              ticks: { stepSize: 10 }
+            }
+          },
+          interaction: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false
           }
         }
       });
@@ -2584,13 +2890,19 @@ function renderStats(){
           return;
         }
 
-        // Prepare prompt
-        const weakProblemsSummary = data.weakProblems.slice(0, 20).map(wp => ({
-          문제: wp.problem.물음,
-          정답: wp.problem.정답,
-          내답안: questionScores[wp.qid]?.lastAnswer || '',
-          점수: wp.score
-        }));
+        // Prepare prompt with actual user answers from solve history
+        const weakProblemsSummary = data.weakProblems.slice(0, 20).map(wp => {
+          const scoreData = questionScores[wp.qid];
+          const solveHistory = scoreData?.solveHistory || [];
+          const latestSolve = solveHistory[solveHistory.length - 1];
+
+          return {
+            문제: wp.problem.물음,
+            정답: wp.problem.정답,
+            내답안: latestSolve?.user_answer || scoreData?.user_answer || '(답변 없음)',
+            점수: wp.score
+          };
+        });
 
         const prompt = `[시스템 역할 정의]
 
@@ -2750,14 +3062,9 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
         if (loading) loading.classList.add('hidden');
         if (result) result.classList.remove('hidden');
 
-        // Parse response - split into error patterns and concept weakness
-        const sections = response.split(/#+\s*주요 개념 약점|#+\s*개념 약점/i);
-
-        if ($('ai-error-pattern')) {
-          $('ai-error-pattern').innerHTML = markdownToHtml(sections[0] || response);
-        }
-        if ($('ai-concept-weakness')) {
-          $('ai-concept-weakness').innerHTML = markdownToHtml(sections[1] || '');
+        // Display full analysis in one section
+        if (el.aiErrorPattern) {
+          el.aiErrorPattern.innerHTML = markdownToHtml(response);
         }
 
       } catch (err) {
@@ -2783,6 +3090,10 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
     el.openReportBtn?.addEventListener('click', openReportModal);
     el.reportCloseBtn?.addEventListener('click', closeReportModal);
     el.reportRefreshBtn?.addEventListener('click', generateReport);
+    el.chartScopeSelect?.addEventListener('change', () => {
+      // TODO: Implement daily/weekly/monthly aggregation
+      generateReport();
+    });
     el.aiAnalysisStartBtn?.addEventListener('click', startAIAnalysis);
     el.aiAnalysisCopyBtn?.addEventListener('click', copyAIAnalysis);
 
