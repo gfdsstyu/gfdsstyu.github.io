@@ -1,32 +1,100 @@
-import { createStore } from './state/store.js';
-import { mountShell } from './ui/shell.js';
-import { mountDashboard } from './ui/dashboard.js';
-import { mountQuiz } from './ui/quiz.js';
+// ============================================
+// 감린이 - 회계감사 학습 도우미 v4.0
+// 메인 애플리케이션 엔트리 포인트
+// ============================================
 
-const store = createStore();
+console.log('🚀 감린이 v4.0 Refactored App Loading...');
 
-// v3.2 기록 → 상태 로드
-try {
-  const raw = localStorage.getItem('auditQuizScores');
-  store.set('scores', raw ? JSON.parse(raw) : {});
-} catch (e) { console.warn('[v4] scores parse fail', e); }
+// ========================================
+// 모듈 임포트
+// ========================================
 
-// 미니 캘린더 데이터 파생
-store.set('cache', { dailyActivity: deriveDailyActivity(store.get().scores) });
+// 설정 및 상수
+import * as Config from './config/config.js';
 
-function deriveDailyActivity(scores) {
-  const map = {};
-  Object.values(scores || {}).forEach(s => {
-    (s.solveHistory || []).forEach(h => {
-      const d = new Date(h.date || 0); if (isNaN(d)) return;
-      const key = d.toISOString().slice(0, 10);
-      map[key] = map[key] || { solvedCount: 0 };
-      map[key].solvedCount += 1;
-    });
-  });
-  return map;
-}
+// 유틸리티
+import * as Helpers from './utils/helpers.js';
 
-mountShell();
-mountDashboard(store);
-mountQuiz(store);
+// UI
+import { initElements, setElements, $ } from './ui/elements.js';
+import * as DomUtils from './ui/domUtils.js';
+
+// 서비스
+import * as GeminiApi from './services/geminiApi.js';
+
+// ========================================
+// 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
+// (Phase 3에서 모든 로직이 이전되면 제거 예정)
+// ========================================
+
+// 전역으로 노출 (index.html의 기존 script에서 사용)
+window.Config = Config;
+window.Helpers = Helpers;
+window.DomUtils = DomUtils;
+window.GeminiApi = GeminiApi;
+
+// 개별 함수들도 전역으로 노출
+window.$ = $;
+window.clamp = Helpers.clamp;
+window.normId = Helpers.normId;
+window.sanitizeModelText = Helpers.sanitizeModelText;
+window.ymd = Helpers.ymd;
+window.dowMon0 = Helpers.dowMon0;
+window.hslToHex = Helpers.hslToHex;
+window.colorForCount = Helpers.colorForCount;
+window.computePartRanges = Helpers.computePartRanges;
+
+window.showToast = DomUtils.showToast;
+window.getHeaderOffset = DomUtils.getHeaderOffset;
+window.smoothScrollTo = DomUtils.smoothScrollTo;
+window.elmTop = DomUtils.elmTop;
+window.applyDarkMode = DomUtils.applyDarkMode;
+window.watchSystemDarkMode = DomUtils.watchSystemDarkMode;
+window.setLoading = DomUtils.setLoading;
+
+window.callGeminiAPI = GeminiApi.callGeminiAPI;
+window.callGeminiHintAPI = GeminiApi.callGeminiHintAPI;
+window.callGeminiTextAPI = GeminiApi.callGeminiTextAPI;
+
+// 상수들
+window.BASE_SYSTEM_PROMPT = Config.BASE_SYSTEM_PROMPT;
+window.LITE_STRICT_ADDENDUM = Config.LITE_STRICT_ADDENDUM;
+window.CHAPTER_LABELS = Config.CHAPTER_LABELS;
+window.PART_INSERTIONS = Config.PART_INSERTIONS;
+window.ACHIEVEMENTS = Config.ACHIEVEMENTS;
+window.ACHIEVEMENTS_LS_KEY = Config.ACHIEVEMENTS_LS_KEY;
+window.STATS_DATE_KEY = Config.STATS_DATE_KEY;
+window.EXAM_DATE_KEY = Config.EXAM_DATE_KEY;
+window.chapterLabelText = Config.chapterLabelText;
+window.PART_VALUE = Config.PART_VALUE;
+window.isPartValue = Config.isPartValue;
+window.parsePartValue = Config.parsePartValue;
+
+// ========================================
+// 앱 초기화
+// ========================================
+
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('✅ DOMContentLoaded - Refactored app initialized');
+
+  // DOM 엘리먼트 초기화
+  const elements = initElements();
+  setElements(elements);
+
+  // 전역으로 el 객체 노출 (index.html의 기존 코드에서 사용)
+  window.el = elements;
+
+  console.log('✅ DOM 엘리먼트 초기화 완료');
+  console.log('✅ 임시 브릿지 설정 완료 - index.html 기존 코드와 연동됨');
+
+  // TODO: Phase 3에서 index.html의 모든 이벤트 리스너를 여기로 이전
+  // 현재는 index.html의 기존 script 태그가 모든 로직을 처리함
+});
+
+console.log('✅ 감린이 v4.0 모듈 로드 완료');
+console.log('📦 로드된 모듈:');
+console.log('  - config/config.js (상수 및 설정)');
+console.log('  - utils/helpers.js (유틸리티 함수)');
+console.log('  - ui/elements.js (DOM 엘리먼트)');
+console.log('  - ui/domUtils.js (DOM 유틸리티)');
+console.log('  - services/geminiApi.js (Gemini API)');

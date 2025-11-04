@@ -675,14 +675,30 @@
   ]</script>
 
   <script type="module">
-    // ========================================
-    // [리팩토링] 상수는 js/config/config.js로 이동됨
-    // app.js를 통해 전역으로 노출됨
-    // ========================================
-    /*
-    const BASE_SYSTEM_PROMPT = ... (→ js/config/config.js)
-    const LITE_STRICT_ADDENDUM = ... (→ js/config/config.js)
-    */
+    const BASE_SYSTEM_PROMPT =
+`당신은 매우 엄격한 회계감사 과목 채점 교수님입니다.
+- 사용자 답안을 모범답안과 비교해 0~100의 "score"(NUMBER)와 "feedback"(STRING, 한국어)을 JSON으로만 반환하세요.
+- 채점 기준을 매우 엄격하게(strictly) 적용합니다.
+- 대신 띄어쓰기나 맞춤법 실수 같은 단순한 타이핑실수는 봐줍니다. 또한 중요왜곡표시위험을 RMM으로, 성격·시기·범위를 성시범으로, 공인회계사를 CPA로 줄여쓰는 정도의 수험상 합의된 언어는 봐줍니다.
+
+[채점 기준]
+1. 모범 답안의 핵심 키워드 포함 여부
+2. 핵심 키워드 대부분 누락: 50점 미만
+3. 일부 포함이나 설명 부정확: 50~80점
+4. 모든 핵심 키워드 + 의도 일치: 80점 이상
+5. 조사까지 동일할 때만 100점
+6. 키워드는 모범답안에서 스스로 추출하되, 한국 회계감사 기준·규정(ISA, KSA, 외부감사법, 윤리기준)에 맞는 동의어·표현 변형을 허용
+7. 물음에서의 물음 부분이 굳이 답변에 포함되지 않아도 됨(물음의 내용이 모범답안에 재진술되어있다고해서 굳이 사용자 답안에 해당 내용이 포함되지 않아도됨)
+
+- 불필요한 말/코드블록 금지. JSON 객체만 반환.`;
+
+    const LITE_STRICT_ADDENDUM =
+`[엄격 모드 지침(라이트 전용)]
+- 모호/추정/확장 서술은 감점.
+- 점수 짜게준다.
+- 필수 키워드가 문장 내 명시적으로 없으면 큰 감점.
+- 레퍼런스 밖 주장은 근거 없으면 감점.
+- 도출한 점수보다 7점 깎아서 제시할 것`;
 
     let allData=[], currentQuizData=[], currentQuestionIndex=0, questionScores={};
     let geminiApiKey='', activeHintQuestionKey=null, selectedAiModel='gemini-2.5-flash', darkMode='system';
@@ -693,9 +709,9 @@
 let statsRefDate = new Date();
 statsRefDate.setHours(0,0,0,0);
 
-// [리팩토링] localStorage 키는 js/config/config.js로 이동됨
-// const STATS_DATE_KEY = 'statsDisplayDate_v1';  // → js/config/config.js
-// const EXAM_DATE_KEY = 'examDate_v1';  // → js/config/config.js
+// ↓ 아래 코드 추가
+const STATS_DATE_KEY = 'statsDisplayDate_v1';
+const EXAM_DATE_KEY = 'examDate_v1';
 
 function initStatsDate() {
   const saved = localStorage.getItem(STATS_DATE_KEY);
@@ -807,37 +823,64 @@ function updateDDayDisplay() {
       ddayDisplay:$('dday-display'), examDateInput:$('exam-date-input'), saveExamDateBtn:$('save-exam-date-btn')
     };
 
-    // [리팩토링] 유틸리티 함수는 js/utils/helpers.js로 이동됨
-    // const clamp = ... → js/utils/helpers.js
-    // const normId = ... → js/utils/helpers.js
-    // const sanitizeModelText = ... → js/utils/helpers.js
-    // [리팩토링] DOM 유틸리티는 js/ui/domUtils.js로 이동됨
-    // const showToast = ... → js/ui/domUtils.js
-    // const getHeaderOffset = ... → js/ui/domUtils.js
-    // const smoothScrollTo = ... → js/ui/domUtils.js
-    // const elmTop = ... → js/ui/domUtils.js
+    const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
+    const normId=v=>String(v).trim();
+    const sanitizeModelText=t=>{ let s=(t||'').trim(); if(s.startsWith('```')) s=s.replace(/^```[\s\S]*?\n/,'').replace(/```$/,'').trim(); s=s.replace(/^\uFEFF/,''); const a=s.indexOf('{'), b=s.lastIndexOf('}'); if(a!==-1&&b!==-1&&b>a) s=s.slice(a,b+1); return s; };
+    const showToast=(msg,type='info')=>{
+      const base='px-4 py-2 rounded shadow text-sm mb-2';
+      const color= type==='error'?'bg-red-600 text-white': type==='warn'?'bg-yellow-500 text-white':'bg-gray-900 text-white';
+      el.toast.classList.remove('hidden');
+      const item=document.createElement('div'); item.className=`${base} ${color}`; item.textContent=msg; el.toast.appendChild(item);
+      setTimeout(()=>{ item.remove(); if(!el.toast.hasChildNodes()) el.toast.classList.add('hidden'); }, 2500);
+    };
+    const getHeaderOffset=()=>el.fixedHeader?.getBoundingClientRect().height||0;
+    const smoothScrollTo=y=>window.scrollTo({top:y,behavior:'smooth'});
+    const elmTop=e=>e.getBoundingClientRect().top + window.pageYOffset;
 
-    // [리팩토링] 색상 및 날짜 유틸리티는 js/utils/helpers.js로 이동됨
-    // function hslToHex(...) → js/utils/helpers.js
-    // function colorForCount(...) → js/utils/helpers.js
-    // const ymd = ... → js/utils/helpers.js
-    // const dowMon0 = ... → js/utils/helpers.js
+    function hslToHex(h, s, l) { s/=100; l/=100; const k=n=>(n+h/30)%12; const a=s*Math.min(l,1-l); const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1))); const toHex=x=>Math.round(x*255).toString(16).padStart(2,'0'); return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`; }
+    function colorForCount(c) {
+      if (!Number.isFinite(c) || c <= 0) return { bg: '#e5e7eb', fg: '#111827' };
+      const fgForL = (l) => (l < 55 ? '#ffffff' : '#111827');
+      if (c >= 1 && c <= 6) { const steps=6, idx=c-1, h=50, s=95, lStart=92, lEnd=55; const l=lStart+(lEnd-lStart)*(idx/(steps-1)); return { bg:hslToHex(h,s,l), fg:fgForL(l) }; }
+      if (c >= 7 && c <= 15){ const steps=9, idx=c-7, h=140, s=85, lStart=92, lEnd=45; const l=lStart+(lEnd-lStart)*(idx/(steps-1)); return { bg:hslToHex(h,s,l), fg:fgForL(l) }; }
+      if (c >= 16 && c <= 30){ const steps=15, idx=c-16, h=210, s=85, lStart=92, lEnd=40; const l=lStart+(lEnd-lStart)*(idx/(steps-1)); return { bg:hslToHex(h,s,l), fg:fgForL(l) }; }
+      return { bg: '#1e40af', fg: '#ffffff' };
+    }
+    const ymd=(d)=>{ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; };
+    const dowMon0=d=> (d.getDay()+6)%7;
 
-    // [리팩토링] 단원/파트 상수 및 헬퍼는 js/config/config.js로 이동됨
-    // const CHAPTER_LABELS = { ... } → js/config/config.js
-    // const PART_INSERTIONS = [ ... ] → js/config/config.js
-    // const chapterLabelText = ... → js/config/config.js
-    // const PART_VALUE = ... → js/config/config.js
-    // const isPartValue = ... → js/config/config.js
-    // const parsePartValue = ... → js/config/config.js
-    // [리팩토링] 단원 처리 함수는 js/utils/helpers.js로 이동됨
-    // const getAllChapterNums = ... (allData 의존성 있음, 나중에 처리)
-    // function computePartRanges(...) → js/utils/helpers.js
+    const CHAPTER_LABELS={ 1:"제1장 감사와 회계감사의 기본개념", 2:"제2장 감사인의 의무, 책임 및 자격요건", 3:"제3장 감사인의 독립성과 품질관리", 4:"제1장 감사인의 선임", 5:"제2장 감사계약", 6:"제1장 회계감사수행을 위한 기초지식", 7:"제2장 위험평가절차와 계획수립", 8:"제1장 통제테스트와 위험평가의 확정", 9:"제1-2장 데이터분석", 10:"제2장 실증절차의 기초", 11:"제3장 기초잔액과 거래유형별 실증절차", 12:"제4장 특정항목별 감사절차", 13:"제5장 테스트항목의 범위와 표본감사 데이터분석", 14:"제6장 실증절차의 마무리절차", 15:"제1장 미수정왜곡표시의 평가와 감사의견의 형성", 16:"제2장 감사보고서의 작성과 보고", 17:"제1장 인증업무개념체계와 특정목적재무보고체계, 제2장 그룹재무제표에 대한 감사", 18:"제3장 내부회계관리제도에 대한 감사와 검토", 19:"제4장 중간재무제표에 대한 검토", 20:"제5장 소규모기업 재무제표에 대한 감사" };
+    const PART_INSERTIONS=[ {before:1,label:"Part 1. 회계감사의 기초"}, {before:4,label:"Part 2. 감사인의 선임과 감사계약"}, {before:6,label:"Part 3. 회계감사의 시작과 위험평가절차"}, {before:8,label:"Part 4. 위험평가절차에 대한 추가감사절차"}, {before:15,label:"Part 5. 감사의견의 형성과 감사보고서"}, {before:17,label:"Part 6. 그룹재무제표에 대한 감사와 기타인증업무"} ];
+    const chapterLabelText=chStr=>{ const n=Number(chStr), t=CHAPTER_LABELS[n]; return Number.isFinite(n)? (t?`${n}. ${t}`:`단원 ${n}`):String(chStr); };
+
+    const PART_VALUE=(s,e)=>`PART:${s}-${e}`;
+    const isPartValue=v=>/^PART:\d+-\d+$/.test(v||'');
+    const parsePartValue=v=>{ const m=String(v||'').match(/^PART:(\d+)-(\d+)$/); return m?{start:+m[1], end:+m[2]}:null; };
     const getAllChapterNums=()=>[...new Set(allData.map(i=>+i.단원).filter(Number.isFinite))].sort((a,b)=>a-b);
+    function computePartRanges(chapterNums){
+      if(!chapterNums.length) return [];
+      const parts=[...PART_INSERTIONS].sort((a,b)=>a.before-b.before);
+      const maxCh=Math.max(...chapterNums);
+      const ranges=[];
+      for(let i=0;i<parts.length;i++){
+        const start=parts[i].before;
+        const end=(i+1<parts.length)? (parts[i+1].before-1) : maxCh;
+        if(chapterNums.some(n=>n>=start && n<=end)) ranges.push({start,end,label:parts[i].label});
+      }
+      return ranges;
+    }
 
-    // [리팩토링] 다크모드 함수는 js/ui/domUtils.js로 이동됨
-    // function applyDarkMode() → js/ui/domUtils.js
-    // window.matchMedia 리스너도 domUtils.watchSystemDarkMode()로 이동
+    function applyDarkMode(){
+      const mode=localStorage.getItem('darkMode')||'system'; darkMode=mode;
+      if(el.darkModeSelect) el.darkModeSelect.value=mode;
+      if(mode==='dark') document.documentElement.classList.add('dark');
+      else if(mode==='light') document.documentElement.classList.remove('dark');
+      else{
+        if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
+      }
+    }
+    if(window.matchMedia){ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(darkMode==='system') applyDarkMode(); }); }
 
     async function loadData(){
       const CAND=['questions.json','./questions.json','./data/questions.json','./assets/questions.json'];
@@ -1266,9 +1309,31 @@ function updateDDayDisplay() {
     }
     function setLoading(v){ if(v){ el.gradeBtnText.classList.add('hidden'); el.gradeLoader.classList.remove('hidden'); el.gradeBtn.disabled=true; el.resultBox.classList.add('hidden'); } else { el.gradeBtnText.classList.remove('hidden'); el.gradeLoader.classList.add('hidden'); el.gradeBtn.disabled=false; } }
 
-    // [리팩토링] Gemini API 함수는 js/services/geminiApi.js로 이동됨
-    // async function callGeminiAPI(...) → js/services/geminiApi.js
-    // selectedAiModel을 파라미터로 받도록 수정됨
+    async function callGeminiAPI(userAnswer, correctAnswer, apiKey, retries=2, delay=800){
+      const modelMap={'gemini-2.5-flash':'gemini-2.5-flash','gemini-2.5-flash-lite':'gemini-2.5-flash-lite'};
+      const model=modelMap[selectedAiModel]||'gemini-2.5-flash';
+      const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const generationConfig={ responseMimeType:'application/json', responseSchema:{ type:'OBJECT', properties:{score:{type:'NUMBER'}, feedback:{type:'STRING'}}, required:['score','feedback'] } };
+
+      const systemText = (model === 'gemini-2.5-flash-lite') ? `${BASE_SYSTEM_PROMPT}\n\n${LITE_STRICT_ADDENDUM}` : BASE_SYSTEM_PROMPT;
+      const systemInstruction={ parts:[{ text: systemText }] };
+      const userQuery=`[모범 답안]\n${correctAnswer}\n\n[사용자 답안]\n${userAnswer}\n\n[채점 요청]\n{"score": number, "feedback": string}`;
+      const payload={ contents:[{ parts:[{ text:userQuery }] }], systemInstruction, generationConfig };
+
+      try{
+        const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+        if(!res.ok){ const body=await res.json().catch(()=>({})); const msg=body?.error?.message||res.statusText;
+          if((res.status===404||res.status===400)&&/model/i.test(msg)) throw new Error(`모델/버전 불일치: ${msg}`);
+          if(res.status===429) throw new Error(`API 할당량 초과 (429)`); if(res.status>=500) throw new Error(`서버 오류 (${res.status})`); throw new Error(msg);
+        }
+        const data=await res.json(); const raw=data?.candidates?.[0]?.content?.parts?.[0]?.text??''; const cleaned=sanitizeModelText(raw);
+        let parsed; try{ parsed=JSON.parse(cleaned); }catch{ throw new Error('API 응답 파싱 실패'); }
+        return { score:clamp(+parsed.score,0,100), feedback:String(parsed.feedback||'피드백 없음').trim() };
+      }catch(err){
+        if(retries>0 && (String(err.message).includes('429') || /^서버 오류/.test(String(err.message)))){ await new Promise(r=>setTimeout(r,delay)); return callGeminiAPI(userAnswer, correctAnswer, apiKey, retries-1, delay*1.6); }
+        throw err;
+      }
+    }
 
     el.hintBtn.addEventListener('click',()=>{ if(currentQuizData.length) handleHint(currentQuizData[currentQuestionIndex]); });
     async function handleHint(q){
@@ -1281,11 +1346,49 @@ function updateDDayDisplay() {
       }catch(e){ console.error(e); showToast(`힌트 생성 실패: ${e.message}`,'error'); }
       finally{ setLoading(false); }
     }
-    // [리팩토링] Gemini Hint API 함수도 js/services/geminiApi.js로 이동됨
-    // async function callGeminiHintAPI(...) → js/services/geminiApi.js
+    async function callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, retries=2, delay=800){
+      const modelMap={'gemini-2.5-flash':'gemini-2.5-flash','gemini-2.5-flash-lite':'gemini-2.5-flash-lite'};
+      const model=modelMap[selectedAiModel]||'gemini-2.5-flash';
+      const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const generationConfig={ responseMimeType:'application/json', responseSchema:{ type:'OBJECT', properties:{hint:{type:'STRING'}}, required:['hint'] } };
+      const systemInstruction={ parts:[{ text:`역할: 회계감사 학습 튜터.\n목표: 정답을 노출하지 않고 핵심 개념을 떠올리게 만드는 2~4줄 힌트 제공.\n출력: JSON만.` }] };
+      const userQuery=`[문제]\n${questionText}\n\n[모범 답안]\n${correctAnswer}\n\n[사용자 답안]\n${userAnswer||'(미입력)'}\n\n[요청]\n{"hint": string }`;
+      const payload={ contents:[{ parts:[{ text:userQuery }] }], systemInstruction, generationConfig };
+      try{
+        const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        if(!res.ok){ const body=await res.json().catch(()=>({})); const msg=body?.error?.message||res.statusText;
+          if((res.status===404||res.status===400)&&/model/i.test(msg)) throw new Error(`모델/버전 불일치: ${msg}`);
+          if(res.status===429) throw new Error(`API 할당량 초과 (429)`); if(res.status>=500) throw new Error(`서버 오류 (${res.status})`); throw new Error(msg);
+        }
+        const data=await res.json(); const raw=data?.candidates?.[0]?.content?.parts?.[0]?.text??''; const cleaned=sanitizeModelText(raw);
+        let parsed; try{ parsed=JSON.parse(cleaned); }catch{ throw new Error('API 응답 파싱 실패'); }
+        return String(parsed.hint||'').trim();
+      }catch(err){
+        if(retries>0 && (String(err.message).includes('429') || /^서버 오류/.test(String(err.message)))){ await new Promise(r=>setTimeout(r,delay)); return callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, retries-1, delay*1.6); }
+        throw err;
+      }
+    }
 
-    // [리팩토링] Gemini Text API 함수도 js/services/geminiApi.js로 이동됨
-    // async function callGeminiTextAPI(...) → js/services/geminiApi.js
+    // Generic text generation API for Deep-Learning Report and other features
+    async function callGeminiTextAPI(prompt, apiKey, retries=2, delay=800){
+      const modelMap={'gemini-2.5-flash':'gemini-2.5-flash','gemini-2.5-flash-lite':'gemini-2.5-flash-lite'};
+      const model=modelMap[selectedAiModel]||'gemini-2.5-flash';
+      const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const payload={ contents:[{ parts:[{ text:prompt }] }] };
+      try{
+        const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        if(!res.ok){ const body=await res.json().catch(()=>({})); const msg=body?.error?.message||res.statusText;
+          if((res.status===404||res.status===400)&&/model/i.test(msg)) throw new Error(`모델/버전 불일치: ${msg}`);
+          if(res.status===401||res.status===403) throw new Error(`API 키 오류 (${res.status}): API 키를 확인하세요`);
+          if(res.status===429) throw new Error(`API 할당량 초과 (429)`); if(res.status>=500) throw new Error(`서버 오류 (${res.status})`); throw new Error(msg);
+        }
+        const data=await res.json(); const raw=data?.candidates?.[0]?.content?.parts?.[0]?.text??'';
+        return raw.trim();
+      }catch(err){
+        if(retries>0 && (String(err.message).includes('429') || /^서버 오류/.test(String(err.message)))){ await new Promise(r=>setTimeout(r,delay)); return callGeminiTextAPI(prompt, apiKey, retries-1, delay*1.6); }
+        throw err;
+      }
+    }
 
     function showResult(scoreVal, feedback, correctAnswer){
       const s=clamp(+scoreVal,0,100);
@@ -3534,14 +3637,11 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
     /* ========================================
      * ACHIEVEMENT SYSTEM
      * ======================================== */
-    // [리팩토링] 업적 상수는 js/config/config.js로 이동됨
-    // const ACHIEVEMENTS_LS_KEY = 'achievements_v1'; → js/config/config.js
+    const ACHIEVEMENTS_LS_KEY = 'achievements_v1';
     let achievementsData = {};
 
-    // [리팩토링] 업적 정의는 js/config/config.js로 이동됨
-    // const ACHIEVEMENTS = { ... } → js/config/config.js
-    /*
-    const ACHIEVEMENTS_backup = {
+    // Achievement definitions
+    const ACHIEVEMENTS = {
       // Bronze - Basic achievements
       first_problem: { id: 'first_problem', name: '첫걸음', desc: '첫 번째 문제 풀이 및 채점 완료', icon: '🎯', tier: 'bronze', points: 10 },
       first_80: { id: 'first_80', name: '첫 80점', desc: '최초로 AI 채점 80점 이상 달성', icon: '📈', tier: 'bronze', points: 10 },
@@ -3620,7 +3720,6 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
       ch18_master: { id: 'ch18_master', name: '내부통제 평가자', desc: '제18장 평균 85점 달성', icon: '🎓', tier: 'silver', points: 20 },
       ch20_master: { id: 'ch20_master', name: '소규모 전문가', desc: '제20장 평균 85점 달성', icon: '🎓', tier: 'silver', points: 20 }
     };
-    */
 
     function loadAchievements() {
       const stored = localStorage.getItem(ACHIEVEMENTS_LS_KEY);
@@ -4196,11 +4295,6 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
       updateAchievementBadge();
     });
   </script>
-
-  <!-- ========================================
-       감린이 v4.0 리팩토링 모듈 로드
-       ======================================== -->
-  <script type="module" src="js/app.js"></script>
 </body>
   <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TC8G7NJD"
