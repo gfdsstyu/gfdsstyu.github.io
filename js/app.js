@@ -1,32 +1,27 @@
-import { createStore } from './state/store.js';
-import { mountShell } from './ui/shell.js';
-import { mountDashboard } from './ui/dashboard.js';
-import { mountQuiz } from './ui/quiz.js';
+// ============================================
+// 감린이 - 회계감사 학습 도우미 v4.0
+// 메인 애플리케이션 엔트리 포인트
+// ============================================
 
-const store = createStore();
+console.log('🚀 감린이 v4.0 Refactored App Loading...');
 
-// v3.2 기록 → 상태 로드
-try {
-  const raw = localStorage.getItem('auditQuizScores');
-  store.set('scores', raw ? JSON.parse(raw) : {});
-} catch (e) { console.warn('[v4] scores parse fail', e); }
+// TODO: Phase 2에서 모듈들을 import하여 여기에 추가합니다.
+// 예시:
+// import { BASE_SYSTEM_PROMPT, CHAPTER_LABELS } from './config/config.js';
+// import { clamp, ymd, sanitizeModelText } from './utils/helpers.js';
+// import { showToast, applyDarkMode } from './ui/domUtils.js';
 
-// 미니 캘린더 데이터 파생
-store.set('cache', { dailyActivity: deriveDailyActivity(store.get().scores) });
+// 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
+// (Phase 3에서 모든 로직이 이전되면 제거 예정)
+// window.showToast = showToast;
+// window.loadData = loadData;
 
-function deriveDailyActivity(scores) {
-  const map = {};
-  Object.values(scores || {}).forEach(s => {
-    (s.solveHistory || []).forEach(h => {
-      const d = new Date(h.date || 0); if (isNaN(d)) return;
-      const key = d.toISOString().slice(0, 10);
-      map[key] = map[key] || { solvedCount: 0 };
-      map[key].solvedCount += 1;
-    });
-  });
-  return map;
-}
+// 앱 초기화
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('✅ DOMContentLoaded - Refactored app initialized');
 
-mountShell();
-mountDashboard(store);
-mountQuiz(store);
+  // TODO: Phase 3에서 index.html의 모든 이벤트 리스너를 여기로 이전
+  // 현재는 index.html의 기존 script 태그가 모든 로직을 처리함
+});
+
+console.log('✅ 감린이 v4.0 모듈 로드 완료');
