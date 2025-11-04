@@ -1466,8 +1466,22 @@ function updateDDayDisplay() {
       updateSummaryHighlight();
     }
     function updateSummaryHighlight(){
-      if(!currentQuizData.length) return; const cur=String(currentQuizData[currentQuestionIndex].고유ID).trim();
-      el.scoreSummary.querySelectorAll('button.summary-btn').forEach(b=>{ b.classList.remove('ring-2','ring-blue-500','ring-offset-2'); if(b.dataset.qid===cur) b.classList.add('ring-2','ring-blue-500','ring-offset-2'); });
+      // Support both quiz mode and flashcard mode
+      let currentId;
+      if (isFlashcardMode && flashcardData.length) {
+        currentId = String(flashcardData[flashcardIndex]?.고유ID).trim();
+      } else if (currentQuizData.length) {
+        currentId = String(currentQuizData[currentQuestionIndex]?.고유ID).trim();
+      } else {
+        return;
+      }
+
+      el.scoreSummary.querySelectorAll('button.summary-btn').forEach(b=>{
+        b.classList.remove('ring-2','ring-blue-500','ring-offset-2');
+        if(b.dataset.qid === currentId) {
+          b.classList.add('ring-2','ring-blue-500','ring-offset-2');
+        }
+      });
     }
 
     el.clearFilterBtn.addEventListener('click',()=>{
@@ -3347,13 +3361,14 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
       flashcardAnswerVisible = false;
       isFlashcardMode = true;
 
-      // Hide quiz area, show flashcard area
+      // Hide quiz area, show flashcard area and summary
       el.quizArea?.classList.add('hidden');
       el.flashcardArea?.classList.remove('hidden');
       el.resultBox?.classList.add('hidden');
-      el.summaryArea?.classList.add('hidden');
+      el.summaryArea?.classList.remove('hidden');  // Keep summary visible for problem list navigation
 
       displayFlashcard();
+      updateSummaryHighlight();  // Highlight current flashcard in problem list
       showToast(`플래시카드 모드 시작 (${flashcardData.length}개 문제)`);
     }
 
@@ -3418,6 +3433,9 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
         el.flashcardNextBtn.disabled = flashcardIndex === flashcardData.length - 1;
         el.flashcardNextBtn.style.opacity = flashcardIndex === flashcardData.length - 1 ? '0.5' : '1';
       }
+
+      // Update problem list highlight
+      updateSummaryHighlight();
     }
 
     function toggleFlashcardAnswer() {
