@@ -28,6 +28,8 @@
   <title>감린이 - 회계감사 학습 도우미 v3.3</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -2528,7 +2530,29 @@ function renderStats(){
             mode: 'nearest',
             axis: 'x',
             intersect: false
+          },
+          zoom: {
+            zoom: {
+              wheel: {
+                enabled: true,
+                speed: 0.1
+              },
+              pinch: {
+                enabled: true
+              },
+              mode: 'x'
+            },
+            pan: {
+              enabled: true,
+              mode: 'x'
+            },
+            limits: {
+              x: { min: 'original', max: 'original' }
+            }
           }
+        },
+        onDoubleClick: (event, activeElements, chart) => {
+          chart.resetZoom();
         }
       });
     }
@@ -2769,7 +2793,29 @@ function renderStats(){
             mode: 'nearest',
             axis: 'x',
             intersect: false
+          },
+          zoom: {
+            zoom: {
+              wheel: {
+                enabled: true,
+                speed: 0.1
+              },
+              pinch: {
+                enabled: true
+              },
+              mode: 'x'
+            },
+            pan: {
+              enabled: true,
+              mode: 'x'
+            },
+            limits: {
+              x: { min: 'original', max: 'original' }
+            }
           }
+        },
+        onDoubleClick: (event, activeElements, chart) => {
+          chart.resetZoom();
         }
       });
     }
@@ -3143,14 +3189,21 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
     let flashcardAnswerVisible = false;
 
     function startFlashcardMode() {
-      // Use current quiz data to sync with problem mode selection
-      if (!currentQuizData || currentQuizData.length === 0) {
+      // Use current quiz data if already loaded, otherwise get filtered data
+      let dataToUse = currentQuizData && currentQuizData.length > 0
+        ? currentQuizData
+        : getFilteredByUI();
+
+      if (!dataToUse || dataToUse.length === 0) {
         showToast('선택한 조건에 해당하는 문제가 없습니다', 'warn');
         return;
       }
 
-      flashcardData = currentQuizData;
-      flashcardIndex = currentQuestionIndex; // Start from current problem
+      flashcardData = dataToUse;
+      // Start from current problem if viewing quiz, otherwise start from beginning
+      flashcardIndex = (currentQuizData && currentQuizData.length > 0 && currentQuestionIndex >= 0)
+        ? currentQuestionIndex
+        : 0;
       flashcardAnswerVisible = false;
 
       // Hide quiz area, show flashcard area
