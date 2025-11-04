@@ -233,30 +233,35 @@
 
                 <div class="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-md">
                   <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">물음</h3>
-                  <p id="flashcard-question" class="text-base text-gray-700 dark:text-gray-200 leading-relaxed">-</p>
+                  <p id="flashcard-question" class="text-base text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">-</p>
                 </div>
 
                 <div class="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-md">
                   <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400">답변</h3>
+                    <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400">답변 (스페이스바로 토글)</h3>
                     <button id="flashcard-toggle-answer" class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition">
                       답변 보기 👁️
                     </button>
                   </div>
                   <div id="flashcard-answer-box" class="hidden">
-                    <pre id="flashcard-answer" class="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">-</pre>
+                    <p id="flashcard-answer" class="text-base text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">-</p>
                   </div>
                   <div id="flashcard-answer-hidden" class="text-center py-8 text-gray-400">
                     <p>답변이 숨겨져 있습니다</p>
-                    <p class="text-xs mt-2">위 버튼을 클릭하여 확인하세요</p>
+                    <p class="text-xs mt-2">위 버튼 또는 스페이스바를 눌러 확인하세요</p>
                   </div>
                 </div>
               </div>
 
-              <div class="flex justify-between items-center mt-6 gap-4">
-                <button id="flashcard-prev-btn" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">← 이전</button>
-                <button id="flashcard-exit-btn" class="px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition">종료</button>
-                <button id="flashcard-next-btn" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">다음 →</button>
+              <div class="space-y-3 mt-6">
+                <div class="flex justify-between items-center gap-4">
+                  <button id="flashcard-prev-btn" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">← 이전</button>
+                  <button id="flashcard-exit-btn" class="px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition">종료 (Esc)</button>
+                  <button id="flashcard-next-btn" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">다음 →</button>
+                </div>
+                <div class="text-center text-xs text-gray-500 dark:text-gray-400">
+                  단축키: ← 이전 | → 다음 | Space 답변보기 | Esc 종료
+                </div>
               </div>
             </div>
           </div>
@@ -545,17 +550,12 @@
             </button>
             <p class="text-sm text-gray-500 mt-2">AI가 오답 패턴과 개념 약점을 분석합니다</p>
           </div>
-          <div id="ai-analysis-result" class="hidden space-y-6">
-            <div class="flex justify-end">
+          <div id="ai-analysis-result" class="hidden">
+            <div class="flex justify-end mb-4">
               <button id="ai-analysis-copy-btn" class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">📋 분석 내용 복사</button>
             </div>
-            <div class="border rounded-lg p-6">
-              <h3 class="text-lg font-bold mb-3">실수 유형 분석</h3>
-              <div id="ai-error-pattern" class="prose dark:prose-invert max-w-none"></div>
-            </div>
-            <div class="border rounded-lg p-6">
-              <h3 class="text-lg font-bold mb-3">주요 개념 약점 진단</h3>
-              <div id="ai-concept-weakness" class="prose dark:prose-invert max-w-none"></div>
+            <div class="border rounded-lg p-6 bg-white dark:bg-gray-800">
+              <div id="ai-error-pattern" class="prose prose-slate max-w-none dark:prose-invert text-gray-900 dark:text-gray-100"></div>
             </div>
           </div>
           <div id="ai-analysis-loading" class="hidden text-center py-12">
@@ -2582,13 +2582,19 @@ function renderStats(){
           return;
         }
 
-        // Prepare prompt
-        const weakProblemsSummary = data.weakProblems.slice(0, 20).map(wp => ({
-          문제: wp.problem.물음,
-          정답: wp.problem.정답,
-          내답안: questionScores[wp.qid]?.lastAnswer || '',
-          점수: wp.score
-        }));
+        // Prepare prompt with actual user answers from solve history
+        const weakProblemsSummary = data.weakProblems.slice(0, 20).map(wp => {
+          const scoreData = questionScores[wp.qid];
+          const solveHistory = scoreData?.solveHistory || [];
+          const latestSolve = solveHistory[solveHistory.length - 1];
+
+          return {
+            문제: wp.problem.물음,
+            정답: wp.problem.정답,
+            내답안: latestSolve?.user_answer || scoreData?.user_answer || '(답변 없음)',
+            점수: wp.score
+          };
+        });
 
         const prompt = `당신은 20년 차 회계감사 전문가입니다. 다음 학생의 오답 데이터를 분석하여:
 
@@ -2608,14 +2614,9 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
         if (loading) loading.classList.add('hidden');
         if (result) result.classList.remove('hidden');
 
-        // Parse response - split into error patterns and concept weakness
-        const sections = response.split(/#+\s*주요 개념 약점|#+\s*개념 약점/i);
-
-        if ($('ai-error-pattern')) {
-          $('ai-error-pattern').innerHTML = markdownToHtml(sections[0] || response);
-        }
-        if ($('ai-concept-weakness')) {
-          $('ai-concept-weakness').innerHTML = markdownToHtml(sections[1] || '');
+        // Display full analysis in one section
+        if (el.aiErrorPattern) {
+          el.aiErrorPattern.innerHTML = markdownToHtml(response);
         }
 
       } catch (err) {
