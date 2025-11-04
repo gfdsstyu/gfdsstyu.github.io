@@ -2202,6 +2202,14 @@ function renderStats(){
       // Destroy all charts
       Object.values(reportCharts).forEach(chart => chart?.destroy());
       reportCharts = {};
+
+      // Restore left sidebar visibility on desktop
+      if (window.innerWidth >= 1024) {
+        el.leftDashboard?.classList.remove('hidden');
+        el.drawerBackdrop?.classList.add('hidden');
+        el.leftDashboard?.classList.remove('fixed', 'inset-0', 'z-[1100]', 'p-4', 'overflow-y-auto', 'bg-white', 'dark:bg-gray-900', 'relative');
+        el.drawerClose?.classList.add('hidden');
+      }
     }
 
     function switchReportTab(tabNum) {
