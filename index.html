@@ -112,7 +112,7 @@
       #report-modal { display: block !important; position: relative; background: white; }
       #report-modal > div { max-height: none; overflow: visible; box-shadow: none; }
       .report-tab, #report-close-btn, #report-refresh-btn,
-      #report-save-snapshot-btn, #report-print-btn { display: none !important; }
+      #report-save-snapshot-btn, #report-load-snapshot-btn, #report-print-btn { display: none !important; }
       #report-content-2, #report-content-3 { display: block !important; }
       .border-b { page-break-after: avoid; }
     }
@@ -502,6 +502,8 @@
           <div class="flex items-center gap-2 flex-wrap">
             <button id="report-refresh-btn" class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap">새로고침</button>
             <button id="report-save-snapshot-btn" class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap">💾 저장</button>
+            <button id="report-load-snapshot-btn" class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap">📂 불러오기</button>
+            <input type="file" id="report-load-snapshot-input" accept=".json" style="display: none;">
             <button id="report-print-btn" class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap">📥 PDF/인쇄</button>
           </div>
         </div>
@@ -756,7 +758,7 @@ function updateDDayDisplay() {
       openReportBtn:$('open-report-btn'), reportModal:$('report-modal'), reportCloseBtn:$('report-close-btn'),
       reportPeriodSelect:$('report-period-select'), reportThresholdSelect:$('report-threshold-select'),
       chartScopeSelect:$('chart-scope-select'),
-      reportRefreshBtn:$('report-refresh-btn'), reportSaveSnapshotBtn:$('report-save-snapshot-btn'), reportPrintBtn:$('report-print-btn'),
+      reportRefreshBtn:$('report-refresh-btn'), reportSaveSnapshotBtn:$('report-save-snapshot-btn'), reportLoadSnapshotBtn:$('report-load-snapshot-btn'), reportLoadSnapshotInput:$('report-load-snapshot-input'), reportPrintBtn:$('report-print-btn'),
       aiAnalysisStartBtn:$('ai-analysis-start-btn'), aiAnalysisResult:$('ai-analysis-result'), aiAnalysisLoading:$('ai-analysis-loading'),
       aiAnalysisCopyBtn:$('ai-analysis-copy-btn'), aiErrorPattern:$('ai-error-pattern'), aiConceptWeakness:$('ai-concept-weakness'),
       flashcardModeBtn:$('flashcard-mode-btn'), flashcardArea:$('flashcard-area'), flashcardTitle:$('flashcard-title'),
@@ -3213,6 +3215,130 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
       URL.revokeObjectURL(url);
 
       showToast('리포트 스냅샷이 저장되었습니다');
+    });
+
+    // Load snapshot functionality
+    el.reportLoadSnapshotBtn?.addEventListener('click', () => {
+      el.reportLoadSnapshotInput?.click();
+    });
+
+    el.reportLoadSnapshotInput?.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const snapshot = JSON.parse(text);
+
+        // Validate snapshot structure
+        if (!snapshot.timestamp || !snapshot.charts) {
+          showToast('올바른 리포트 파일이 아닙니다', 'error');
+          return;
+        }
+
+        // Destroy existing charts
+        Object.values(reportCharts).forEach(chart => chart?.destroy());
+        reportCharts = {};
+
+        // Restore charts from snapshot
+        if (snapshot.charts.dailyVolume) {
+          const ctx = $('chart-daily-volume');
+          if (ctx && window.Chart) {
+            reportCharts.dailyVolume = new Chart(ctx, {
+              type: 'bar',
+              data: snapshot.charts.dailyVolume,
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+              }
+            });
+          }
+        }
+
+        if (snapshot.charts.scoreTrend) {
+          const ctx = $('chart-score-trend');
+          if (ctx && window.Chart) {
+            reportCharts.scoreTrend = new Chart(ctx, {
+              type: 'line',
+              data: snapshot.charts.scoreTrend,
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  y: { min: 0, max: 100 }
+                },
+                plugins: {
+                  zoom: {
+                    pan: { enabled: true, mode: 'x' },
+                    zoom: {
+                      wheel: { enabled: true },
+                      pinch: { enabled: true },
+                      mode: 'x'
+                    }
+                  }
+                }
+              }
+            });
+          }
+        }
+
+        if (snapshot.charts.chapterWeakness) {
+          const ctx = $('chart-chapter-weakness');
+          if (ctx && window.Chart) {
+            reportCharts.chapterWeakness = new Chart(ctx, {
+              type: 'line',
+              data: snapshot.charts.chapterWeakness,
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  y: { min: 0, max: 100 }
+                },
+                plugins: {
+                  zoom: {
+                    pan: { enabled: true, mode: 'x' },
+                    zoom: {
+                      wheel: { enabled: true },
+                      pinch: { enabled: true },
+                      mode: 'x'
+                    }
+                  }
+                }
+              }
+            });
+          }
+        }
+
+        // Restore AI analysis if available
+        if (snapshot.aiAnalysis) {
+          const aiErrorPattern = $('ai-error-pattern');
+          if (aiErrorPattern) {
+            aiErrorPattern.innerHTML = snapshot.aiAnalysis;
+          }
+          // Show AI analysis section
+          const aiResult = $('ai-analysis-result');
+          const aiLoading = $('ai-analysis-loading');
+          if (aiResult) aiResult.classList.remove('hidden');
+          if (aiLoading) aiLoading.classList.add('hidden');
+        }
+
+        // Update report metadata display if present
+        reportData.period = snapshot.period;
+        reportData.threshold = snapshot.threshold;
+
+        const snapshotDate = new Date(snapshot.timestamp).toLocaleString('ko-KR');
+        showToast(`리포트 불러오기 완료 (저장 시각: ${snapshotDate})`);
+
+        // Reset file input for next use
+        e.target.value = '';
+
+      } catch (err) {
+        showToast('파일 읽기 실패: ' + err.message, 'error');
+        e.target.value = '';
+      }
     });
 
     // Print functionality - only print report modal content
