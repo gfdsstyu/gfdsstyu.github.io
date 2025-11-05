@@ -22,6 +22,10 @@ import * as DomUtils from './ui/domUtils.js';
 // 서비스
 import * as GeminiApi from './services/geminiApi.js';
 
+// 코어
+import * as DataManager from './core/dataManager.js';
+import * as StorageManager from './core/storageManager.js';
+
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
 // (Phase 3에서 모든 로직이 이전되면 제거 예정)
@@ -55,6 +59,37 @@ window.setLoading = DomUtils.setLoading;
 window.callGeminiAPI = GeminiApi.callGeminiAPI;
 window.callGeminiHintAPI = GeminiApi.callGeminiHintAPI;
 window.callGeminiTextAPI = GeminiApi.callGeminiTextAPI;
+
+// DataManager
+window.DataManager = DataManager;
+window.allData = DataManager.allData;
+window.setAllData = DataManager.setAllData;
+window.getAllData = DataManager.getAllData;
+window.getAllChapterNums = DataManager.getAllChapterNums;
+window.loadData = DataManager.loadData;
+window.selfTest = DataManager.selfTest;
+window.populateChapterSelect = DataManager.populateChapterSelect;
+
+// StorageManager
+window.StorageManager = StorageManager;
+window.loadScores = StorageManager.loadScores;
+window.saveScores = StorageManager.saveScores;
+window.loadApiKey = StorageManager.loadApiKey;
+window.saveApiKey = StorageManager.saveApiKey;
+window.loadAiModel = StorageManager.loadAiModel;
+window.saveAiModel = StorageManager.saveAiModel;
+window.loadDarkMode = StorageManager.loadDarkMode;
+window.saveDarkMode = StorageManager.saveDarkMode;
+window.loadExamDate = StorageManager.loadExamDate;
+window.saveExamDate = StorageManager.saveExamDate;
+window.migrateData = StorageManager.migrateData;
+window.enforceExclusiveFlagsOnAll = StorageManager.enforceExclusiveFlagsOnAll;
+window.setFlagState = StorageManager.setFlagState;
+window.loadReadStore = StorageManager.loadReadStore;
+window.saveReadStore = StorageManager.saveReadStore;
+window.computeUniqueReadsFromHistory = StorageManager.computeUniqueReadsFromHistory;
+window.backfillReadStoreFromScores = StorageManager.backfillReadStoreFromScores;
+window.registerUniqueRead = StorageManager.registerUniqueRead;
 
 // 상수들
 window.BASE_SYSTEM_PROMPT = Config.BASE_SYSTEM_PROMPT;
@@ -98,3 +133,5 @@ console.log('  - utils/helpers.js (유틸리티 함수)');
 console.log('  - ui/elements.js (DOM 엘리먼트)');
 console.log('  - ui/domUtils.js (DOM 유틸리티)');
 console.log('  - services/geminiApi.js (Gemini API)');
+console.log('  - core/dataManager.js (데이터 관리)');
+console.log('  - core/storageManager.js (저장소 관리)');
