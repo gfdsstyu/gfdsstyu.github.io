@@ -717,10 +717,21 @@
 let statsRefDate = new Date();
 statsRefDate.setHours(0,0,0,0);
 
-// [리팩토링] localStorage 키는 js/config/config.js로 이동됨
-// const STATS_DATE_KEY = 'statsDisplayDate_v1';  // → js/config/config.js
-// const EXAM_DATE_KEY = 'examDate_v1';  // → js/config/config.js
+// ============================================================
+// ✂️ REFACTORED → js/core/storageManager.js
+// ============================================================
+// function initStatsDate() → js/core/storageManager.js
+// function saveStatsDate() → js/core/storageManager.js
+// function loadExamDate() → js/core/storageManager.js
+// function saveExamDate() → js/core/storageManager.js
+// function calculateDDay() → js/core/storageManager.js
+// function updateDDayDisplay() → js/core/storageManager.js
+// function migrateData() → js/core/storageManager.js
+// function enforceExclusiveFlagsOnAll() → js/core/storageManager.js
+// function setFlagState() → js/core/storageManager.js
+// loadReadStore, saveReadStore, etc. → js/core/storageManager.js
 
+/* [이전 코드 - 삭제됨]
 function initStatsDate() {
   const saved = localStorage.getItem(STATS_DATE_KEY);
   if (saved) {
@@ -789,7 +800,7 @@ function updateDDayDisplay() {
     el.ddayDisplay.textContent = `D+${Math.abs(dday)}`;
   }
 }
- 
+[이전 코드 계속...] */
 
     const $ = id=>document.getElementById(id);
     const el = {
@@ -920,6 +931,7 @@ function updateDDayDisplay() {
       if(el.aiModelSelect) el.aiModelSelect.value = getSelectedAiModel();
     }
 
+    /* [이전 코드 - storageManager.js로 이동됨]
     function migrateData(){
       const version=localStorage.getItem('schemaVersion'); if(version==='2') return;
       try{
@@ -957,6 +969,7 @@ function updateDDayDisplay() {
       try { localStorage.setItem('auditQuizScores', JSON.stringify(questionScores)); } catch {}
       if (!silent) refreshPanels(); // 좌/우 패널 동기화
     }
+    [이전 코드 계속...] */
 
     function openApiModal(initial=false){ if(initial) el.apiModalCancelBtn.classList.add('hidden'); else el.apiModalCancelBtn.classList.remove('hidden');
       el.apiModal.classList.remove('hidden'); el.apiModal.classList.add('flex'); el.apiModalInput.value=geminiApiKey||''; el.apiModalRemember.checked=!!localStorage.getItem('geminiApiKey'); setTimeout(()=>el.apiModalInput.focus(),0);
@@ -1335,6 +1348,7 @@ function updateDDayDisplay() {
     el.summaryViewAllBtn?.addEventListener('click',()=>{ summaryViewMode='ALL'; el.summaryViewAllBtn.classList.add('bg-gray-100'); el.summaryViewCurrentBtn.classList.remove('bg-gray-100'); updateSummary(); });
     el.summaryViewCurrentBtn?.addEventListener('click',()=>{ summaryViewMode='CURRENT'; el.summaryViewCurrentBtn.classList.add('bg-gray-100'); el.summaryViewAllBtn.classList.remove('bg-gray-100'); updateSummary(); });
 
+    /* [이전 코드 - storageManager.js로 이동됨]
     const READ_STORE_KEY='readSessions_v2', UNIQUE_WINDOW_MS=5*60*1000;
     const loadReadStore=()=>{ try{ return JSON.parse(localStorage.getItem(READ_STORE_KEY)||'{}'); }catch{ return {}; } };
     const saveReadStore=obj=>localStorage.setItem(READ_STORE_KEY,JSON.stringify(obj));
@@ -1353,6 +1367,7 @@ function updateDDayDisplay() {
       if(t-(rec.lastAt||0)>=UNIQUE_WINDOW_MS){ rec.uniqueReads=(+rec.uniqueReads||0)+1; rec.lastAt=t; db[qid]=rec; saveReadStore(db); return {increased:true, uniqueReads:rec.uniqueReads}; }
       rec.lastAt=t; db[qid]=rec; saveReadStore(db); return {increased:false, uniqueReads:rec.uniqueReads};
     }
+    [이전 코드 종료] */
 
     function updateSummary(){
       el.scoreSummary.innerHTML='';
