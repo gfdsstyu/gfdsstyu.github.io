@@ -951,7 +951,7 @@ function updateDDayDisplay() {
       }catch(e){ console.error(e); showToast('마이그레이션 오류','error'); }
     }
 
-    /* === 상호배타(★ vs ➖) 정합성 보정 === */
+    // === 상호배타(★ vs ➖) 정합성 보정 ===
     function enforceExclusiveFlagsOnAll() {
       let changed=0;
       for (const [qid, rec] of Object.entries(questionScores||{})) {
@@ -974,7 +974,7 @@ function updateDDayDisplay() {
       try { localStorage.setItem('auditQuizScores', JSON.stringify(questionScores)); } catch {}
       if (!silent) refreshPanels(); // 좌/우 패널 동기화
     }
-    [이전 코드 계속...] */
+    [이전 코드 종료] */
 
     function openApiModal(initial=false){ if(initial) el.apiModalCancelBtn.classList.add('hidden'); else el.apiModalCancelBtn.classList.remove('hidden');
       el.apiModal.classList.remove('hidden'); el.apiModal.classList.add('flex'); el.apiModalInput.value=geminiApiKey||''; el.apiModalRemember.checked=!!localStorage.getItem('geminiApiKey'); setTimeout(()=>el.apiModalInput.focus(),0);
