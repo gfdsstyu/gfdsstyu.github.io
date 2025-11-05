@@ -1011,7 +1011,7 @@ function updateDDayDisplay() {
           if(data.darkMode){ localStorage.setItem('darkMode',data.darkMode); darkMode=data.darkMode; applyDarkMode(); }
           if(data.schemaVersion) localStorage.setItem('schemaVersion',String(data.schemaVersion));
           // 가져오자마자 상호배타 보정
-          enforceExclusiveFlagsOnAll();
+          enforceExclusiveFlagsOnAll(questionScores);
           showToast('데이터 가져오기 완료'); setTimeout(()=>location.reload(),600);
         }catch(err){ console.error(err); showToast(`가져오기 실패: ${err.message}`,'error'); }
       };
@@ -1065,7 +1065,7 @@ function updateDDayDisplay() {
           if(data.darkMode){ localStorage.setItem('darkMode',data.darkMode); darkMode=data.darkMode; applyDarkMode(); }
           if(data.schemaVersion) localStorage.setItem('schemaVersion',String(data.schemaVersion));
           // 병합 후 상호배타 보정
-          enforceExclusiveFlagsOnAll();
+          enforceExclusiveFlagsOnAll(questionScores);
           showToast('데이터 병합 완료'); setTimeout(()=>location.reload(),600);
         }catch(err){ console.error(err); showToast(`병합 실패: ${err.message}`,'error'); }
       };
@@ -1201,11 +1201,11 @@ function updateDDayDisplay() {
       const willFlag = !(rec.userReviewFlag && !rec.userReviewExclude); // 시각상 Flag 활성 여부
       if (willFlag) {
         // 추가로 전환: 제외를 해제
-        setFlagState(key, { flag:true, exclude:false });
+        setFlagState(questionScores, key, { flag:true, exclude:false, silent:true });
         showToast('복습 추가로 전환(➖ 해제)');
       } else {
         // 추가 해제
-        setFlagState(key, { flag:false, exclude:!!rec.userReviewExclude });
+        setFlagState(questionScores, key, { flag:false, exclude:!!rec.userReviewExclude, silent:true });
         showToast('복습 추가 해제');
       }
       updateFlagButtonsUI(questionScores[key]);
@@ -1219,11 +1219,11 @@ function updateDDayDisplay() {
       const willExclude = !rec.userReviewExclude;
       if (willExclude) {
         // 제외로 전환: 추가를 해제
-        setFlagState(key, { flag:false, exclude:true });
+        setFlagState(questionScores, key, { flag:false, exclude:true, silent:true });
         showToast('오늘의 복습에서 제외로 전환(★ 해제)');
       } else {
         // 제외 해제 (필요시 사용자가 별도로 ★ 추가)
-        setFlagState(key, { flag:!!rec.userReviewFlag, exclude:false });
+        setFlagState(questionScores, key, { flag:!!rec.userReviewFlag, exclude:false, silent:true });
         showToast('복습 제외 해제');
       }
       updateFlagButtonsUI(questionScores[key]);
@@ -1264,10 +1264,10 @@ function updateDDayDisplay() {
         const existing=questionScores[qKey]||{}, newHistory=[...(existing.solveHistory||[]), {date:Date.now(), score:finalScore}];
         questionScores[qKey]={ score:finalScore, feedback:finalFeedback, user_answer:answer, hintUsed:usedHint, isSolved:true, lastSolvedDate:Date.now(), solveHistory:newHistory, userReviewFlag:!!existing.userReviewFlag, userReviewExclude: !!existing.userReviewExclude };
         // 상호배타 재보정(혹시라도 외부 백업 복원으로 둘다 true된 경우)
-        enforceExclusiveFlagsOnAll();
+        enforceExclusiveFlagsOnAll(questionScores);
         try{ localStorage.setItem('auditQuizScores',JSON.stringify(questionScores)); }catch{ showToast('localStorage 저장 실패(용량)','error'); }
 
-        const {increased, uniqueReads}=registerUniqueRead(qKey); if(increased) showToast(`회독 +1 (이 문제 고유 ${uniqueReads}회)`);
+        const {increased, uniqueReads}=registerUniqueRead(qKey, questionScores); if(increased) showToast(`회독 +1 (이 문제 고유 ${uniqueReads}회)`);
         updateSummary(); refreshPanels();
         checkAchievements(); // Check for new achievements after grading
       }catch(e){
@@ -4197,10 +4197,10 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
 
     document.addEventListener('DOMContentLoaded', async ()=>{
       try{ await loadData(); }catch(err){ console.error(err); $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).'; showToast(`문제 데이터 로드 실패: ${err.message}`,'error'); }
-      loadScores();initStatsDate();updateDDayDisplay();loadApiKey(); loadSettings(); applyDarkMode(); migrateData();
+      questionScores = loadScores(); initStatsDate(); updateDDayDisplay(); geminiApiKey = loadApiKey(); loadSettings(); applyDarkMode(); migrateData();
       // 상호배타 정합성 1차 보정
-      enforceExclusiveFlagsOnAll();
-      backfillReadStoreFromScores(false); ensureApiKeyGate();
+      enforceExclusiveFlagsOnAll(questionScores);
+      backfillReadStoreFromScores(questionScores, false); ensureApiKeyGate();
       buildSourceFilterUI(); moveSourceFilterToSide();
       el.explorerSearch?.addEventListener('input', renderExplorer);
       refreshPanels();
