@@ -4250,7 +4250,12 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
       statsView = state.statsView;
       isFlashcardMode = state.isFlashcardMode;
 
-      try{ await loadData(); }catch(err){ console.error(err); $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).'; showToast(`문제 데이터 로드 실패: ${err.message}`,'error'); }
+      try{
+        await loadData();
+        // ✅ loadData() 이후 StateManager의 allData를 로컬 변수에 복사
+        allData = getAllData();
+        currentQuizData = getCurrentQuizData();
+      }catch(err){ console.error(err); $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).'; showToast(`문제 데이터 로드 실패: ${err.message}`,'error'); }
 
       loadSettings(); // UI 동기화만 수행
       initStatsDate();
