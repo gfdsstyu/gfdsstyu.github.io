@@ -1177,6 +1177,17 @@ function updateDDayDisplay() {
       }
       return list;
     }
+
+    // ============================================================
+    // ✂️ REFACTORED → js/features/quiz/quizCore.js
+    // ============================================================
+    // function reloadAndRefresh() → js/features/quiz/quizCore.js
+    // function updateFlagButtonsUI() → js/features/quiz/quizCore.js
+    // function displayQuestion() → js/features/quiz/quizCore.js
+    //
+    // 위 함수들은 app.js를 통해 전역으로 노출됨
+
+    /* [이전 코드 - quizCore.js로 이동됨]
     function reloadAndRefresh(){
       if(isPartValue(el.chapterSelect.value)){
         summaryViewMode='CURRENT';
@@ -1199,11 +1210,7 @@ function updateDDayDisplay() {
     el.chapterSelect.addEventListener('change', reloadAndRefresh);
     el.filterSelect.addEventListener('change', reloadAndRefresh);
     el.loadQuizBtn.addEventListener('click', reloadAndRefresh);
-    el.randomQuizBtn.addEventListener('click',()=>{
-      const list=getFilteredByUI(); if(!list.length){ showToast('선택 조건에 맞는 문제가 없습니다.','warn'); return; }
-      currentQuizData=list; currentQuestionIndex=Math.floor(Math.random()*list.length);
-      el.quizArea.classList.remove('hidden'); el.summaryArea.classList.remove('hidden'); displayQuestion(); updateSummary(); refreshPanels(); showToast('랜덤 문제 시작!');
-    });
+    el.randomQuizBtn.addEventListener('click', startRandomQuiz);
 
     function updateFlagButtonsUI(saved) {
       const flagged = !!(saved?.userReviewFlag);
@@ -1238,6 +1245,7 @@ function updateDDayDisplay() {
       el.nextBtn.disabled=(currentQuizData.length-1===currentQuestionIndex);
       updateSummaryHighlight();
     }
+    [이전 코드 종료] */
 
     // 복습추가(★) 클릭 → 제외(➖)와 상호배타
     el.reviewFlagToggle.addEventListener('click',()=>{

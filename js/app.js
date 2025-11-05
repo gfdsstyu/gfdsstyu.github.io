@@ -34,6 +34,9 @@ import * as StorageManager from './core/storageManager.js';
 // 기능 - 퀴즈 채점
 import * as Grading from './features/quiz/grading.js';
 
+// 기능 - 퀴즈 핵심
+import * as QuizCore from './features/quiz/quizCore.js';
+
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
 // (Phase 3에서 모든 로직이 이전되면 제거 예정)
@@ -141,6 +144,13 @@ window.handleHint = Grading.handleHint;
 window.showResult = Grading.showResult;
 window.setGradeLoading = Grading.setGradeLoading;
 
+// QuizCore (퀴즈 핵심 로직)
+window.QuizCore = QuizCore;
+window.displayQuestion = QuizCore.displayQuestion;
+window.updateFlagButtonsUI = QuizCore.updateFlagButtonsUI;
+window.reloadAndRefresh = QuizCore.reloadAndRefresh;
+window.startRandomQuiz = QuizCore.startRandomQuiz;
+
 // 상수들
 window.BASE_SYSTEM_PROMPT = Config.BASE_SYSTEM_PROMPT;
 window.LITE_STRICT_ADDENDUM = Config.LITE_STRICT_ADDENDUM;
@@ -191,3 +201,4 @@ console.log('  - core/stateManager.js (전역 상태 관리)');
 console.log('  - core/dataManager.js (데이터 로드 및 관리)');
 console.log('  - core/storageManager.js (저장소 및 마이그레이션)');
 console.log('  - features/quiz/grading.js (채점 및 힌트)');
+console.log('  - features/quiz/quizCore.js (퀴즈 핵심 로직)');
