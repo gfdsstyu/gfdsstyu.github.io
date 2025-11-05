@@ -674,6 +674,11 @@
     {"고유ID":"q_003","표시번호":"3","출처":"SS","problemTitle":"샘플 문제","단원":1,"물음번호":3,"물음":"…","정답":"…"}
   ]</script>
 
+  <!-- ========================================
+       감린이 v4.0 리팩토링 모듈 로드 (먼저 로드됨)
+       ======================================== -->
+  <script type="module" src="js/app.js"></script>
+
   <script type="module">
     // ========================================
     // [리팩토링] 상수는 js/config/config.js로 이동됨
@@ -688,24 +693,24 @@
     // ✂️ REFACTORED → js/core/stateManager.js (전역 상태 관리)
     // ============================================================
     // StateManager가 localStorage에서 데이터를 로드하고 관리함
-    // 하지만 기존 코드 호환성을 위해 로컬 변수를 StateManager의 프록시로 사용
+    // 초기화 순서:
+    // 1. 여기서 빈 변수로 선언
+    // 2. app.js에서 StateManager.initializeState() 호출
+    // 3. DOMContentLoaded에서 StateManager 데이터를 이 변수들에 복사
     // ============================================================
 
-    // StateManager의 state 객체를 직접 참조 (프록시)
-    const state = getState();
-
-    // 기존 코드 호환성을 위한 프록시 변수 (StateManager.state를 가리킴)
-    let allData = state.allData;
-    let currentQuizData = state.currentQuizData;
-    let currentQuestionIndex = state.currentQuestionIndex;
-    let questionScores = state.questionScores;
-    let geminiApiKey = state.geminiApiKey;
-    let activeHintQuestionKey = state.activeHintQuestionKey;
-    let selectedAiModel = state.selectedAiModel;
-    let darkMode = state.darkMode;
-    let prevLoaded = state.prevLoaded;
-    let summaryViewMode = state.summaryViewMode;
-    let statsView = state.statsView;
+    // 전역 변수 선언 (초기값은 빈 값, StateManager가 나중에 채움)
+    let allData = [];
+    let currentQuizData = [];
+    let currentQuestionIndex = 0;
+    let questionScores = {};
+    let geminiApiKey = '';
+    let activeHintQuestionKey = null;
+    let selectedAiModel = 'gemini-2.5-flash';
+    let darkMode = 'system';
+    let prevLoaded = false;
+    let summaryViewMode = 'ALL';
+    let statsView = 'day';
     let ctrlNavState='dashboard', lastScrollYBeforeFocus=0;
 
     let calRefDate = (() => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(1); return d; })();
@@ -867,14 +872,18 @@ function updateDDayDisplay() {
           const arr=await res.json(); if(!Array.isArray(arr)){ errs.push(`${path}: JSON 최상위가 배열 아님`); continue; }
           const need=['고유ID','단원','물음','정답']; const bad=arr.findIndex(r=>!r||need.some(k=>!(k in r)));
           if(bad!==-1){ errs.push(`${path}: 필수키 누락(index ${bad})`); continue; }
-          allData=arr; console.info('[questions.json] loaded from',path); selfTest(); populateChapterSelect(); updateSummary(); return;
+          allData=arr;
+          setAllData(arr); // StateManager에도 설정
+          console.info('[questions.json] loaded from',path); selfTest(); populateChapterSelect(); updateSummary(); return;
         }catch(e){ errs.push(`${path}: ${e.message}`); }
       }
       try{
         const node=$('dataset-json'); if(!node) throw new Error('dataset-json 없음');
         const text=(node.textContent||'').trim(); if(!text) throw new Error('내장 데이터 비어 있음');
         const parsed=JSON.parse(text); if(!Array.isArray(parsed)) throw new Error('내장 데이터 최상위가 배열 아님');
-        allData=parsed; console.warn('[questions.json] 모든 후보 실패. 내장 데이터로 폴백',errs); showToast('외부 DB 실패 → 내장 데이터 사용','warn');
+        allData=parsed;
+        setAllData(parsed); // StateManager에도 설정
+        console.warn('[questions.json] 모든 후보 실패. 내장 데이터로 폴백',errs); showToast('외부 DB 실패 → 내장 데이터 사용','warn');
         selfTest(); populateChapterSelect(); updateSummary();
       }catch(err){ console.error('질문 데이터 로드 실패:',errs,err); showToast('문제 데이터 로드 실패: 콘솔 확인','error'); $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).'; }
     }
@@ -3365,9 +3374,7 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
     let flashcardData = [];
     let flashcardIndex = 0;
     let flashcardAnswerVisible = false;
-    // ✂️ REFACTORED → StateManager에서 관리
-    // let isFlashcardMode = false;
-    let isFlashcardMode = state.isFlashcardMode;
+    let isFlashcardMode = false;
 
     function startFlashcardMode() {
       // Use current quiz data if already loaded, otherwise get filtered data
@@ -4212,10 +4219,19 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
     });
 
     document.addEventListener('DOMContentLoaded', async ()=>{
+      // ✅ StateManager.initializeState()는 app.js에서 이미 호출됨
+      // 이제 StateManager의 데이터를 로컬 변수에 복사
+      const state = getState();
+      questionScores = state.questionScores;
+      geminiApiKey = state.geminiApiKey;
+      selectedAiModel = state.selectedAiModel;
+      darkMode = state.darkMode;
+      summaryViewMode = state.summaryViewMode;
+      statsView = state.statsView;
+      isFlashcardMode = state.isFlashcardMode;
+
       try{ await loadData(); }catch(err){ console.error(err); $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).'; showToast(`문제 데이터 로드 실패: ${err.message}`,'error'); }
 
-      // ✅ StateManager.initializeState()는 app.js에서 이미 호출됨
-      // loadScores(), loadApiKey()는 불필요 (StateManager가 처리)
       loadSettings(); // UI 동기화만 수행
       initStatsDate();
       updateDDayDisplay();
@@ -4237,10 +4253,6 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
     });
   </script>
 
-  <!-- ========================================
-       감린이 v4.0 리팩토링 모듈 로드
-       ======================================== -->
-  <script type="module" src="js/app.js"></script>
 </body>
   <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TC8G7NJD"
