@@ -28,6 +28,9 @@ import * as StateManager from './core/stateManager.js';
 // 코어 - 데이터 관리
 import * as DataManager from './core/dataManager.js';
 
+// 코어 - 저장소 관리
+import * as StorageManager from './core/storageManager.js';
+
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
 // (Phase 3에서 모든 로직이 이전되면 제거 예정)
@@ -108,6 +111,26 @@ window.loadData = DataManager.loadData;
 window.selfTest = DataManager.selfTest;
 window.populateChapterSelect = DataManager.populateChapterSelect;
 
+// StorageManager (저장소 관리)
+window.StorageManager = StorageManager;
+window.initStatsDate = StorageManager.initStatsDate;
+window.saveStatsDate = StorageManager.saveStatsDate;
+window.loadExamDate = StorageManager.loadExamDate;
+window.saveExamDate = StorageManager.saveExamDate;
+window.calculateDDay = StorageManager.calculateDDay;
+window.updateDDayDisplay = StorageManager.updateDDayDisplay;
+window.migrateData = StorageManager.migrateData;
+window.enforceExclusiveFlagsOnAll = StorageManager.enforceExclusiveFlagsOnAll;
+window.setFlagState = StorageManager.setFlagState;
+window.loadReadStore = StorageManager.loadReadStore;
+window.saveReadStore = StorageManager.saveReadStore;
+window.computeUniqueReadsFromHistory = StorageManager.computeUniqueReadsFromHistory;
+window.backfillReadStoreFromScores = StorageManager.backfillReadStoreFromScores;
+window.registerUniqueRead = StorageManager.registerUniqueRead;
+window.getStatsRefDate = StorageManager.getStatsRefDate;
+window.setStatsRefDate = StorageManager.setStatsRefDate;
+window.statsRefDate = StorageManager.statsRefDate; // 전역 변수로도 노출
+
 // 상수들
 window.BASE_SYSTEM_PROMPT = Config.BASE_SYSTEM_PROMPT;
 window.LITE_STRICT_ADDENDUM = Config.LITE_STRICT_ADDENDUM;
@@ -156,3 +179,4 @@ console.log('  - ui/domUtils.js (DOM 유틸리티)');
 console.log('  - services/geminiApi.js (Gemini API)');
 console.log('  - core/stateManager.js (전역 상태 관리)');
 console.log('  - core/dataManager.js (데이터 로드 및 관리)');
+console.log('  - core/storageManager.js (저장소 및 마이그레이션)');
