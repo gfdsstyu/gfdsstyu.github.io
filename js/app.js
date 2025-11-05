@@ -25,9 +25,6 @@ import * as GeminiApi from './services/geminiApi.js';
 // 코어 - 상태 관리
 import * as StateManager from './core/stateManager.js';
 
-// 코어 - 데이터 관리
-import * as DataManager from './core/dataManager.js';
-
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
 // (Phase 3에서 모든 로직이 이전되면 제거 예정)
@@ -101,13 +98,6 @@ window.setStatsView = StateManager.setStatsView;
 window.getIsFlashcardMode = StateManager.getIsFlashcardMode;
 window.setIsFlashcardMode = StateManager.setIsFlashcardMode;
 
-// DataManager (데이터 관리)
-window.DataManager = DataManager;
-window.getAllChapterNums = DataManager.getAllChapterNums;
-window.loadData = DataManager.loadData;
-window.selfTest = DataManager.selfTest;
-window.populateChapterSelect = DataManager.populateChapterSelect;
-
 // 상수들
 window.BASE_SYSTEM_PROMPT = Config.BASE_SYSTEM_PROMPT;
 window.LITE_STRICT_ADDENDUM = Config.LITE_STRICT_ADDENDUM;
@@ -155,4 +145,3 @@ console.log('  - ui/elements.js (DOM 엘리먼트)');
 console.log('  - ui/domUtils.js (DOM 유틸리티)');
 console.log('  - services/geminiApi.js (Gemini API)');
 console.log('  - core/stateManager.js (전역 상태 관리)');
-console.log('  - core/dataManager.js (데이터 로드 및 관리)');
