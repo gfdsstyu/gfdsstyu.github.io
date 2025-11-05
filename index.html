@@ -866,18 +866,14 @@ function updateDDayDisplay() {
     // const isPartValue = ... → js/config/config.js
     // const parsePartValue = ... → js/config/config.js
     // [리팩토링] 단원 처리 함수는 js/utils/helpers.js로 이동됨
-    // ============================================================
-    // ✂️ REFACTORED → js/core/dataManager.js
-    // ============================================================
-    // const getAllChapterNums = ... → js/core/dataManager.js
-    // async function loadData() → js/core/dataManager.js
-    // function selfTest() → js/core/dataManager.js
-    // function populateChapterSelect() → js/core/dataManager.js
-    //
-    // 위 함수들은 app.js를 통해 전역으로 노출됨:
-    // window.getAllChapterNums, window.loadData, window.selfTest, window.populateChapterSelect
+    // const getAllChapterNums = ... (allData 의존성 있음, 나중에 처리)
+    // function computePartRanges(...) → js/utils/helpers.js
+    const getAllChapterNums=()=>[...new Set(allData.map(i=>+i.단원).filter(Number.isFinite))].sort((a,b)=>a-b);
 
-    /* [이전 코드 - 삭제됨]
+    // [리팩토링] 다크모드 함수는 js/ui/domUtils.js로 이동됨
+    // function applyDarkMode() → js/ui/domUtils.js
+    // window.matchMedia 리스너도 domUtils.watchSystemDarkMode()로 이동
+
     async function loadData(){
       const CAND=['questions.json','./questions.json','./data/questions.json','./assets/questions.json'];
       const errs=[];
@@ -923,7 +919,6 @@ function updateDDayDisplay() {
         });
       }
     }
-    [이전 코드 종료] */
 
     // ============================================================
     // ✂️ REFACTORED → js/core/stateManager.js

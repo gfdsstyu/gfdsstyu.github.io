@@ -39,9 +39,6 @@ export function initElements() {
     mergeDataBtn: $('merge-data-btn'),
     mergeFileInput: $('merge-file-input'),
 
-    // Data Source
-    datasetJson: $('dataset-json'),
-
     // Quiz Controls
     chapterSelect: $('chapter-select'),
     filterSelect: $('filter-select'),
