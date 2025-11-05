@@ -674,6 +674,11 @@
     {"고유ID":"q_003","표시번호":"3","출처":"SS","problemTitle":"샘플 문제","단원":1,"물음번호":3,"물음":"…","정답":"…"}
   ]</script>
 
+  <!-- ========================================
+       감린이 v4.0 리팩토링 모듈 로드 (먼저 로드됨)
+       ======================================== -->
+  <script type="module" src="js/app.js"></script>
+
   <script type="module">
     // ========================================
     // [리팩토링] 상수는 js/config/config.js로 이동됨
@@ -4248,10 +4253,6 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
     });
   </script>
 
-  <!-- ========================================
-       감린이 v4.0 리팩토링 모듈 로드
-       ======================================== -->
-  <script type="module" src="js/app.js"></script>
 </body>
   <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TC8G7NJD"
