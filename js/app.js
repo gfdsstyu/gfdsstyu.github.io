@@ -37,6 +37,9 @@ import * as Grading from './features/quiz/grading.js';
 // 기능 - 퀴즈 핵심
 import * as QuizCore from './features/quiz/quizCore.js';
 
+// 기능 - 퀴즈 네비게이션
+import * as Navigation from './features/quiz/navigation.js';
+
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
 // (Phase 3에서 모든 로직이 이전되면 제거 예정)
@@ -151,6 +154,17 @@ window.updateFlagButtonsUI = QuizCore.updateFlagButtonsUI;
 window.reloadAndRefresh = QuizCore.reloadAndRefresh;
 window.startRandomQuiz = QuizCore.startRandomQuiz;
 
+// Navigation (퀴즈 네비게이션)
+window.Navigation = Navigation;
+window.handlePrevQuestion = Navigation.handlePrevQuestion;
+window.handleNextQuestion = Navigation.handleNextQuestion;
+window.enterFocusMode = Navigation.enterFocusMode;
+window.exitToDashboard = Navigation.exitToDashboard;
+window.backFromFocus = Navigation.backFromFocus;
+window.getCtrlNavState = Navigation.getCtrlNavState;
+window.setCtrlNavState = Navigation.setCtrlNavState;
+window.initKeyboardShortcuts = Navigation.initKeyboardShortcuts;
+
 // 상수들
 window.BASE_SYSTEM_PROMPT = Config.BASE_SYSTEM_PROMPT;
 window.LITE_STRICT_ADDENDUM = Config.LITE_STRICT_ADDENDUM;
@@ -186,6 +200,10 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('✅ DOM 엘리먼트 초기화 완료');
   console.log('✅ 임시 브릿지 설정 완료 - index.html 기존 코드와 연동됨');
 
+  // 5. 키보드 단축키 초기화
+  Navigation.initKeyboardShortcuts();
+  console.log('✅ 키보드 단축키 초기화 완료');
+
   // TODO: Phase 3에서 index.html의 모든 이벤트 리스너를 여기로 이전
   // 현재는 index.html의 기존 script 태그가 모든 로직을 처리함
 });
@@ -202,3 +220,4 @@ console.log('  - core/dataManager.js (데이터 로드 및 관리)');
 console.log('  - core/storageManager.js (저장소 및 마이그레이션)');
 console.log('  - features/quiz/grading.js (채점 및 힌트)');
 console.log('  - features/quiz/quizCore.js (퀴즈 핵심 로직)');
+console.log('  - features/quiz/navigation.js (퀴즈 네비게이션)');

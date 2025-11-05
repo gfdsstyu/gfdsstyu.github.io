@@ -711,7 +711,8 @@
     let prevLoaded = false;
     let summaryViewMode = 'ALL';
     let statsView = 'day';
-    let ctrlNavState='dashboard', lastScrollYBeforeFocus=0;
+    // ✂️ REFACTORED → js/features/quiz/navigation.js (internal state)
+    // let ctrlNavState='dashboard', lastScrollYBeforeFocus=0;
 
     let calRefDate = (() => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(1); return d; })();
 let statsRefDate = new Date();
@@ -1294,8 +1295,11 @@ function updateDDayDisplay() {
       }
     });
 
-    el.prevBtn.addEventListener('click',()=>{ if(currentQuestionIndex>0){ currentQuestionIndex--; displayQuestion(); } });
-    el.nextBtn.addEventListener('click',()=>{ if(currentQuestionIndex<currentQuizData.length-1){ currentQuestionIndex++; displayQuestion(); } });
+    // ============================================================
+    // ✂️ REFACTORED → js/features/quiz/navigation.js
+    // ============================================================
+    el.prevBtn.addEventListener('click', handlePrevQuestion);
+    el.nextBtn.addEventListener('click', handleNextQuestion);
     el.userAnswer.addEventListener('input',()=> el.errorMessage.classList.add('hidden'));
     el.userAnswer.addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); el.gradeBtn.click(); } });
 
@@ -1536,31 +1540,18 @@ function updateDDayDisplay() {
       }
     });
 
-    function ensureResultBoxReady(){ if(currentQuizData.length){ const q=currentQuizData[currentQuestionIndex]; if(!el.correctAnswer.textContent?.trim()) el.correctAnswer.textContent=String(q.정답||''); } el.resultBox.classList.remove('hidden'); }
-    function enterFocusMode(){ lastScrollYBeforeFocus=window.pageYOffset; document.documentElement.classList.add('focus-mode'); ensureResultBoxReady(); const header=el.userAnswer; const margin=12; const y=header.getBoundingClientRect().top + window.pageYOffset - (el.fixedHeader?.getBoundingClientRect().height||0) - margin; window.scrollTo({top:Math.max(0,y),behavior:'smooth'}); ctrlNavState='focus'; }
-    function exitToDashboard(){ document.documentElement.classList.remove('focus-mode'); if(el.summaryArea) window.scrollTo({top:el.summaryArea.getBoundingClientRect().top + window.pageYOffset - (el.fixedHeader?.getBoundingClientRect().height||0) - 8, behavior:'smooth'}); else window.scrollTo({top:0,behavior:'smooth'}); ctrlNavState='dashboard'; }
-    function backFromFocus(){ document.documentElement.classList.remove('focus-mode'); window.scrollTo({top:Math.max(0,lastScrollYBeforeFocus),behavior:'smooth'}); ctrlNavState='dashboard'; }
-    const isEditing=t=> t && (t.tagName==='INPUT' || t.tagName==='TEXTAREA' || t.isContentEditable);
-    document.addEventListener('keydown',e=>{
-      // H: 힌트
-      if((e.key==='h'||e.key==='H') && !isEditing(e.target)){ e.preventDefault(); el.hintBtn?.click(); return; }
-      // R: 랜덤 문제
-      if((e.key==='r'||e.key==='R') && !isEditing(e.target)){ e.preventDefault(); el.randomQuizBtn?.click(); return; }
-      // L: 이전 답안 불러오기
-      if((e.key==='l'||e.key==='L') && !isEditing(e.target)){ e.preventDefault(); el.loadPrevAnswerBtn?.click(); return; }
-      // X: 복습 제외 토글
-      if((e.key==='x'||e.key==='X') && !isEditing(e.target)){ e.preventDefault(); el.reviewExcludeToggle?.click(); return; }
-      // S: 학습 현황판으로 스크롤
-      if((e.key==='s'||e.key==='S') && !isEditing(e.target)){ e.preventDefault(); if(el.summaryArea && !el.summaryArea.classList.contains('hidden')) window.scrollTo({top:el.summaryArea.getBoundingClientRect().top + window.pageYOffset - (el.fixedHeader?.getBoundingClientRect().height||0) - 8, behavior:'smooth'}); return; }
-      // G: 채점하기 (textarea에 포커스 없을 때)
-      if((e.key==='g'||e.key==='G') && !isEditing(e.target)){ e.preventDefault(); el.gradeBtn?.click(); return; }
-      if(e.ctrlKey && !e.altKey && !e.metaKey){
-        if(e.key==='ArrowLeft'){ e.preventDefault(); el.prevBtn?.click(); return; }
-        if(e.key==='ArrowRight'){ e.preventDefault(); el.nextBtn?.click(); return; }
-        if(e.key==='['){ e.preventDefault(); if(ctrlNavState==='focus') backFromFocus(); else window.scrollTo({top:0,behavior:'smooth'}); return; }
-        if(e.key===']'){ e.preventDefault(); if(ctrlNavState!=='focus') enterFocusMode(); else exitToDashboard(); return; }
-      }
-    });
+    // ============================================================
+    // ✂️ REFACTORED → js/features/quiz/navigation.js
+    // ============================================================
+    // function ensureResultBoxReady() → js/features/quiz/navigation.js (internal helper)
+    // function enterFocusMode() → js/features/quiz/navigation.js
+    // function exitToDashboard() → js/features/quiz/navigation.js
+    // function backFromFocus() → js/features/quiz/navigation.js
+    // ============================================================
+    // ✂️ REFACTORED → js/features/quiz/navigation.js
+    // ============================================================
+    // 키보드 단축키 핸들러 → js/features/quiz/navigation.js (initKeyboardShortcuts)
+    // app.js의 DOMContentLoaded에서 initKeyboardShortcuts() 호출됨
 
     const getScopeFilteredData=()=> filterByChapterSelection(applySourceFilter(allData||[]));
 
