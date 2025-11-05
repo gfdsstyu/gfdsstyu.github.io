@@ -684,9 +684,28 @@
     const LITE_STRICT_ADDENDUM = ... (→ js/config/config.js)
     */
 
-    let allData=[], currentQuizData=[], currentQuestionIndex=0, questionScores={};
-    let geminiApiKey='', activeHintQuestionKey=null, selectedAiModel='gemini-2.5-flash', darkMode='system';
-    let prevLoaded=false, summaryViewMode='ALL', statsView=localStorage.getItem('statsView_v1')||'day';
+    // ============================================================
+    // ✂️ REFACTORED → js/core/stateManager.js (전역 상태 관리)
+    // ============================================================
+    // StateManager가 localStorage에서 데이터를 로드하고 관리함
+    // 하지만 기존 코드 호환성을 위해 로컬 변수를 StateManager의 프록시로 사용
+    // ============================================================
+
+    // StateManager의 state 객체를 직접 참조 (프록시)
+    const state = getState();
+
+    // 기존 코드 호환성을 위한 프록시 변수 (StateManager.state를 가리킴)
+    let allData = state.allData;
+    let currentQuizData = state.currentQuizData;
+    let currentQuestionIndex = state.currentQuestionIndex;
+    let questionScores = state.questionScores;
+    let geminiApiKey = state.geminiApiKey;
+    let activeHintQuestionKey = state.activeHintQuestionKey;
+    let selectedAiModel = state.selectedAiModel;
+    let darkMode = state.darkMode;
+    let prevLoaded = state.prevLoaded;
+    let summaryViewMode = state.summaryViewMode;
+    let statsView = state.statsView;
     let ctrlNavState='dashboard', lastScrollYBeforeFocus=0;
 
     let calRefDate = (() => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(1); return d; })();
@@ -881,9 +900,16 @@ function updateDDayDisplay() {
       }
     }
 
-    function loadScores(){ try{ questionScores=JSON.parse(localStorage.getItem('auditQuizScores')||'{}'); }catch{ questionScores={}; localStorage.removeItem('auditQuizScores'); } }
-    function loadApiKey(){ geminiApiKey=sessionStorage.getItem('geminiApiKey')||localStorage.getItem('geminiApiKey')||''; }
-    function loadSettings(){ selectedAiModel=localStorage.getItem('aiModel')||'gemini-2.5-flash'; if(el.aiModelSelect) el.aiModelSelect.value=selectedAiModel; }
+    // ============================================================
+    // ✂️ REFACTORED → js/core/stateManager.js
+    // ============================================================
+    // function loadScores() - StateManager.initializeState()에서 처리
+    // function loadApiKey() - StateManager.initializeState()에서 처리
+    //
+    // loadSettings()는 UI 동기화만 수행 (값은 이미 StateManager에 로드됨)
+    function loadSettings(){
+      if(el.aiModelSelect) el.aiModelSelect.value = getSelectedAiModel();
+    }
 
     function migrateData(){
       const version=localStorage.getItem('schemaVersion'); if(version==='2') return;
@@ -3339,7 +3365,9 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
     let flashcardData = [];
     let flashcardIndex = 0;
     let flashcardAnswerVisible = false;
-    let isFlashcardMode = false;
+    // ✂️ REFACTORED → StateManager에서 관리
+    // let isFlashcardMode = false;
+    let isFlashcardMode = state.isFlashcardMode;
 
     function startFlashcardMode() {
       // Use current quiz data if already loaded, otherwise get filtered data
@@ -4185,10 +4213,19 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
 
     document.addEventListener('DOMContentLoaded', async ()=>{
       try{ await loadData(); }catch(err){ console.error(err); $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).'; showToast(`문제 데이터 로드 실패: ${err.message}`,'error'); }
-      loadScores();initStatsDate();updateDDayDisplay();loadApiKey(); loadSettings(); applyDarkMode(); migrateData();
+
+      // ✅ StateManager.initializeState()는 app.js에서 이미 호출됨
+      // loadScores(), loadApiKey()는 불필요 (StateManager가 처리)
+      loadSettings(); // UI 동기화만 수행
+      initStatsDate();
+      updateDDayDisplay();
+      applyDarkMode();
+      migrateData();
+
       // 상호배타 정합성 1차 보정
       enforceExclusiveFlagsOnAll();
-      backfillReadStoreFromScores(false); ensureApiKeyGate();
+      backfillReadStoreFromScores(false);
+      ensureApiKeyGate();
       buildSourceFilterUI(); moveSourceFilterToSide();
       el.explorerSearch?.addEventListener('input', renderExplorer);
       refreshPanels();
