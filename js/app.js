@@ -12,6 +12,10 @@ console.log('🚀 감린이 v4.0 Refactored App Loading...');
 // 설정 및 상수
 import * as Config from './config/config.js';
 
+// 코어
+import * as DataManager from './core/dataManager.js';
+import * as StorageManager from './core/storageManager.js';
+
 // 유틸리티
 import * as Helpers from './utils/helpers.js';
 
@@ -29,6 +33,8 @@ import * as GeminiApi from './services/geminiApi.js';
 
 // 전역으로 노출 (index.html의 기존 script에서 사용)
 window.Config = Config;
+window.DataManager = DataManager;
+window.StorageManager = StorageManager;
 window.Helpers = Helpers;
 window.DomUtils = DomUtils;
 window.GeminiApi = GeminiApi;
@@ -55,6 +61,47 @@ window.setLoading = DomUtils.setLoading;
 window.callGeminiAPI = GeminiApi.callGeminiAPI;
 window.callGeminiHintAPI = GeminiApi.callGeminiHintAPI;
 window.callGeminiTextAPI = GeminiApi.callGeminiTextAPI;
+
+// DataManager 함수들
+window.loadQuestions = DataManager.loadQuestions;
+window.validateData = DataManager.validateData;
+window.selfTest = DataManager.selfTest;
+window.getAllChapterNums = DataManager.getAllChapterNums;
+window.populateChapterSelect = DataManager.populateChapterSelect;
+window.filterByChapterSelection = DataManager.filterByChapterSelection;
+window.filterByScore = DataManager.filterByScore;
+window.filterBySource = DataManager.filterBySource;
+window.detectSourceGroup = DataManager.detectSourceGroup;
+window.getAllData = DataManager.getAllData;
+window.setAllData = DataManager.setAllData;
+window.getCurrentQuizData = DataManager.getCurrentQuizData;
+window.setCurrentQuizData = DataManager.setCurrentQuizData;
+window.getCurrentQuestionIndex = DataManager.getCurrentQuestionIndex;
+window.setCurrentQuestionIndex = DataManager.setCurrentQuestionIndex;
+window.getCurrentQuestion = DataManager.getCurrentQuestion;
+window.findQuestionById = DataManager.findQuestionById;
+window.findQuestionIndexById = DataManager.findQuestionIndexById;
+
+// StorageManager 함수들
+window.loadScores = StorageManager.loadScores;
+window.saveScores = StorageManager.saveScores;
+window.loadApiKey = StorageManager.loadApiKey;
+window.saveApiKey = StorageManager.saveApiKey;
+window.loadExamDate = StorageManager.loadExamDate;
+window.saveExamDate = StorageManager.saveExamDate;
+window.loadStatsDate = StorageManager.loadStatsDate;
+window.saveStatsDate = StorageManager.saveStatsDate;
+window.loadStatsView = StorageManager.loadStatsView;
+window.saveStatsView = StorageManager.saveStatsView;
+window.loadReadStore = StorageManager.loadReadStore;
+window.saveReadStore = StorageManager.saveReadStore;
+window.loadAchievements = StorageManager.loadAchievements;
+window.saveAchievements = StorageManager.saveAchievements;
+window.resetAllScores = StorageManager.resetAllScores;
+window.exportAllData = StorageManager.exportAllData;
+window.importAllData = StorageManager.importAllData;
+window.migrateData = StorageManager.migrateData;
+window.STORAGE_KEYS = StorageManager.STORAGE_KEYS;
 
 // 상수들
 window.BASE_SYSTEM_PROMPT = Config.BASE_SYSTEM_PROMPT;
@@ -94,6 +141,8 @@ document.addEventListener('DOMContentLoaded', () => {
 console.log('✅ 감린이 v4.0 모듈 로드 완료');
 console.log('📦 로드된 모듈:');
 console.log('  - config/config.js (상수 및 설정)');
+console.log('  - core/dataManager.js (데이터 관리)');
+console.log('  - core/storageManager.js (Storage 관리)');
 console.log('  - utils/helpers.js (유틸리티 함수)');
 console.log('  - ui/elements.js (DOM 엘리먼트)');
 console.log('  - ui/domUtils.js (DOM 유틸리티)');
