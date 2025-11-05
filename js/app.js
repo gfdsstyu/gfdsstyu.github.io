@@ -22,6 +22,9 @@ import * as DomUtils from './ui/domUtils.js';
 // 서비스
 import * as GeminiApi from './services/geminiApi.js';
 
+// 코어 - 상태 관리
+import * as StateManager from './core/stateManager.js';
+
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
 // (Phase 3에서 모든 로직이 이전되면 제거 예정)
@@ -56,6 +59,45 @@ window.callGeminiAPI = GeminiApi.callGeminiAPI;
 window.callGeminiHintAPI = GeminiApi.callGeminiHintAPI;
 window.callGeminiTextAPI = GeminiApi.callGeminiTextAPI;
 
+// StateManager (전역 상태 관리)
+window.StateManager = StateManager;
+window.getState = StateManager.getState;
+window.initializeState = StateManager.initializeState;
+window.loadFromStorage = StateManager.loadFromStorage;
+window.saveQuestionScores = StateManager.saveQuestionScores;
+window.saveApiKey = StateManager.saveApiKey;
+window.saveAiModel = StateManager.saveAiModel;
+window.saveDarkModeToStorage = StateManager.saveDarkModeToStorage;
+window.saveStatsView = StateManager.saveStatsView;
+window.updateQuestionScore = StateManager.updateQuestionScore;
+window.getQuestionScore = StateManager.getQuestionScore;
+
+// StateManager getter/setter
+window.getAllData = StateManager.getAllData;
+window.setAllData = StateManager.setAllData;
+window.getCurrentQuizData = StateManager.getCurrentQuizData;
+window.setCurrentQuizData = StateManager.setCurrentQuizData;
+window.getCurrentQuestionIndex = StateManager.getCurrentQuestionIndex;
+window.setCurrentQuestionIndex = StateManager.setCurrentQuestionIndex;
+window.getQuestionScores = StateManager.getQuestionScores;
+window.setQuestionScores = StateManager.setQuestionScores;
+window.getGeminiApiKey = StateManager.getGeminiApiKey;
+window.setGeminiApiKey = StateManager.setGeminiApiKey;
+window.getSelectedAiModel = StateManager.getSelectedAiModel;
+window.setSelectedAiModel = StateManager.setSelectedAiModel;
+window.getDarkMode = StateManager.getDarkMode;
+window.setDarkMode = StateManager.setDarkMode;
+window.getActiveHintQuestionKey = StateManager.getActiveHintQuestionKey;
+window.setActiveHintQuestionKey = StateManager.setActiveHintQuestionKey;
+window.getPrevLoaded = StateManager.getPrevLoaded;
+window.setPrevLoaded = StateManager.setPrevLoaded;
+window.getSummaryViewMode = StateManager.getSummaryViewMode;
+window.setSummaryViewMode = StateManager.setSummaryViewMode;
+window.getStatsView = StateManager.getStatsView;
+window.setStatsView = StateManager.setStatsView;
+window.getIsFlashcardMode = StateManager.getIsFlashcardMode;
+window.setIsFlashcardMode = StateManager.setIsFlashcardMode;
+
 // 상수들
 window.BASE_SYSTEM_PROMPT = Config.BASE_SYSTEM_PROMPT;
 window.LITE_STRICT_ADDENDUM = Config.LITE_STRICT_ADDENDUM;
@@ -77,12 +119,16 @@ window.parsePartValue = Config.parsePartValue;
 document.addEventListener('DOMContentLoaded', () => {
   console.log('✅ DOMContentLoaded - Refactored app initialized');
 
-  // DOM 엘리먼트 초기화
+  // 1. StateManager 초기화 (localStorage에서 데이터 로드)
+  StateManager.initializeState();
+
+  // 2. DOM 엘리먼트 초기화
   const elements = initElements();
   setElements(elements);
 
-  // 전역으로 el 객체 노출 (index.html의 기존 코드에서 사용)
+  // 3. 전역으로 el 객체 노출 (index.html의 기존 코드에서 사용)
   window.el = elements;
+  StateManager.setElements(elements);
 
   console.log('✅ DOM 엘리먼트 초기화 완료');
   console.log('✅ 임시 브릿지 설정 완료 - index.html 기존 코드와 연동됨');
@@ -98,3 +144,4 @@ console.log('  - utils/helpers.js (유틸리티 함수)');
 console.log('  - ui/elements.js (DOM 엘리먼트)');
 console.log('  - ui/domUtils.js (DOM 유틸리티)');
 console.log('  - services/geminiApi.js (Gemini API)');
+console.log('  - core/stateManager.js (전역 상태 관리)');
