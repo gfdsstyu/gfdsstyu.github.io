@@ -1526,8 +1526,38 @@ function updateDDayDisplay() {
       }
     });
 
-    function ensureResultBoxReady(){ if(currentQuizData.length){ const q=currentQuizData[currentQuestionIndex]; if(!el.correctAnswer.textContent?.trim()) el.correctAnswer.textContent=String(q.정답||''); } el.resultBox.classList.remove('hidden'); }
-    function enterFocusMode(){ lastScrollYBeforeFocus=window.pageYOffset; document.documentElement.classList.add('focus-mode'); ensureResultBoxReady(); const header=el.userAnswer; const margin=12; const y=header.getBoundingClientRect().top + window.pageYOffset - (el.fixedHeader?.getBoundingClientRect().height||0) - margin; window.scrollTo({top:Math.max(0,y),behavior:'smooth'}); ctrlNavState='focus'; }
+    function ensureResultBoxReady(){ if(currentQuizData.length){ const q=currentQuizData[currentQuestionIndex]; if(!el.correctAnswer.textContent?.trim()) el.correctAnswer.textContent=String(q.정답||''); el.modelAnswerBox.classList.remove('hidden'); } el.resultBox.classList.remove('hidden'); }
+    function enterFocusMode(){
+      lastScrollYBeforeFocus=window.pageYOffset;
+      document.documentElement.classList.add('focus-mode');
+      ensureResultBoxReady();
+
+      const headerHeight = el.fixedHeader?.getBoundingClientRect().height || 0;
+      const margin = 12;
+      const viewportHeight = window.innerHeight;
+
+      // userAnswer 상단 위치
+      const userAnswerTop = el.userAnswer.getBoundingClientRect().top + window.pageYOffset - headerHeight - margin;
+
+      // 모범답안 박스가 표시되어 있으면, 모범답안 박스 하단까지 보이도록 스크롤
+      if(el.modelAnswerBox && !el.modelAnswerBox.classList.contains('hidden')){
+        const modelAnswerBottom = el.modelAnswerBox.getBoundingClientRect().bottom + window.pageYOffset;
+        const contentHeight = modelAnswerBottom - (el.userAnswer.getBoundingClientRect().top + window.pageYOffset);
+
+        // 전체 콘텐츠가 viewport보다 크면, userAnswer 상단을 기준으로 스크롤
+        // 그렇지 않으면 모범답안 박스 하단이 보이도록 스크롤
+        if(contentHeight > viewportHeight - headerHeight - margin * 2){
+          window.scrollTo({top:Math.max(0, userAnswerTop), behavior:'smooth'});
+        } else {
+          const targetScroll = modelAnswerBottom - viewportHeight + margin;
+          window.scrollTo({top:Math.max(0, Math.max(userAnswerTop, targetScroll)), behavior:'smooth'});
+        }
+      } else {
+        window.scrollTo({top:Math.max(0, userAnswerTop), behavior:'smooth'});
+      }
+
+      ctrlNavState='focus';
+    }
     function exitToDashboard(){ document.documentElement.classList.remove('focus-mode'); if(el.summaryArea) window.scrollTo({top:el.summaryArea.getBoundingClientRect().top + window.pageYOffset - (el.fixedHeader?.getBoundingClientRect().height||0) - 8, behavior:'smooth'}); else window.scrollTo({top:0,behavior:'smooth'}); ctrlNavState='dashboard'; }
     function backFromFocus(){ document.documentElement.classList.remove('focus-mode'); window.scrollTo({top:Math.max(0,lastScrollYBeforeFocus),behavior:'smooth'}); ctrlNavState='dashboard'; }
     const isEditing=t=> t && (t.tagName==='INPUT' || t.tagName==='TEXTAREA' || t.isContentEditable);
