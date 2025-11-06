@@ -1208,17 +1208,11 @@ function updateDDayDisplay() {
       updateSummary(); refreshPanels();
     }
 
-    el.chapterSelect.addEventListener('change', () => reloadAndRefresh());
-    el.filterSelect.addEventListener('change', () => reloadAndRefresh());
-    el.loadQuizBtn.addEventListener('click', () => reloadAndRefresh());
-    el.randomQuizBtn.addEventListener('click', () => startRandomQuiz());
+    el.chapterSelect.addEventListener('change', reloadAndRefresh);
+    el.filterSelect.addEventListener('change', reloadAndRefresh);
+    el.loadQuizBtn.addEventListener('click', reloadAndRefresh);
+    el.randomQuizBtn.addEventListener('click', startRandomQuiz);
 
-    // ============================================================
-    // ✂️ REFACTORED → js/features/quiz/quizCore.js
-    // ============================================================
-    // function updateFlagButtonsUI() → js/features/quiz/quizCore.js
-    // function displayQuestion() → js/features/quiz/quizCore.js
-    /* [이전 코드 - quizCore.js로 이동됨]
     function updateFlagButtonsUI(saved) {
       const flagged = !!(saved?.userReviewFlag);
       const excluded = !!(saved?.userReviewExclude);
