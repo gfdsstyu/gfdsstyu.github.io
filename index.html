@@ -1298,18 +1298,6 @@ function updateDDayDisplay() {
     el.userAnswer.addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); el.gradeBtn.click(); } });
 
     el.gradeBtn.addEventListener('click',handleGrade);
-
-    // ============================================================
-    // ✂️ REFACTORED → js/features/quiz/grading.js
-    // ============================================================
-    // async function handleGrade() → js/features/quiz/grading.js
-    // function setLoading() → js/features/quiz/grading.js (setGradeLoading으로 renamed)
-    // async function handleHint() → js/features/quiz/grading.js
-    // function showResult() → js/features/quiz/grading.js
-    //
-    // 위 함수들은 app.js를 통해 전역으로 노출됨
-
-    /* [이전 코드 - grading.js로 이동됨]
     async function handleGrade(){
       if(!geminiApiKey){ openApiModal(false); showToast('Gemini API 키를 입력해주세요.','error'); return; }
       const answer=el.userAnswer.value.trim(); if(!answer){ el.errorMessage.textContent='답안을 입력해주세요.'; el.errorMessage.classList.remove('hidden'); el.userAnswer.focus(); return; }
@@ -1372,7 +1360,6 @@ function updateDDayDisplay() {
       el.progressBar.className='h-4 rounded-full transition-all duration-500 ease-out '+(s<60?'bg-red-500': s<80?'bg-yellow-500':'bg-blue-600');
       el.aiFeedback.textContent=String(feedback||''); el.resultBox.classList.remove('hidden');
     }
-    [이전 코드 종료] */
 
     el.summaryViewAllBtn?.addEventListener('click',()=>{ summaryViewMode='ALL'; el.summaryViewAllBtn.classList.add('bg-gray-100'); el.summaryViewCurrentBtn.classList.remove('bg-gray-100'); updateSummary(); });
     el.summaryViewCurrentBtn?.addEventListener('click',()=>{ summaryViewMode='CURRENT'; el.summaryViewCurrentBtn.classList.add('bg-gray-100'); el.summaryViewAllBtn.classList.remove('bg-gray-100'); updateSummary(); });
