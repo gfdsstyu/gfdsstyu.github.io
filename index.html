@@ -328,7 +328,7 @@
             </div>
           </div>
 
-          <!-- 채점 결과 -->
+          <!-- 결과 -->
           <div id="result-box" class="hidden bg-gray-50 border border-gray-200 rounded-lg p-6 mt-6 dark:bg-gray-800 dark:border-gray-700" aria-live="polite">
             <h3 class="text-2xl font-bold text-gray-800 mb-4">채점 결과</h3>
             <div id="score-display" class="mb-5">
@@ -339,16 +339,14 @@
                 <div id="progress-bar" class="h-4 rounded-full transition-all duration-500 ease-out" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width: 0%"></div>
               </div>
             </div>
-            <div>
+            <div class="mb-5">
               <h4 class="text-xl font-semibold text-gray-700 mb-2">🤖 AI 총평</h4>
               <div id="ai-feedback" class="bg-white p-4 border border-gray-200 rounded-lg text-gray-600 leading-relaxed min-h-[50px]"></div>
             </div>
-          </div>
-
-          <!-- 모범 답안 -->
-          <div id="model-answer-box" class="hidden bg-gray-50 border border-gray-200 rounded-lg p-6 mt-6 dark:bg-gray-800 dark:border-gray-700">
-            <h4 class="text-xl font-semibold text-gray-700 mb-2">📘 모범 답안</h4>
-            <pre id="correct-answer" class="bg-white p-4 border border-gray-200 rounded-lg text-gray-600 text-sm font-sans leading-relaxed"></pre>
+            <div>
+              <h4 class="text-xl font-semibold text-gray-700 mb-2">📘 모범 답안</h4>
+              <pre id="correct-answer" class="bg-white p-4 border border-gray-200 rounded-lg text-gray-600 text-sm font-sans leading-relaxed"></pre>
+            </div>
           </div>
 
           <!-- 학습 현황판 -->
@@ -713,7 +711,8 @@
     let prevLoaded = false;
     let summaryViewMode = 'ALL';
     let statsView = 'day';
-    let ctrlNavState='dashboard', lastScrollYBeforeFocus=0;
+    // ✂️ REFACTORED → js/features/quiz/navigation.js (internal state)
+    // let ctrlNavState='dashboard', lastScrollYBeforeFocus=0;
 
     let calRefDate = (() => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(1); return d; })();
 let statsRefDate = new Date();
@@ -817,7 +816,7 @@ function updateDDayDisplay() {
       quizArea:$('quiz-area'), questionNumber:$('question-number'), questionText:$('question-text'), questionCounter:$('question-counter'),
       userAnswer:$('user-answer'), errorMessage:$('error-message'), prevBtn:$('prev-btn'), nextBtn:$('next-btn'),
       gradeBtn:$('grade-btn'), gradeBtnText:$('grade-btn-text'), gradeLoader:$('grade-loader'), hintBtn:$('hint-btn'), hintBox:$('hint-container'),
-      loadPrevAnswerBtn:$('load-prev-answer-btn'), resultBox:$('result-box'), modelAnswerBox:$('model-answer-box'), score:$('score'), progressBar:$('progress-bar'),
+      loadPrevAnswerBtn:$('load-prev-answer-btn'), resultBox:$('result-box'), score:$('score'), progressBar:$('progress-bar'),
       aiFeedback:$('ai-feedback'), correctAnswer:$('correct-answer'), summaryArea:$('summary-area'), scoreSummary:$('score-summary'),
       clearFilterBtn:$('clear-filter-btn'), resetScoresBtn:$('reset-scores-btn'), summaryViewAllBtn:$('summary-view-all'), summaryViewCurrentBtn:$('summary-view-current'),
       dbQuestionId:$('db-question-id'), fixedHeader:$('fixed-header'), layoutRoot:$('layout-root'),
@@ -1179,6 +1178,17 @@ function updateDDayDisplay() {
       }
       return list;
     }
+
+    // ============================================================
+    // ✂️ REFACTORED → js/features/quiz/quizCore.js
+    // ============================================================
+    // function reloadAndRefresh() → js/features/quiz/quizCore.js
+    // function updateFlagButtonsUI() → js/features/quiz/quizCore.js
+    // function displayQuestion() → js/features/quiz/quizCore.js
+    //
+    // 위 함수들은 app.js를 통해 전역으로 노출됨
+
+    /* [이전 코드 - quizCore.js로 이동됨]
     function reloadAndRefresh(){
       if(isPartValue(el.chapterSelect.value)){
         summaryViewMode='CURRENT';
@@ -1201,11 +1211,7 @@ function updateDDayDisplay() {
     el.chapterSelect.addEventListener('change', reloadAndRefresh);
     el.filterSelect.addEventListener('change', reloadAndRefresh);
     el.loadQuizBtn.addEventListener('click', reloadAndRefresh);
-    el.randomQuizBtn.addEventListener('click',()=>{
-      const list=getFilteredByUI(); if(!list.length){ showToast('선택 조건에 맞는 문제가 없습니다.','warn'); return; }
-      currentQuizData=list; currentQuestionIndex=Math.floor(Math.random()*list.length);
-      el.quizArea.classList.remove('hidden'); el.summaryArea.classList.remove('hidden'); displayQuestion(); updateSummary(); refreshPanels(); showToast('랜덤 문제 시작!');
-    });
+    el.randomQuizBtn.addEventListener('click', startRandomQuiz);
 
     function updateFlagButtonsUI(saved) {
       const flagged = !!(saved?.userReviewFlag);
@@ -1229,21 +1235,18 @@ function updateDDayDisplay() {
       el.questionCounter.textContent=`${currentQuestionIndex+1} / ${currentQuizData.length}`;
       el.dbQuestionId.textContent=`ID: ${q.고유ID??'-'}`;
       activeHintQuestionKey=null; el.hintBox.classList.add('hidden'); el.hintBox.innerHTML='';
-      el.resultBox.classList.add('hidden'); el.modelAnswerBox.classList.add('hidden'); el.userAnswer.value='';
+      el.resultBox.classList.add('hidden'); el.userAnswer.value='';
       el.loadPrevAnswerBtn.textContent='이전 답안 불러오기'; el.loadPrevAnswerBtn.removeAttribute('aria-pressed'); prevLoaded=false;
 
       const saved=questionScores[normId(q.고유ID)];
       updateFlagButtonsUI(saved);
 
-      if(saved && saved.score!==undefined){
-        showResult(saved.score, saved.feedback);
-        el.correctAnswer.textContent=String(q.정답||'');
-        el.modelAnswerBox.classList.remove('hidden');
-      }
+      if(saved && saved.score!==undefined) showResult(saved.score, saved.feedback, q.정답);
       el.prevBtn.disabled=(currentQuestionIndex===0);
       el.nextBtn.disabled=(currentQuizData.length-1===currentQuestionIndex);
       updateSummaryHighlight();
     }
+    [이전 코드 종료] */
 
     // 복습추가(★) 클릭 → 제외(➖)와 상호배타
     el.reviewFlagToggle.addEventListener('click',()=>{
@@ -1292,8 +1295,11 @@ function updateDDayDisplay() {
       }
     });
 
-    el.prevBtn.addEventListener('click',()=>{ if(currentQuestionIndex>0){ currentQuestionIndex--; displayQuestion(); } });
-    el.nextBtn.addEventListener('click',()=>{ if(currentQuestionIndex<currentQuizData.length-1){ currentQuestionIndex++; displayQuestion(); } });
+    // ============================================================
+    // ✂️ REFACTORED → js/features/quiz/navigation.js
+    // ============================================================
+    el.prevBtn.addEventListener('click', handlePrevQuestion);
+    el.nextBtn.addEventListener('click', handleNextQuestion);
     el.userAnswer.addEventListener('input',()=> el.errorMessage.classList.add('hidden'));
     el.userAnswer.addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); el.gradeBtn.click(); } });
 
@@ -1315,11 +1321,6 @@ function updateDDayDisplay() {
       const answer=el.userAnswer.value.trim(); if(!answer){ el.errorMessage.textContent='답안을 입력해주세요.'; el.errorMessage.classList.remove('hidden'); el.userAnswer.focus(); return; }
       el.errorMessage.classList.add('hidden');
       const q=currentQuizData[currentQuestionIndex], qKey=normId(q.고유ID);
-
-      // 모범답안을 즉시 표시
-      el.correctAnswer.textContent=String(q.정답||'');
-      el.modelAnswerBox.classList.remove('hidden');
-
       setLoading(true);
       try{
         let {score, feedback}=await callGeminiAPI(answer, q.정답, geminiApiKey);
@@ -1327,7 +1328,7 @@ function updateDDayDisplay() {
         const usedHint=(activeHintQuestionKey===qKey);
         const finalScore= usedHint? Math.min(59, Math.round(score*0.8)) : score;
         const finalFeedback= usedHint? `${feedback?feedback+' ':''}(힌트사용으로 감점)` : feedback;
-        showResult(finalScore, finalFeedback);
+        showResult(finalScore, finalFeedback, q.정답);
 
         const existing=questionScores[qKey]||{}, newHistory=[...(existing.solveHistory||[]), {date:Date.now(), score:finalScore}];
         questionScores[qKey]={ score:finalScore, feedback:finalFeedback, user_answer:answer, hintUsed:usedHint, isSolved:true, lastSolvedDate:Date.now(), solveHistory:newHistory, userReviewFlag:!!existing.userReviewFlag, userReviewExclude: !!existing.userReviewExclude };
@@ -1366,11 +1367,11 @@ function updateDDayDisplay() {
     // [리팩토링] Gemini Text API 함수도 js/services/geminiApi.js로 이동됨
     // async function callGeminiTextAPI(...) → js/services/geminiApi.js
 
-    function showResult(scoreVal, feedback){
+    function showResult(scoreVal, feedback, correctAnswer){
       const s=clamp(+scoreVal,0,100);
       el.score.textContent=s.toFixed(1); el.progressBar.style.width=`${s}%`; el.progressBar.setAttribute('aria-valuenow',String(Math.round(s)));
       el.progressBar.className='h-4 rounded-full transition-all duration-500 ease-out '+(s<60?'bg-red-500': s<80?'bg-yellow-500':'bg-blue-600');
-      el.aiFeedback.textContent=String(feedback||''); el.resultBox.classList.remove('hidden');
+      el.aiFeedback.textContent=String(feedback||''); el.correctAnswer.textContent=String(correctAnswer||''); el.resultBox.classList.remove('hidden');
     }
     [이전 코드 종료] */
 
@@ -1539,61 +1540,18 @@ function updateDDayDisplay() {
       }
     });
 
-    function ensureResultBoxReady(){ if(currentQuizData.length){ const q=currentQuizData[currentQuestionIndex]; if(!el.correctAnswer.textContent?.trim()) el.correctAnswer.textContent=String(q.정답||''); el.modelAnswerBox.classList.remove('hidden'); } el.resultBox.classList.remove('hidden'); }
-    function enterFocusMode(){
-      lastScrollYBeforeFocus=window.pageYOffset;
-      document.documentElement.classList.add('focus-mode');
-      ensureResultBoxReady();
-
-      const headerHeight = el.fixedHeader?.getBoundingClientRect().height || 0;
-      const margin = 12;
-      const viewportHeight = window.innerHeight;
-
-      // userAnswer 상단 위치
-      const userAnswerTop = el.userAnswer.getBoundingClientRect().top + window.pageYOffset - headerHeight - margin;
-
-      // 모범답안 박스가 표시되어 있으면, 모범답안 박스 하단까지 보이도록 스크롤
-      if(el.modelAnswerBox && !el.modelAnswerBox.classList.contains('hidden')){
-        const modelAnswerBottom = el.modelAnswerBox.getBoundingClientRect().bottom + window.pageYOffset;
-        const contentHeight = modelAnswerBottom - (el.userAnswer.getBoundingClientRect().top + window.pageYOffset);
-
-        // 전체 콘텐츠가 viewport보다 크면, userAnswer 상단을 기준으로 스크롤
-        // 그렇지 않으면 모범답안 박스 하단이 보이도록 스크롤
-        if(contentHeight > viewportHeight - headerHeight - margin * 2){
-          window.scrollTo({top:Math.max(0, userAnswerTop), behavior:'smooth'});
-        } else {
-          const targetScroll = modelAnswerBottom - viewportHeight + margin;
-          window.scrollTo({top:Math.max(0, Math.max(userAnswerTop, targetScroll)), behavior:'smooth'});
-        }
-      } else {
-        window.scrollTo({top:Math.max(0, userAnswerTop), behavior:'smooth'});
-      }
-
-      ctrlNavState='focus';
-    }
-    function exitToDashboard(){ document.documentElement.classList.remove('focus-mode'); if(el.summaryArea) window.scrollTo({top:el.summaryArea.getBoundingClientRect().top + window.pageYOffset - (el.fixedHeader?.getBoundingClientRect().height||0) - 8, behavior:'smooth'}); else window.scrollTo({top:0,behavior:'smooth'}); ctrlNavState='dashboard'; }
-    function backFromFocus(){ document.documentElement.classList.remove('focus-mode'); window.scrollTo({top:Math.max(0,lastScrollYBeforeFocus),behavior:'smooth'}); ctrlNavState='dashboard'; }
-    const isEditing=t=> t && (t.tagName==='INPUT' || t.tagName==='TEXTAREA' || t.isContentEditable);
-    document.addEventListener('keydown',e=>{
-      // H: 힌트
-      if((e.key==='h'||e.key==='H') && !isEditing(e.target)){ e.preventDefault(); el.hintBtn?.click(); return; }
-      // R: 랜덤 문제
-      if((e.key==='r'||e.key==='R') && !isEditing(e.target)){ e.preventDefault(); el.randomQuizBtn?.click(); return; }
-      // L: 이전 답안 불러오기
-      if((e.key==='l'||e.key==='L') && !isEditing(e.target)){ e.preventDefault(); el.loadPrevAnswerBtn?.click(); return; }
-      // X: 복습 제외 토글
-      if((e.key==='x'||e.key==='X') && !isEditing(e.target)){ e.preventDefault(); el.reviewExcludeToggle?.click(); return; }
-      // S: 학습 현황판으로 스크롤
-      if((e.key==='s'||e.key==='S') && !isEditing(e.target)){ e.preventDefault(); if(el.summaryArea && !el.summaryArea.classList.contains('hidden')) window.scrollTo({top:el.summaryArea.getBoundingClientRect().top + window.pageYOffset - (el.fixedHeader?.getBoundingClientRect().height||0) - 8, behavior:'smooth'}); return; }
-      // G: 채점하기 (textarea에 포커스 없을 때)
-      if((e.key==='g'||e.key==='G') && !isEditing(e.target)){ e.preventDefault(); el.gradeBtn?.click(); return; }
-      if(e.ctrlKey && !e.altKey && !e.metaKey){
-        if(e.key==='ArrowLeft'){ e.preventDefault(); el.prevBtn?.click(); return; }
-        if(e.key==='ArrowRight'){ e.preventDefault(); el.nextBtn?.click(); return; }
-        if(e.key==='['){ e.preventDefault(); if(ctrlNavState==='focus') backFromFocus(); else window.scrollTo({top:0,behavior:'smooth'}); return; }
-        if(e.key===']'){ e.preventDefault(); if(ctrlNavState!=='focus') enterFocusMode(); else exitToDashboard(); return; }
-      }
-    });
+    // ============================================================
+    // ✂️ REFACTORED → js/features/quiz/navigation.js
+    // ============================================================
+    // function ensureResultBoxReady() → js/features/quiz/navigation.js (internal helper)
+    // function enterFocusMode() → js/features/quiz/navigation.js
+    // function exitToDashboard() → js/features/quiz/navigation.js
+    // function backFromFocus() → js/features/quiz/navigation.js
+    // ============================================================
+    // ✂️ REFACTORED → js/features/quiz/navigation.js
+    // ============================================================
+    // 키보드 단축키 핸들러 → js/features/quiz/navigation.js (initKeyboardShortcuts)
+    // app.js의 DOMContentLoaded에서 initKeyboardShortcuts() 호출됨
 
     const getScopeFilteredData=()=> filterByChapterSelection(applySourceFilter(allData||[]));
 
