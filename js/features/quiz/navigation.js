@@ -64,6 +64,9 @@ export function handleNextQuestion() {
 
 /**
  * 결과 박스가 준비되도록 보장
+ * - 정답 텍스트 설정
+ * - 모범답안 박스 표시
+ * - 결과 박스 표시
  */
 function ensureResultBoxReady() {
   const el = getElements();
@@ -79,6 +82,8 @@ function ensureResultBoxReady() {
         el.correctAnswer.textContent = String(q.정답 || '');
       }
     }
+    // 모범답안 박스 표시
+    el.modelAnswerBox?.classList.remove('hidden');
   }
 
   el.resultBox?.classList.remove('hidden');
@@ -87,7 +92,7 @@ function ensureResultBoxReady() {
 /**
  * 포커스 모드 진입
  * - 현재 스크롤 위치 저장
- * - 답안 입력란으로 스크롤
+ * - 답안 입력란으로 스크롤 (모범답안 박스 고려)
  * - focus-mode 클래스 추가
  */
 export function enterFocusMode() {
@@ -103,15 +108,33 @@ export function enterFocusMode() {
   // 결과 박스 준비
   ensureResultBoxReady();
 
-  // 답안 입력란으로 스크롤
-  const header = el.userAnswer;
+  // 스크롤 위치 계산
+  const headerHeight = el.fixedHeader?.getBoundingClientRect().height || 0;
   const margin = 12;
-  const y = header.getBoundingClientRect().top +
-            window.pageYOffset -
-            (el.fixedHeader?.getBoundingClientRect().height || 0) -
-            margin;
+  const viewportHeight = window.innerHeight;
 
-  window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+  // userAnswer 상단 위치
+  const userAnswerTop = el.userAnswer.getBoundingClientRect().top +
+                        window.pageYOffset -
+                        headerHeight -
+                        margin;
+
+  // 모범답안 박스가 표시되어 있으면, 모범답안 박스 하단까지 보이도록 스크롤
+  if (el.modelAnswerBox && !el.modelAnswerBox.classList.contains('hidden')) {
+    const modelAnswerBottom = el.modelAnswerBox.getBoundingClientRect().bottom + window.pageYOffset;
+    const contentHeight = modelAnswerBottom - (el.userAnswer.getBoundingClientRect().top + window.pageYOffset);
+
+    // 전체 콘텐츠가 viewport보다 크면, userAnswer 상단을 기준으로 스크롤
+    // 그렇지 않으면 모범답안 박스 하단이 보이도록 스크롤
+    if (contentHeight > viewportHeight - headerHeight - margin * 2) {
+      window.scrollTo({ top: Math.max(0, userAnswerTop), behavior: 'smooth' });
+    } else {
+      const targetScroll = modelAnswerBottom - viewportHeight + margin;
+      window.scrollTo({ top: Math.max(0, Math.max(userAnswerTop, targetScroll)), behavior: 'smooth' });
+    }
+  } else {
+    window.scrollTo({ top: Math.max(0, userAnswerTop), behavior: 'smooth' });
+  }
 
   // 네비게이션 상태 업데이트
   ctrlNavState = 'focus';
