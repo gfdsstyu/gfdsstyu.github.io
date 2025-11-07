@@ -162,6 +162,15 @@ export async function handleGrade() {
 
   const qKey = normId(q.고유ID);
 
+  // ⭐ 즉시 모범답안 표시 (AI 채점 대기 필요 없음)
+  if (el.correctAnswer) {
+    el.correctAnswer.textContent = String(q.정답 || '');
+  }
+  if (el.modelAnswerBox) {
+    el.modelAnswerBox.classList.remove('hidden');
+    console.log('✅ 모범답안 즉시 표시 (AI 채점 전)');
+  }
+
   setGradeLoading(true);
 
   try {
