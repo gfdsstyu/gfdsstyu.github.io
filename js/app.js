@@ -253,6 +253,9 @@ window.detectSourceGroup = Filter.detectSourceGroup;
 window.applySourceFilter = Filter.applySourceFilter;
 window.filterByChapterSelection = Filter.filterByChapterSelection;
 window.getFilteredByUI = Filter.getFilteredByUI;
+window.SOURCE_LS = Filter.SOURCE_LS;
+window.BASIC_TAGS = Filter.BASIC_TAGS;
+window.ADV_TAGS = Filter.ADV_TAGS;
 
 // Summary (요약/대시보드)
 window.Summary = Summary;
