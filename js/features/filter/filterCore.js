@@ -8,11 +8,11 @@ import { normId } from '../../utils/helpers.js';
 import { getQuestionScores, getAllData } from '../../core/stateManager.js';
 
 // 필터 설정 저장 키
-const SOURCE_LS = 'sourceFilterSelectionV1';
+export const SOURCE_LS = 'sourceFilterSelectionV1';
 
 // 출처 태그 분류
-const BASIC_TAGS = ['S', 'H', 'HS'];
-const ADV_TAGS = ['SS', 'P'];
+export const BASIC_TAGS = ['S', 'H', 'HS'];
+export const ADV_TAGS = ['SS', 'P'];
 
 /**
  * 출처 필터 UI 생성 및 초기화
