@@ -18,9 +18,6 @@ export function updateSummary() {
   const questionScores = getQuestionScores();
   const currentQuizData = getCurrentQuizData();
   const allData = getAllData();
-  const isFlashcardMode = window.isFlashcardMode || false;
-  const flashcardData = window.flashcardData || [];
-  const flashcardIndex = window.flashcardIndex || 0;
 
   const base = (summaryViewMode === 'CURRENT') ? (currentQuizData || []) : (allData || []);
 
@@ -157,35 +154,30 @@ export function updateSummary() {
       btn.dataset.qid = id;
 
       btn.addEventListener('click', () => {
-        // Handle flashcard mode separately
-        if (isFlashcardMode) {
-          const idx = flashcardData.findIndex(it => String(it.고유ID).trim() === id);
-          if (idx !== -1) {
-            window.flashcardIndex = idx;
-            if (typeof window.displayFlashcard === 'function') {
-              window.displayFlashcard();
-            }
-            updateSummaryHighlight();
-            showToast(`'${baseLabel}'로 이동`);
-          } else {
-            showToast('현재 필터에 없는 문제입니다', 'warning');
+        // Get the chapter set for the clicked problem
+        const chVal = String(q.단원).trim();
+        const set = base.filter(it => String(it.단원).trim() === chVal);
+
+        if (!set.length) {
+          showToast('데이터셋을 찾는 데 실패했습니다', 'error');
+          return;
+        }
+
+        // Handle flashcard mode
+        if (window.isFlashcardMode) {
+          // Use jumpToFlashcard function from flashcard module
+          if (typeof window.jumpToFlashcard === 'function') {
+            window.jumpToFlashcard(set, id, baseLabel);
           }
           return;
         }
 
         // Handle regular quiz mode
-        let idx = currentQuizData.findIndex(it => String(it.고유ID).trim() === id);
-        if (idx === -1) {
-          const chVal = String(q.단원).trim();
-          const set = allData.filter(it => String(it.단원).trim() === chVal);
-          if (set.length) {
-            window.currentQuizData = set;
-            idx = set.findIndex(it => String(it.고유ID).trim() === id);
-            setCurrentQuestionIndex(idx >= 0 ? idx : 0);
-          }
-        } else {
-          setCurrentQuestionIndex(idx);
-        }
+        let idx = set.findIndex(it => String(it.고유ID).trim() === id);
+        if (idx < 0) idx = 0;
+
+        window.currentQuizData = set;
+        setCurrentQuestionIndex(idx);
 
         el.quizArea.classList.remove('hidden');
         if (typeof window.displayQuestion === 'function') {
@@ -219,15 +211,20 @@ export function updateSummaryHighlight() {
   const el = getElements();
   const currentQuizData = getCurrentQuizData();
   const currentQuestionIndex = getCurrentQuestionIndex();
-  const isFlashcardMode = window.isFlashcardMode || false;
-  const flashcardData = window.flashcardData || [];
-  const flashcardIndex = window.flashcardIndex || 0;
 
   // Support both quiz mode and flashcard mode
   let currentId;
-  if (isFlashcardMode && flashcardData.length) {
-    currentId = String(flashcardData[flashcardIndex]?.고유ID).trim();
-  } else if (currentQuizData.length) {
+  if (window.isFlashcardMode) {
+    // Get flashcard info from module
+    const flashcardInfo = typeof window.getCurrentFlashcardInfo === 'function'
+      ? window.getCurrentFlashcardInfo()
+      : null;
+    if (flashcardInfo && flashcardInfo.고유ID) {
+      currentId = String(flashcardInfo.고유ID).trim();
+    } else {
+      return;
+    }
+  } else if (currentQuizData && currentQuizData.length) {
     currentId = String(currentQuizData[currentQuestionIndex]?.고유ID).trim();
   } else {
     return;

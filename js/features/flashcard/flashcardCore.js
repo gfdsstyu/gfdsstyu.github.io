@@ -215,6 +215,20 @@ export function jumpToFlashcard(list, questionId, label) {
 }
 
 /**
+ * 현재 플래시카드 정보 가져오기 (summary highlight용)
+ * @returns {{고유ID: string, index: number, data: Array} | null}
+ */
+export function getCurrentFlashcardInfo() {
+  if (!window.isFlashcardMode || !flashcardData.length) return null;
+
+  return {
+    고유ID: flashcardData[flashcardIndex]?.고유ID,
+    index: flashcardIndex,
+    data: flashcardData
+  };
+}
+
+/**
  * 플래시카드 모드 종료
  */
 export function exitFlashcardMode() {
