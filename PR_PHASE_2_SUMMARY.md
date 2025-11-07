@@ -114,11 +114,11 @@ app.js (진입점)
 | **Phase 2.5** | ✅ **완료** | **quiz/navigation.js 생성** |
 | **Phase 2.6** | ✅ **완료** | **중복 코드 제거 (200줄 감소)** |
 | **Phase 3.1** | ✅ **완료** | **features/filter/ 모듈 분리 (6개 함수)** |
-| Phase 3.2 | 🔄 **진행 중** | **features/summary/ 모듈 분리** |
-| Phase 3.3 | 📋 계획 | calendar 모듈 분리 |
+| **Phase 3.2** | ✅ **완료** | **features/summary/ 모듈 분리 (3개 함수)** |
+| Phase 3.3 | 🔄 **진행 중** | **calendar 모듈 분리** |
 | Phase 4 | 📋 계획 | report, flashcard, achievements 모듈 분리 |
 
-**전체 진행률**: ~52% (12/23 모듈 완료)
+**전체 진행률**: ~56% (13/23 모듈 완료)
 
 **생성된 모듈 목록**:
 1. ✅ config/config.js
@@ -133,6 +133,7 @@ app.js (진입점)
 10. ✅ **features/quiz/quizCore.js**
 11. ✅ **features/quiz/navigation.js**
 12. ✅ **features/filter/filterCore.js** (Phase 3.1)
+13. ✅ **features/summary/summaryCore.js** (Phase 3.2)
 
 ---
 
@@ -201,6 +202,16 @@ f1ef971 - refactor: Phase 2.1 완료 - core/dataManager.js 생성
 - ✅ import 경로 수정 (getElements → stateManager.js)
 - ✅ 커밋: 309c17e, ef3b927
 
+### Phase 3.2: features/summary/ 모듈 분리 완료 ✅
+- ✅ **js/features/summary/summaryCore.js 생성** (275줄)
+- ✅ 3개 요약 함수 모듈화:
+  - `updateSummary()` - 단원별 학습 현황 요약 표시
+  - `updateSummaryHighlight()` - 현재 문제 하이라이트
+  - `ensureResultBoxReady()` - 결과 박스 초기화
+- ✅ index.html 135줄 → 7줄 마커 (128줄 감소)
+- ✅ 이벤트 리스너 유지 (clearFilterBtn, resetScoresBtn)
+- ✅ 커밋: 8e10074
+
 ### 버그 수정 및 개선 사항
 1. ✅ **변수 shadowing 문제 해결** - 로컬 let 선언 제거, Object.defineProperty 사용
 2. ✅ **모듈 로딩 순서 문제 해결** - app.js 명시적 import 추가
@@ -215,11 +226,12 @@ f1ef971 - refactor: Phase 2.1 완료 - core/dataManager.js 생성
 11. ✅ **모바일 차트 압축 문제** - maintainAspectRatio: false + 모바일 CSS 추가
 12. ✅ **filterCore.js import 경로 수정** - getElements 위치 수정
 
-### 현재 상태: Phase 3.2 진행 중 🔄
-**목표**: features/summary/ 모듈 분리
-- updateSummary() - 요약 통계 업데이트
-- updateSummaryHighlight() - 하이라이트 표시
-- refreshPanels() - 패널 새로고침
+### 현재 상태: Phase 3.3 진행 중 🔄
+**목표**: features/calendar/ 모듈 분리
+- renderCalendarMonth() - 캘린더 월 렌더링
+- renderStats() - 통계 렌더링
+- renderStatsDateNav() - 통계 날짜 네비게이션
+- bindCalendarDateClick() - 캘린더 클릭 이벤트
 
 ## 🔜 다음 단계
 

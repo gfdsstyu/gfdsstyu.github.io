@@ -113,9 +113,10 @@
 
 ### 📦 features/summary/ (요약/대시보드)
 **Priority: MEDIUM** ⭐⭐
-- ❌ `updateSummary()` - 요약 업데이트 (1319줄)
-- ❌ `updateSummaryHighlight()` - 요약 하이라이트 (1428줄)
-- ❌ `ensureResultBoxReady()` - 결과 박스 준비 (1460줄)
+- ✅ `updateSummary()` - 요약 업데이트 → summaryCore.js
+- ✅ `updateSummaryHighlight()` - 요약 하이라이트 → summaryCore.js
+- ✅ `ensureResultBoxReady()` - 결과 박스 준비 → summaryCore.js
+- ✅ **Phase 3.2 완료 - js/features/summary/summaryCore.js로 이동됨**
 
 ### 📦 features/calendar/ (캘린더)
 **Priority: MEDIUM** ⭐⭐
@@ -255,9 +256,10 @@
 ## 📊 통계
 
 - **총 함수 개수**: ~124개 (index.html에서 카운트)
-- **모듈로 이동 완료**: ~51개 (41%) ⬆️ +6 (Phase 3.1 filter 완료)
-- **아직 남아있음**: ~73개 (59%)
+- **모듈로 이동 완료**: ~54개 (44%) ⬆️ +3 (Phase 3.2 summary 완료)
+- **아직 남아있음**: ~70개 (56%)
 - **중복 코드 제거**: ✅ Phase 2.6 완료 (200줄 감소)
+- **총 라인 감소**: 738줄 (4802 → 4064줄)
 
 ## ✅ Phase 2.6: 중복 코드 제거 작업 (완료)
 
@@ -299,6 +301,21 @@
 - ✅ import 경로 수정 (getElements)
 - ✅ 커밋 완료 (commit: 309c17e, ef3b927)
 
+## ✅ Phase 3.2: features/summary/ 모듈 분리 (완료)
+
+### 생성된 모듈
+- **js/features/summary/summaryCore.js** (275줄)
+  - `updateSummary()` - 단원별 학습 현황 요약 표시
+  - `updateSummaryHighlight()` - 현재 문제 하이라이트
+  - `ensureResultBoxReady()` - 결과 박스 초기화
+
+### 완료된 작업
+- ✅ 모듈 생성 및 함수 이동
+- ✅ app.js 통합 및 전역 노출
+- ✅ index.html 중복 제거 (135줄 → 7줄 마커, 128줄 감소)
+- ✅ 이벤트 리스너 유지 (clearFilterBtn, resetScoresBtn)
+- ✅ 커밋 완료 (commit: 8e10074)
+
 ---
 
 ## 🎯 우선순위 추천
@@ -320,8 +337,8 @@
 
 ### Phase 3 (Medium) - 🔄 진행 중
 12. ✅ features/filter/ (Phase 3.1 완료)
-13. 🔄 features/summary/ (Phase 3.2 진행 중)
-14. ❌ features/calendar/
+13. ✅ features/summary/ (Phase 3.2 완료)
+14. 🔄 features/calendar/ (Phase 3.3 진행 중)
 15. ❌ features/settings/
 16. ❌ services/dataImportExport.js
 17. ❌ features/explorer/
