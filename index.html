@@ -720,8 +720,14 @@
     let ctrlNavState='dashboard', lastScrollYBeforeFocus=0;
 
     let calRefDate = (() => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(1); return d; })();
+
+// ⚠️ CRITICAL: statsRefDate는 로컬 변수로 선언하지 않음
+// window.statsRefDate (app.js에서 StorageManager와 연결됨)를 사용
+// 로컬 선언 시 window 변수를 가려서(shadowing) 동기화 실패
+/* [이전 코드 - 로컬 변수 선언 제거됨]
 let statsRefDate = new Date();
 statsRefDate.setHours(0,0,0,0);
+[이전 코드 종료] */
 
 // ============================================================
 // ✂️ REFACTORED → js/core/storageManager.js

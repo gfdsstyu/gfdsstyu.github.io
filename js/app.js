@@ -206,7 +206,13 @@ window.backfillReadStoreFromScores = StorageManager.backfillReadStoreFromScores;
 window.registerUniqueRead = StorageManager.registerUniqueRead;
 window.getStatsRefDate = StorageManager.getStatsRefDate;
 window.setStatsRefDate = StorageManager.setStatsRefDate;
-window.statsRefDate = StorageManager.statsRefDate; // 전역 변수로도 노출
+// statsRefDate를 전역 변수로 노출 (Object.defineProperty 사용 - 하위 호환성)
+// ⚠️ CRITICAL: StorageManager의 내부 변수와 동기화하기 위해 getter/setter 사용
+Object.defineProperty(window, 'statsRefDate', {
+  get: () => StorageManager.getStatsRefDate(),
+  set: (value) => StorageManager.setStatsRefDate(value),
+  configurable: true
+});
 
 // Grading (채점 및 힌트)
 window.Grading = Grading;
