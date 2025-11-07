@@ -109,11 +109,14 @@ app.js (진입점)
 | Phase 1 | ✅ 완료 | 기본 모듈 구조 (config, utils, ui, services) |
 | **Phase 2.1** | ✅ **완료** | **dataManager.js 생성** |
 | **Phase 2.2** | ✅ **완료** | **storageManager.js 생성** |
-| Phase 2.3 | 🔄 대기 | quiz 모듈 분리 |
+| **Phase 2.3** | ✅ **완료** | **quiz/grading.js 생성** |
+| **Phase 2.4** | ✅ **완료** | **quiz/quizCore.js 생성** |
+| **Phase 2.5** | ✅ **완료** | **quiz/navigation.js 생성** |
+| Phase 2.6 | 🔄 **진행 중** | **중복 코드 제거 및 정리** |
 | Phase 3 | 📋 계획 | filter, summary, calendar 모듈 분리 |
 | Phase 4 | 📋 계획 | report, flashcard, achievements 모듈 분리 |
 
-**전체 진행률**: ~35% (8/23 모듈 완료)
+**전체 진행률**: ~48% (11/23 모듈 완료)
 
 **생성된 모듈 목록**:
 1. ✅ config/config.js
@@ -122,8 +125,11 @@ app.js (진입점)
 4. ✅ ui/domUtils.js
 5. ✅ services/geminiApi.js
 6. ✅ core/stateManager.js
-7. ✅ **core/dataManager.js** (이번 PR)
-8. ✅ **core/storageManager.js** (이번 PR)
+7. ✅ **core/dataManager.js**
+8. ✅ **core/storageManager.js**
+9. ✅ **features/quiz/grading.js**
+10. ✅ **features/quiz/quizCore.js**
+11. ✅ **features/quiz/navigation.js**
 
 ---
 
@@ -164,14 +170,33 @@ f1ef971 - refactor: Phase 2.1 완료 - core/dataManager.js 생성
 
 ---
 
+## 🆕 최근 업데이트 (Phase 2.3-2.6)
+
+### Phase 2.3-2.5: Quiz 모듈 분리 완료 ✅
+- ✅ features/quiz/quizCore.js (퀴즈 핵심 로직)
+- ✅ features/quiz/grading.js (채점 로직)
+- ✅ features/quiz/navigation.js (네비게이션)
+
+### 버그 수정 및 개선 사항
+1. ✅ **변수 shadowing 문제 해결** - 로컬 let 선언 제거, Object.defineProperty 사용
+2. ✅ **모듈 로딩 순서 문제 해결** - app.js 명시적 import 추가
+3. ✅ **함수 노출 문제 해결** - window.getFilteredByUI 등 전역 노출
+4. ✅ **모범답안 박스 초기화** - elements.js에 modelAnswerBox 추가
+5. ✅ **통계 UI 문제 해결** - statsRefDate shadowing 해결
+6. ✅ **캘린더/통계 데이터 로딩** - window.questionScores 명시적 접근
+7. ✅ **문제 정렬 순서 개선** - 단원 → 표시번호 기준 정렬
+8. ✅ **Favicon 404 에러 해결** - 인라인 SVG favicon 추가
+9. ✅ **모범답안 즉시 표시** - AI 채점 전에 모범답안 표시
+10. ✅ **업적 팝업 즉시 표시** - UI 렌더링 후 팝업 표시 (150ms 지연)
+11. ✅ **모바일 차트 압축 문제** - maintainAspectRatio: false + 모바일 CSS 추가
+
+### 현재 상태: Phase 2.6 진행 중 🔄
+**목표**: 중복 코드 제거 및 코드베이스 정리
+- 주석 처리된 이전 코드 블록 검토 및 제거
+- 중복 함수 정의 완전 제거
+- 각 단계마다 동작 확인
+
 ## 🔜 다음 단계
-
-Phase 2.3 이후 작업은 별도 PR로 진행할 예정입니다:
-
-**Phase 2.3-2.5: Quiz 모듈 분리** (다음 작업)
-- features/quiz/quizCore.js (퀴즈 핵심 로직)
-- features/quiz/grading.js (채점 로직)
-- features/quiz/navigation.js (네비게이션)
 
 **Phase 3: 기능 모듈 분리**
 - features/filter/ (필터링)

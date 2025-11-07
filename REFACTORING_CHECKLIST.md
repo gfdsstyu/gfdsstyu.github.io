@@ -51,24 +51,25 @@
 
 ### 📦 core/dataManager.js (데이터 관리)
 **Priority: HIGH** ⭐⭐⭐
-- ❌ `loadData()` - 문제 데이터 로드 (842줄)
-- ❌ `selfTest()` - 데이터 검증 (862줄)
-- ❌ `getAllChapterNums()` - 단원 번호 추출 (836줄)
-- ❌ `populateChapterSelect()` - 단원 선택 UI 채우기 (870줄)
+- ✅ `loadData()` - 문제 데이터 로드
+- ✅ `selfTest()` - 데이터 검증
+- ✅ `getAllChapterNums()` - 단원 번호 추출
+- ✅ `populateChapterSelect()` - 단원 선택 UI 채우기
+- ⚠️ **index.html에 중복 코드 남아있음 (line 928-973) - 제거 필요**
 
 ### 📦 core/storageManager.js (스토리지 관리)
 **Priority: HIGH** ⭐⭐⭐
-- ❌ `loadScores()` - 점수 로드 (884줄)
-- ❌ `loadApiKey()` - API 키 로드 (885줄)
-- ❌ `loadSettings()` - 설정 로드 (886줄)
-- ❌ `migrateData()` - 데이터 마이그레이션 (888줄)
-- ❌ `enforceExclusiveFlagsOnAll()` - 플래그 정합성 (903줄)
-- ❌ `setFlagState()` - 플래그 상태 설정 (916줄)
-- ❌ `loadReadStore()` - 회독 스토어 로드 (1301줄)
-- ❌ `saveReadStore()` - 회독 스토어 저장 (1302줄)
-- ❌ `computeUniqueReadsFromHistory()` - 고유 회독 계산 (1303줄)
-- ❌ `backfillReadStoreFromScores()` - 회독 데이터 복원 (1304줄)
-- ❌ `registerUniqueRead()` - 회독 등록 (1312줄)
+- ✅ `loadScores()` - 점수 로드
+- ✅ `loadApiKey()` - API 키 로드
+- ⚠️ `loadSettings()` - 설정 로드 (index.html에 남아있음 - line 982)
+- ✅ `migrateData()` - 데이터 마이그레이션
+- ✅ `enforceExclusiveFlagsOnAll()` - 플래그 정합성
+- ✅ `setFlagState()` - 플래그 상태 설정
+- ✅ `loadReadStore()` - 회독 스토어 로드
+- ✅ `saveReadStore()` - 회독 스토어 저장
+- ✅ `computeUniqueReadsFromHistory()` - 고유 회독 계산
+- ✅ `backfillReadStoreFromScores()` - 회독 데이터 복원
+- ✅ `registerUniqueRead()` - 회독 등록
 
 ### 📦 core/scoreManager.js (점수 관리)
 **Priority: MEDIUM** ⭐⭐
@@ -80,20 +81,25 @@
 **Priority: HIGH** ⭐⭐⭐
 
 #### features/quiz/quizCore.js
-- ❌ `reloadAndRefresh()` - 퀴즈 로드 (1124줄)
-- ❌ `displayQuestion()` - 문제 표시 (1165줄)
-- ❌ `updateFlagButtonsUI()` - 플래그 버튼 UI (1152줄)
+- ✅ `reloadAndRefresh()` - 퀴즈 로드
+- ✅ `displayQuestion()` - 문제 표시
+- ✅ `updateFlagButtonsUI()` - 플래그 버튼 UI
+- ✅ `startRandomQuiz()` - 랜덤 퀴즈 시작
+- ✅ `getFilteredByUI()` - UI 필터링 (정렬 로직 포함)
+- ⚠️ **index.html에 중복 코드 남아있음 (line 1272-1341) - 제거 필요**
 
 #### features/quiz/grading.js
-- ❌ `handleGrade()` - 채점 처리 (1239줄)
-- ❌ `handleHint()` - 힌트 처리 (1274줄)
-- ❌ `showResult()` - 결과 표시 (1290줄)
+- ✅ `handleGrade()` - 채점 처리
+- ✅ `handleHint()` - 힌트 처리
+- ✅ `showResult()` - 결과 표시
+- ✅ **모범답안 즉시 표시 기능 추가**
+- ⚠️ **index.html에 중복 코드 남아있음 (line 1415-1434) - 제거 필요**
 
 #### features/quiz/navigation.js
-- ❌ `enterFocusMode()` - 포커스 모드 진입 (1461줄)
-- ❌ `exitToDashboard()` - 대시보드로 나가기 (1462줄)
-- ❌ `backFromFocus()` - 포커스 모드 나가기 (1463줄)
-- ❌ prevBtn, nextBtn 이벤트 핸들러
+- ✅ `enterFocusMode()` - 포커스 모드 진입
+- ✅ `exitToDashboard()` - 대시보드로 나가기
+- ✅ `backFromFocus()` - 포커스 모드 나가기
+- ✅ prevBtn, nextBtn 이벤트 핸들러
 
 ### 📦 features/filter/ (필터링/검색)
 **Priority: MEDIUM** ⭐⭐
@@ -247,9 +253,41 @@
 
 ## 📊 통계
 
-- **총 함수 개수**: ~99개
-- **모듈로 이동 완료**: ~30개 (30%)
-- **아직 남아있음**: ~69개 (70%)
+- **총 함수 개수**: ~124개 (index.html에서 카운트)
+- **모듈로 이동 완료**: ~45개 (36%)
+- **아직 남아있음**: ~79개 (64%)
+- **중복 코드 블록**: ~25개 주석 블록 (제거 필요)
+
+## ⚠️ Phase 2.6: 중복 코드 제거 작업 (진행 중)
+
+### 발견된 중복 함수 (index.html에 남아있음)
+1. **core/dataManager.js 중복**:
+   - `loadData()` (line 928-951)
+   - `selfTest()` (line 952-958)
+   - `populateChapterSelect()` (line 960-972)
+
+2. **core/storageManager.js 중복**:
+   - `migrateData()` (line 987-999)
+   - 기타 storage 관련 함수들
+
+3. **features/quiz/quizCore.js 중복**:
+   - `reloadAndRefresh()` (line 1272-1289)
+   - `updateFlagButtonsUI()` (line 1304-1315)
+   - `displayQuestion()` (line 1317-1340)
+
+4. **features/quiz/grading.js 중복**:
+   - `handleGrade()` (line 1415-1434)
+
+### 주석 처리된 코드 블록
+- `/* [이전 코드 - ...] */` 형태의 블록 다수
+- `// [리팩토링] ...` 형태의 마커 다수
+- 이전 코드가 주석 안에 포함되어 있지만 실제로는 실행 가능한 상태
+
+### 정리 계획
+**단계 1**: 중복 함수 제거 (모듈에서 import하는지 확인 후)
+**단계 2**: 주석 블록 정리 (실제 삭제 대상 식별)
+**단계 3**: 각 단계마다 동작 테스트
+**단계 4**: 최종 코드 검증 및 커밋
 
 ---
 
