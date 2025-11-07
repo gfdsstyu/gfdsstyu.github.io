@@ -6,7 +6,6 @@
 
 import { $ } from '../../ui/elements.js';
 import { chapterLabelText } from '../../config/config.js';
-import { questionScores } from '../../core/stateManager.js';
 
 /**
  * 누락된 날짜를 0으로 채우기 (연속된 날짜 생성)
