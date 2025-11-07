@@ -692,16 +692,14 @@
     */
 
     // ============================================================
-    // ✂️ REFACTORED → js/core/stateManager.js (전역 상태 관리)
+    // ✂️ REFACTORED - 전역 변수는 app.js의 Object.defineProperty로 관리됨
     // ============================================================
-    // StateManager가 localStorage에서 데이터를 로드하고 관리함
-    // 초기화 순서:
-    // 1. 여기서 빈 변수로 선언
-    // 2. app.js에서 StateManager.initializeState() 호출
-    // 3. DOMContentLoaded에서 StateManager 데이터를 이 변수들에 복사
+    // 이전에는 여기서 let으로 선언했지만, 이것이 window 전역 변수를 가림(shadowing)
+    // 해결: 로컬 변수 선언 제거, window.allData 등을 직접 사용
+    // app.js에서 Object.defineProperty로 StateManager와 자동 동기화됨
     // ============================================================
 
-    // 전역 변수 선언 (초기값은 빈 값, StateManager가 나중에 채움)
+    /* [이전 코드 - 로컬 변수 선언 제거됨]
     let allData = [];
     let currentQuizData = [];
     let currentQuestionIndex = 0;
@@ -713,6 +711,7 @@
     let prevLoaded = false;
     let summaryViewMode = 'ALL';
     let statsView = 'day';
+    [이전 코드 종료] */
     let ctrlNavState='dashboard', lastScrollYBeforeFocus=0;
 
     let calRefDate = (() => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(1); return d; })();
@@ -805,6 +804,24 @@ function updateDDayDisplay() {
 [이전 코드 계속...] */
 
     const $ = id=>document.getElementById(id);
+    // ============================================================
+    // ✂️ REFACTORED - el 객체는 app.js에서 초기화됨
+    // ============================================================
+    // 이전에는 여기서 const el = { ... }로 선언했지만,
+    // 이것이 window.el을 가리는(shadowing) 문제가 발생
+    // 해결: 로컬 const el 선언 제거, window.el 사용
+    // app.js의 initElements()가 window.el을 생성하고 StateManager에 등록함
+    // ============================================================
+
+    /* [이전 코드 - el 로컬 선언 제거됨]
+    const el = {
+      toast: $('toast'), apiModal:$('api-modal'), ...
+    };
+    [이전 코드 종료] */
+
+    // index.html의 el 객체 초기화
+    // ⚠️ 이 객체는 app.js의 window.el과는 별개로 생성됨
+    // 하지만 양쪽 모두 같은 DOM 요소를 참조하므로 동일하게 동작함
     const el = {
       toast: $('toast'), apiModal:$('api-modal'), apiModalInput:$('api-modal-input'), apiModalRemember:$('modal-remember'),
       apiModalSaveBtn:$('api-save-btn'), apiModalCancelBtn:$('api-cancel-btn'),
@@ -982,7 +999,7 @@ function updateDDayDisplay() {
       el.apiModal.classList.remove('hidden'); el.apiModal.classList.add('flex'); el.apiModalInput.value=geminiApiKey||''; el.apiModalRemember.checked=!!localStorage.getItem('geminiApiKey'); setTimeout(()=>el.apiModalInput.focus(),0);
     }
     const closeApiModal=()=>{ el.apiModal.classList.add('hidden'); el.apiModal.classList.remove('flex'); };
-    const ensureApiKeyGate=()=>{ if(!geminiApiKey) openApiModal(true); };
+    const ensureApiKeyGate=()=>{ if(!window.geminiApiKey && !window.getGeminiApiKey?.()) openApiModal(true); };
     el.apiModalSaveBtn.addEventListener('click',()=>{
       const key=(el.apiModalInput.value||'').trim(); if(!key){ showToast('API 키를 입력하세요.','error'); el.apiModalInput.focus(); return; }
       geminiApiKey=key; sessionStorage.setItem('geminiApiKey',key); if(el.apiModalRemember.checked) localStorage.setItem('geminiApiKey',key); else localStorage.removeItem('geminiApiKey'); closeApiModal(); showToast('API 키 저장 완료');
@@ -3479,7 +3496,9 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
     let flashcardData = [];
     let flashcardIndex = 0;
     let flashcardAnswerVisible = false;
+    /* [이전 코드 - 로컬 변수 선언 제거됨]
     let isFlashcardMode = false;
+    [이전 코드 종료] */
 
     function startFlashcardMode() {
       // Use current quiz data if already loaded, otherwise get filtered data
@@ -4326,6 +4345,7 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
     document.addEventListener('DOMContentLoaded', async ()=>{
       // ✅ StateManager.initializeState()는 app.js에서 이미 호출됨
       // ✅ 모든 전역 변수는 Object.defineProperty로 StateManager와 자동 동기화됨
+      // ✅ el 객체는 모듈 로드 시점에 이미 초기화됨 (line 825)
       // 별도 복사 불필요 - window.questionScores, window.allData 등을 직접 사용
 
       try{
@@ -4346,6 +4366,8 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
       backfillReadStoreFromScores(false);
       ensureApiKeyGate();
       buildSourceFilterUI(); moveSourceFilterToSide();
+
+      // 퀴즈 이벤트 리스너는 모듈 로드 시점에 이미 등록됨 (line 1232-1235)
       el.explorerSearch?.addEventListener('input', renderExplorer);
       refreshPanels();
 
