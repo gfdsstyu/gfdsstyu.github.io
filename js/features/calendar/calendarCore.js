@@ -337,7 +337,7 @@ export function renderStats() {
   let hlrRecallSum = 0;
   let hlrForgetting = 0;
 
-  // calculateRecallProbability는 window를 통해 접근 (아직 모듈화 안 됨)
+  // calculateRecallProbability는 hlrDataset 모듈에서 window로 노출됨 (Phase 4.5)
   const calculateRecallProbability = window.calculateRecallProbability;
 
   if (calculateRecallProbability) {

@@ -201,7 +201,7 @@ export function getFilteredByUI() {
   if (filter === 'today-review') {
     list = list.filter(q => !questionScores[normId(q.고유ID)]?.userReviewExclude);
 
-    // prioritizeTodayReview는 아직 모듈화되지 않아 window를 통해 호출
+    // prioritizeTodayReview는 reviewCore 모듈에서 window로 노출됨 (Phase 4.5)
     if (typeof window.prioritizeTodayReview === 'function') {
       list = window.prioritizeTodayReview(list).slice(0, 10);
     }

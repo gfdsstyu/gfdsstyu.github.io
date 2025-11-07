@@ -1,7 +1,7 @@
 # 🎯 리팩토링 실행 계획
 
 **최종 업데이트**: 2025-11-07
-**현재 진행률**: Phase 4.4 완료 (약 81% 완료)
+**현재 진행률**: Phase 4.5 완료 (약 85% 완료)
 **브랜치**: `claude/phase-4-feature-modules-011CUtW5znGTCVwrt9nAZ93E`
 
 ---
@@ -17,14 +17,207 @@
 - ✅ Phase 3.4: features/settings/ 모듈 분리 완료 (9개 함수, 235줄)
 - ✅ Phase 3.5: services/dataImportExport 모듈 분리 완료 (5개 함수, 274줄)
 - ✅ Phase 4.1: features/report/ 모듈 분리 완료 (16개 함수, ~1104줄)
-- ✅ **Phase 4.2: features/flashcard/ 모듈 분리 완료 (11개 함수, 194줄)** ⬅️ 최신
+- ✅ Phase 4.2: features/flashcard/ 모듈 분리 완료 (11개 함수, 194줄)
+- ✅ Phase 4.3: features/achievements/ 모듈 분리 완료 (21개 함수, 681줄)
+- ✅ Phase 4.4: features/explorer/ 모듈 분리 완료 (2개 함수, 81줄)
+- ✅ **Phase 4.5: features/review/ 모듈 분리 완료 (10개 함수, 270줄)** ⬅️ 최신
 - ✅ 버그 수정 13건 완료 (HLR 회상률 표시 복원 포함)
 - ✅ 기능 추가: 문제목록 정렬 개선, 퀴즈 UI 출처 표시
 
 ### 🎯 다음 목표
-1. **다음**: Phase 4.3 - features/achievements/ 모듈 분리
-2. **이후**: Phase 4.4-4.5 - 나머지 기능 모듈 (explorer, review)
-3. **최종**: Phase 5 - 이벤트 리스너 정리 및 최종 클린업
+1. **다음**: Phase 5 - 이벤트 리스너 정리 및 최종 클린업
+2. **최종**: index.html 1,000줄 이하 달성 목표
+
+---
+
+## 🏗️ Phase 1-2: 기반 구조 및 Core 모듈 (완료)
+
+### ✅ Phase 1: 초기 모듈화 구조 생성
+**일시**: 2025-11-04
+**커밋**: `7ec5312`, `8a9d5aa`, `97709ea`
+
+**생성된 기본 구조**:
+- `js/config/config.js` - 전역 상수 및 설정
+- `js/utils/helpers.js` - 유틸리티 함수
+- `js/ui/elements.js` - DOM 요소 참조
+- `js/ui/domUtils.js` - DOM 조작 유틸리티
+- `js/services/geminiApi.js` - Gemini API 통합
+- `js/app.js` - 애플리케이션 진입점
+
+**성과**:
+- index.html에서 기본 모듈 분리
+- ES6 모듈 시스템 도입
+
+**발생한 주요 오류**:
+1. **안푼문제 필터링 로직 버그** (commit: `8a0a3c0`)
+   - 문제: 필터링 조건이 제대로 작동하지 않음
+   - 해결: 필터링 로직 재작성
+
+---
+
+### ✅ Phase 2.1-2.2: Core 모듈 분리
+**일시**: 2025-11-05
+**커밋**: `f1ef971` (Phase 2.1), `451c124` (Phase 2.2), `b8143e4` (StateManager)
+
+**생성 모듈**:
+- `js/core/dataManager.js` - 데이터 로딩 및 관리
+- `js/core/storageManager.js` - localStorage 관리
+- `js/core/stateManager.js` - 전역 상태 관리 (중요!)
+
+**발생한 주요 오류**:
+
+1. **Phase 2.1 revert 발생** (commit: `dae32bc`)
+   - 문제: dataManager.js 생성 후 기능이 작동하지 않음
+   - 원인: 모듈 간 의존성 문제
+   - 해결: revert 후 재작업
+
+2. **Phase 3.2 초기 시도 실패** (commits: `eeff85a`, `4f6abaa`, `2ef9f1c`)
+   - 문제: storageManager 분리 시 오류 발생
+   - 해결: 완전히 revert 후 Phase 2로 재정비
+
+3. **전역 상태 관리 문제** (commit: `b8143e4`)
+   - 문제: 모듈 간 전역 변수 공유 어려움
+   - 해결: **옵션 C 도입 - StateManager 패턴**
+     ```javascript
+     // stateManager.js: getter/setter로 전역 상태 관리
+     let allData = [];
+     export const getAllData = () => allData;
+     export const setAllData = (value) => { allData = value; };
+     ```
+
+4. **UI 로딩 문제** (commit: `8c8c5a5`)
+   - 문제: 모듈 로딩 후 UI가 표시되지 않음
+   - 원인: 초기화 순서 문제
+   - 해결: 초기화 순서 조정
+
+5. **app.js 로드 순서 오류** (commit: `8d15c2e`)
+   - 문제: app.js가 너무 늦게 로드됨
+   - 해결: inline script 앞으로 이동
+
+---
+
+### ✅ Phase 2.3-2.5: Quiz 모듈 분리 (재수행)
+**일시**: 2025-11-05~06
+**최초 시도**: `5225ad2`, `8d5d736`, `6814777`
+**재수행**: `1685c1b` (2025-11-07)
+
+**생성 모듈**:
+- `js/features/quiz/grading.js` - 채점 로직
+- `js/features/quiz/quizCore.js` - 퀴즈 핵심 기능
+- `js/features/quiz/navigation.js` - 퀴즈 네비게이션
+
+**발생한 주요 오류 (Phase 2.3-2.5 최초 시도)**:
+
+1. **handlePrevQuestion/handleNextQuestion 참조 오류** (commit: `6f652c3`)
+   - 문제: 이벤트 리스너에서 함수 참조 불가
+   - 해결: 익명 함수로 래핑
+
+2. **displayQuestion/updateFlagButtonsUI 중복 정의** (commit: `7d7d018`)
+   - 문제: index.html과 모듈에 함수가 중복 정의됨
+   - 해결: index.html에서 중복 제거
+
+3. **주석 블록 문법 오류** (commit: `753e53c`)
+   - 문제: 주석이 제대로 닫히지 않아 SyntaxError 발생
+   - 해결: 주석 블록 정리
+
+4. **대규모 revert 발생** (commits: `7e1d6e6`, `d6ea0d9`, `83629be`, `a79dbf7`, `299e4ad`)
+   - 문제: 여러 오류가 누적되어 전체 기능 마비
+   - 해결: **Phase 2.3-2.5 전체를 처음부터 재수행** (`1685c1b`)
+
+**발생한 주요 오류 (Phase 2.3-2.5 재수행 후)**:
+
+5. **전역 변수 동기화 문제** (commit: `23371f6`)
+   - 문제: 모듈과 index.html 간 변수 값이 동기화되지 않음
+   - 해결: **Object.defineProperty 사용**
+     ```javascript
+     Object.defineProperty(window, 'currentQuizData', {
+       get: () => getCurrentQuizData(),
+       set: (value) => setCurrentQuizData(value)
+     });
+     ```
+
+6. **치명적인 el 변수 shadowing 문제** (commit: `da9884b`)
+   - 문제: 여러 곳에서 `const el = ...`로 변수 shadowing 발생
+   - 영향: DOM 요소 참조 오류로 전체 UI 마비
+   - 해결: 모든 el 변수 shadowing 제거, ui/elements.js의 el만 사용
+
+7. **모듈 로딩 순서 문제** (commit: `7f0dfc2`)
+   - 문제: app.js import 누락으로 모듈이 로드되지 않음
+   - 해결: index.html에 app.js import 추가
+
+8. **index.html 함수 window 노출 누락** (commit: `26f142b`)
+   - 문제: 모듈 함수가 window에 노출되지 않아 이벤트 리스너에서 참조 불가
+   - 해결: app.js에서 모든 함수를 window에 명시적으로 노출
+
+9. **모범답안 박스 표시 오류** (commit: `b32d3d6`)
+   - 문제: 채점 후 모범답안이 표시되지 않음
+   - 원인: DOM 요소 초기화 누락
+   - 해결: displayQuestion에서 초기화 로직 추가
+
+10. **statsRefDate 변수 shadowing** (commit: `3de5424`)
+    - 문제: 변수 shadowing으로 통계 UI 오류 발생
+    - 해결: shadowing 제거
+
+11. **캘린더/통계에서 questionScores 접근 불가** (commit: `aeba067`)
+    - 문제: 모듈에서 전역 변수 접근 오류
+    - 해결: stateManager를 통한 접근으로 변경
+
+12. **displayQuestion에서 모범답안 초기화 누락** (commit: `10e941d`)
+    - 반복 발생
+    - 해결: 추가 초기화 로직
+
+13. **initElements에서 modelAnswerBox 초기화 누락** (commit: `a3e1c0f`)
+    - 최종 수정
+    - 해결: initElements 함수에 추가
+
+14. **favicon.ico 404 에러** (commit: `74bf7b0`)
+    - 문제: 브라우저 콘솔에 404 에러 지속
+    - 해결: favicon.ico 파일 생성
+
+---
+
+### ✅ Phase 2.6: 중복 함수 완전 제거
+**일시**: 2025-11-07
+**커밋**: `1e45516`
+
+**작업 내용**:
+- index.html에 남아있던 중복 함수 200줄 제거
+- 모든 함수를 모듈로 완전 이동
+
+**성과**: index.html 200줄 감소 (4,802 → 4,602줄)
+
+---
+
+### 📊 Phase 1-2 요약
+
+**생성된 모듈**: 11개
+- config: 1개
+- utils: 2개
+- ui: 2개
+- services: 1개
+- core: 3개
+- features/quiz: 3개
+
+**총 감소량**: index.html 200줄 감소
+
+**해결된 주요 문제**:
+1. ✅ 전역 변수 동기화 (Object.defineProperty + StateManager)
+2. ✅ el 변수 shadowing (치명적 버그 해결)
+3. ✅ 모듈 로딩 순서
+4. ✅ 함수 window 노출
+5. ✅ 변수 shadowing 전반
+
+**재작업 횟수**:
+- Phase 2.1: 1회 revert
+- Phase 2.3-2.5: 전체 재수행 1회
+- 총 revert: 7회
+
+**교훈**:
+- 모듈화 시 전역 변수 동기화가 가장 중요
+- el 같은 흔한 변수명은 shadowing 주의
+- 모듈 로딩 순서와 window 노출이 필수
+- 한 번에 여러 Phase를 진행하지 말 것
+- 테스트 없이 커밋하지 말 것
 
 ---
 
@@ -183,17 +376,67 @@
 
 ---
 
-### Phase 4.3: features/achievements/
-- achievementsCore.js, achievementChecks.js
-- **예상 소요 시간**: 3-4시간
+### ✅ Phase 4.3: features/achievements/ (완료)
+**생성 모듈**: `js/features/achievements/achievementsCore.js` (681줄)
 
-### Phase 4.4: features/explorer/
-- explorerCore.js
-- **예상 소요 시간**: 1-2시간
+**이동된 함수 (21개)**:
+- `unlockAchievement()` - 업적 잠금 해제
+- `checkAchievements()` - 업적 조건 체크
+- `loadAchievements()` / `saveAchievements()` - 데이터 관리
+- `renderAchievementPanel()` - 업적 패널 렌더링
+- `showAchievementNotification()` - 알림 표시
+- `initAchievementListeners()` - 이벤트 리스너 초기화
+- 업적 조건 체크 함수 다수 (21개 업적 타입)
 
-### Phase 4.5: features/review/
-- reviewCore.js, hlrDataset.js
-- **예상 소요 시간**: 2-3시간
+**성과**:
+- index.html 657줄 감소 (2,342 → 1,685줄)
+- 업적 시스템 완전 분리 (ACHIEVEMENTS 상수 + 체크 로직)
+- 업적 알림 및 패널 UI 모듈화
+
+**커밋**: (진행 중)
+
+---
+
+### ✅ Phase 4.4: features/explorer/ (완료)
+**생성 모듈**: `js/features/explorer/explorerCore.js` (175줄)
+
+**이동된 함수 (2개)**:
+- `renderExplorer()` - 단원별 버튼 + 문제 검색 렌더링
+- `moveSourceFilterToSide()` - 출처 필터 UI 이동
+
+**성과**:
+- index.html 81줄 감소 (1,685 → 1,604줄)
+- 문제 탐색기 + 검색 기능 모듈화
+- 단원별 그룹화 로직 독립
+
+**커밋**: (진행 중)
+
+---
+
+### ✅ Phase 4.5: features/review/ (완료)
+**생성 모듈**:
+- `js/features/review/hlrDataset.js` (217줄)
+- `js/features/review/reviewCore.js` (148줄)
+
+**이동된 함수 (10개)**:
+- **hlrDataset.js** (HLR 알고리즘):
+  - `buildHLRDataset()` - HLR 학습 데이터셋 생성
+  - `exportHLRDataset()` - CSV 내보내기
+  - `LocalHLRPredictor` - HLR 예측 클래스
+  - `buildFeaturesForQID()` - 문제별 피처 추출
+  - `calculateRecallProbability()` - 회상 확률 계산
+- **reviewCore.js** (복습 전략):
+  - `getReviewStrategy()` - 복습 전략 가져오기
+  - `prioritizeTodayReview()` - 복습 우선순위 정렬 (smart, HLR, flag, low, recentWrong)
+  - `initReviewListeners()` - 복습 UI 이벤트 리스너
+
+**성과**:
+- index.html 270줄 감소 (1,604 → 1,334줄)
+- HLR (Half-Life Regression) 알고리즘 모듈화
+- 5가지 복습 전략 (smart, HLR, flag, low, recentWrong) 독립
+- 회상 확률 계산 및 우선순위 정렬 로직 분리
+
+**커밋**: (진행 중)
 
 ---
 
@@ -352,7 +595,7 @@ if (window.isFlashcardMode) {
 - [x] 4.2: features/flashcard/ ✅
 - [x] 4.3: features/achievements/ ✅
 - [x] 4.4: features/explorer/ ✅
-- [ ] 4.5: features/review/
+- [x] 4.5: features/review/ ✅
 
 ### Phase 5 체크리스트
 - [ ] 5.1: 이벤트 리스너 정리
@@ -385,13 +628,15 @@ if (window.isFlashcardMode) {
 15. ✅ features/settings/settingsCore.js (설정 관리)
 16. ✅ services/dataImportExport.js (데이터 Import/Export)
 
-### Phase 4: 추가 기능 모듈 (6개 / 5개 계획 중) 🔄
+### Phase 4: 추가 기능 모듈 (8개 완료) ✅
 17. ✅ features/report/reportCore.js (리포트 모달 및 데이터)
 18. ✅ features/report/charts.js (차트 렌더링)
 19. ✅ features/report/analysis.js (AI 분석)
 20. ✅ features/flashcard/flashcardCore.js (플래시카드 시스템)
-21. ✅ features/achievements/achievementsCore.js (업적 시스템) - 681 lines
-22. ✅ features/explorer/explorerCore.js (문제 탐색기) - 175 lines
+21. ✅ features/achievements/achievementsCore.js (업적 시스템)
+22. ✅ features/explorer/explorerCore.js (문제 탐색기)
+23. ✅ features/review/hlrDataset.js (HLR 알고리즘)
+24. ✅ features/review/reviewCore.js (복습 전략)
 
 ---
 
@@ -442,13 +687,15 @@ app.js (진입점)
 | Phase 4.2 | 2,342 | -194 | flashcard 모듈 |
 | Phase 4.3 | 1,685 | -657 | achievements 모듈 |
 | Phase 4.4 | 1,604 | -81 | explorer 모듈 |
-| **총 감소** | **-3,198줄** | **66.6%** | **현재** |
+| Phase 4.5 | 1,334 | -270 | review 모듈 (2개 파일) |
+| **총 감소** | **-3,468줄** | **72.2%** | **현재** |
 
-**모듈 총 라인 수**: ~6,424줄 (22개 모듈)
+**모듈 총 라인 수**: ~7,106줄 (24개 모듈)
 - reportCore.js (364줄) + charts.js (562줄) + analysis.js (282줄) = 1,208줄
 - flashcardCore.js (260줄)
 - achievementsCore.js (681줄)
 - explorerCore.js (175줄)
+- hlrDataset.js (217줄) + reviewCore.js (148줄) = 365줄
 
 ---
 
@@ -540,4 +787,4 @@ ef3b927 - fix: filterCore import 경로 수정
 
 **작성일**: 2025-11-07
 **브랜치**: `claude/phase-4-feature-modules-011CUtW5znGTCVwrt9nAZ93E`
-**전체 진행률**: 81% (22/27 모듈 완료)
+**전체 진행률**: 85% (24/28 모듈 완료, Phase 4 완료)
