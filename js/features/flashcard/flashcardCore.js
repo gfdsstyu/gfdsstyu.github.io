@@ -197,6 +197,24 @@ export function flashcardRandom() {
 }
 
 /**
+ * 특정 문제로 플래시카드 점프 (요약 영역에서 클릭 시 사용)
+ * @param {Array} list - 문제 목록
+ * @param {string} questionId - 이동할 문제의 고유ID
+ * @param {string} label - 문제 라벨 (토스트 메시지용)
+ */
+export function jumpToFlashcard(list, questionId, label) {
+  if (!window.isFlashcardMode || !list || list.length === 0) return;
+
+  flashcardData = list;
+  flashcardIndex = list.findIndex(x => String(x.고유ID).trim() === String(questionId).trim());
+  if (flashcardIndex < 0) flashcardIndex = 0;
+
+  displayFlashcard();
+  updateSummaryHighlight();
+  showToast(`'${label}' 플래시카드로 이동`);
+}
+
+/**
  * 플래시카드 모드 종료
  */
 export function exitFlashcardMode() {
