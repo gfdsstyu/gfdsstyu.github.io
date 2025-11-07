@@ -5,7 +5,7 @@
  */
 
 import { $ } from '../../ui/elements.js';
-import { chapterLabelText } from '../../utils/helpers.js';
+import { chapterLabelText } from '../../config/config.js';
 import { questionScores } from '../../core/stateManager.js';
 
 /**
