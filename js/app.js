@@ -21,6 +21,7 @@ import * as DomUtils from './ui/domUtils.js';
 
 // 서비스
 import * as GeminiApi from './services/geminiApi.js';
+import * as DataImportExport from './services/dataImportExport.js';
 
 // 코어 - 상태 관리
 import * as StateManager from './core/stateManager.js';
@@ -81,6 +82,14 @@ window.setLoading = DomUtils.setLoading;
 window.callGeminiAPI = GeminiApi.callGeminiAPI;
 window.callGeminiHintAPI = GeminiApi.callGeminiHintAPI;
 window.callGeminiTextAPI = GeminiApi.callGeminiTextAPI;
+
+// DataImportExport (데이터 Import/Export)
+window.DataImportExport = DataImportExport;
+window.mergeQuizScores = DataImportExport.mergeQuizScores;
+window.exportData = DataImportExport.exportData;
+window.importData = DataImportExport.importData;
+window.mergeData = DataImportExport.mergeData;
+window.initDataImportExport = DataImportExport.initDataImportExport;
 
 // StateManager (전역 상태 관리)
 window.StateManager = StateManager;
@@ -336,6 +345,7 @@ console.log('  - utils/helpers.js (유틸리티 함수)');
 console.log('  - ui/elements.js (DOM 엘리먼트)');
 console.log('  - ui/domUtils.js (DOM 유틸리티)');
 console.log('  - services/geminiApi.js (Gemini API)');
+console.log('  - services/dataImportExport.js (데이터 Import/Export)');
 console.log('  - core/stateManager.js (전역 상태 관리)');
 console.log('  - core/dataManager.js (데이터 로드 및 관리)');
 console.log('  - core/storageManager.js (저장소 및 마이그레이션)');

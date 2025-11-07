@@ -964,87 +964,17 @@ function updateDDayDisplay() {
     // 위 함수들은 app.js를 통해 전역으로 노출됨
     // 이벤트 리스너 초기화는 DOMContentLoaded에서 initSettings() 호출로 수행
 
-    el.exportDataBtn?.addEventListener('click',()=>{
-      try{
-        const data={ version:'3.x', schemaVersion:+(localStorage.getItem('schemaVersion')||2), exportDate:new Date().toISOString(), auditQuizScores:questionScores, geminiApiKey:localStorage.getItem('geminiApiKey')||'', aiModel:selectedAiModel, darkMode:darkMode };
-        const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob);
-        const a=document.createElement('a'); a.href=url; a.download=`gamlini_backup_${Date.now()}.json`; a.click(); URL.revokeObjectURL(url); showToast('데이터 내보내기 완료');
-      }catch(err){ console.error(err); showToast('데이터 내보내기 실패','error'); }
-    });
-    el.importDataBtn?.addEventListener('click',()=>el.importFileInput.click());
-    el.importFileInput?.addEventListener('change',e=>{
-      const file=e.target.files[0]; if(!file) return;
-      const reader=new FileReader();
-      reader.onload=ev=>{
-        try{
-          const data=JSON.parse(ev.target.result);
-          if(!data.auditQuizScores) throw new Error('올바른 백업 파일이 아닙니다.');
-          localStorage.setItem('auditQuizScores',JSON.stringify(data.auditQuizScores)); questionScores=data.auditQuizScores;
-          if(data.geminiApiKey){ localStorage.setItem('geminiApiKey',data.geminiApiKey); geminiApiKey=data.geminiApiKey; }
-          if(data.aiModel){ localStorage.setItem('aiModel',data.aiModel); selectedAiModel=data.aiModel; if(el.aiModelSelect) el.aiModelSelect.value=data.aiModel; }
-          if(data.darkMode){ localStorage.setItem('darkMode',data.darkMode); darkMode=data.darkMode; applyDarkMode(); }
-          if(data.schemaVersion) localStorage.setItem('schemaVersion',String(data.schemaVersion));
-          // 가져오자마자 상호배타 보정
-          enforceExclusiveFlagsOnAll();
-          showToast('데이터 가져오기 완료'); setTimeout(()=>location.reload(),600);
-        }catch(err){ console.error(err); showToast(`가져오기 실패: ${err.message}`,'error'); }
-      };
-      reader.readAsText(file); e.target.value='';
-    });
-
-    // 병합 가져오기 기능
-    function mergeQuizScores(existing, imported){
-      const result={...existing};
-      for(const [qid,importedData] of Object.entries(imported)){
-        if(!result[qid]){
-          // 새로운 문제 ID - 그냥 추가
-          result[qid]=importedData;
-        }else{
-          // 기존 문제 ID - 병합 (최신 풀이 데이터 우선)
-          const existingData=result[qid];
-          const useImported=(importedData.lastSolvedDate||0)>(existingData.lastSolvedDate||0);
-          // solveHistory 병합 (날짜 기준 중복 제거)
-          const combinedHistory=[...(existingData.solveHistory||[]),...(importedData.solveHistory||[])];
-          const uniqueHistory=Array.from(new Map(combinedHistory.map(h=>[h.date,h])).values()).sort((a,b)=>a.date-b.date);
-          result[qid]={
-            score:useImported?(importedData.score||0):(existingData.score||0),
-            feedback:useImported?importedData.feedback:existingData.feedback,
-            user_answer:useImported?importedData.user_answer:existingData.user_answer,
-            hintUsed:useImported?importedData.hintUsed:existingData.hintUsed,
-            isSolved:existingData.isSolved||importedData.isSolved,
-            lastSolvedDate:Math.max(existingData.lastSolvedDate||0,importedData.lastSolvedDate||0),
-            solveHistory:uniqueHistory,
-            userReviewFlag:existingData.userReviewFlag||importedData.userReviewFlag,
-            userReviewExclude:existingData.userReviewExclude||importedData.userReviewExclude
-          };
-        }
-      }
-      return result;
-    }
-
-    el.mergeDataBtn?.addEventListener('click',()=>el.mergeFileInput.click());
-    el.mergeFileInput?.addEventListener('change',e=>{
-      const file=e.target.files[0]; if(!file) return;
-      const reader=new FileReader();
-      reader.onload=ev=>{
-        try{
-          const data=JSON.parse(ev.target.result);
-          if(!data.auditQuizScores) throw new Error('올바른 백업 파일이 아닙니다.');
-          // 기존 데이터와 병합
-          const mergedScores=mergeQuizScores(questionScores,data.auditQuizScores);
-          localStorage.setItem('auditQuizScores',JSON.stringify(mergedScores)); questionScores=mergedScores;
-          // 설정은 가져온 파일의 값으로 업데이트 (있는 경우)
-          if(data.geminiApiKey){ localStorage.setItem('geminiApiKey',data.geminiApiKey); geminiApiKey=data.geminiApiKey; }
-          if(data.aiModel){ localStorage.setItem('aiModel',data.aiModel); selectedAiModel=data.aiModel; if(el.aiModelSelect) el.aiModelSelect.value=data.aiModel; }
-          if(data.darkMode){ localStorage.setItem('darkMode',data.darkMode); darkMode=data.darkMode; applyDarkMode(); }
-          if(data.schemaVersion) localStorage.setItem('schemaVersion',String(data.schemaVersion));
-          // 병합 후 상호배타 보정
-          enforceExclusiveFlagsOnAll();
-          showToast('데이터 병합 완료'); setTimeout(()=>location.reload(),600);
-        }catch(err){ console.error(err); showToast(`병합 실패: ${err.message}`,'error'); }
-      };
-      reader.readAsText(file); e.target.value='';
-    });
+    // ============================================================
+    // ✂️ REFACTORED → js/services/dataImportExport.js
+    // ============================================================
+    // function mergeQuizScores() → dataImportExport.js
+    // function exportData() → dataImportExport.js
+    // function importData() → dataImportExport.js
+    // function mergeData() → dataImportExport.js
+    // function initDataImportExport() → dataImportExport.js (초기화 함수)
+    //
+    // 위 함수들은 app.js를 통해 전역으로 노출됨
+    // 이벤트 리스너 초기화는 DOMContentLoaded에서 initDataImportExport() 호출로 수행
 
     // ============================================================
     // ✂️ REFACTORED → js/features/filter/filterCore.js
@@ -3678,6 +3608,10 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
 
       // 설정 시스템 초기화 (Phase 3.4)
       initSettings();
+
+      // 데이터 Import/Export 초기화 (Phase 3.5)
+      initDataImportExport();
+
       ensureApiKeyGate();
       buildSourceFilterUI(); moveSourceFilterToSide();
 
