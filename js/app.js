@@ -39,6 +39,9 @@ import * as Navigation from './features/quiz/navigation.js';
 // 기능 - 필터링 시스템
 import * as Filter from './features/filter/filterCore.js';
 
+// 기능 - 요약/대시보드
+import * as Summary from './features/summary/summaryCore.js';
+
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
 // (Phase 3에서 모든 로직이 이전되면 제거 예정)
@@ -250,6 +253,12 @@ window.detectSourceGroup = Filter.detectSourceGroup;
 window.applySourceFilter = Filter.applySourceFilter;
 window.filterByChapterSelection = Filter.filterByChapterSelection;
 window.getFilteredByUI = Filter.getFilteredByUI;
+
+// Summary (요약/대시보드)
+window.Summary = Summary;
+window.updateSummary = Summary.updateSummary;
+window.updateSummaryHighlight = Summary.updateSummaryHighlight;
+window.ensureResultBoxReady = Summary.ensureResultBoxReady;
 
 // 상수들
 window.BASE_SYSTEM_PROMPT = Config.BASE_SYSTEM_PROMPT;

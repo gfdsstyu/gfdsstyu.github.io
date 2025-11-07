@@ -55,7 +55,7 @@
 - ✅ `selfTest()` - 데이터 검증
 - ✅ `getAllChapterNums()` - 단원 번호 추출
 - ✅ `populateChapterSelect()` - 단원 선택 UI 채우기
-- ⚠️ **index.html에 중복 코드 남아있음 (line 928-973) - 제거 필요**
+- ✅ **Phase 2.6 완료 - 중복 코드 제거됨**
 
 ### 📦 core/storageManager.js (스토리지 관리)
 **Priority: HIGH** ⭐⭐⭐
@@ -86,14 +86,14 @@
 - ✅ `updateFlagButtonsUI()` - 플래그 버튼 UI
 - ✅ `startRandomQuiz()` - 랜덤 퀴즈 시작
 - ✅ `getFilteredByUI()` - UI 필터링 (정렬 로직 포함)
-- ⚠️ **index.html에 중복 코드 남아있음 (line 1272-1341) - 제거 필요**
+- ✅ **Phase 2.6 완료 - 중복 코드 제거됨**
 
 #### features/quiz/grading.js
 - ✅ `handleGrade()` - 채점 처리
 - ✅ `handleHint()` - 힌트 처리
 - ✅ `showResult()` - 결과 표시
 - ✅ **모범답안 즉시 표시 기능 추가**
-- ⚠️ **index.html에 중복 코드 남아있음 (line 1415-1434) - 제거 필요**
+- ✅ **Phase 2.6 완료 - 중복 코드 제거됨**
 
 #### features/quiz/navigation.js
 - ✅ `enterFocusMode()` - 포커스 모드 진입
@@ -103,18 +103,20 @@
 
 ### 📦 features/filter/ (필터링/검색)
 **Priority: MEDIUM** ⭐⭐
-- ❌ `buildSourceFilterUI()` - 출처 필터 UI 구축 (1068줄)
-- ❌ `getSelectedSourceGroups()` - 선택된 출처 그룹 (1090줄)
-- ❌ `detectSourceGroup()` - 출처 그룹 감지 (1091줄)
-- ❌ `applySourceFilter()` - 출처 필터 적용 (1092줄)
-- ❌ `filterByChapterSelection()` - 단원 필터 (1094줄)
-- ❌ `getFilteredByUI()` - UI 필터 적용 (1104줄)
+- ✅ `buildSourceFilterUI()` - 출처 필터 UI 구축 → filterCore.js
+- ✅ `getSelectedSourceGroups()` - 선택된 출처 그룹 → filterCore.js
+- ✅ `detectSourceGroup()` - 출처 그룹 감지 → filterCore.js
+- ✅ `applySourceFilter()` - 출처 필터 적용 → filterCore.js
+- ✅ `filterByChapterSelection()` - 단원 필터 → filterCore.js
+- ✅ `getFilteredByUI()` - UI 필터 적용 → filterCore.js
+- ✅ **Phase 3.1 완료 - js/features/filter/filterCore.js로 이동됨**
 
 ### 📦 features/summary/ (요약/대시보드)
 **Priority: MEDIUM** ⭐⭐
-- ❌ `updateSummary()` - 요약 업데이트 (1319줄)
-- ❌ `updateSummaryHighlight()` - 요약 하이라이트 (1428줄)
-- ❌ `ensureResultBoxReady()` - 결과 박스 준비 (1460줄)
+- ✅ `updateSummary()` - 요약 업데이트 → summaryCore.js
+- ✅ `updateSummaryHighlight()` - 요약 하이라이트 → summaryCore.js
+- ✅ `ensureResultBoxReady()` - 결과 박스 준비 → summaryCore.js
+- ✅ **Phase 3.2 완료 - js/features/summary/summaryCore.js로 이동됨**
 
 ### 📦 features/calendar/ (캘린더)
 **Priority: MEDIUM** ⭐⭐
@@ -254,28 +256,67 @@
 ## 📊 통계
 
 - **총 함수 개수**: ~124개 (index.html에서 카운트)
-- **모듈로 이동 완료**: ~45개 (36%)
-- **아직 남아있음**: ~79개 (64%)
-- **중복 코드 블록**: ~25개 주석 블록 (제거 필요)
+- **모듈로 이동 완료**: ~54개 (44%) ⬆️ +3 (Phase 3.2 summary 완료)
+- **아직 남아있음**: ~70개 (56%)
+- **중복 코드 제거**: ✅ Phase 2.6 완료 (200줄 감소)
+- **총 라인 감소**: 738줄 (4802 → 4064줄)
 
 ## ✅ Phase 2.6: 중복 코드 제거 작업 (완료)
 
 **완료 일자**: 2025-01-07
 
-### 제거 완료된 중복 함수
-1. **core/dataManager.js 중복** ✅
+### 제거된 중복 함수
+1. ✅ **core/dataManager.js 중복** (47줄 제거):
    - `loadData()`, `selfTest()`, `populateChapterSelect()`
 
-2. **core/storageManager.js 중복** ✅
-   - `migrateData()`
+2. ✅ **core/storageManager.js 중복** (39줄 제거):
+   - `migrateData()`, `enforceExclusiveFlagsOnAll()`, `setFlagState()`
 
-3. **features/quiz/quizCore.js 중복** ✅
+3. ✅ **features/quiz/quizCore.js 중복** (71줄 제거):
    - `reloadAndRefresh()`, `updateFlagButtonsUI()`, `displayQuestion()`
 
-4. **features/quiz/grading.js 중복** ✅
-   - `handleGrade()`
+4. ✅ **features/quiz/grading.js 중복** (49줄 제거):
+   - `handleGrade()`, `handleHint()`, `showResult()`
 
-**총 제거된 코드**: 200줄
+**총 200줄 감소** (4474 → 4274줄)
+
+### 완료된 작업
+- ✅ 중복 함수 완전 제거 (모듈에서 제공됨)
+- ✅ 전체 기능 검증 완료
+- ✅ 커밋 완료 (commit: 1e45516)
+
+## ✅ Phase 3.1: features/filter/ 모듈 분리 (완료)
+
+### 생성된 모듈
+- **js/features/filter/filterCore.js** (234줄)
+  - `buildSourceFilterUI()` - 출처 필터 UI
+  - `getSelectedSourceGroups()` - 선택된 그룹
+  - `detectSourceGroup()` - 그룹 감지
+  - `applySourceFilter()` - 출처 필터 적용
+  - `filterByChapterSelection()` - 단원 필터
+  - `getFilteredByUI()` - 종합 필터 + 정렬
+
+### 완료된 작업
+- ✅ 모듈 생성 및 함수 이동
+- ✅ app.js 통합 및 전역 노출
+- ✅ index.html 중복 제거 (82줄 → 마커)
+- ✅ import 경로 수정 (getElements)
+- ✅ 커밋 완료 (commit: 309c17e, ef3b927)
+
+## ✅ Phase 3.2: features/summary/ 모듈 분리 (완료)
+
+### 생성된 모듈
+- **js/features/summary/summaryCore.js** (275줄)
+  - `updateSummary()` - 단원별 학습 현황 요약 표시
+  - `updateSummaryHighlight()` - 현재 문제 하이라이트
+  - `ensureResultBoxReady()` - 결과 박스 초기화
+
+### 완료된 작업
+- ✅ 모듈 생성 및 함수 이동
+- ✅ app.js 통합 및 전역 노출
+- ✅ index.html 중복 제거 (135줄 → 7줄 마커, 128줄 감소)
+- ✅ 이벤트 리스너 유지 (clearFilterBtn, resetScoresBtn)
+- ✅ 커밋 완료 (commit: 8e10074)
 
 ---
 
@@ -288,22 +329,23 @@
 4. ✅ ui/elements.js (완료)
 5. ✅ services/geminiApi.js (완료)
 
-### Phase 2 (High) - 완료 ✅
+### Phase 2 (High) - ✅ 완료
 6. ✅ core/dataManager.js
 7. ✅ core/storageManager.js
 8. ✅ features/quiz/quizCore.js
 9. ✅ features/quiz/grading.js
 10. ✅ features/quiz/navigation.js
+11. ✅ **Phase 2.6: 중복 코드 제거 (200줄)**
 
-### Phase 3 (Medium) - 진행 중
-11. ❌ core/scoreManager.js
-12. ✅ features/filter/ (완료)
-13. ❌ features/summary/
-14. ❌ features/calendar/
+### Phase 3 (Medium) - 🔄 진행 중
+12. ✅ features/filter/ (Phase 3.1 완료)
+13. ✅ features/summary/ (Phase 3.2 완료)
+14. 🔄 features/calendar/ (Phase 3.3 진행 중)
 15. ❌ features/settings/
 16. ❌ services/dataImportExport.js
 17. ❌ features/explorer/
 18. ❌ features/review/
+19. ❌ core/scoreManager.js
 
 ### Phase 4 (Low) - 나중에
 19. ❌ features/report/
