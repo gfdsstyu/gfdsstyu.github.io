@@ -15,6 +15,15 @@ export const BASIC_TAGS = ['S', 'H', 'HS'];
 export const ADV_TAGS = ['SS', 'P'];
 
 /**
+ * 범위 필터링된 데이터 가져오기 (출처 + 단원 필터 적용)
+ * @returns {Array} 필터링된 문제 배열
+ */
+export function getScopeFilteredData() {
+  const allData = window.allData || getAllData() || [];
+  return filterByChapterSelection(applySourceFilter(allData));
+}
+
+/**
  * 출처 필터 UI 생성 및 초기화
  */
 export function buildSourceFilterUI() {

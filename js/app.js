@@ -42,6 +42,9 @@ import * as Filter from './features/filter/filterCore.js';
 // 기능 - 요약/대시보드
 import * as Summary from './features/summary/summaryCore.js';
 
+// 기능 - 캘린더/통계
+import * as Calendar from './features/calendar/calendarCore.js';
+
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
 // (Phase 3에서 모든 로직이 이전되면 제거 예정)
@@ -253,6 +256,7 @@ window.detectSourceGroup = Filter.detectSourceGroup;
 window.applySourceFilter = Filter.applySourceFilter;
 window.filterByChapterSelection = Filter.filterByChapterSelection;
 window.getFilteredByUI = Filter.getFilteredByUI;
+window.getScopeFilteredData = Filter.getScopeFilteredData;
 window.SOURCE_LS = Filter.SOURCE_LS;
 window.BASIC_TAGS = Filter.BASIC_TAGS;
 window.ADV_TAGS = Filter.ADV_TAGS;
@@ -262,6 +266,13 @@ window.Summary = Summary;
 window.updateSummary = Summary.updateSummary;
 window.updateSummaryHighlight = Summary.updateSummaryHighlight;
 window.ensureResultBoxReady = Summary.ensureResultBoxReady;
+
+// Calendar (캘린더/통계)
+window.Calendar = Calendar;
+window.renderCalendarMonth = Calendar.renderCalendarMonth;
+window.bindCalendarDateClick = Calendar.bindCalendarDateClick;
+window.renderStatsDateNav = Calendar.renderStatsDateNav;
+window.renderStats = Calendar.renderStats;
 
 // 상수들
 window.BASE_SYSTEM_PROMPT = Config.BASE_SYSTEM_PROMPT;
