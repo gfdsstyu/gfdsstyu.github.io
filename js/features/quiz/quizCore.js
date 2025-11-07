@@ -109,6 +109,7 @@ export function displayQuestion() {
 
   // 결과 및 답안 초기화
   el.resultBox?.classList.add('hidden');
+  el.modelAnswerBox?.classList.add('hidden');  // ⚠️ CRITICAL: 새 문제로 이동 시 모범답안 박스도 숨김
   if (el.userAnswer) el.userAnswer.value = '';
 
   // 이전 답안 버튼 초기화

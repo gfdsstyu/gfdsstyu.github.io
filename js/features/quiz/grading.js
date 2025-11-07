@@ -54,8 +54,19 @@ export function setGradeLoading(isLoading) {
  * @param {string} correctAnswer - 정답
  */
 export function showResult(scoreVal, feedback, correctAnswer) {
+  console.log('🎯 showResult 호출:', { scoreVal, feedback, correctAnswer: correctAnswer?.substring(0, 50) });
+
   const el = getElements();
-  if (!el) return;
+  if (!el) {
+    console.error('❌ showResult: el 없음!');
+    return;
+  }
+
+  console.log('📦 el 상태:', {
+    correctAnswer: !!el.correctAnswer,
+    modelAnswerBox: !!el.modelAnswerBox,
+    resultBox: !!el.resultBox
+  });
 
   const s = clamp(+scoreVal, 0, 100);
 
@@ -78,12 +89,29 @@ export function showResult(scoreVal, feedback, correctAnswer) {
   }
 
   // 피드백 및 정답 표시
-  if (el.aiFeedback) el.aiFeedback.textContent = String(feedback || '');
-  if (el.correctAnswer) el.correctAnswer.textContent = String(correctAnswer || '');
+  if (el.aiFeedback) {
+    el.aiFeedback.textContent = String(feedback || '');
+    console.log('✅ 피드백 설정');
+  }
+
+  if (el.correctAnswer) {
+    const answerText = String(correctAnswer || '');
+    el.correctAnswer.textContent = answerText;
+    console.log('✅ 모범답안 설정:', answerText.length, '글자');
+  } else {
+    console.error('❌ el.correctAnswer 없음!');
+  }
 
   // 결과 박스 및 모범답안 박스 표시
   el.resultBox?.classList.remove('hidden');
-  el.modelAnswerBox?.classList.remove('hidden');
+  console.log('✅ resultBox 표시');
+
+  if (el.modelAnswerBox) {
+    el.modelAnswerBox.classList.remove('hidden');
+    console.log('✅ modelAnswerBox 표시, classes:', el.modelAnswerBox.className);
+  } else {
+    console.error('❌ el.modelAnswerBox 없음!');
+  }
 }
 
 // ============================================

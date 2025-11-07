@@ -1700,7 +1700,9 @@ function updateDDayDisplay() {
       title.textContent = `${calRefDate.getFullYear()}.${String(calRefDate.getMonth()+1).padStart(2,'0')}`;
       const base = getScopeFilteredData(); const idSet = new Set(base.map(q => String(q.고유ID).trim()));
       const counts = new Map();
-      for (const [qid, rec] of Object.entries(questionScores || {})) {
+      // ⚠️ CRITICAL: window.questionScores를 명시적으로 사용 (Object.defineProperty로 연결됨)
+      const scores = window.questionScores || window.getQuestionScores?.() || {};
+      for (const [qid, rec] of Object.entries(scores)) {
         if (!idSet.has(qid)) continue;
         const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
         for (const h of hist) {
@@ -1887,9 +1889,12 @@ function renderStats(){
   // 나머지 코드는 동일...
   const base=getScopeFilteredData(), idSet=new Set(base.map(q=>String(q.고유ID).trim()));
   let solved=0,sum=0, flagged=0,last=0; const daySet=new Set();
-  
+
+  // ⚠️ CRITICAL: window.questionScores를 명시적으로 사용 (Object.defineProperty로 연결됨)
+  const scores = window.questionScores || window.getQuestionScores?.() || {};
+
   for(const q of base){
-    const id=String(q.고유ID).trim(), rec=questionScores[id];
+    const id=String(q.고유ID).trim(), rec=scores[id];
     if(rec && Number.isFinite(+rec.score)){ solved++; sum+=+rec.score; }
     if(rec?.userReviewFlag && !rec.userReviewExclude) flagged++;
     if(rec?.lastSolvedDate && rec.lastSolvedDate>last) last=rec.lastSolvedDate;
@@ -1921,7 +1926,7 @@ function renderStats(){
   };
   
   for(const q of base){
-    const id=String(q.고유ID).trim(), ch=String(q.단원).trim(), rec=questionScores[id];
+    const id=String(q.고유ID).trim(), ch=String(q.단원).trim(), rec=scores[id];
     const hist=Array.isArray(rec?.solveHistory)?rec.solveHistory:[];
     
     for(const h of hist){ 
