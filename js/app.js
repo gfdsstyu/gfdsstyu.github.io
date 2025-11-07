@@ -342,6 +342,7 @@ window.flashcardPrev = Flashcard.flashcardPrev;
 window.flashcardNext = Flashcard.flashcardNext;
 window.flashcardRandom = Flashcard.flashcardRandom;
 window.jumpToFlashcard = Flashcard.jumpToFlashcard;
+window.getCurrentFlashcardInfo = Flashcard.getCurrentFlashcardInfo;
 window.exitFlashcardMode = Flashcard.exitFlashcardMode;
 window.initFlashcardListeners = Flashcard.initFlashcardListeners;
 
