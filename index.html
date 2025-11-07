@@ -3882,6 +3882,8 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
     }
 
     function showAchievementNotification(achievement) {
+      console.log('🎉 업적 팝업 표시:', achievement.name, achievement.desc);
+
       const tierColors = {
         bronze: 'from-amber-500 to-yellow-600',
         silver: 'from-gray-400 to-gray-500',
@@ -3890,7 +3892,8 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
       };
 
       const notification = document.createElement('div');
-      notification.className = `fixed top-20 right-4 z-[9999] bg-gradient-to-r ${tierColors[achievement.tier]} text-white px-6 py-4 rounded-lg shadow-2xl animate-bounce`;
+      notification.className = `fixed top-20 right-4 bg-gradient-to-r ${tierColors[achievement.tier]} text-white px-6 py-4 rounded-lg shadow-2xl animate-bounce`;
+      notification.style.zIndex = '99999'; // 최상단 보장
       notification.innerHTML = `
         <div class="flex items-center gap-3">
           <span class="text-3xl">${achievement.icon}</span>
@@ -3903,11 +3906,15 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
       `;
 
       document.body.appendChild(notification);
+      console.log('✅ 팝업 DOM 추가 완료 (4초간 표시)');
 
       setTimeout(() => {
         notification.classList.remove('animate-bounce');
         notification.classList.add('opacity-0', 'transition-opacity');
-        setTimeout(() => notification.remove(), 500);
+        setTimeout(() => {
+          notification.remove();
+          console.log('✅ 팝업 제거 완료');
+        }, 500);
       }, 4000);
     }
 

@@ -252,9 +252,11 @@ export async function handleGrade() {
       window.refreshPanels();
     }
 
-    // 업적 확인
+    // 업적 확인 (UI 렌더링 완료 후 팝업 표시를 위해 약간 지연)
     if (typeof window.checkAchievements === 'function') {
-      window.checkAchievements();
+      setTimeout(() => {
+        window.checkAchievements();
+      }, 150);
     }
 
   } catch (e) {
