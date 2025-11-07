@@ -112,11 +112,13 @@ app.js (진입점)
 | **Phase 2.3** | ✅ **완료** | **quiz/grading.js 생성** |
 | **Phase 2.4** | ✅ **완료** | **quiz/quizCore.js 생성** |
 | **Phase 2.5** | ✅ **완료** | **quiz/navigation.js 생성** |
-| Phase 2.6 | 🔄 **진행 중** | **중복 코드 제거 및 정리** |
-| Phase 3 | 📋 계획 | filter, summary, calendar 모듈 분리 |
+| **Phase 2.6** | ✅ **완료** | **중복 코드 제거 (200줄 감소)** |
+| **Phase 3.1** | ✅ **완료** | **features/filter/ 모듈 분리 (6개 함수)** |
+| Phase 3.2 | 🔄 **진행 중** | **features/summary/ 모듈 분리** |
+| Phase 3.3 | 📋 계획 | calendar 모듈 분리 |
 | Phase 4 | 📋 계획 | report, flashcard, achievements 모듈 분리 |
 
-**전체 진행률**: ~48% (11/23 모듈 완료)
+**전체 진행률**: ~52% (12/23 모듈 완료)
 
 **생성된 모듈 목록**:
 1. ✅ config/config.js
@@ -130,6 +132,7 @@ app.js (진입점)
 9. ✅ **features/quiz/grading.js**
 10. ✅ **features/quiz/quizCore.js**
 11. ✅ **features/quiz/navigation.js**
+12. ✅ **features/filter/filterCore.js** (Phase 3.1)
 
 ---
 
@@ -170,12 +173,33 @@ f1ef971 - refactor: Phase 2.1 완료 - core/dataManager.js 생성
 
 ---
 
-## 🆕 최근 업데이트 (Phase 2.3-2.6)
+## 🆕 최근 업데이트 (Phase 2.3-3.1)
 
 ### Phase 2.3-2.5: Quiz 모듈 분리 완료 ✅
 - ✅ features/quiz/quizCore.js (퀴즈 핵심 로직)
 - ✅ features/quiz/grading.js (채점 로직)
 - ✅ features/quiz/navigation.js (네비게이션)
+
+### Phase 2.6: 중복 코드 제거 완료 ✅
+- ✅ **총 200줄 감소** (4474 → 4274줄)
+- ✅ core/dataManager.js 중복 제거 (47줄)
+- ✅ core/storageManager.js 중복 제거 (39줄)
+- ✅ features/quiz/quizCore.js 중복 제거 (71줄)
+- ✅ features/quiz/grading.js 중복 제거 (49줄)
+- ✅ 커밋: 1e45516
+
+### Phase 3.1: features/filter/ 모듈 분리 완료 ✅
+- ✅ **js/features/filter/filterCore.js 생성** (234줄)
+- ✅ 6개 필터 함수 모듈화:
+  - `buildSourceFilterUI()` - 출처 필터 UI 구축
+  - `getSelectedSourceGroups()` - 선택된 출처 그룹
+  - `detectSourceGroup()` - 출처 그룹 감지
+  - `applySourceFilter()` - 출처 필터 적용
+  - `filterByChapterSelection()` - 단원 필터 적용
+  - `getFilteredByUI()` - 종합 필터 + 정렬
+- ✅ index.html 82줄 → 마커로 대체
+- ✅ import 경로 수정 (getElements → stateManager.js)
+- ✅ 커밋: 309c17e, ef3b927
 
 ### 버그 수정 및 개선 사항
 1. ✅ **변수 shadowing 문제 해결** - 로컬 let 선언 제거, Object.defineProperty 사용
@@ -189,12 +213,13 @@ f1ef971 - refactor: Phase 2.1 완료 - core/dataManager.js 생성
 9. ✅ **모범답안 즉시 표시** - AI 채점 전에 모범답안 표시
 10. ✅ **업적 팝업 즉시 표시** - UI 렌더링 후 팝업 표시 (150ms 지연)
 11. ✅ **모바일 차트 압축 문제** - maintainAspectRatio: false + 모바일 CSS 추가
+12. ✅ **filterCore.js import 경로 수정** - getElements 위치 수정
 
-### 현재 상태: Phase 2.6 진행 중 🔄
-**목표**: 중복 코드 제거 및 코드베이스 정리
-- 주석 처리된 이전 코드 블록 검토 및 제거
-- 중복 함수 정의 완전 제거
-- 각 단계마다 동작 확인
+### 현재 상태: Phase 3.2 진행 중 🔄
+**목표**: features/summary/ 모듈 분리
+- updateSummary() - 요약 통계 업데이트
+- updateSummaryHighlight() - 하이라이트 표시
+- refreshPanels() - 패널 새로고침
 
 ## 🔜 다음 단계
 
