@@ -65,6 +65,7 @@ export function initElements() {
 
     // Result Display
     resultBox: $('result-box'),
+    modelAnswerBox: $('model-answer-box'),  // ⚠️ CRITICAL: 모범답안 박스 추가
     score: $('score'),
     progressBar: $('progress-bar'),
     aiFeedback: $('ai-feedback'),
