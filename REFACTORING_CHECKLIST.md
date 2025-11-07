@@ -263,6 +263,8 @@
 
 ## ✅ Phase 2.6: 중복 코드 제거 작업 (완료)
 
+**완료 일자**: 2025-01-07
+
 ### 제거된 중복 함수
 1. ✅ **core/dataManager.js 중복** (47줄 제거):
    - `loadData()`, `selfTest()`, `populateChapterSelect()`
