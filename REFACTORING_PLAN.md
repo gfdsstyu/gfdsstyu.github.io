@@ -230,6 +230,64 @@
 
 ---
 
+## ⚠️ 중요 규칙 및 주의사항
+
+### 🚨 StateManager Import 금지 (Critical!)
+
+**문제**: Phase 4.1 (report 모듈), Phase 4.2 (flashcard 모듈)에서 반복 발생
+**원인**: `stateManager.js`는 getter/setter 함수만 export하며, 직접 named export를 제공하지 않음
+
+**❌ 잘못된 사용 (에러 발생)**:
+```javascript
+import { currentQuizData, currentQuestionIndex, isFlashcardMode } from '../../core/stateManager.js';
+import { questionScores, allData, geminiApiKey } from '../../core/stateManager.js';
+```
+
+**에러 메시지**:
+```
+Uncaught SyntaxError: The requested module '../../core/stateManager.js'
+does not provide an export named 'currentQuestionIndex'
+```
+
+**✅ 올바른 사용**:
+```javascript
+// stateManager import 제거하고 window 객체 사용
+window.currentQuizData
+window.currentQuestionIndex
+window.isFlashcardMode
+window.questionScores
+window.allData
+window.geminiApiKey
+```
+
+**적용 위치**:
+- ✅ `js/features/report/reportCore.js` - `window.questionScores`, `window.allData`
+- ✅ `js/features/report/analysis.js` - `window.geminiApiKey`, `window.questionScores`
+- ✅ `js/features/flashcard/flashcardCore.js` - `window.currentQuizData`, `window.currentQuestionIndex`, `window.isFlashcardMode`
+
+**재발 방지 규칙**:
+1. 새 모듈 생성 시 stateManager에서 직접 import 금지
+2. 전역 상태는 항상 `window` 객체를 통해 접근
+3. setter 함수 대신 직접 할당: `window.isFlashcardMode = true`
+
+**수정 커밋**:
+- `d044049` - fix: report 모듈 import 오류 수정
+- `9d03332` - fix: flashcardCore.js stateManager import 오류 수정
+
+---
+
+### 📋 Import 경로 주의사항
+
+**chapterLabelText 위치**:
+- ❌ `import { chapterLabelText } from '../../utils/helpers.js'` (잘못됨)
+- ✅ `import { chapterLabelText } from '../../config/config.js'` (올바름)
+
+**적용 위치**:
+- `js/features/report/charts.js`
+- `js/features/report/reportCore.js`
+
+---
+
 ## 📈 진행 상황 추적
 
 ### Phase 2 체크리스트
