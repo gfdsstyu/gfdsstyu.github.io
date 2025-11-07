@@ -6,8 +6,8 @@
  */
 
 import { el, $ } from '../../ui/elements.js';
-import { questionScores, allData } from '../../core/stateManager.js';
-import { normId, clamp, chapterLabelText } from '../../utils/helpers.js';
+import { normId, clamp } from '../../utils/helpers.js';
+import { chapterLabelText } from '../../config/config.js';
 import { renderDailyVolumeChart, renderScoreTrendChart, renderChapterWeaknessChart } from './charts.js';
 
 // Module state
@@ -88,7 +88,7 @@ export function getReportData() {
   const chapterData = new Map(); // chapter -> {scores[], dates[]}
   const weakProblems = []; // problems below threshold
 
-  for (const [qid, rec] of Object.entries(questionScores || {})) {
+  for (const [qid, rec] of Object.entries(window.questionScores || {})) {
     const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
     for (const h of hist) {
       const date = +h?.date;
@@ -102,7 +102,7 @@ export function getReportData() {
       dailyData.get(dateKey).scores.push(score);
 
       // Find problem
-      const problem = allData.find(q => normId(q.고유ID) === qid);
+      const problem = window.allData.find(q => normId(q.고유ID) === qid);
       if (problem) {
         const chapter = problem.단원 || '기타';
         if (!chapterData.has(chapter)) chapterData.set(chapter, { scores: [], dates: [] });
@@ -191,7 +191,7 @@ export function renderActionPlan(weakProblems) {
     }
 
     wrongAnswers.innerHTML = Array.from(uniqueProblems.values()).slice(0, 20).map(wp => {
-      const rec = questionScores[wp.qid];
+      const rec = window.questionScores[wp.qid];
       const userAnswer = rec?.user_answer || '(답안 없음)';
       const aiFeedback = rec?.feedback || '(피드백 없음)';
       return `

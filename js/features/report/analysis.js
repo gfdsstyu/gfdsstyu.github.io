@@ -5,7 +5,6 @@
  */
 
 import { el, $ } from '../../ui/elements.js';
-import { questionScores, geminiApiKey } from '../../core/stateManager.js';
 import { callGeminiTextAPI } from '../../services/geminiApi.js';
 import { getReportData } from './reportCore.js';
 
@@ -54,7 +53,7 @@ export async function startAIAnalysis() {
   const result = $('ai-analysis-result');
 
   // Check API key first
-  if(!geminiApiKey){
+  if(!window.geminiApiKey){
     if (window.openApiModal) window.openApiModal(false);
     if (window.showToast) window.showToast('Gemini API 키를 입력해주세요.','error');
     return;
@@ -75,7 +74,7 @@ export async function startAIAnalysis() {
 
     // Prepare prompt with actual user answers from solve history
     const weakProblemsSummary = data.weakProblems.slice(0, 20).map(wp => {
-      const scoreData = questionScores[wp.qid];
+      const scoreData = window.questionScores[wp.qid];
       const solveHistory = scoreData?.solveHistory || [];
       const latestSolve = solveHistory[solveHistory.length - 1];
 
@@ -240,7 +239,7 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
 
 마크다운 형식으로 답변하세요.`;
 
-    const response = await callGeminiTextAPI(prompt, geminiApiKey);
+    const response = await callGeminiTextAPI(prompt, window.geminiApiKey);
 
     if (loading) loading.classList.add('hidden');
     if (result) result.classList.remove('hidden');
