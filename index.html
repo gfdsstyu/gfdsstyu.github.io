@@ -917,60 +917,15 @@ function updateDDayDisplay() {
     // ✂️ REFACTORED → js/core/dataManager.js
     // ============================================================
     // const getAllChapterNums = ... → js/core/dataManager.js
+    // ============================================================
+    // ✂️ REFACTORED → js/core/dataManager.js
+    // ============================================================
     // async function loadData() → js/core/dataManager.js
     // function selfTest() → js/core/dataManager.js
     // function populateChapterSelect() → js/core/dataManager.js
     //
     // 위 함수들은 app.js를 통해 전역으로 노출됨:
     // window.getAllChapterNums, window.loadData, window.selfTest, window.populateChapterSelect
-
-    /* [이전 코드 - 삭제됨]
-    async function loadData(){
-      const CAND=['questions.json','./questions.json','./data/questions.json','./assets/questions.json'];
-      const errs=[];
-      for(const path of CAND){
-        try{
-          const res=await fetch(path,{cache:'no-store'}); if(!res.ok){ errs.push(`${path}: HTTP ${res.status}`); continue; }
-          const arr=await res.json(); if(!Array.isArray(arr)){ errs.push(`${path}: JSON 최상위가 배열 아님`); continue; }
-          const need=['고유ID','단원','물음','정답']; const bad=arr.findIndex(r=>!r||need.some(k=>!(k in r)));
-          if(bad!==-1){ errs.push(`${path}: 필수키 누락(index ${bad})`); continue; }
-          allData=arr;
-          setAllData(arr); // StateManager에도 설정
-          console.info('[questions.json] loaded from',path); selfTest(); populateChapterSelect(); updateSummary(); return;
-        }catch(e){ errs.push(`${path}: ${e.message}`); }
-      }
-      try{
-        const node=$('dataset-json'); if(!node) throw new Error('dataset-json 없음');
-        const text=(node.textContent||'').trim(); if(!text) throw new Error('내장 데이터 비어 있음');
-        const parsed=JSON.parse(text); if(!Array.isArray(parsed)) throw new Error('내장 데이터 최상위가 배열 아님');
-        allData=parsed;
-        setAllData(parsed); // StateManager에도 설정
-        console.warn('[questions.json] 모든 후보 실패. 내장 데이터로 폴백',errs); showToast('외부 DB 실패 → 내장 데이터 사용','warn');
-        selfTest(); populateChapterSelect(); updateSummary();
-      }catch(err){ console.error('질문 데이터 로드 실패:',errs,err); showToast('문제 데이터 로드 실패: 콘솔 확인','error'); $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).'; }
-    }
-    function selfTest(){
-      const miss=[]; allData.forEach((r,i)=>{ if(!(r&&'고유ID'in r && '단원'in r && '물음'in r && '정답'in r)) miss.push(i+1); });
-      if(miss.length) showToast(`경고: 필수 필드 누락 ${miss.length}개`,'warn');
-      const seen=new Set(), dup=[]; for(const r of allData){ const k=String(r.고유ID).trim(); if(seen.has(k)) dup.push(k); else seen.add(k); }
-      if(dup.length) showToast(`경고: 중복 고유ID ${dup.length}개`,'warn');
-      if(!new Set(allData.map(r=>String(r.단원).trim())).size) throw new Error('단원 데이터 없음');
-    }
-
-    function populateChapterSelect(){
-      while(el.chapterSelect.options.length>1) el.chapterSelect.remove(1);
-      const chNums=getAllChapterNums(); const ranges=computePartRanges(chNums);
-      for(const r of ranges){
-        const opt=document.createElement('option'); opt.value=PART_VALUE(r.start,r.end);
-        opt.textContent=`--- ${r.label} (${r.start}~${r.end}장) ---`; opt.className='text-gray-700';
-        el.chapterSelect.appendChild(opt);
-        chNums.filter(n=>n>=r.start && n<=r.end).forEach(n=>{
-          const copt=document.createElement('option'); copt.value=String(n); copt.textContent=chapterLabelText(n);
-          el.chapterSelect.appendChild(copt);
-        });
-      }
-    }
-    [이전 코드 종료] */
 
     // ============================================================
     // ✂️ REFACTORED → js/core/stateManager.js
@@ -983,45 +938,14 @@ function updateDDayDisplay() {
       if(el.aiModelSelect) el.aiModelSelect.value = getSelectedAiModel();
     }
 
-    /* [이전 코드 - storageManager.js로 이동됨]
-    function migrateData(){
-      const version=localStorage.getItem('schemaVersion'); if(version==='2') return;
-      try{
-        const old=localStorage.getItem('auditQuizScores'); if(!old){ localStorage.setItem('schemaVersion','2'); return; }
-        const parsed=JSON.parse(old), newScores={}, map={};
-        allData.forEach(q=>{ const disp=String(q.표시번호??'').trim(), num=String(q.물음번호??'').trim(); if(disp) map[disp]=q.고유ID; if(num) map[num]=q.고유ID; });
-        Object.keys(parsed).forEach(k=>{
-          const nk=map[k]||k, ov=parsed[k]||{}, hist=Array.isArray(ov.solveHistory)?ov.solveHistory:(ov.score!=null?[{date:Date.now(),score:+ov.score||0}]:[]);
-          newScores[nk]={ score:+(ov.score??0), feedback:String(ov.feedback??''), user_answer:String(ov.user_answer??''), hintUsed:!!ov.hintUsed, isSolved:!!(ov.isSolved||(ov.score!=null)), lastSolvedDate:+(ov.lastSolvedDate??(hist.at(-1)?.date||Date.now())), solveHistory:hist, userReviewFlag:!!ov.userReviewFlag, userReviewExclude: !!ov.userReviewExclude };
-        });
-        localStorage.setItem('auditQuizScores',JSON.stringify(newScores)); localStorage.setItem('schemaVersion','2'); questionScores=newScores; showToast('데이터 마이그레이션 완료','info');
-      }catch(e){ console.error(e); showToast('마이그레이션 오류','error'); }
-    }
-
-    // === 상호배타(★ vs ➖) 정합성 보정 ===
-    function enforceExclusiveFlagsOnAll() {
-      let changed=0;
-      for (const [qid, rec] of Object.entries(questionScores||{})) {
-        if (rec?.userReviewFlag && rec?.userReviewExclude) {
-          // 정책: '제외(➖) 우선'
-          rec.userReviewFlag = false;
-          changed++;
-        }
-      }
-      if (changed) {
-        try { localStorage.setItem('auditQuizScores', JSON.stringify(questionScores)); } catch {}
-      }
-    }
-    function setFlagState(qid, {flag=false, exclude=false, silent=false}) {
-      const rec = questionScores[qid] || {};
-      // 상호배타 적용
-      if (exclude) flag = false;
-      if (flag) exclude = false;
-      questionScores[qid] = { ...rec, userReviewFlag: !!flag, userReviewExclude: !!exclude };
-      try { localStorage.setItem('auditQuizScores', JSON.stringify(questionScores)); } catch {}
-      if (!silent) refreshPanels(); // 좌/우 패널 동기화
-    }
-    [이전 코드 종료] */
+    // ============================================================
+    // ✂️ REFACTORED → js/core/storageManager.js
+    // ============================================================
+    // function migrateData() → storageManager.js
+    // function enforceExclusiveFlagsOnAll() → storageManager.js
+    // function setFlagState() → storageManager.js
+    //
+    // 위 함수들은 app.js를 통해 전역으로 노출됨
 
     function openApiModal(initial=false){ if(initial) el.apiModalCancelBtn.classList.add('hidden'); else el.apiModalCancelBtn.classList.remove('hidden');
       el.apiModal.classList.remove('hidden'); el.apiModal.classList.add('flex'); el.apiModalInput.value=geminiApiKey||''; el.apiModalRemember.checked=!!localStorage.getItem('geminiApiKey'); setTimeout(()=>el.apiModalInput.focus(),0);
@@ -1261,84 +1185,17 @@ function updateDDayDisplay() {
     // ============================================================
     // ✂️ REFACTORED → js/features/quiz/quizCore.js
     // ============================================================
-    // function reloadAndRefresh() → js/features/quiz/quizCore.js
-    // function displayQuestion() → js/features/quiz/quizCore.js
-    // function updateFlagButtonsUI() → js/features/quiz/quizCore.js
-    // function startRandomQuiz() → js/features/quiz/quizCore.js
+    // function reloadAndRefresh() → quizCore.js
+    // function displayQuestion() → quizCore.js
+    // function updateFlagButtonsUI() → quizCore.js
+    // function startRandomQuiz() → quizCore.js
     //
     // 위 함수들은 app.js를 통해 전역으로 노출됨
-
-    /* [이전 코드 - quizCore.js로 이동됨]
-    function reloadAndRefresh(){
-      if(isPartValue(el.chapterSelect.value)){
-        summaryViewMode='CURRENT';
-        el.summaryViewCurrentBtn?.classList.add('bg-gray-100');
-        el.summaryViewAllBtn?.classList.remove('bg-gray-100');
-      }
-      currentQuizData=getFilteredByUI(); currentQuestionIndex=0;
-
-      // Update flashcard mode if active
-      if (isFlashcardMode) {
-        refreshFlashcardData();
-      } else {
-        if(currentQuizData.length){ el.quizArea.classList.remove('hidden'); el.summaryArea.classList.remove('hidden'); displayQuestion(); }
-        else{ el.quizArea.classList.add('hidden'); el.summaryArea.classList.remove('hidden'); showToast('선택한 조건에 맞는 문제가 없습니다.','warn'); }
-      }
-
-      updateSummary(); refreshPanels();
-    }
-    [이전 코드 종료] */
 
     el.chapterSelect.addEventListener('change', reloadAndRefresh);
     el.filterSelect.addEventListener('change', reloadAndRefresh);
     el.loadQuizBtn.addEventListener('click', reloadAndRefresh);
     el.randomQuizBtn.addEventListener('click', startRandomQuiz);
-
-    /* [이전 코드 - quizCore.js로 이동됨]
-    el.randomQuizBtn.addEventListener('click',()=>{
-      const list=getFilteredByUI(); if(!list.length){ showToast('선택 조건에 맞는 문제가 없습니다.','warn'); return; }
-      currentQuizData=list; currentQuestionIndex=Math.floor(Math.random()*list.length);
-      el.quizArea.classList.remove('hidden'); el.summaryArea.classList.remove('hidden'); displayQuestion(); updateSummary(); refreshPanels(); showToast('랜덤 문제 시작!');
-    });
-
-    function updateFlagButtonsUI(saved) {
-      const flagged = !!(saved?.userReviewFlag);
-      const excluded = !!(saved?.userReviewExclude);
-      // 상호배타: excluded가 true면 flagged는 false처럼 표현
-      const flagVisual = flagged && !excluded;
-
-      // ★/☆ 표시
-      const starEl = el.reviewFlagToggle?.querySelector('span');
-      if (starEl) starEl.textContent = flagVisual ? '★' : '☆';
-      el.reviewFlagToggle?.setAttribute('aria-pressed', flagVisual ? 'true':'false');
-      el.reviewExcludeToggle?.setAttribute('aria-pressed', excluded ? 'true':'false');
-    }
-
-    function displayQuestion(){
-      if(!currentQuizData.length){ el.quizArea.classList.add('hidden'); return; }
-      const q=currentQuizData[currentQuestionIndex];
-      el.quizArea.classList.remove('hidden');
-      el.questionNumber.textContent=`문항 ${q.표시번호||q.물음번호||q.고유ID}`;
-      el.questionText.textContent=q.물음;
-      el.questionCounter.textContent=`${currentQuestionIndex+1} / ${currentQuizData.length}`;
-      el.dbQuestionId.textContent=`ID: ${q.고유ID??'-'}`;
-      activeHintQuestionKey=null; el.hintBox.classList.add('hidden'); el.hintBox.innerHTML='';
-      el.resultBox.classList.add('hidden'); el.modelAnswerBox.classList.add('hidden'); el.userAnswer.value='';
-      el.loadPrevAnswerBtn.textContent='이전 답안 불러오기'; el.loadPrevAnswerBtn.removeAttribute('aria-pressed'); prevLoaded=false;
-
-      const saved=questionScores[normId(q.고유ID)];
-      updateFlagButtonsUI(saved);
-
-      if(saved && saved.score!==undefined){
-        showResult(saved.score, saved.feedback);
-        el.correctAnswer.textContent=String(q.정답||'');
-        el.modelAnswerBox.classList.remove('hidden');
-      }
-      el.prevBtn.disabled=(currentQuestionIndex===0);
-      el.nextBtn.disabled=(currentQuizData.length-1===currentQuestionIndex);
-      updateSummaryHighlight();
-    }
-    [이전 코드 종료] */
 
     // 복습추가(★) 클릭 → 제외(➖)와 상호배타
     el.reviewFlagToggle.addEventListener('click',()=>{
@@ -1411,42 +1268,6 @@ function updateDDayDisplay() {
 
     el.gradeBtn.addEventListener('click',handleGrade);
 
-    /* [이전 코드 - grading.js로 이동됨]
-    async function handleGrade(){
-      if(!geminiApiKey){ openApiModal(false); showToast('Gemini API 키를 입력해주세요.','error'); return; }
-      const answer=el.userAnswer.value.trim(); if(!answer){ el.errorMessage.textContent='답안을 입력해주세요.'; el.errorMessage.classList.remove('hidden'); el.userAnswer.focus(); return; }
-      el.errorMessage.classList.add('hidden');
-      const q=currentQuizData[currentQuestionIndex], qKey=normId(q.고유ID);
-
-      // 모범답안을 즉시 표시
-      el.correctAnswer.textContent=String(q.정답||'');
-      el.modelAnswerBox.classList.remove('hidden');
-
-      setLoading(true);
-      try{
-        let {score, feedback}=await callGeminiAPI(answer, q.정답, geminiApiKey);
-        if (selectedAiModel === 'gemini-2.5-flash-lite') score = clamp(score - 7, 0, 100);
-        const usedHint=(activeHintQuestionKey===qKey);
-        const finalScore= usedHint? Math.min(59, Math.round(score*0.8)) : score;
-        const finalFeedback= usedHint? `${feedback?feedback+' ':''}(힌트사용으로 감점)` : feedback;
-        showResult(finalScore, finalFeedback);
-
-        const existing=questionScores[qKey]||{}, newHistory=[...(existing.solveHistory||[]), {date:Date.now(), score:finalScore}];
-        questionScores[qKey]={ score:finalScore, feedback:finalFeedback, user_answer:answer, hintUsed:usedHint, isSolved:true, lastSolvedDate:Date.now(), solveHistory:newHistory, userReviewFlag:!!existing.userReviewFlag, userReviewExclude: !!existing.userReviewExclude };
-        // 상호배타 재보정(혹시라도 외부 백업 복원으로 둘다 true된 경우)
-        enforceExclusiveFlagsOnAll();
-        try{ localStorage.setItem('auditQuizScores',JSON.stringify(questionScores)); }catch{ showToast('localStorage 저장 실패(용량)','error'); }
-
-        const {increased, uniqueReads}=registerUniqueRead(qKey); if(increased) showToast(`회독 +1 (이 문제 고유 ${uniqueReads}회)`);
-        updateSummary(); refreshPanels();
-        checkAchievements(); // Check for new achievements after grading
-      }catch(e){
-        console.error('채점 오류:',e); el.aiFeedback.textContent=`채점 중 오류: ${e.message}`; el.score.textContent='Error'; el.progressBar.style.width='0%'; el.resultBox.classList.remove('hidden');
-        showToast('채점 요청 실패: API 키/네트워크/할당량 확인.','error');
-      }finally{ setLoading(false); }
-    }
-    function setLoading(v){ if(v){ el.gradeBtnText.classList.add('hidden'); el.gradeLoader.classList.remove('hidden'); el.gradeBtn.disabled=true; el.resultBox.classList.add('hidden'); } else { el.gradeBtnText.classList.remove('hidden'); el.gradeLoader.classList.add('hidden'); el.gradeBtn.disabled=false; } }
-    [이전 코드 종료] */
 
     // [리팩토링] Gemini API 함수는 js/services/geminiApi.js로 이동됨
     // async function callGeminiAPI(...) → js/services/geminiApi.js
@@ -1477,33 +1298,12 @@ function updateDDayDisplay() {
     function showResult(scoreVal, feedback){
       const s=clamp(+scoreVal,0,100);
       el.score.textContent=s.toFixed(1); el.progressBar.style.width=`${s}%`; el.progressBar.setAttribute('aria-valuenow',String(Math.round(s)));
-      el.progressBar.className='h-4 rounded-full transition-all duration-500 ease-out '+(s<60?'bg-red-500': s<80?'bg-yellow-500':'bg-blue-600');
-      el.aiFeedback.textContent=String(feedback||''); el.resultBox.classList.remove('hidden');
-    }
-    [이전 코드 종료] */
-
-    el.summaryViewAllBtn?.addEventListener('click',()=>{ summaryViewMode='ALL'; el.summaryViewAllBtn.classList.add('bg-gray-100'); el.summaryViewCurrentBtn.classList.remove('bg-gray-100'); updateSummary(); });
-    el.summaryViewCurrentBtn?.addEventListener('click',()=>{ summaryViewMode='CURRENT'; el.summaryViewCurrentBtn.classList.add('bg-gray-100'); el.summaryViewAllBtn.classList.remove('bg-gray-100'); updateSummary(); });
-
-    /* [이전 코드 - storageManager.js로 이동됨]
-    const READ_STORE_KEY='readSessions_v2', UNIQUE_WINDOW_MS=5*60*1000;
-    const loadReadStore=()=>{ try{ return JSON.parse(localStorage.getItem(READ_STORE_KEY)||'{}'); }catch{ return {}; } };
-    const saveReadStore=obj=>localStorage.setItem(READ_STORE_KEY,JSON.stringify(obj));
-    const computeUniqueReadsFromHistory=h=>{ const times=(Array.isArray(h)?h:[]).map(x=>+x?.date).filter(Number.isFinite).sort((a,b)=>a-b); if(!times.length) return {uniqueReads:0,lastAt:0}; let c=0,last=-Infinity; for(const t of times){ if(t-last>=UNIQUE_WINDOW_MS){ c++; last=t; } } return {uniqueReads:c,lastAt:times.at(-1)}; };
     function backfillReadStoreFromScores(force=false){
       if(!force && localStorage.getItem('readStoreBackfilled_v2')==='1') return;
       const db=loadReadStore(); let touched=0;
       for(const [qid,rec] of Object.entries(questionScores||{})){ const hist=Array.isArray(rec?.solveHistory)?rec.solveHistory:[]; if(!hist.length) continue; const has=db[qid];
         if(!has || !Number.isFinite(+has.uniqueReads) || +has.uniqueReads===0){ const seed=computeUniqueReadsFromHistory(hist); if(seed.uniqueReads>0){ db[qid]=seed; touched++; } }
       }
-      if(touched>0) saveReadStore(db); localStorage.setItem('readStoreBackfilled_v2','1');
-    }
-    function registerUniqueRead(qid){
-      const t=Date.now(), db=loadReadStore(); let rec=db[qid];
-      if(!rec){ const hist=questionScores[qid]?.solveHistory; rec=Array.isArray(hist)&&hist.length?computeUniqueReadsFromHistory(hist):{uniqueReads:0,lastAt:0}; }
-      if(t-(rec.lastAt||0)>=UNIQUE_WINDOW_MS){ rec.uniqueReads=(+rec.uniqueReads||0)+1; rec.lastAt=t; db[qid]=rec; saveReadStore(db); return {increased:true, uniqueReads:rec.uniqueReads}; }
-      rec.lastAt=t; db[qid]=rec; saveReadStore(db); return {increased:false, uniqueReads:rec.uniqueReads};
-    }
     [이전 코드 종료] */
 
     function updateSummary(){
