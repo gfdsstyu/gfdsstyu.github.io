@@ -57,6 +57,9 @@ import * as Analysis from './features/report/analysis.js';
 // 기능 - 플래시카드 시스템
 import * as Flashcard from './features/flashcard/flashcardCore.js';
 
+// 기능 - 업적 시스템
+import * as Achievements from './features/achievements/achievementsCore.js';
+
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
 // (Phase 3에서 모든 로직이 이전되면 제거 예정)
@@ -345,6 +348,23 @@ window.jumpToFlashcard = Flashcard.jumpToFlashcard;
 window.getCurrentFlashcardInfo = Flashcard.getCurrentFlashcardInfo;
 window.exitFlashcardMode = Flashcard.exitFlashcardMode;
 window.initFlashcardListeners = Flashcard.initFlashcardListeners;
+
+// Achievements (업적 시스템)
+window.Achievements = Achievements;
+window.loadAchievements = Achievements.loadAchievements;
+window.saveAchievements = Achievements.saveAchievements;
+window.unlockAchievement = Achievements.unlockAchievement;
+window.showAchievementNotification = Achievements.showAchievementNotification;
+window.updateAchievementBadge = Achievements.updateAchievementBadge;
+window.checkAchievements = Achievements.checkAchievements;
+window.checkStreakAchievements = Achievements.checkStreakAchievements;
+window.checkVolumeAchievements = Achievements.checkVolumeAchievements;
+window.checkSourceAchievements = Achievements.checkSourceAchievements;
+window.openAchievementsModal = Achievements.openAchievementsModal;
+window.closeAchievementsModal = Achievements.closeAchievementsModal;
+window.renderAchievements = Achievements.renderAchievements;
+window.createAchievementCard = Achievements.createAchievementCard;
+window.initAchievementListeners = Achievements.initAchievementListeners;
 
 // 상수들
 window.BASE_SYSTEM_PROMPT = Config.BASE_SYSTEM_PROMPT;
