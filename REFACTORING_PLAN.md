@@ -1,7 +1,7 @@
 # 🎯 리팩토링 실행 계획
 
 **최종 업데이트**: 2025-11-07
-**현재 진행률**: Phase 4.3 완료 (약 78% 완료)
+**현재 진행률**: Phase 4.4 완료 (약 81% 완료)
 **브랜치**: `claude/phase-4-feature-modules-011CUtW5znGTCVwrt9nAZ93E`
 
 ---
@@ -351,7 +351,7 @@ if (window.isFlashcardMode) {
 - [x] 4.1: features/report/ ✅
 - [x] 4.2: features/flashcard/ ✅
 - [x] 4.3: features/achievements/ ✅
-- [ ] 4.4: features/explorer/
+- [x] 4.4: features/explorer/ ✅
 - [ ] 4.5: features/review/
 
 ### Phase 5 체크리스트
@@ -361,7 +361,7 @@ if (window.isFlashcardMode) {
 
 ---
 
-## 📦 생성된 모듈 목록 (21개)
+## 📦 생성된 모듈 목록 (22개)
 
 ### Phase 1: 기본 모듈 (6개) ✅
 1. ✅ config/config.js (설정 및 상수)
@@ -385,12 +385,13 @@ if (window.isFlashcardMode) {
 15. ✅ features/settings/settingsCore.js (설정 관리)
 16. ✅ services/dataImportExport.js (데이터 Import/Export)
 
-### Phase 4: 추가 기능 모듈 (5개 / 5개 계획 중) 🔄
+### Phase 4: 추가 기능 모듈 (6개 / 5개 계획 중) 🔄
 17. ✅ features/report/reportCore.js (리포트 모달 및 데이터)
 18. ✅ features/report/charts.js (차트 렌더링)
 19. ✅ features/report/analysis.js (AI 분석)
 20. ✅ features/flashcard/flashcardCore.js (플래시카드 시스템)
 21. ✅ features/achievements/achievementsCore.js (업적 시스템) - 681 lines
+22. ✅ features/explorer/explorerCore.js (문제 탐색기) - 175 lines
 
 ---
 
@@ -440,12 +441,14 @@ app.js (진입점)
 | Phase 4.1 | 2,536 | -1,104 | report 모듈 (3개 파일) |
 | Phase 4.2 | 2,342 | -194 | flashcard 모듈 |
 | Phase 4.3 | 1,685 | -657 | achievements 모듈 |
-| **총 감소** | **-3,117줄** | **64.9%** | **현재** |
+| Phase 4.4 | 1,604 | -81 | explorer 모듈 |
+| **총 감소** | **-3,198줄** | **66.6%** | **현재** |
 
-**모듈 총 라인 수**: ~6,249줄 (21개 모듈)
+**모듈 총 라인 수**: ~6,424줄 (22개 모듈)
 - reportCore.js (364줄) + charts.js (562줄) + analysis.js (282줄) = 1,208줄
 - flashcardCore.js (260줄)
 - achievementsCore.js (681줄)
+- explorerCore.js (175줄)
 
 ---
 
@@ -537,4 +540,4 @@ ef3b927 - fix: filterCore import 경로 수정
 
 **작성일**: 2025-11-07
 **브랜치**: `claude/phase-4-feature-modules-011CUtW5znGTCVwrt9nAZ93E`
-**전체 진행률**: 78% (21/27 모듈 완료)
+**전체 진행률**: 81% (22/27 모듈 완료)

@@ -60,6 +60,9 @@ import * as Flashcard from './features/flashcard/flashcardCore.js';
 // 기능 - 업적 시스템
 import * as Achievements from './features/achievements/achievementsCore.js';
 
+// 기능 - 문제 탐색기
+import * as Explorer from './features/explorer/explorerCore.js';
+
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
 // (Phase 3에서 모든 로직이 이전되면 제거 예정)
@@ -365,6 +368,11 @@ window.closeAchievementsModal = Achievements.closeAchievementsModal;
 window.renderAchievements = Achievements.renderAchievements;
 window.createAchievementCard = Achievements.createAchievementCard;
 window.initAchievementListeners = Achievements.initAchievementListeners;
+
+// Explorer (문제 탐색기)
+window.Explorer = Explorer;
+window.renderExplorer = Explorer.renderExplorer;
+window.moveSourceFilterToSide = Explorer.moveSourceFilterToSide;
 
 // 상수들
 window.BASE_SYSTEM_PROMPT = Config.BASE_SYSTEM_PROMPT;
