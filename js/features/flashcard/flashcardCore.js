@@ -7,12 +7,6 @@
 
 import { el } from '../../ui/elements.js';
 import { showToast } from '../../ui/domUtils.js';
-import {
-  currentQuizData,
-  currentQuestionIndex,
-  isFlashcardMode,
-  setIsFlashcardMode
-} from '../../core/stateManager.js';
 import { getFilteredByUI } from '../../features/filter/filterCore.js';
 import { updateSummary, updateSummaryHighlight } from '../../features/summary/summaryCore.js';
 import { displayQuestion } from '../../features/quiz/quizCore.js';
@@ -36,8 +30,8 @@ function isEditing(target) {
  */
 export function startFlashcardMode() {
   // Use current quiz data if already loaded, otherwise get filtered data
-  let dataToUse = currentQuizData && currentQuizData.length > 0
-    ? currentQuizData
+  let dataToUse = window.currentQuizData && window.currentQuizData.length > 0
+    ? window.currentQuizData
     : getFilteredByUI();
 
   if (!dataToUse || dataToUse.length === 0) {
@@ -47,11 +41,11 @@ export function startFlashcardMode() {
 
   flashcardData = dataToUse;
   // Start from current problem if viewing quiz, otherwise start from beginning
-  flashcardIndex = (currentQuizData && currentQuizData.length > 0 && currentQuestionIndex >= 0)
-    ? currentQuestionIndex
+  flashcardIndex = (window.currentQuizData && window.currentQuizData.length > 0 && window.currentQuestionIndex >= 0)
+    ? window.currentQuestionIndex
     : 0;
   flashcardAnswerVisible = false;
-  setIsFlashcardMode(true);
+  window.isFlashcardMode = true;
 
   // Hide quiz area, show flashcard area and summary
   el.quizArea?.classList.add('hidden');
@@ -68,7 +62,7 @@ export function startFlashcardMode() {
  * 플래시카드 데이터 새로고침 (필터 변경 시)
  */
 export function refreshFlashcardData() {
-  if (!isFlashcardMode) return;
+  if (!window.isFlashcardMode) return;
 
   // Get updated data based on current filter settings
   const newData = getFilteredByUI();
@@ -212,10 +206,10 @@ export function exitFlashcardMode() {
   flashcardData = [];
   flashcardIndex = 0;
   flashcardAnswerVisible = false;
-  setIsFlashcardMode(false);
+  window.isFlashcardMode = false;
 
   // Refresh quiz area and panels
-  if (currentQuizData && currentQuizData.length > 0) {
+  if (window.currentQuizData && window.currentQuizData.length > 0) {
     displayQuestion();
   } else {
     el.quizArea?.classList.add('hidden');
