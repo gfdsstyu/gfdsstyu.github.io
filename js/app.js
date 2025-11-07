@@ -63,6 +63,10 @@ import * as Achievements from './features/achievements/achievementsCore.js';
 // 기능 - 문제 탐색기
 import * as Explorer from './features/explorer/explorerCore.js';
 
+// 기능 - 복습 시스템 (HLR)
+import * as HLRDataset from './features/review/hlrDataset.js';
+import * as ReviewCore from './features/review/reviewCore.js';
+
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
 // (Phase 3에서 모든 로직이 이전되면 제거 예정)
@@ -373,6 +377,26 @@ window.initAchievementListeners = Achievements.initAchievementListeners;
 window.Explorer = Explorer;
 window.renderExplorer = Explorer.renderExplorer;
 window.moveSourceFilterToSide = Explorer.moveSourceFilterToSide;
+
+// HLR Dataset (복습 알고리즘 - 데이터셋)
+window.HLRDataset = HLRDataset;
+window.buildHLRDataset = HLRDataset.buildHLRDataset;
+window.exportHLRDataset = HLRDataset.exportHLRDataset;
+window.LocalHLRPredictor = HLRDataset.LocalHLRPredictor;
+window.buildFeaturesForQID = HLRDataset.buildFeaturesForQID;
+window.calculateRecallProbability = HLRDataset.calculateRecallProbability;
+
+// HLR Predictor global instance
+window.hlrPredictor = new HLRDataset.LocalHLRPredictor();
+
+// Review Core (복습 전략)
+window.ReviewCore = ReviewCore;
+window.getReviewStrategy = ReviewCore.getReviewStrategy;
+window.prioritizeTodayReview = (list) => ReviewCore.prioritizeTodayReview(list, window.hlrPredictor);
+window.initReviewListeners = ReviewCore.initReviewListeners;
+
+// Wrapper for calculateRecallProbability that uses global predictor
+window.calculateRecallProbability = (qid) => HLRDataset.calculateRecallProbability(qid, window.hlrPredictor);
 
 // 상수들
 window.BASE_SYSTEM_PROMPT = Config.BASE_SYSTEM_PROMPT;
