@@ -258,36 +258,24 @@
 - **아직 남아있음**: ~79개 (64%)
 - **중복 코드 블록**: ~25개 주석 블록 (제거 필요)
 
-## ⚠️ Phase 2.6: 중복 코드 제거 작업 (진행 중)
+## ✅ Phase 2.6: 중복 코드 제거 작업 (완료)
 
-### 발견된 중복 함수 (index.html에 남아있음)
-1. **core/dataManager.js 중복**:
-   - `loadData()` (line 928-951)
-   - `selfTest()` (line 952-958)
-   - `populateChapterSelect()` (line 960-972)
+**완료 일자**: 2025-01-07
 
-2. **core/storageManager.js 중복**:
-   - `migrateData()` (line 987-999)
-   - 기타 storage 관련 함수들
+### 제거 완료된 중복 함수
+1. **core/dataManager.js 중복** ✅
+   - `loadData()`, `selfTest()`, `populateChapterSelect()`
 
-3. **features/quiz/quizCore.js 중복**:
-   - `reloadAndRefresh()` (line 1272-1289)
-   - `updateFlagButtonsUI()` (line 1304-1315)
-   - `displayQuestion()` (line 1317-1340)
+2. **core/storageManager.js 중복** ✅
+   - `migrateData()`
 
-4. **features/quiz/grading.js 중복**:
-   - `handleGrade()` (line 1415-1434)
+3. **features/quiz/quizCore.js 중복** ✅
+   - `reloadAndRefresh()`, `updateFlagButtonsUI()`, `displayQuestion()`
 
-### 주석 처리된 코드 블록
-- `/* [이전 코드 - ...] */` 형태의 블록 다수
-- `// [리팩토링] ...` 형태의 마커 다수
-- 이전 코드가 주석 안에 포함되어 있지만 실제로는 실행 가능한 상태
+4. **features/quiz/grading.js 중복** ✅
+   - `handleGrade()`
 
-### 정리 계획
-**단계 1**: 중복 함수 제거 (모듈에서 import하는지 확인 후)
-**단계 2**: 주석 블록 정리 (실제 삭제 대상 식별)
-**단계 3**: 각 단계마다 동작 테스트
-**단계 4**: 최종 코드 검증 및 커밋
+**총 제거된 코드**: 200줄
 
 ---
 
@@ -300,16 +288,16 @@
 4. ✅ ui/elements.js (완료)
 5. ✅ services/geminiApi.js (완료)
 
-### Phase 2 (High) - 다음 단계
-6. ❌ core/dataManager.js
-7. ❌ core/storageManager.js
-8. ❌ features/quiz/quizCore.js
-9. ❌ features/quiz/grading.js
-10. ❌ features/quiz/navigation.js
+### Phase 2 (High) - 완료 ✅
+6. ✅ core/dataManager.js
+7. ✅ core/storageManager.js
+8. ✅ features/quiz/quizCore.js
+9. ✅ features/quiz/grading.js
+10. ✅ features/quiz/navigation.js
 
-### Phase 3 (Medium) - 그 다음
+### Phase 3 (Medium) - 진행 중
 11. ❌ core/scoreManager.js
-12. ❌ features/filter/
+12. ✅ features/filter/ (완료)
 13. ❌ features/summary/
 14. ❌ features/calendar/
 15. ❌ features/settings/
