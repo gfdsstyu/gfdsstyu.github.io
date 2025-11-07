@@ -1110,6 +1110,9 @@ function updateDDayDisplay() {
       applyDarkMode();
       migrateData();
 
+      // 캘린더 날짜 초기화 (학습 캘린더 월간 이동용)
+      window.calRefDate = (() => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(1); return d; })();
+
       // 상호배타 정합성 1차 보정
       enforceExclusiveFlagsOnAll();
       backfillReadStoreFromScores(false);
