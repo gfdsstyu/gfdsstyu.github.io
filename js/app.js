@@ -49,6 +49,11 @@ import * as Calendar from './features/calendar/calendarCore.js';
 // 기능 - 설정 관리
 import * as Settings from './features/settings/settingsCore.js';
 
+// 기능 - 리포트 시스템
+import * as ReportCore from './features/report/reportCore.js';
+import * as Charts from './features/report/charts.js';
+import * as Analysis from './features/report/analysis.js';
+
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
 // (Phase 3에서 모든 로직이 이전되면 제거 예정)
@@ -299,6 +304,29 @@ window.initDDayListeners = Settings.initDDayListeners;
 window.initGlobalEscapeHandler = Settings.initGlobalEscapeHandler;
 window.initSettings = Settings.initSettings;
 
+// ReportCore (리포트 모달 및 데이터 처리)
+window.ReportCore = ReportCore;
+window.openReportModal = ReportCore.openReportModal;
+window.closeReportModal = ReportCore.closeReportModal;
+window.switchReportTab = ReportCore.switchReportTab;
+window.getReportData = ReportCore.getReportData;
+window.generateReport = ReportCore.generateReport;
+window.renderActionPlan = ReportCore.renderActionPlan;
+window.initReportListeners = ReportCore.initReportListeners;
+
+// Charts (리포트 차트 렌더링)
+window.Charts = Charts;
+window.renderDailyVolumeChart = Charts.renderDailyVolumeChart;
+window.renderScoreTrendChart = Charts.renderScoreTrendChart;
+window.renderChapterWeaknessChart = Charts.renderChapterWeaknessChart;
+window.showChapterDetail = Charts.showChapterDetail;
+
+// Analysis (AI 분석)
+window.Analysis = Analysis;
+window.startAIAnalysis = Analysis.startAIAnalysis;
+window.copyAIAnalysis = Analysis.copyAIAnalysis;
+window.initAIAnalysisListeners = Analysis.initAIAnalysisListeners;
+
 // 상수들
 window.BASE_SYSTEM_PROMPT = Config.BASE_SYSTEM_PROMPT;
 window.LITE_STRICT_ADDENDUM = Config.LITE_STRICT_ADDENDUM;
@@ -356,3 +384,6 @@ console.log('  - features/filter/filterCore.js (필터링 시스템)');
 console.log('  - features/summary/summaryCore.js (요약/대시보드)');
 console.log('  - features/calendar/calendarCore.js (캘린더/통계)');
 console.log('  - features/settings/settingsCore.js (설정 관리)');
+console.log('  - features/report/reportCore.js (리포트 모달 및 데이터 처리)');
+console.log('  - features/report/charts.js (리포트 차트 렌더링)');
+console.log('  - features/report/analysis.js (AI 분석)');
