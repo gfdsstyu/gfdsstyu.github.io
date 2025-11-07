@@ -947,64 +947,22 @@ function updateDDayDisplay() {
     //
     // 위 함수들은 app.js를 통해 전역으로 노출됨
 
-    function openApiModal(initial=false){ if(initial) el.apiModalCancelBtn.classList.add('hidden'); else el.apiModalCancelBtn.classList.remove('hidden');
-      el.apiModal.classList.remove('hidden'); el.apiModal.classList.add('flex'); el.apiModalInput.value=geminiApiKey||''; el.apiModalRemember.checked=!!localStorage.getItem('geminiApiKey'); setTimeout(()=>el.apiModalInput.focus(),0);
-    }
-    const closeApiModal=()=>{ el.apiModal.classList.add('hidden'); el.apiModal.classList.remove('flex'); };
-    const ensureApiKeyGate=()=>{ if(!window.geminiApiKey && !window.getGeminiApiKey?.()) openApiModal(true); };
-    el.apiModalSaveBtn.addEventListener('click',()=>{
-      const key=(el.apiModalInput.value||'').trim(); if(!key){ showToast('API 키를 입력하세요.','error'); el.apiModalInput.focus(); return; }
-      geminiApiKey=key; sessionStorage.setItem('geminiApiKey',key); if(el.apiModalRemember.checked) localStorage.setItem('geminiApiKey',key); else localStorage.removeItem('geminiApiKey'); closeApiModal(); showToast('API 키 저장 완료');
-    });
-    el.apiModalCancelBtn.addEventListener('click',closeApiModal);
-
-    // Global Escape key handler (priority: highest z-index first)
-    document.addEventListener('keydown',e=>{
-      if(e.key==='Escape'){
-        // Priority 1: Flashcard mode (handled separately in flashcard section)
-        if(!el.flashcardArea?.classList.contains('hidden')) return;
-
-        // Priority 2: Report modal
-        if(!el.reportModal?.classList.contains('hidden')){ closeReportModal(); return; }
-
-        // Priority 3: Settings modal
-        if(!el.settingsModal?.classList.contains('hidden')){ closeSettingsModal(); return; }
-
-        // Priority 4: API modal
-        if(!el.apiModalCancelBtn?.classList.contains('hidden') && !el.apiModal?.classList.contains('hidden')){ closeApiModal(); return; }
-      }
-    });
-
-    function openSettingsModal(){
-      el.settingsModal.classList.remove('hidden');
-      el.settingsModal.classList.add('flex');
-      if(el.aiModelSelect) el.aiModelSelect.value=selectedAiModel;
-      if(el.darkModeSelect) el.darkModeSelect.value=darkMode;
-      if(el.examDateInput) el.examDateInput.value=loadExamDate();
-    }
-    function closeSettingsModal(){ el.settingsModal.classList.add('hidden'); el.settingsModal.classList.remove('flex'); }
-    el.settingsBtn.addEventListener('click',openSettingsModal);
-    el.settingsCloseBtn.addEventListener('click',closeSettingsModal);
-    el.settingsCloseBtnBottom.addEventListener('click',closeSettingsModal);
-    el.openApiKeyModalBtn?.addEventListener('click',()=>{ closeSettingsModal(); openApiModal(false); });
-    el.aiModelSelect?.addEventListener('change',e=>{ selectedAiModel=e.target.value; localStorage.setItem('aiModel',selectedAiModel); showToast(`AI 모델 변경: ${selectedAiModel}`); });
-    el.darkModeSelect?.addEventListener('change',e=>{ localStorage.setItem('darkMode',e.target.value); applyDarkMode(); showToast('다크 모드 설정 변경됨'); });
-
-    // D-DAY 관련 이벤트 리스너
-    el.saveExamDateBtn?.addEventListener('click', () => {
-      const dateStr = el.examDateInput?.value;
-      if (!dateStr) {
-        showToast('날짜를 선택해주세요', 'warn');
-        return;
-      }
-      saveExamDate(dateStr);
-      updateDDayDisplay();
-      showToast('시험 날짜가 저장되었습니다');
-    });
-
-    el.ddayDisplay?.addEventListener('click', () => {
-      openSettingsModal();
-    });
+    // ============================================================
+    // ✂️ REFACTORED → js/features/settings/settingsCore.js
+    // ============================================================
+    // function openApiModal() → settingsCore.js
+    // function closeApiModal() → settingsCore.js
+    // function ensureApiKeyGate() → settingsCore.js
+    // function openSettingsModal() → settingsCore.js
+    // function closeSettingsModal() → settingsCore.js
+    // function initApiModalListeners() → settingsCore.js
+    // function initSettingsModalListeners() → settingsCore.js
+    // function initDDayListeners() → settingsCore.js
+    // function initGlobalEscapeHandler() → settingsCore.js
+    // function initSettings() → settingsCore.js (초기화 함수)
+    //
+    // 위 함수들은 app.js를 통해 전역으로 노출됨
+    // 이벤트 리스너 초기화는 DOMContentLoaded에서 initSettings() 호출로 수행
 
     el.exportDataBtn?.addEventListener('click',()=>{
       try{
@@ -3706,6 +3664,9 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
       // 상호배타 정합성 1차 보정
       enforceExclusiveFlagsOnAll();
       backfillReadStoreFromScores(false);
+
+      // 설정 시스템 초기화 (Phase 3.4)
+      initSettings();
       ensureApiKeyGate();
       buildSourceFilterUI(); moveSourceFilterToSide();
 
