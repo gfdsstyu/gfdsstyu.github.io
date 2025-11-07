@@ -3,8 +3,7 @@
  */
 
 import { getElements, getQuestionScores, getCurrentQuizData, getCurrentQuestionIndex, setCurrentQuestionIndex, getAllData } from '../../core/stateManager.js';
-import { chapterLabelText } from '../../config/config.js';
-import { PART_INSERTIONS, SOURCE_LS } from '../../config/config.js';
+import { chapterLabelText, PART_INSERTIONS } from '../../config/config.js';
 import { loadReadStore, computeUniqueReadsFromHistory } from '../../core/storageManager.js';
 import { showToast } from '../../ui/domUtils.js';
 
