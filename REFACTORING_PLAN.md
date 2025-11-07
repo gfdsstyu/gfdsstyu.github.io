@@ -1,8 +1,8 @@
 # 🎯 리팩토링 실행 계획
 
 **최종 업데이트**: 2025-11-07
-**현재 진행률**: Phase 3.5 완료 (약 70% 완료)
-**브랜치**: `claude/fix-source-ls-export-011CUtQjriwwd7NVfdu3wNyG`
+**현재 진행률**: Phase 4.1 완료 (약 73% 완료)
+**브랜치**: `claude/phase-4-feature-modules-011CUtW5znGTCVwrt9nAZ93E`
 
 ---
 
@@ -15,13 +15,15 @@
 - ✅ Phase 3.2: features/summary/ 모듈 분리 완료 (3개 함수, 275줄)
 - ✅ Phase 3.3: features/calendar/ 모듈 분리 완료 (4개 함수, 484줄)
 - ✅ Phase 3.4: features/settings/ 모듈 분리 완료 (9개 함수, 235줄)
-- ✅ **Phase 3.5: services/dataImportExport 모듈 분리 완료 (5개 함수, 274줄)** ⬅️ 최신
+- ✅ Phase 3.5: services/dataImportExport 모듈 분리 완료 (5개 함수, 274줄)
+- ✅ **Phase 4.1: features/report/ 모듈 분리 완료 (16개 함수, ~1104줄)** ⬅️ 최신
 - ✅ 버그 수정 13건 완료 (HLR 회상률 표시 복원 포함)
 - ✅ 기능 추가: 문제목록 정렬 개선, 퀴즈 UI 출처 표시
 
 ### 🎯 다음 목표
-1. **다음**: Phase 4 - 추가 기능 모듈 (report, flashcard, achievements 등)
-2. **최종**: Phase 5 - 이벤트 리스너 정리 및 최종 클린업
+1. **다음**: Phase 4.2 - features/flashcard/ 모듈 분리
+2. **이후**: Phase 4.3-4.5 - 나머지 기능 모듈 (achievements, explorer, review)
+3. **최종**: Phase 5 - 이벤트 리스너 정리 및 최종 클린업
 
 ---
 
@@ -108,15 +110,51 @@
 - 데이터 관리 로직 완전 분리
 - 백업/복원 기능 모듈화
 
-**커밋**: (진행 중)
+**커밋**: `db3ce2e`
 
 ---
 
-## 📅 Phase 4: 추가 기능 모듈 (낮은 우선순위)
+## 📅 Phase 4: 추가 기능 모듈
 
-### Phase 4.1: features/report/
-- reportCore.js, charts.js, analysis.js
-- **예상 소요 시간**: 4-5시간
+### ✅ Phase 4.1: features/report/ (완료)
+**생성 모듈**:
+- `js/features/report/reportCore.js` (364줄)
+- `js/features/report/charts.js` (562줄)
+- `js/features/report/analysis.js` (282줄)
+
+**이동된 함수 (16개)**:
+
+**reportCore.js (모달 및 데이터 처리)**:
+- `openReportModal()` - 리포트 모달 열기
+- `closeReportModal()` - 리포트 모달 닫기
+- `switchReportTab()` - 탭 전환
+- `getReportData()` - 리포트 데이터 수집
+- `generateReport()` - 리포트 생성
+- `renderActionPlan()` - 액션 플랜 렌더링
+- `initReportListeners()` - 이벤트 리스너 초기화
+
+**charts.js (차트 렌더링)**:
+- `renderDailyVolumeChart()` - 일일 학습량 차트
+- `renderScoreTrendChart()` - 점수 추이 차트 (이동평균, 골든/데드크로스)
+- `renderChapterWeaknessChart()` - 단원별 약점 차트
+- `showChapterDetail()` - 단원 상세 차트
+- `fillMissingDates()` - 날짜 채우기 helper
+- `calculateMovingAverage()` - 이동평균 계산 helper
+
+**analysis.js (AI 분석)**:
+- `startAIAnalysis()` - AI 분석 시작
+- `copyAIAnalysis()` - AI 분석 복사
+- `initAIAnalysisListeners()` - AI 분석 이벤트 리스너 초기화
+
+**성과**:
+- index.html 1,104줄 감소 (3,640 → 2,536줄)
+- 리포트 시스템 완전 분리
+- Chart.js 기반 차트 렌더링 모듈화
+- AI 분석 기능 독립 모듈화
+
+**커밋**: (진행 중)
+
+---
 
 ### Phase 4.2: features/flashcard/
 - flashcardCore.js
@@ -183,7 +221,7 @@
 - [x] 3.5: services/dataImportExport 분리 ✅
 
 ### Phase 4 체크리스트
-- [ ] 4.1: features/report/
+- [x] 4.1: features/report/ ✅
 - [ ] 4.2: features/flashcard/
 - [ ] 4.3: features/achievements/
 - [ ] 4.4: features/explorer/
@@ -196,7 +234,7 @@
 
 ---
 
-## 📦 생성된 모듈 목록 (16개)
+## 📦 생성된 모듈 목록 (19개)
 
 ### Phase 1: 기본 모듈 (6개) ✅
 1. ✅ config/config.js (설정 및 상수)
@@ -219,6 +257,11 @@
 14. ✅ features/calendar/calendarCore.js (캘린더/통계)
 15. ✅ features/settings/settingsCore.js (설정 관리)
 16. ✅ services/dataImportExport.js (데이터 Import/Export)
+
+### Phase 4: 추가 기능 모듈 (3개 / 5개 계획 중) ✅
+17. ✅ features/report/reportCore.js (리포트 모달 및 데이터)
+18. ✅ features/report/charts.js (차트 렌더링)
+19. ✅ features/report/analysis.js (AI 분석)
 
 ---
 
@@ -265,9 +308,11 @@ app.js (진입점)
 | Phase 3.4 | 3,695 | -39 | settings 모듈 |
 | HLR fix | 3,706 | +11 | 함수 노출 |
 | Phase 3.5 | 3,640 | -66 | dataImportExport 모듈 |
-| **총 감소** | **-1,162줄** | **24.2%** | **현재** |
+| Phase 4.1 | 2,536 | -1,104 | report 모듈 (3개 파일) |
+| **총 감소** | **-2,266줄** | **47.2%** | **현재** |
 
-**모듈 총 라인 수**: ~4,100줄 (16개 모듈)
+**모듈 총 라인 수**: ~5,308줄 (19개 모듈)
+- reportCore.js (364줄) + charts.js (562줄) + analysis.js (282줄) = 1,208줄 추가
 
 ---
 
@@ -348,15 +393,15 @@ ef3b927 - fix: filterCore import 경로 수정
 
 ## 🎯 다음 작업
 
-**Phase 3.4: features/settings/ 모듈 분리**
-- 설정 모달 관련 함수들
-- API 키 관리
-- 다크모드/AI 모델 설정
+**Phase 4.2: features/flashcard/ 모듈 분리**
+- 플래시카드 모드 관련 함수들
+- 플래시카드 표시 및 네비게이션
+- 플래시카드 <-> 퀴즈 모드 전환
 
-**예상 소요 시간**: 1-2시간
+**예상 소요 시간**: 2-3시간
 
 ---
 
 **작성일**: 2025-11-07
-**브랜치**: `claude/fix-source-ls-export-011CUtQjriwwd7NVfdu3wNyG`
-**전체 진행률**: 70% (16/23 모듈 완료)
+**브랜치**: `claude/phase-4-feature-modules-011CUtW5znGTCVwrt9nAZ93E`
+**전체 진행률**: 73% (19/26 모듈 완료)
