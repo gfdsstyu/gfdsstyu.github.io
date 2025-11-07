@@ -54,6 +54,9 @@ import * as ReportCore from './features/report/reportCore.js';
 import * as Charts from './features/report/charts.js';
 import * as Analysis from './features/report/analysis.js';
 
+// 기능 - 플래시카드 시스템
+import * as Flashcard from './features/flashcard/flashcardCore.js';
+
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
 // (Phase 3에서 모든 로직이 이전되면 제거 예정)
@@ -327,6 +330,20 @@ window.startAIAnalysis = Analysis.startAIAnalysis;
 window.copyAIAnalysis = Analysis.copyAIAnalysis;
 window.initAIAnalysisListeners = Analysis.initAIAnalysisListeners;
 
+// Flashcard (플래시카드 시스템)
+window.Flashcard = Flashcard;
+window.startFlashcardMode = Flashcard.startFlashcardMode;
+window.refreshFlashcardData = Flashcard.refreshFlashcardData;
+window.displayFlashcard = Flashcard.displayFlashcard;
+window.toggleFlashcardAnswer = Flashcard.toggleFlashcardAnswer;
+window.showFlashcardAnswer = Flashcard.showFlashcardAnswer;
+window.hideFlashcardAnswer = Flashcard.hideFlashcardAnswer;
+window.flashcardPrev = Flashcard.flashcardPrev;
+window.flashcardNext = Flashcard.flashcardNext;
+window.flashcardRandom = Flashcard.flashcardRandom;
+window.exitFlashcardMode = Flashcard.exitFlashcardMode;
+window.initFlashcardListeners = Flashcard.initFlashcardListeners;
+
 // 상수들
 window.BASE_SYSTEM_PROMPT = Config.BASE_SYSTEM_PROMPT;
 window.LITE_STRICT_ADDENDUM = Config.LITE_STRICT_ADDENDUM;
@@ -387,3 +404,4 @@ console.log('  - features/settings/settingsCore.js (설정 관리)');
 console.log('  - features/report/reportCore.js (리포트 모달 및 데이터 처리)');
 console.log('  - features/report/charts.js (리포트 차트 렌더링)');
 console.log('  - features/report/analysis.js (AI 분석)');
+console.log('  - features/flashcard/flashcardCore.js (플래시카드 시스템)');
