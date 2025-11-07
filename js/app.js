@@ -36,6 +36,9 @@ import * as Grading from './features/quiz/grading.js';
 import * as QuizCore from './features/quiz/quizCore.js';
 import * as Navigation from './features/quiz/navigation.js';
 
+// 기능 - 필터링 시스템
+import * as Filter from './features/filter/filterCore.js';
+
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
 // (Phase 3에서 모든 로직이 이전되면 제거 예정)
@@ -238,6 +241,15 @@ window.enterFocusMode = Navigation.enterFocusMode;
 window.exitToDashboard = Navigation.exitToDashboard;
 window.backFromFocus = Navigation.backFromFocus;
 window.initKeyboardShortcuts = Navigation.initKeyboardShortcuts;
+
+// Filter (필터링 시스템)
+window.Filter = Filter;
+window.buildSourceFilterUI = Filter.buildSourceFilterUI;
+window.getSelectedSourceGroups = Filter.getSelectedSourceGroups;
+window.detectSourceGroup = Filter.detectSourceGroup;
+window.applySourceFilter = Filter.applySourceFilter;
+window.filterByChapterSelection = Filter.filterByChapterSelection;
+window.getFilteredByUI = Filter.getFilteredByUI;
 
 // 상수들
 window.BASE_SYSTEM_PROMPT = Config.BASE_SYSTEM_PROMPT;
