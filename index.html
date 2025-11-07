@@ -1702,7 +1702,21 @@ function renderStats(){
       const q=(el.explorerSearch?.value||'').trim().toLowerCase();
       const filtered=base.filter(it=> (it.problemTitle||'').toLowerCase().includes(q) || (it.물음||'').toLowerCase().includes(q) );
       el.explorerProblems.innerHTML='';
-      filtered.sort((a,b)=>{ const na=+(a.물음번호||a.표시번호), nb=+(b.물음번호||b.표시번호); if(Number.isFinite(na)&&Number.isFinite(nb)) return na-nb; return String(a.표시번호||a.물음번호).localeCompare(String(b.표시번호||b.물음번호),'ko'); })
+      filtered.sort((a,b)=>{
+        // 1순위: 단원 정렬
+        const chA=+a.단원, chB=+b.단원;
+        if(Number.isFinite(chA)&&Number.isFinite(chB) && chA!==chB) return chA-chB;
+        if(Number.isFinite(chA) && !Number.isFinite(chB)) return -1;
+        if(!Number.isFinite(chA) && Number.isFinite(chB)) return 1;
+        if(!Number.isFinite(chA) && !Number.isFinite(chB)){
+          const chCmp=String(a.단원).localeCompare(String(b.단원),'ko');
+          if(chCmp!==0) return chCmp;
+        }
+        // 2순위: 표시번호 정렬
+        const na=+(a.표시번호||a.물음번호), nb=+(b.표시번호||b.물음번호);
+        if(Number.isFinite(na)&&Number.isFinite(nb)) return na-nb;
+        return String(a.표시번호||a.물음번호).localeCompare(String(b.표시번호||b.물음번호),'ko');
+      })
       .forEach(it=>{
         const rec=questionScores[String(it.고유ID).trim()]||{};
         const score= Number.isFinite(+rec?.score)? +rec.score : null;

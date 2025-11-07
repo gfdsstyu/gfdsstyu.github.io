@@ -6,6 +6,7 @@
 import { normId } from '../../utils/helpers.js';
 import { isPartValue } from '../../config/config.js';
 import { showToast } from '../../ui/domUtils.js';
+import { detectSourceGroup } from '../filter/filterCore.js';
 import {
   getElements,
   getCurrentQuizData,
@@ -90,7 +91,31 @@ export function displayQuestion() {
 
   // 문제 정보 표시
   if (el.questionNumber) {
-    el.questionNumber.textContent = `문항 ${q.표시번호 || q.물음번호 || q.고유ID}`;
+    const questionLabel = `문항 ${q.표시번호 || q.물음번호 || q.고유ID}`;
+
+    // 출처 그룹 감지 및 배지 생성
+    const sourceGroup = detectSourceGroup(q.출처);
+    let sourceBadge = '';
+    let badgeClass = '';
+
+    if (sourceGroup === 'basic') {
+      sourceBadge = '기본';
+      badgeClass = 'bg-green-100 text-green-700 border-green-300';
+    } else if (sourceGroup === 'advanced') {
+      sourceBadge = '심화';
+      badgeClass = 'bg-purple-100 text-purple-700 border-purple-300';
+    } else if (sourceGroup === 'basic-advanced') {
+      sourceBadge = '기본+심화';
+      badgeClass = 'bg-blue-100 text-blue-700 border-blue-300';
+    } else {
+      sourceBadge = '기타';
+      badgeClass = 'bg-gray-100 text-gray-700 border-gray-300';
+    }
+
+    el.questionNumber.innerHTML = `
+      ${questionLabel}
+      <span class="ml-2 text-xs px-2 py-0.5 rounded-full border ${badgeClass}">${sourceBadge}</span>
+    `;
   }
   if (el.questionText) {
     el.questionText.textContent = q.물음;
