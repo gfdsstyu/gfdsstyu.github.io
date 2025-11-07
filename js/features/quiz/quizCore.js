@@ -19,7 +19,8 @@ import {
   setPrevLoaded,
   getIsFlashcardMode
 } from '../../core/stateManager.js';
-import { showResult } from './grading.js';
+import { showResult, handleGrade, handleHint } from './grading.js';
+import { handlePrevQuestion, handleNextQuestion } from './navigation.js';
 
 // ============================================
 // 복습 플래그 UI 업데이트
@@ -286,4 +287,139 @@ export function startRandomQuiz() {
   }
 
   showToast('랜덤 문제 시작!');
+}
+
+// ============================================
+// 이벤트 리스너 초기화 (Phase 5.1)
+// ============================================
+
+/**
+ * 퀴즈 관련 이벤트 리스너 초기화
+ */
+export function initQuizListeners() {
+  const el = getElements();
+  if (!el) return;
+
+  // Navigation buttons
+  el.prevBtn?.addEventListener('click', handlePrevQuestion);
+  el.nextBtn?.addEventListener('click', handleNextQuestion);
+
+  // User answer input
+  el.userAnswer?.addEventListener('input', () => {
+    el.errorMessage?.classList.add('hidden');
+  });
+
+  el.userAnswer?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      el.gradeBtn?.click();
+    }
+  });
+
+  // Grade and hint buttons
+  el.gradeBtn?.addEventListener('click', handleGrade);
+
+  el.hintBtn?.addEventListener('click', () => {
+    const cqd = getCurrentQuizData();
+    const cqi = getCurrentQuestionIndex();
+    if (cqd.length) handleHint(cqd[cqi]);
+  });
+
+  // Review flag toggle (★) - mutually exclusive with exclude (➖)
+  el.reviewFlagToggle?.addEventListener('click', () => {
+    const cqd = getCurrentQuizData();
+    const cqi = getCurrentQuestionIndex();
+    if (!cqd.length) return;
+
+    const q = cqd[cqi];
+    const key = normId(q.고유ID);
+    const questionScores = window.questionScores || {};
+    const rec = questionScores[key] || {};
+
+    // willFlag: 현재 flag가 활성화될지 여부
+    const willFlag = !(rec.userReviewFlag && !rec.userReviewExclude);
+
+    if (willFlag) {
+      // 추가로 전환: 제외를 해제
+      if (typeof window.setFlagState === 'function') {
+        window.setFlagState(key, { flag: true, exclude: false });
+      }
+      showToast('복습 추가로 전환(➖ 해제)');
+    } else {
+      // 추가 해제
+      if (typeof window.setFlagState === 'function') {
+        window.setFlagState(key, { flag: false, exclude: !!rec.userReviewExclude });
+      }
+      showToast('복습 추가 해제');
+    }
+
+    updateFlagButtonsUI(questionScores[key]);
+    if (typeof window.refreshPanels === 'function') {
+      window.refreshPanels();
+    }
+  });
+
+  // Review exclude toggle (➖) - mutually exclusive with flag (★)
+  el.reviewExcludeToggle?.addEventListener('click', () => {
+    const cqd = getCurrentQuizData();
+    const cqi = getCurrentQuestionIndex();
+    if (!cqd.length) return;
+
+    const q = cqd[cqi];
+    const key = normId(q.고유ID);
+    const questionScores = window.questionScores || {};
+    const rec = questionScores[key] || {};
+
+    const willExclude = !rec.userReviewExclude;
+
+    if (willExclude) {
+      // 제외로 전환: 추가를 해제
+      if (typeof window.setFlagState === 'function') {
+        window.setFlagState(key, { flag: false, exclude: true });
+      }
+      showToast('오늘의 복습에서 제외로 전환(★ 해제)');
+    } else {
+      // 제외 해제 (필요시 사용자가 별도로 ★ 추가)
+      if (typeof window.setFlagState === 'function') {
+        window.setFlagState(key, { flag: !!rec.userReviewFlag, exclude: false });
+      }
+      showToast('복습 제외 해제');
+    }
+
+    updateFlagButtonsUI(questionScores[key]);
+    if (typeof window.refreshPanels === 'function') {
+      window.refreshPanels();
+    }
+  });
+
+  // Load previous answer button
+  el.loadPrevAnswerBtn?.addEventListener('click', () => {
+    const cqd = getCurrentQuizData();
+    const cqi = getCurrentQuestionIndex();
+    if (!cqd.length) return;
+
+    const q = cqd[cqi];
+    const questionScores = window.questionScores || {};
+    const saved = questionScores[normId(q.고유ID)];
+    const prevLoaded = window.prevLoaded || false;
+
+    if (!prevLoaded) {
+      if (saved?.user_answer) {
+        el.userAnswer.value = saved.user_answer;
+        el.loadPrevAnswerBtn.textContent = '답안 지우기';
+        el.loadPrevAnswerBtn.setAttribute('aria-pressed', 'true');
+        window.prevLoaded = true;
+        setPrevLoaded(true);
+        showToast('이전 답안을 불러왔습니다.');
+      } else {
+        showToast('저장된 답안이 없습니다.', 'warn');
+      }
+    } else {
+      el.userAnswer.value = '';
+      el.loadPrevAnswerBtn.textContent = '이전 답안 불러오기';
+      el.loadPrevAnswerBtn.setAttribute('aria-pressed', 'false');
+      window.prevLoaded = false;
+      setPrevLoaded(false);
+    }
+  });
 }
