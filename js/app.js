@@ -45,6 +45,9 @@ import * as Summary from './features/summary/summaryCore.js';
 // 기능 - 캘린더/통계
 import * as Calendar from './features/calendar/calendarCore.js';
 
+// 기능 - 설정 관리
+import * as Settings from './features/settings/settingsCore.js';
+
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
 // (Phase 3에서 모든 로직이 이전되면 제거 예정)
@@ -274,6 +277,19 @@ window.bindCalendarDateClick = Calendar.bindCalendarDateClick;
 window.renderStatsDateNav = Calendar.renderStatsDateNav;
 window.renderStats = Calendar.renderStats;
 
+// Settings (설정 관리)
+window.Settings = Settings;
+window.openApiModal = Settings.openApiModal;
+window.closeApiModal = Settings.closeApiModal;
+window.ensureApiKeyGate = Settings.ensureApiKeyGate;
+window.openSettingsModal = Settings.openSettingsModal;
+window.closeSettingsModal = Settings.closeSettingsModal;
+window.initApiModalListeners = Settings.initApiModalListeners;
+window.initSettingsModalListeners = Settings.initSettingsModalListeners;
+window.initDDayListeners = Settings.initDDayListeners;
+window.initGlobalEscapeHandler = Settings.initGlobalEscapeHandler;
+window.initSettings = Settings.initSettings;
+
 // 상수들
 window.BASE_SYSTEM_PROMPT = Config.BASE_SYSTEM_PROMPT;
 window.LITE_STRICT_ADDENDUM = Config.LITE_STRICT_ADDENDUM;
@@ -326,3 +342,7 @@ console.log('  - core/storageManager.js (저장소 및 마이그레이션)');
 console.log('  - features/quiz/grading.js (채점 및 힌트)');
 console.log('  - features/quiz/quizCore.js (퀴즈 핵심 로직)');
 console.log('  - features/quiz/navigation.js (네비게이션 및 키보드 단축키)');
+console.log('  - features/filter/filterCore.js (필터링 시스템)');
+console.log('  - features/summary/summaryCore.js (요약/대시보드)');
+console.log('  - features/calendar/calendarCore.js (캘린더/통계)');
+console.log('  - features/settings/settingsCore.js (설정 관리)');

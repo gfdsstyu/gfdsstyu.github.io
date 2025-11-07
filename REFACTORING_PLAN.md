@@ -1,7 +1,7 @@
 # 🎯 리팩토링 실행 계획
 
 **최종 업데이트**: 2025-11-07
-**현재 진행률**: Phase 3.3 완료 (약 64% 완료)
+**현재 진행률**: Phase 3.4 완료 (약 65% 완료)
 **브랜치**: `claude/fix-source-ls-export-011CUtQjriwwd7NVfdu3wNyG`
 
 ---
@@ -13,12 +13,13 @@
 - ✅ Phase 2.6: 중복 함수 완전 제거 (200줄 감소)
 - ✅ Phase 3.1: features/filter/ 모듈 분리 완료 (6개 함수, 234줄)
 - ✅ Phase 3.2: features/summary/ 모듈 분리 완료 (3개 함수, 275줄)
-- ✅ **Phase 3.3: features/calendar/ 모듈 분리 완료 (4개 함수, 484줄)** ⬅️ 최신
+- ✅ Phase 3.3: features/calendar/ 모듈 분리 완료 (4개 함수, 484줄)
+- ✅ **Phase 3.4: features/settings/ 모듈 분리 완료 (5개 함수 + 4개 초기화, 235줄)** ⬅️ 최신
 - ✅ 버그 수정 12건 완료
 - ✅ 기능 추가: 문제목록 정렬 개선, 퀴즈 UI 출처 표시
 
 ### 🎯 다음 목표
-1. **다음**: Phase 3.4-3.5 - 기능 모듈 분리 (settings, import/export)
+1. **다음**: Phase 3.5 - 데이터 import/export 모듈 분리
 2. **나중**: Phase 4 - 추가 기능 모듈 (report, flashcard, achievements 등)
 3. **최종**: Phase 5 - 이벤트 리스너 정리 및 최종 클린업
 
@@ -54,7 +55,7 @@
 
 ---
 
-### ✅ Phase 3.3: features/calendar/ (완료) ⬅️ 최신
+### ✅ Phase 3.3: features/calendar/ (완료)
 **생성 모듈**: `js/features/calendar/calendarCore.js` (484줄)
 
 **이동된 함수**:
@@ -71,19 +72,28 @@
 
 ---
 
-### 🔴 Phase 3.4: features/settings/ (다음 작업)
-**타겟 함수**:
-- openApiModal() / closeApiModal()
-- ensureApiKeyGate()
-- openSettingsModal() / closeSettingsModal()
-- 다크모드 변경 핸들러
-- AI 모델 변경 핸들러
+### ✅ Phase 3.4: features/settings/ (완료) ⬅️ 최신
+**생성 모듈**: `js/features/settings/settingsCore.js` (235줄)
 
-**예상 소요 시간**: 1.5시간
+**이동된 함수**:
+- `openApiModal()` / `closeApiModal()` - API 키 모달 관리
+- `ensureApiKeyGate()` - API 키 게이트 체크
+- `openSettingsModal()` / `closeSettingsModal()` - 설정 모달 관리
+- `initApiModalListeners()` - API 모달 이벤트 리스너
+- `initSettingsModalListeners()` - 설정 모달 이벤트 리스너 (다크모드/AI 모델 변경)
+- `initDDayListeners()` - D-DAY 관련 이벤트 리스너
+- `initGlobalEscapeHandler()` - 전역 Escape 키 핸들러
+- `initSettings()` - 설정 시스템 초기화 함수
+
+**성과**:
+- index.html 42줄 감소
+- 설정 관련 로직 완전 분리
+
+**커밋**: (진행 중)
 
 ---
 
-### Phase 3.5: services/dataImportExport.js
+### 🔴 Phase 3.5: services/dataImportExport.js (다음 작업)
 **타겟 함수**:
 - mergeQuizScores()
 - export/import/merge 이벤트 핸들러
@@ -159,7 +169,7 @@
 - [x] 3.1: features/filter/ 분리 ✅
 - [x] 3.2: features/summary/ 분리 ✅
 - [x] 3.3: features/calendar/ 분리 ✅
-- [ ] 3.4: features/settings/ 분리
+- [x] 3.4: features/settings/ 분리 ✅
 - [ ] 3.5: services/dataImportExport 분리
 
 ### Phase 4 체크리스트
@@ -176,7 +186,7 @@
 
 ---
 
-## 📦 생성된 모듈 목록 (14개)
+## 📦 생성된 모듈 목록 (15개)
 
 ### Phase 1: 기본 모듈 (6개) ✅
 1. ✅ config/config.js (설정 및 상수)
@@ -193,10 +203,11 @@
 10. ✅ features/quiz/quizCore.js (퀴즈 핵심 로직)
 11. ✅ features/quiz/navigation.js (네비게이션)
 
-### Phase 3: 기능 모듈 (3개) ✅
+### Phase 3: 기능 모듈 (4개) ✅
 12. ✅ features/filter/filterCore.js (필터링 시스템)
 13. ✅ features/summary/summaryCore.js (요약/대시보드)
 14. ✅ features/calendar/calendarCore.js (캘린더/통계)
+15. ✅ features/settings/settingsCore.js (설정 관리)
 
 ---
 
@@ -239,10 +250,11 @@ app.js (진입점)
 | Phase 2.6 | 4,602 | -200 | 중복 제거 |
 | Phase 3.1 | 4,520 | -82 | filter 모듈 |
 | Phase 3.2 | 4,392 | -128 | summary 모듈 |
-| Phase 3.3 | 4,104 | -288 | calendar 모듈 |
-| **총 감소** | **-698줄** | **14.5%** | **현재** |
+| Phase 3.3 | 3,734 | -658 | calendar 모듈 |
+| Phase 3.4 | 3,695 | -39 | settings 모듈 |
+| **총 감소** | **-1,107줄** | **23.0%** | **현재** |
 
-**모듈 총 라인 수**: ~3,500줄 (14개 모듈)
+**모듈 총 라인 수**: ~3,800줄 (15개 모듈)
 
 ---
 
@@ -333,4 +345,4 @@ ef3b927 - fix: filterCore import 경로 수정
 
 **작성일**: 2025-11-07
 **브랜치**: `claude/fix-source-ls-export-011CUtQjriwwd7NVfdu3wNyG`
-**전체 진행률**: 64% (14/23 모듈 완료)
+**전체 진행률**: 65% (15/23 모듈 완료)
