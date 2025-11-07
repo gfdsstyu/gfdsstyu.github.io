@@ -1179,18 +1179,6 @@ function updateDDayDisplay() {
       }
       return list;
     }
-
-    // ============================================================
-    // ✂️ REFACTORED → js/features/quiz/quizCore.js
-    // ============================================================
-    // function reloadAndRefresh() → js/features/quiz/quizCore.js
-    // function displayQuestion() → js/features/quiz/quizCore.js
-    // function updateFlagButtonsUI() → js/features/quiz/quizCore.js
-    // function startRandomQuiz() → js/features/quiz/quizCore.js
-    //
-    // 위 함수들은 app.js를 통해 전역으로 노출됨
-
-    /* [이전 코드 - quizCore.js로 이동됨]
     function reloadAndRefresh(){
       if(isPartValue(el.chapterSelect.value)){
         summaryViewMode='CURRENT';
@@ -1209,14 +1197,10 @@ function updateDDayDisplay() {
 
       updateSummary(); refreshPanels();
     }
-    [이전 코드 종료] */
 
     el.chapterSelect.addEventListener('change', reloadAndRefresh);
     el.filterSelect.addEventListener('change', reloadAndRefresh);
     el.loadQuizBtn.addEventListener('click', reloadAndRefresh);
-    el.randomQuizBtn.addEventListener('click', startRandomQuiz);
-
-    /* [이전 코드 - quizCore.js로 이동됨]
     el.randomQuizBtn.addEventListener('click',()=>{
       const list=getFilteredByUI(); if(!list.length){ showToast('선택 조건에 맞는 문제가 없습니다.','warn'); return; }
       currentQuizData=list; currentQuestionIndex=Math.floor(Math.random()*list.length);
@@ -1260,13 +1244,11 @@ function updateDDayDisplay() {
       el.nextBtn.disabled=(currentQuizData.length-1===currentQuestionIndex);
       updateSummaryHighlight();
     }
-    [이전 코드 종료] */
 
     // 복습추가(★) 클릭 → 제외(➖)와 상호배타
     el.reviewFlagToggle.addEventListener('click',()=>{
-      const cqd = getCurrentQuizData(); const cqi = getCurrentQuestionIndex();
-      if(!cqd.length) return;
-      const q=cqd[cqi], key=normId(q.고유ID), rec=questionScores[key]||{};
+      if(!currentQuizData.length) return;
+      const q=currentQuizData[currentQuestionIndex], key=normId(q.고유ID), rec=questionScores[key]||{};
       const willFlag = !(rec.userReviewFlag && !rec.userReviewExclude); // 시각상 Flag 활성 여부
       if (willFlag) {
         // 추가로 전환: 제외를 해제
@@ -1283,9 +1265,8 @@ function updateDDayDisplay() {
 
     // 복습제외(➖) 클릭 → 추가(★)와 상호배타
     el.reviewExcludeToggle?.addEventListener('click', ()=>{
-      const cqd = getCurrentQuizData(); const cqi = getCurrentQuestionIndex();
-      if(!cqd.length) return;
-      const q=cqd[cqi], key=normId(q.고유ID), rec=questionScores[key]||{};
+      if(!currentQuizData.length) return;
+      const q=currentQuizData[currentQuestionIndex], key=normId(q.고유ID), rec=questionScores[key]||{};
       const willExclude = !rec.userReviewExclude;
       if (willExclude) {
         // 제외로 전환: 추가를 해제
@@ -1301,9 +1282,8 @@ function updateDDayDisplay() {
     });
 
     el.loadPrevAnswerBtn.addEventListener('click',()=>{
-      const cqd = getCurrentQuizData(); const cqi = getCurrentQuestionIndex();
-      if(!cqd.length) return;
-      const q=cqd[cqi], saved=questionScores[normId(q.고유ID)];
+      if(!currentQuizData.length) return;
+      const q=currentQuizData[currentQuestionIndex], saved=questionScores[normId(q.고유ID)];
       if(!prevLoaded){
         if(saved?.user_answer){ el.userAnswer.value=saved.user_answer; el.loadPrevAnswerBtn.textContent='답안 지우기'; el.loadPrevAnswerBtn.setAttribute('aria-pressed','true'); prevLoaded=true; showToast('이전 답안을 불러왔습니다.'); }
         else showToast('저장된 답안이 없습니다.','warn');
@@ -1312,28 +1292,12 @@ function updateDDayDisplay() {
       }
     });
 
-    el.prevBtn.addEventListener('click', handlePrevQuestion);
-    el.nextBtn.addEventListener('click', handleNextQuestion);
-    /* [이전 코드 - navigation.js로 이동됨]
     el.prevBtn.addEventListener('click',()=>{ if(currentQuestionIndex>0){ currentQuestionIndex--; displayQuestion(); } });
     el.nextBtn.addEventListener('click',()=>{ if(currentQuestionIndex<currentQuizData.length-1){ currentQuestionIndex++; displayQuestion(); } });
-    [이전 코드 종료] */
     el.userAnswer.addEventListener('input',()=> el.errorMessage.classList.add('hidden'));
     el.userAnswer.addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); el.gradeBtn.click(); } });
 
-    // ============================================================
-    // ✂️ REFACTORED → js/features/quiz/grading.js
-    // ============================================================
-    // async function handleGrade() → js/features/quiz/grading.js
-    // function setGradeLoading() → js/features/quiz/grading.js (이전 setLoading에서 이름 변경)
-    // async function handleHint() → js/features/quiz/grading.js
-    // function showResult() → js/features/quiz/grading.js
-    //
-    // 위 함수들은 app.js를 통해 전역으로 노출됨
-
     el.gradeBtn.addEventListener('click',handleGrade);
-
-    /* [이전 코드 - grading.js로 이동됨]
     async function handleGrade(){
       if(!geminiApiKey){ openApiModal(false); showToast('Gemini API 키를 입력해주세요.','error'); return; }
       const answer=el.userAnswer.value.trim(); if(!answer){ el.errorMessage.textContent='답안을 입력해주세요.'; el.errorMessage.classList.remove('hidden'); el.userAnswer.focus(); return; }
@@ -1368,15 +1332,11 @@ function updateDDayDisplay() {
       }finally{ setLoading(false); }
     }
     function setLoading(v){ if(v){ el.gradeBtnText.classList.add('hidden'); el.gradeLoader.classList.remove('hidden'); el.gradeBtn.disabled=true; el.resultBox.classList.add('hidden'); } else { el.gradeBtnText.classList.remove('hidden'); el.gradeLoader.classList.add('hidden'); el.gradeBtn.disabled=false; } }
-    [이전 코드 종료] */
 
     // [리팩토링] Gemini API 함수는 js/services/geminiApi.js로 이동됨
     // async function callGeminiAPI(...) → js/services/geminiApi.js
     // selectedAiModel을 파라미터로 받도록 수정됨
 
-    el.hintBtn.addEventListener('click',()=>{ const cqd = getCurrentQuizData(); const cqi = getCurrentQuestionIndex(); if(cqd.length) handleHint(cqd[cqi]); });
-
-    /* [이전 코드 - grading.js로 이동됨]
     el.hintBtn.addEventListener('click',()=>{ if(currentQuizData.length) handleHint(currentQuizData[currentQuestionIndex]); });
     async function handleHint(q){
       if(!geminiApiKey){ openApiModal(false); showToast('Gemini API 키를 입력해주세요.','error'); return; }
@@ -1388,21 +1348,18 @@ function updateDDayDisplay() {
       }catch(e){ console.error(e); showToast(`힌트 생성 실패: ${e.message}`,'error'); }
       finally{ setLoading(false); }
     }
-    [이전 코드 종료] */
     // [리팩토링] Gemini Hint API 함수도 js/services/geminiApi.js로 이동됨
     // async function callGeminiHintAPI(...) → js/services/geminiApi.js
 
     // [리팩토링] Gemini Text API 함수도 js/services/geminiApi.js로 이동됨
     // async function callGeminiTextAPI(...) → js/services/geminiApi.js
 
-    /* [이전 코드 - grading.js로 이동됨]
     function showResult(scoreVal, feedback){
       const s=clamp(+scoreVal,0,100);
       el.score.textContent=s.toFixed(1); el.progressBar.style.width=`${s}%`; el.progressBar.setAttribute('aria-valuenow',String(Math.round(s)));
       el.progressBar.className='h-4 rounded-full transition-all duration-500 ease-out '+(s<60?'bg-red-500': s<80?'bg-yellow-500':'bg-blue-600');
       el.aiFeedback.textContent=String(feedback||''); el.resultBox.classList.remove('hidden');
     }
-    [이전 코드 종료] */
 
     el.summaryViewAllBtn?.addEventListener('click',()=>{ summaryViewMode='ALL'; el.summaryViewAllBtn.classList.add('bg-gray-100'); el.summaryViewCurrentBtn.classList.remove('bg-gray-100'); updateSummary(); });
     el.summaryViewCurrentBtn?.addEventListener('click',()=>{ summaryViewMode='CURRENT'; el.summaryViewCurrentBtn.classList.add('bg-gray-100'); el.summaryViewAllBtn.classList.remove('bg-gray-100'); updateSummary(); });
