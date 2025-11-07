@@ -1088,99 +1088,17 @@ function updateDDayDisplay() {
       reader.readAsText(file); e.target.value='';
     });
 
-    const SOURCE_LS='sourceFilterSelectionV1', BASIC_TAGS=['S','H','HS'], ADV_TAGS=['SS','P'];
-    function buildSourceFilterUI(){
-      if(!el.sourceGroupFilter) return;
-      el.sourceGroupFilter.innerHTML=`
-        <div class="rounded-xl border p-3">
-          <div class="text-sm font-semibold mb-2">출처별 필터</div>
-          <div class="flex flex-wrap gap-3">
-            <label class="text-sm flex items-center gap-1"><input type="checkbox" value="basic" class="source-filter"> 기본(S/H/HS)</label>
-            <label class="text-sm flex items-center gap-1"><input type="checkbox" value="advanced" class="source-filter"> 심화(SS/P)</label>
-            <label class="text-sm flex items-center gap-1"><input type="checkbox" value="other" class="source-filter"> 기타</label>
-            <button id="source-filter-all" class="ml-auto text-xs px-2 py-1 border rounded">전체</button>
-            <button id="source-filter-none" class="text-xs px-2 py-1 border rounded">해제</button>
-          </div>
-        </div>`;
-      const saved=JSON.parse(localStorage.getItem(SOURCE_LS)||'["basic","advanced","other"]');
-      el.sourceGroupFilter.querySelectorAll('input.source-filter').forEach(cb=>{
-        cb.checked=saved.includes(cb.value);
-        cb.addEventListener('change',()=>{ localStorage.setItem(SOURCE_LS,JSON.stringify(getSelectedSourceGroups())); reloadAndRefresh(); });
-      });
-      el.sourceGroupFilter.querySelector('#source-filter-all')?.addEventListener('click',()=>{ setAllGroups(['basic','advanced','other']); });
-      el.sourceGroupFilter.querySelector('#source-filter-none')?.addEventListener('click',()=>{ setAllGroups([]); });
-      function setAllGroups(arr){ el.sourceGroupFilter.querySelectorAll('input.source-filter').forEach(cb=>cb.checked=arr.includes(cb.value)); localStorage.setItem(SOURCE_LS,JSON.stringify(arr)); reloadAndRefresh(); }
-    }
-    const getSelectedSourceGroups=()=>{ const boxes=el.sourceGroupFilter?.querySelectorAll('input.source-filter'); if(!boxes||boxes.length===0) return JSON.parse(localStorage.getItem(SOURCE_LS)||'["basic","advanced","other"]'); const arr=[]; boxes.forEach(cb=>{ if(cb.checked) arr.push(cb.value); }); return arr; };
-    const detectSourceGroup=src=>{ const s=String(src||'').toUpperCase(), tok=s.split(/\s*[;,\/\s]\s*/).filter(Boolean); const hasBasic=tok.some(t=>BASIC_TAGS.includes(t)), hasAdv=tok.some(t=>ADV_TAGS.includes(t)); if(hasBasic && !hasAdv) return 'basic'; if(!hasBasic && hasAdv) return 'advanced'; if(hasBasic && hasAdv) return 'basic-advanced'; return 'other'; };
-    const applySourceFilter=arr=>{ const selected=new Set(getSelectedSourceGroups()); if(selected.size===0||selected.size===3) return arr; return (arr||[]).filter(q=>{ const g=detectSourceGroup(q.출처); if(g==='basic-advanced') return selected.has('basic')||selected.has('advanced'); return selected.has(g); }); };
-
-    function filterByChapterSelection(list){
-      const sel=el.chapterSelect?.value||'';
-      if(!sel) return list;
-      if(isPartValue(sel)){
-        const pr=parsePartValue(sel); if(!pr) return list;
-        return list.filter(q=>{ const n=+q.단원; return Number.isFinite(n) && n>=pr.start && n<=pr.end; });
-      }
-      return list.filter(q=>String(q.단원).trim()===String(sel));
-    }
-
-    function getFilteredByUI(){
-      const filter=el.filterSelect.value;
-      // StateManager를 통해 allData 가져오기 (window.allData는 Object.defineProperty로 연결됨)
-      let list=applySourceFilter(window.allData || getAllData() || []);
-      list=filterByChapterSelection(list);
-
-      list=list.filter(q=>{
-        const key=normId(q.고유ID), s=questionScores[key];
-        // 안푼문제: questionScores에 없거나, score가 null/undefined인 경우
-        if(filter==='unanswered') return !s || s.score == null || s.score === undefined;
-        // 80점 미만: 점수가 없거나 80점 미만
-        if(filter==='80') return !s || s.score == null || s.score === undefined || +s.score<80;
-        // 60점 미만: 점수가 없거나 60점 미만
-        if(filter==='60') return !s || s.score == null || s.score === undefined || +s.score<60;
-        return true;
-      });
-
-      if(filter==='today-review') {
-        // 제외 표시는 오늘의 복습 후보에서 제거
-        list = list.filter(q => !questionScores[normId(q.고유ID)]?.userReviewExclude);
-        list = prioritizeTodayReview(list).slice(0,10);
-      }
-
-      // ✅ 정렬: 1. 단원 (오름차순) 2. 표시번호 (오름차순)
-      list.sort((a, b) => {
-        // 1순위: 단원 비교
-        const chA = +a.단원, chB = +b.단원;
-        if (Number.isFinite(chA) && Number.isFinite(chB)) {
-          if (chA !== chB) return chA - chB;
-        } else if (Number.isFinite(chA)) {
-          return -1; // 숫자가 문자보다 앞
-        } else if (Number.isFinite(chB)) {
-          return 1;
-        } else {
-          // 둘 다 문자인 경우 사전순
-          const cmp = String(a.단원).localeCompare(String(b.단원), 'ko');
-          if (cmp !== 0) return cmp;
-        }
-
-        // 2순위: 표시번호 비교
-        const numA = +(a.표시번호 || a.물음번호 || 0);
-        const numB = +(b.표시번호 || b.물음번호 || 0);
-        if (Number.isFinite(numA) && Number.isFinite(numB)) {
-          return numA - numB;
-        }
-        // fallback: 문자열 비교
-        return String(a.표시번호 || a.물음번호 || '').localeCompare(
-          String(b.표시번호 || b.물음번호 || ''), 'ko'
-        );
-      });
-
-      return list;
-    }
-
-    // ⚠️ CRITICAL: quizCore.js에서 이 함수를 사용하므로 window에 노출 필요
-    window.getFilteredByUI = getFilteredByUI;
+    // ============================================================
+    // ✂️ REFACTORED → js/features/filter/filterCore.js
+    // ============================================================
+    // function buildSourceFilterUI() → filterCore.js
+    // function getSelectedSourceGroups() → filterCore.js
+    // function detectSourceGroup() → filterCore.js
+    // function applySourceFilter() → filterCore.js
+    // function filterByChapterSelection() → filterCore.js
+    // function getFilteredByUI() → filterCore.js
+    //
+    // 위 함수들은 app.js를 통해 전역으로 노출됨
 
     // ============================================================
     // ✂️ REFACTORED → js/features/quiz/quizCore.js
