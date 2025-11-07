@@ -2,7 +2,7 @@
  * @fileoverview 필터링 시스템 - 출처, 단원, 상태별 필터링
  */
 
-import { getElements } from '../../ui/elements.js';
+import { getElements } from '../../core/stateManager.js';
 import { isPartValue, parsePartValue } from '../../config/config.js';
 import { normId } from '../../utils/helpers.js';
 import { getQuestionScores, getAllData } from '../../core/stateManager.js';
