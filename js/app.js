@@ -86,28 +86,100 @@ window.getQuestionScore = StateManager.getQuestionScore;
 // StateManager getter/setter
 window.getAllData = StateManager.getAllData;
 window.setAllData = StateManager.setAllData;
+// allData를 전역 변수로도 노출 (하위 호환성 - getFilteredByUI에서 사용)
+Object.defineProperty(window, 'allData', {
+  get: () => StateManager.getAllData(),
+  set: (value) => StateManager.setAllData(value),
+  configurable: true
+});
 window.getCurrentQuizData = StateManager.getCurrentQuizData;
 window.setCurrentQuizData = StateManager.setCurrentQuizData;
+// currentQuizData를 전역 변수로도 노출 (하위 호환성)
+Object.defineProperty(window, 'currentQuizData', {
+  get: () => StateManager.getCurrentQuizData(),
+  set: (value) => StateManager.setCurrentQuizData(value),
+  configurable: true
+});
 window.getCurrentQuestionIndex = StateManager.getCurrentQuestionIndex;
 window.setCurrentQuestionIndex = StateManager.setCurrentQuestionIndex;
+// currentQuestionIndex를 전역 변수로도 노출 (하위 호환성)
+Object.defineProperty(window, 'currentQuestionIndex', {
+  get: () => StateManager.getCurrentQuestionIndex(),
+  set: (value) => StateManager.setCurrentQuestionIndex(value),
+  configurable: true
+});
 window.getQuestionScores = StateManager.getQuestionScores;
 window.setQuestionScores = StateManager.setQuestionScores;
+// questionScores를 전역 변수로도 노출 (하위 호환성)
+Object.defineProperty(window, 'questionScores', {
+  get: () => StateManager.getQuestionScores(),
+  set: (value) => StateManager.setQuestionScores(value),
+  configurable: true
+});
 window.getGeminiApiKey = StateManager.getGeminiApiKey;
 window.setGeminiApiKey = StateManager.setGeminiApiKey;
+// geminiApiKey를 전역 변수로도 노출 (하위 호환성)
+Object.defineProperty(window, 'geminiApiKey', {
+  get: () => StateManager.getGeminiApiKey(),
+  set: (value) => StateManager.setGeminiApiKey(value),
+  configurable: true
+});
 window.getSelectedAiModel = StateManager.getSelectedAiModel;
 window.setSelectedAiModel = StateManager.setSelectedAiModel;
+// selectedAiModel를 전역 변수로도 노출 (하위 호환성)
+Object.defineProperty(window, 'selectedAiModel', {
+  get: () => StateManager.getSelectedAiModel(),
+  set: (value) => StateManager.setSelectedAiModel(value),
+  configurable: true
+});
 window.getDarkMode = StateManager.getDarkMode;
 window.setDarkMode = StateManager.setDarkMode;
+// darkMode를 전역 변수로도 노출 (하위 호환성)
+Object.defineProperty(window, 'darkMode', {
+  get: () => StateManager.getDarkMode(),
+  set: (value) => StateManager.setDarkMode(value),
+  configurable: true
+});
 window.getActiveHintQuestionKey = StateManager.getActiveHintQuestionKey;
 window.setActiveHintQuestionKey = StateManager.setActiveHintQuestionKey;
+// activeHintQuestionKey를 전역 변수로도 노출 (하위 호환성)
+Object.defineProperty(window, 'activeHintQuestionKey', {
+  get: () => StateManager.getActiveHintQuestionKey(),
+  set: (value) => StateManager.setActiveHintQuestionKey(value),
+  configurable: true
+});
 window.getPrevLoaded = StateManager.getPrevLoaded;
 window.setPrevLoaded = StateManager.setPrevLoaded;
+// prevLoaded를 전역 변수로도 노출 (하위 호환성)
+Object.defineProperty(window, 'prevLoaded', {
+  get: () => StateManager.getPrevLoaded(),
+  set: (value) => StateManager.setPrevLoaded(value),
+  configurable: true
+});
 window.getSummaryViewMode = StateManager.getSummaryViewMode;
 window.setSummaryViewMode = StateManager.setSummaryViewMode;
+// summaryViewMode를 전역 변수로도 노출 (하위 호환성)
+Object.defineProperty(window, 'summaryViewMode', {
+  get: () => StateManager.getSummaryViewMode(),
+  set: (value) => StateManager.setSummaryViewMode(value),
+  configurable: true
+});
 window.getStatsView = StateManager.getStatsView;
 window.setStatsView = StateManager.setStatsView;
+// statsView를 전역 변수로도 노출 (하위 호환성)
+Object.defineProperty(window, 'statsView', {
+  get: () => StateManager.getStatsView(),
+  set: (value) => StateManager.setStatsView(value),
+  configurable: true
+});
 window.getIsFlashcardMode = StateManager.getIsFlashcardMode;
 window.setIsFlashcardMode = StateManager.setIsFlashcardMode;
+// isFlashcardMode를 전역 변수로도 노출 (하위 호환성)
+Object.defineProperty(window, 'isFlashcardMode', {
+  get: () => StateManager.getIsFlashcardMode(),
+  set: (value) => StateManager.setIsFlashcardMode(value),
+  configurable: true
+});
 
 // DataManager (데이터 관리)
 window.DataManager = DataManager;

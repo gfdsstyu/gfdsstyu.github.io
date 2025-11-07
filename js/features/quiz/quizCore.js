@@ -56,22 +56,36 @@ export function updateFlagButtonsUI(saved) {
  * 현재 문제를 화면에 표시
  */
 export function displayQuestion() {
+  console.log('🔍 displayQuestion 호출됨');
+
   const el = getElements();
-  if (!el) return;
+  console.log('🔍 el:', el ? '✅ 존재' : '❌ null');
+  if (!el) {
+    console.error('❌ elements가 초기화되지 않음!');
+    return;
+  }
 
   const currentQuizData = getCurrentQuizData();
   const currentQuestionIndex = getCurrentQuestionIndex();
+  console.log('🔍 currentQuizData 길이:', currentQuizData?.length || 0);
+  console.log('🔍 currentQuestionIndex:', currentQuestionIndex);
 
   // 문제가 없으면 숨기기
   if (!currentQuizData.length) {
+    console.warn('⚠️ currentQuizData가 비어있음!');
     el.quizArea?.classList.add('hidden');
     return;
   }
 
   const q = currentQuizData[currentQuestionIndex];
-  if (!q) return;
+  console.log('🔍 현재 문제:', q?.고유ID, q?.물음?.substring(0, 30));
+  if (!q) {
+    console.error('❌ 문제 객체가 없음!');
+    return;
+  }
 
   // 퀴즈 영역 표시
+  console.log('✅ 퀴즈 영역 표시 시도');
   el.quizArea?.classList.remove('hidden');
 
   // 문제 정보 표시
@@ -136,8 +150,13 @@ export function displayQuestion() {
  * 필터 조건에 따라 퀴즈 데이터를 새로고침하고 화면 업데이트
  */
 export function reloadAndRefresh() {
+  console.log('🔄 reloadAndRefresh 호출됨');
+
   const el = getElements();
-  if (!el) return;
+  if (!el) {
+    console.error('❌ elements가 초기화되지 않음!');
+    return;
+  }
 
   // Part 선택 시 요약 뷰 모드 변경
   if (el.chapterSelect && isPartValue(el.chapterSelect.value)) {
@@ -147,9 +166,11 @@ export function reloadAndRefresh() {
   }
 
   // 필터링된 데이터 가져오기
+  console.log('🔍 getFilteredByUI 함수 존재:', typeof window.getFilteredByUI);
   const filteredData = typeof window.getFilteredByUI === 'function'
     ? window.getFilteredByUI()
     : [];
+  console.log('🔍 필터링된 데이터 길이:', filteredData?.length || 0);
 
   // 현재 퀴즈 데이터 설정 (StateManager 사용)
   setCurrentQuizData(filteredData);

@@ -1158,7 +1158,8 @@ function updateDDayDisplay() {
 
     function getFilteredByUI(){
       const filter=el.filterSelect.value;
-      let list=applySourceFilter(allData);
+      // StateManager를 통해 allData 가져오기 (window.allData는 Object.defineProperty로 연결됨)
+      let list=applySourceFilter(window.allData || getAllData() || []);
       list=filterByChapterSelection(list);
 
       list=list.filter(q=>{
@@ -4324,21 +4325,14 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
 
     document.addEventListener('DOMContentLoaded', async ()=>{
       // ✅ StateManager.initializeState()는 app.js에서 이미 호출됨
-      // 이제 StateManager의 데이터를 로컬 변수에 복사
-      const state = getState();
-      questionScores = state.questionScores;
-      geminiApiKey = state.geminiApiKey;
-      selectedAiModel = state.selectedAiModel;
-      darkMode = state.darkMode;
-      summaryViewMode = state.summaryViewMode;
-      statsView = state.statsView;
-      isFlashcardMode = state.isFlashcardMode;
+      // ✅ 모든 전역 변수는 Object.defineProperty로 StateManager와 자동 동기화됨
+      // 별도 복사 불필요 - window.questionScores, window.allData 등을 직접 사용
 
       try{
         await loadData();
-        // ✅ loadData() 이후 StateManager의 allData를 로컬 변수에 복사
-        allData = getAllData();
-        currentQuizData = getCurrentQuizData();
+        // ✅ loadData()가 StateManager에 데이터를 저장하고, window 전역 변수로 노출됨
+        // Object.defineProperty로 자동 동기화되므로 별도 할당 불필요
+        console.log('✅ 데이터 로드 완료:', window.allData?.length || 0, '문제');
       }catch(err){ console.error(err); $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).'; showToast(`문제 데이터 로드 실패: ${err.message}`,'error'); }
 
       loadSettings(); // UI 동기화만 수행
