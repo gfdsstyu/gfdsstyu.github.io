@@ -220,3 +220,81 @@ export function initSettings() {
 
   console.log('✅ Settings 모듈 초기화 완료');
 }
+
+// ============================================
+// 이벤트 리스너 초기화 (Phase 5.1)
+// ============================================
+
+/**
+ * 설정 관련 이벤트 리스너 초기화 (필터 초기화, 학습 기록 초기화)
+ */
+export function initSettingsListeners() {
+  // Access global state via window (NEVER import from stateManager)
+  const el = window.el;
+  if (!el) return;
+
+  // Clear filter button
+  el.clearFilterBtn?.addEventListener('click', () => {
+    el.filterSelect.value = 'all';
+    el.chapterSelect.value = '';
+
+    // Reset source filter checkboxes
+    el.sourceGroupFilter?.querySelectorAll('input.source-filter')?.forEach(cb => {
+      cb.checked = true;
+    });
+
+    // Reset SOURCE_LS in localStorage
+    const SOURCE_LS = window.SOURCE_LS || 'selectedSourceGroups';
+    localStorage.setItem(SOURCE_LS, JSON.stringify(['basic', 'advanced', 'other']));
+
+    // Reload quiz
+    if (typeof window.reloadAndRefresh === 'function') {
+      window.reloadAndRefresh();
+    }
+
+    // Show toast (access from window)
+    if (typeof window.showToast === 'function') {
+      window.showToast('필터 해제: 모든 문제 표시');
+    }
+  });
+
+  // Reset scores button
+  el.resetScoresBtn?.addEventListener('click', () => {
+    if (!confirm('정말로 모든 학습 기록을 초기화하시겠습니까?')) {
+      return;
+    }
+
+    // Reset questionScores
+    window.questionScores = {};
+
+    // Remove localStorage items
+    localStorage.removeItem('auditQuizScores');
+    localStorage.removeItem('schemaVersion');
+    localStorage.removeItem('readSessions_v2');
+    localStorage.removeItem('readStoreBackfilled_v2');
+
+    // Update UI
+    if (typeof window.updateSummary === 'function') {
+      window.updateSummary();
+    }
+
+    // Reload quiz if there's data
+    const currentQuizData = window.currentQuizData || [];
+    if (currentQuizData.length) {
+      window.currentQuestionIndex = 0;
+      if (typeof window.reloadAndRefresh === 'function') {
+        window.reloadAndRefresh();
+      }
+    }
+
+    // Refresh panels
+    if (typeof window.refreshPanels === 'function') {
+      window.refreshPanels();
+    }
+
+    // Show toast
+    if (typeof window.showToast === 'function') {
+      window.showToast('학습 기록 초기화 완료');
+    }
+  });
+}

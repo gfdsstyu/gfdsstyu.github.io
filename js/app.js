@@ -92,6 +92,9 @@ window.computePartRanges = Helpers.computePartRanges;
 window.showToast = DomUtils.showToast;
 window.getHeaderOffset = DomUtils.getHeaderOffset;
 window.smoothScrollTo = DomUtils.smoothScrollTo;
+window.openDrawer = DomUtils.openDrawer;
+window.closeDrawer = DomUtils.closeDrawer;
+window.initUIListeners = DomUtils.initUIListeners;
 window.elmTop = DomUtils.elmTop;
 window.applyDarkMode = DomUtils.applyDarkMode;
 window.watchSystemDarkMode = DomUtils.watchSystemDarkMode;
@@ -266,6 +269,7 @@ window.updateFlagButtonsUI = QuizCore.updateFlagButtonsUI;
 window.displayQuestion = QuizCore.displayQuestion;
 window.reloadAndRefresh = QuizCore.reloadAndRefresh;
 window.startRandomQuiz = QuizCore.startRandomQuiz;
+window.initQuizListeners = QuizCore.initQuizListeners;
 
 // Navigation (네비게이션 및 포커스 모드)
 window.Navigation = Navigation;
@@ -287,6 +291,7 @@ window.applySourceFilter = Filter.applySourceFilter;
 window.filterByChapterSelection = Filter.filterByChapterSelection;
 window.getFilteredByUI = Filter.getFilteredByUI;
 window.getScopeFilteredData = Filter.getScopeFilteredData;
+window.initFilterListeners = Filter.initFilterListeners;
 window.SOURCE_LS = Filter.SOURCE_LS;
 window.BASIC_TAGS = Filter.BASIC_TAGS;
 window.ADV_TAGS = Filter.ADV_TAGS;
@@ -303,6 +308,7 @@ window.renderCalendarMonth = Calendar.renderCalendarMonth;
 window.bindCalendarDateClick = Calendar.bindCalendarDateClick;
 window.renderStatsDateNav = Calendar.renderStatsDateNav;
 window.renderStats = Calendar.renderStats;
+window.initCalendarListeners = Calendar.initCalendarListeners;
 
 // Settings (설정 관리)
 window.Settings = Settings;
@@ -316,6 +322,7 @@ window.initSettingsModalListeners = Settings.initSettingsModalListeners;
 window.initDDayListeners = Settings.initDDayListeners;
 window.initGlobalEscapeHandler = Settings.initGlobalEscapeHandler;
 window.initSettings = Settings.initSettings;
+window.initSettingsListeners = Settings.initSettingsListeners;
 
 // ReportCore (리포트 모달 및 데이터 처리)
 window.ReportCore = ReportCore;
@@ -377,6 +384,7 @@ window.initAchievementListeners = Achievements.initAchievementListeners;
 window.Explorer = Explorer;
 window.renderExplorer = Explorer.renderExplorer;
 window.moveSourceFilterToSide = Explorer.moveSourceFilterToSide;
+window.initExplorerListeners = Explorer.initExplorerListeners;
 
 // HLR Dataset (복습 알고리즘 - 데이터셋)
 window.HLRDataset = HLRDataset;

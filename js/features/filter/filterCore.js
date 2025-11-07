@@ -241,3 +241,42 @@ export function getFilteredByUI() {
 
   return list;
 }
+
+// ============================================
+// 이벤트 리스너 초기화 (Phase 5.1)
+// ============================================
+
+/**
+ * 필터 관련 이벤트 리스너 초기화
+ */
+export function initFilterListeners() {
+  // Access global state via window (NEVER import from stateManager)
+  const el = window.el;
+  if (!el) return;
+
+  // Chapter select, filter select, load quiz button
+  el.chapterSelect?.addEventListener('change', () => {
+    if (typeof window.reloadAndRefresh === 'function') {
+      window.reloadAndRefresh();
+    }
+  });
+
+  el.filterSelect?.addEventListener('change', () => {
+    if (typeof window.reloadAndRefresh === 'function') {
+      window.reloadAndRefresh();
+    }
+  });
+
+  el.loadQuizBtn?.addEventListener('click', () => {
+    if (typeof window.reloadAndRefresh === 'function') {
+      window.reloadAndRefresh();
+    }
+  });
+
+  // Random quiz button
+  el.randomQuizBtn?.addEventListener('click', () => {
+    if (typeof window.startRandomQuiz === 'function') {
+      window.startRandomQuiz();
+    }
+  });
+}

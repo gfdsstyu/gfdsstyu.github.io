@@ -992,201 +992,43 @@ function updateDDayDisplay() {
     // ✂️ REFACTORED → js/features/quiz/quizCore.js
     // ============================================================
     // function reloadAndRefresh() → quizCore.js
-    // function displayQuestion() → quizCore.js
-    // function updateFlagButtonsUI() → quizCore.js
-    // function startRandomQuiz() → quizCore.js
-    //
-    // 위 함수들은 app.js를 통해 전역으로 노출됨
-
-    el.chapterSelect.addEventListener('change', reloadAndRefresh);
-    el.filterSelect.addEventListener('change', reloadAndRefresh);
-    el.loadQuizBtn.addEventListener('click', reloadAndRefresh);
-    el.randomQuizBtn.addEventListener('click', startRandomQuiz);
-
-    // 복습추가(★) 클릭 → 제외(➖)와 상호배타
-    el.reviewFlagToggle.addEventListener('click',()=>{
-      const cqd = getCurrentQuizData(); const cqi = getCurrentQuestionIndex();
-      if(!cqd.length) return;
-      const q=cqd[cqi], key=normId(q.고유ID), rec=questionScores[key]||{};
-      const willFlag = !(rec.userReviewFlag && !rec.userReviewExclude); // 시각상 Flag 활성 여부
-      if (willFlag) {
-        // 추가로 전환: 제외를 해제
-        setFlagState(key, { flag:true, exclude:false });
-        showToast('복습 추가로 전환(➖ 해제)');
-      } else {
-        // 추가 해제
-        setFlagState(key, { flag:false, exclude:!!rec.userReviewExclude });
-        showToast('복습 추가 해제');
-      }
-      updateFlagButtonsUI(questionScores[key]);
-      refreshPanels();
-    });
-
-    // 복습제외(➖) 클릭 → 추가(★)와 상호배타
-    el.reviewExcludeToggle?.addEventListener('click', ()=>{
-      const cqd = getCurrentQuizData(); const cqi = getCurrentQuestionIndex();
-      if(!cqd.length) return;
-      const q=cqd[cqi], key=normId(q.고유ID), rec=questionScores[key]||{};
-      const willExclude = !rec.userReviewExclude;
-      if (willExclude) {
-        // 제외로 전환: 추가를 해제
-        setFlagState(key, { flag:false, exclude:true });
-        showToast('오늘의 복습에서 제외로 전환(★ 해제)');
-      } else {
-        // 제외 해제 (필요시 사용자가 별도로 ★ 추가)
-        setFlagState(key, { flag:!!rec.userReviewFlag, exclude:false });
-        showToast('복습 제외 해제');
-      }
-      updateFlagButtonsUI(questionScores[key]);
-      refreshPanels();
-    });
-
-    el.loadPrevAnswerBtn.addEventListener('click',()=>{
-      const cqd = getCurrentQuizData(); const cqi = getCurrentQuestionIndex();
-      if(!cqd.length) return;
-      const q=cqd[cqi], saved=questionScores[normId(q.고유ID)];
-      if(!prevLoaded){
-        if(saved?.user_answer){ el.userAnswer.value=saved.user_answer; el.loadPrevAnswerBtn.textContent='답안 지우기'; el.loadPrevAnswerBtn.setAttribute('aria-pressed','true'); prevLoaded=true; showToast('이전 답안을 불러왔습니다.'); }
-        else showToast('저장된 답안이 없습니다.','warn');
-      }else{
-        el.userAnswer.value=''; el.loadPrevAnswerBtn.textContent='이전 답안 불러오기'; el.loadPrevAnswerBtn.setAttribute('aria-pressed','false'); prevLoaded=false;
-      }
-    });
-
-    el.prevBtn.addEventListener('click', handlePrevQuestion);
-    el.nextBtn.addEventListener('click', handleNextQuestion);
-    /* [이전 코드 - navigation.js로 이동됨]
-    el.prevBtn.addEventListener('click',()=>{ if(currentQuestionIndex>0){ currentQuestionIndex--; displayQuestion(); } });
-    el.nextBtn.addEventListener('click',()=>{ if(currentQuestionIndex<currentQuizData.length-1){ currentQuestionIndex++; displayQuestion(); } });
-    [이전 코드 종료] */
-    el.userAnswer.addEventListener('input',()=> el.errorMessage.classList.add('hidden'));
-    el.userAnswer.addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); el.gradeBtn.click(); } });
+    // ============================================================
+    // ✂️ REFACTORED → Phase 5.1: Event Listeners Moved to Modules
+    // ============================================================
+    // - initFilterListeners() → filterCore.js (필터, 단원, 랜덤 퀴즈)
+    // - initQuizListeners() → quizCore.js (복습 플래그, 이전 답안, 네비게이션, 입력, 채점, 힌트)
+    // ============================================================
 
     // ============================================================
     // ✂️ REFACTORED → js/features/quiz/grading.js
     // ============================================================
     // async function handleGrade() → js/features/quiz/grading.js
-    // function setGradeLoading() → js/features/quiz/grading.js (이전 setLoading에서 이름 변경)
     // async function handleHint() → js/features/quiz/grading.js
     // function showResult() → js/features/quiz/grading.js
-    //
-    // 위 함수들은 app.js를 통해 전역으로 노출됨
-
-    el.gradeBtn.addEventListener('click',handleGrade);
-
-
-    // [리팩토링] Gemini API 함수는 js/services/geminiApi.js로 이동됨
-    // async function callGeminiAPI(...) → js/services/geminiApi.js
-    // selectedAiModel을 파라미터로 받도록 수정됨
-
-    el.hintBtn.addEventListener('click',()=>{ const cqd = getCurrentQuizData(); const cqi = getCurrentQuestionIndex(); if(cqd.length) handleHint(cqd[cqi]); });
-
-    /* [이전 코드 - grading.js로 이동됨]
-    el.hintBtn.addEventListener('click',()=>{ if(currentQuizData.length) handleHint(currentQuizData[currentQuestionIndex]); });
-    async function handleHint(q){
-      if(!geminiApiKey){ openApiModal(false); showToast('Gemini API 키를 입력해주세요.','error'); return; }
-      setLoading(true);
-      try{
-        const hint=await callGeminiHintAPI(el.userAnswer.value.trim(), q.정답, q.물음, geminiApiKey);
-        el.hintBox.innerHTML=`<strong class="font-semibold">힌트</strong><br>${String(hint||'').replace(/\n/g,'<br>')}`;
-        el.hintBox.classList.remove('hidden'); activeHintQuestionKey=normId(q.고유ID); showToast('힌트를 표시했습니다. (즉시 채점 시 감점)','warn');
-      }catch(e){ console.error(e); showToast(`힌트 생성 실패: ${e.message}`,'error'); }
-      finally{ setLoading(false); }
-    }
-    [이전 코드 종료] */
-    // [리팩토링] Gemini Hint API 함수도 js/services/geminiApi.js로 이동됨
-    // async function callGeminiHintAPI(...) → js/services/geminiApi.js
-
-    // [리팩토링] Gemini Text API 함수도 js/services/geminiApi.js로 이동됨
-    // async function callGeminiTextAPI(...) → js/services/geminiApi.js
-
-    /* [이전 코드 - grading.js로 이동됨]
-    function showResult(scoreVal, feedback){
-      const s=clamp(+scoreVal,0,100);
-      el.score.textContent=s.toFixed(1); el.progressBar.style.width=`${s}%`; el.progressBar.setAttribute('aria-valuenow',String(Math.round(s)));
-    function backfillReadStoreFromScores(force=false){
-      if(!force && localStorage.getItem('readStoreBackfilled_v2')==='1') return;
-      const db=loadReadStore(); let touched=0;
-      for(const [qid,rec] of Object.entries(questionScores||{})){ const hist=Array.isArray(rec?.solveHistory)?rec.solveHistory:[]; if(!hist.length) continue; const has=db[qid];
-        if(!has || !Number.isFinite(+has.uniqueReads) || +has.uniqueReads===0){ const seed=computeUniqueReadsFromHistory(hist); if(seed.uniqueReads>0){ db[qid]=seed; touched++; } }
-      }
-    [이전 코드 종료] */
+    // + Gemini API 함수들 → js/services/geminiApi.js
+    // ============================================================
 
     // ============================================================
     // ✂️ REFACTORED → js/features/summary/summaryCore.js
     // - updateSummary()
     // - updateSummaryHighlight()
+    // - ensureResultBoxReady()
     // ============================================================
 
-    el.clearFilterBtn.addEventListener('click',()=>{
-      el.filterSelect.value='all'; el.chapterSelect.value='';
-      el.sourceGroupFilter?.querySelectorAll('input.source-filter')?.forEach(cb=>cb.checked=true);
-      localStorage.setItem(SOURCE_LS,JSON.stringify(['basic','advanced','other']));
-      reloadAndRefresh(); showToast('필터 해제: 모든 문제 표시');
-    });
-    el.resetScoresBtn.addEventListener('click',()=>{
-      if(confirm('정말로 모든 학습 기록을 초기화하시겠습니까?')){
-        questionScores={}; localStorage.removeItem('auditQuizScores'); localStorage.removeItem('schemaVersion'); localStorage.removeItem('readSessions_v2'); localStorage.removeItem('readStoreBackfilled_v2');
-        updateSummary(); if(currentQuizData.length){ currentQuestionIndex=0; reloadAndRefresh(); } refreshPanels(); showToast('학습 기록 초기화 완료');
-      }
-    });
+    // ============================================================
+    // ✂️ REFACTORED → Phase 5.1: Settings Event Listeners
+    // ============================================================
+    // - initSettingsListeners() → settingsCore.js (필터 초기화, 학습 기록 초기화)
+    // ============================================================
 
-    // ✂️ REFACTORED → js/features/summary/summaryCore.js: ensureResultBoxReady()
-
-    function enterFocusMode(){
-      lastScrollYBeforeFocus=window.pageYOffset;
-      document.documentElement.classList.add('focus-mode');
-      ensureResultBoxReady();
-
-      const headerHeight = el.fixedHeader?.getBoundingClientRect().height || 0;
-      const margin = 12;
-      const viewportHeight = window.innerHeight;
-
-      // userAnswer 상단 위치
-      const userAnswerTop = el.userAnswer.getBoundingClientRect().top + window.pageYOffset - headerHeight - margin;
-
-      // 모범답안 박스가 표시되어 있으면, 모범답안 박스 하단까지 보이도록 스크롤
-      if(el.modelAnswerBox && !el.modelAnswerBox.classList.contains('hidden')){
-        const modelAnswerBottom = el.modelAnswerBox.getBoundingClientRect().bottom + window.pageYOffset;
-        const contentHeight = modelAnswerBottom - (el.userAnswer.getBoundingClientRect().top + window.pageYOffset);
-
-        // 전체 콘텐츠가 viewport보다 크면, userAnswer 상단을 기준으로 스크롤
-        // 그렇지 않으면 모범답안 박스 하단이 보이도록 스크롤
-        if(contentHeight > viewportHeight - headerHeight - margin * 2){
-          window.scrollTo({top:Math.max(0, userAnswerTop), behavior:'smooth'});
-        } else {
-          const targetScroll = modelAnswerBottom - viewportHeight + margin;
-          window.scrollTo({top:Math.max(0, Math.max(userAnswerTop, targetScroll)), behavior:'smooth'});
-        }
-      } else {
-        window.scrollTo({top:Math.max(0, userAnswerTop), behavior:'smooth'});
-      }
-
-      ctrlNavState='focus';
-    }
-    function exitToDashboard(){ document.documentElement.classList.remove('focus-mode'); if(el.summaryArea) window.scrollTo({top:el.summaryArea.getBoundingClientRect().top + window.pageYOffset - (el.fixedHeader?.getBoundingClientRect().height||0) - 8, behavior:'smooth'}); else window.scrollTo({top:0,behavior:'smooth'}); ctrlNavState='dashboard'; }
-    function backFromFocus(){ document.documentElement.classList.remove('focus-mode'); window.scrollTo({top:Math.max(0,lastScrollYBeforeFocus),behavior:'smooth'}); ctrlNavState='dashboard'; }
-    const isEditing=t=> t && (t.tagName==='INPUT' || t.tagName==='TEXTAREA' || t.isContentEditable);
-    document.addEventListener('keydown',e=>{
-      // H: 힌트
-      if((e.key==='h'||e.key==='H') && !isEditing(e.target)){ e.preventDefault(); el.hintBtn?.click(); return; }
-      // R: 랜덤 문제
-      if((e.key==='r'||e.key==='R') && !isEditing(e.target)){ e.preventDefault(); el.randomQuizBtn?.click(); return; }
-      // L: 이전 답안 불러오기
-      if((e.key==='l'||e.key==='L') && !isEditing(e.target)){ e.preventDefault(); el.loadPrevAnswerBtn?.click(); return; }
-      // X: 복습 제외 토글
-      if((e.key==='x'||e.key==='X') && !isEditing(e.target)){ e.preventDefault(); el.reviewExcludeToggle?.click(); return; }
-      // S: 학습 현황판으로 스크롤
-      if((e.key==='s'||e.key==='S') && !isEditing(e.target)){ e.preventDefault(); if(el.summaryArea && !el.summaryArea.classList.contains('hidden')) window.scrollTo({top:el.summaryArea.getBoundingClientRect().top + window.pageYOffset - (el.fixedHeader?.getBoundingClientRect().height||0) - 8, behavior:'smooth'}); return; }
-      // G: 채점하기 (textarea에 포커스 없을 때)
-      if((e.key==='g'||e.key==='G') && !isEditing(e.target)){ e.preventDefault(); el.gradeBtn?.click(); return; }
-      if(e.ctrlKey && !e.altKey && !e.metaKey){
-        if(e.key==='ArrowLeft'){ e.preventDefault(); el.prevBtn?.click(); return; }
-        if(e.key==='ArrowRight'){ e.preventDefault(); el.nextBtn?.click(); return; }
-        if(e.key==='['){ e.preventDefault(); if(ctrlNavState==='focus') backFromFocus(); else window.scrollTo({top:0,behavior:'smooth'}); return; }
-        if(e.key===']'){ e.preventDefault(); if(ctrlNavState!=='focus') enterFocusMode(); else exitToDashboard(); return; }
-      }
-    });
+    // ============================================================
+    // ✂️ REFACTORED → Phase 5.1: Navigation & Keyboard Shortcuts
+    // ============================================================
+    // - enterFocusMode() → navigation.js
+    // - exitToDashboard() → navigation.js
+    // - backFromFocus() → navigation.js
+    // - initKeyboardShortcuts() → navigation.js (키보드 단축키: H, R, L, X, S, G, Ctrl+Arrow, Ctrl+[, Ctrl+])
+    // ============================================================
 
     // ============================================================
     // ✂️ REFACTORED → js/features/calendar/calendarCore.js
@@ -1198,9 +1040,8 @@ function updateDDayDisplay() {
     // 위 함수들은 app.js를 통해 전역으로 노출됨
     // ============================================================
 
-    el.calPrev?.addEventListener('click', () => { calRefDate.setMonth(calRefDate.getMonth()-1); renderCalendarMonth(); });
-    el.calNext?.addEventListener('click', () => { calRefDate.setMonth(calRefDate.getMonth()+1); renderCalendarMonth(); });
-
+    // ✅ MOVED TO calendarCore.js: initCalendarListeners() (Phase 5.1)
+    // el.calPrev, el.calNext event listeners
 
     // ============================================================
     // ✂️ REFACTORED → js/features/calendar/calendarCore.js
@@ -1222,32 +1063,13 @@ function updateDDayDisplay() {
     // ⚠️ CRITICAL: quizCore.js에서 이 함수를 사용하므로 window에 노출 필요
     window.refreshPanels = refreshPanels;
 
-    /* ========================================
-     * HLR & REVIEW SYSTEM (Moved to features/review/)
-     * ======================================== */
-    // All HLR and review functions moved to:
-    // - js/features/review/hlrDataset.js (HLR dataset, predictor)
-    // - js/features/review/reviewCore.js (review strategy)
-
-    function openDrawer(){ 
-      //document.body.classList.add('drawer-open'); 
-      el.drawerBackdrop.classList.remove('hidden'); 
-      el.leftDashboard.classList.remove('hidden'); el.leftDashboard.classList.add('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900','relative'); 
-      el.drawerClose.classList.remove('hidden'); }
-    function closeDrawer(){
-      //document.body.classList.remove('drawer-open'); 
-      el.drawerBackdrop.classList.add('hidden'); 
-      el.leftDashboard.classList.add('hidden'); el.leftDashboard.classList.remove('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900','relative'); 
-      el.drawerClose.classList.add('hidden'); }
-    el.hamburger?.addEventListener('click', openDrawer);
-    el.drawerBackdrop?.addEventListener('click', closeDrawer);
-    el.drawerClose?.addEventListener('click', closeDrawer);
-    window.addEventListener('resize',()=>{
-      if(window.innerWidth>=1024){
-        el.leftDashboard.classList.remove('hidden'); el.drawerBackdrop.classList.add('hidden'); document.body.classList.remove('drawer-open');
-        el.leftDashboard.classList.remove('fixed','inset-0','z-[1100]','p-4','overflow-y-auto','bg-white','dark:bg-gray-900','relative'); el.drawerClose.classList.add('hidden');
-      }else{ el.leftDashboard.classList.add('hidden'); }
-    });
+    // ============================================================
+    // ✂️ REFACTORED → Phase 5.1: Drawer (Mobile Menu) & UI Listeners
+    // ============================================================
+    // - openDrawer() → domUtils.js
+    // - closeDrawer() → domUtils.js
+    // - initUIListeners() → domUtils.js (hamburger, backdrop, drawer close, window resize)
+    // ============================================================
 
     /* ========================================
      * DEEP-LEARNING REPORT (Moved to features/report/)
@@ -1308,8 +1130,15 @@ function updateDDayDisplay() {
       ensureApiKeyGate();
       buildSourceFilterUI(); moveSourceFilterToSide();
 
-      // 퀴즈 이벤트 리스너는 모듈 로드 시점에 이미 등록됨 (line 1232-1235)
-      el.explorerSearch?.addEventListener('input', renderExplorer);
+      // 이벤트 리스너 초기화 (Phase 5.1)
+      initQuizListeners();        // 퀴즈 버튼, 입력, 플래그
+      initFilterListeners();      // 필터, 단원 선택
+      initSettingsListeners();    // 필터 초기화, 학습 기록 초기화
+      initCalendarListeners();    // 캘린더 월간 이동
+      initExplorerListeners();    // 탐색기 검색
+      initUIListeners();          // Drawer, responsive
+      initKeyboardShortcuts();    // 키보드 단축키
+
       refreshPanels();
 
       // 업적 시스템 초기화 (Phase 4.3)

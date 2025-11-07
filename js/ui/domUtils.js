@@ -106,3 +106,72 @@ export function setLoading(button, isLoading, loadingText = '처리중...') {
     button.textContent = button.dataset.originalText || button.textContent;
   }
 }
+
+// ============================================
+// Drawer (Mobile Menu) Functions
+// ============================================
+
+/**
+ * Open mobile drawer menu
+ */
+export function openDrawer() {
+  const el = window.el;
+  if (!el) return;
+
+  el.drawerBackdrop?.classList.remove('hidden');
+  el.leftDashboard?.classList.remove('hidden');
+  el.leftDashboard?.classList.add('fixed', 'inset-0', 'z-[1100]', 'p-4', 'overflow-y-auto', 'bg-white', 'dark:bg-gray-900', 'relative');
+  el.drawerClose?.classList.remove('hidden');
+}
+
+/**
+ * Close mobile drawer menu
+ */
+export function closeDrawer() {
+  const el = window.el;
+  if (!el) return;
+
+  el.drawerBackdrop?.classList.add('hidden');
+  el.leftDashboard?.classList.add('hidden');
+  el.leftDashboard?.classList.remove('fixed', 'inset-0', 'z-[1100]', 'p-4', 'overflow-y-auto', 'bg-white', 'dark:bg-gray-900', 'relative');
+  el.drawerClose?.classList.add('hidden');
+}
+
+// ============================================
+// 이벤트 리스너 초기화 (Phase 5.1)
+// ============================================
+
+/**
+ * UI 관련 이벤트 리스너 초기화 (drawer, responsive)
+ */
+export function initUIListeners() {
+  const el = window.el;
+  if (!el) return;
+
+  // Hamburger menu - open drawer
+  el.hamburger?.addEventListener('click', openDrawer);
+
+  // Drawer backdrop - close drawer
+  el.drawerBackdrop?.addEventListener('click', closeDrawer);
+
+  // Drawer close button - close drawer
+  el.drawerClose?.addEventListener('click', closeDrawer);
+
+  // Window resize - responsive drawer behavior
+  window.addEventListener('resize', () => {
+    const el = window.el;
+    if (!el) return;
+
+    if (window.innerWidth >= 1024) {
+      // Desktop: show sidebar, hide drawer
+      el.leftDashboard?.classList.remove('hidden');
+      el.drawerBackdrop?.classList.add('hidden');
+      document.body?.classList.remove('drawer-open');
+      el.leftDashboard?.classList.remove('fixed', 'inset-0', 'z-[1100]', 'p-4', 'overflow-y-auto', 'bg-white', 'dark:bg-gray-900', 'relative');
+      el.drawerClose?.classList.add('hidden');
+    } else {
+      // Mobile: hide sidebar
+      el.leftDashboard?.classList.add('hidden');
+    }
+  });
+}

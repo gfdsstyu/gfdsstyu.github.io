@@ -173,3 +173,23 @@ export function moveSourceFilterToSide() {
   el.sourceGroupFilter.classList.remove('mb-6');
   el.sourceFilterSide.appendChild(el.sourceGroupFilter);
 }
+
+// ============================================
+// 이벤트 리스너 초기화 (Phase 5.1)
+// ============================================
+
+/**
+ * 문제 탐색기 이벤트 리스너 초기화
+ */
+export function initExplorerListeners() {
+  // Access global state via window (NEVER import from stateManager)
+  const el = window.el;
+  if (!el) return;
+
+  // Explorer search input
+  el.explorerSearch?.addEventListener('input', () => {
+    if (typeof window.renderExplorer === 'function') {
+      window.renderExplorer();
+    }
+  });
+}

@@ -482,3 +482,35 @@ export function renderStats() {
     }
   }));
 }
+
+// ============================================
+// 이벤트 리스너 초기화 (Phase 5.1)
+// ============================================
+
+/**
+ * 캘린더 네비게이션 이벤트 리스너 초기화
+ */
+export function initCalendarListeners() {
+  // Access global state via window (NEVER import from stateManager)
+  const el = window.el;
+  if (!el) return;
+
+  // Calendar prev/next buttons
+  el.calPrev?.addEventListener('click', () => {
+    if (window.calRefDate) {
+      window.calRefDate.setMonth(window.calRefDate.getMonth() - 1);
+      if (typeof window.renderCalendarMonth === 'function') {
+        window.renderCalendarMonth();
+      }
+    }
+  });
+
+  el.calNext?.addEventListener('click', () => {
+    if (window.calRefDate) {
+      window.calRefDate.setMonth(window.calRefDate.getMonth() + 1);
+      if (typeof window.renderCalendarMonth === 'function') {
+        window.renderCalendarMonth();
+      }
+    }
+  });
+}
