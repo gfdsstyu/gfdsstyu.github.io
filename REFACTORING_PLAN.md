@@ -288,6 +288,52 @@ window.geminiApiKey
 
 ---
 
+### 🔒 모듈 Private 변수 직접 접근 금지 (Critical!)
+
+**문제**: Phase 4.2 (flashcard 모듈)에서 발생
+**원인**: 모듈 내부의 let 변수는 private이므로 외부(index.html)에서 직접 접근 불가
+
+**❌ 잘못된 사용 (에러 발생)**:
+```javascript
+// index.html에서 직접 접근 시도
+if (isFlashcardMode) {
+  flashcardData = list;  // ❌ ReferenceError: flashcardData is not defined
+  flashcardIndex = 0;    // ❌ ReferenceError: flashcardIndex is not defined
+  displayFlashcard();
+}
+```
+
+**에러 메시지**:
+```
+Uncaught ReferenceError: flashcardData is not defined
+```
+
+**✅ 올바른 사용**:
+```javascript
+// flashcardCore.js에 public 함수 추가
+export function jumpToFlashcard(list, questionId, label) {
+  flashcardData = list;  // 모듈 내부에서만 접근 가능
+  flashcardIndex = list.findIndex(x => String(x.고유ID).trim() === String(questionId).trim());
+  displayFlashcard();
+  // ...
+}
+
+// index.html에서 public 함수 사용
+if (window.isFlashcardMode) {
+  jumpToFlashcard(list, it.고유ID, label);  // ✅ 올바른 접근
+}
+```
+
+**재발 방지 규칙**:
+1. 모듈 내부 let/const 변수는 private으로 외부 접근 불가
+2. 외부에서 상태 변경이 필요하면 public 함수를 export
+3. 모듈 분리 후 반드시 기존 코드에서 직접 변수 참조가 남아있는지 확인
+
+**수정 커밋**:
+- `3986177` - fix: flashcard 모듈 private 변수 접근 오류 수정 - jumpToFlashcard 함수 추가
+
+---
+
 ## 📈 진행 상황 추적
 
 ### Phase 2 체크리스트
