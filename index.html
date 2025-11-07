@@ -1223,13 +1223,9 @@ function updateDDayDisplay() {
           const list=group.get(ch)||[];
           if(!list.length) return;
 
-          if (isFlashcardMode) {
-            // Flashcard mode: update flashcard data
-            flashcardData = list;
-            flashcardIndex = 0;
-            displayFlashcard();
-            updateSummaryHighlight();
-            showToast(`${chapterLabelText(ch)} 플래시카드로 이동`);
+          if (window.isFlashcardMode) {
+            // Flashcard mode: use module function
+            jumpToFlashcard(list, list[0].고유ID, chapterLabelText(ch));
           } else {
             // Quiz mode: update quiz data
             currentQuizData = list;
@@ -1283,14 +1279,10 @@ function updateDDayDisplay() {
           const ch = String(it.단원).trim();
           const list = base.filter(x => String(x.단원).trim() === ch);
 
-          if (isFlashcardMode) {
-            // Flashcard mode
-            flashcardData = list.length ? list : [it];
-            flashcardIndex = list.findIndex(x => String(x.고유ID).trim() === String(it.고유ID).trim());
-            if (flashcardIndex < 0) flashcardIndex = 0;
-            displayFlashcard();
-            updateSummaryHighlight();
-            showToast(`'${label}' 플래시카드로 이동`);
+          if (window.isFlashcardMode) {
+            // Flashcard mode - use module function
+            const dataList = list.length ? list : [it];
+            jumpToFlashcard(dataList, it.고유ID, label);
           } else {
             // Quiz mode
             currentQuizData = list.length ? list : [it];
