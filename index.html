@@ -1203,6 +1203,9 @@ function updateDDayDisplay() {
       return list;
     }
 
+    // ⚠️ CRITICAL: quizCore.js에서 이 함수를 사용하므로 window에 노출 필요
+    window.getFilteredByUI = getFilteredByUI;
+
     // ============================================================
     // ✂️ REFACTORED → js/features/quiz/quizCore.js
     // ============================================================
@@ -1560,6 +1563,10 @@ function updateDDayDisplay() {
       });
       updateSummaryHighlight();
     }
+
+    // ⚠️ CRITICAL: quizCore.js에서 이 함수를 사용하므로 window에 노출 필요
+    window.updateSummary = updateSummary;
+
     function updateSummaryHighlight(){
       // Support both quiz mode and flashcard mode
       let currentId;
@@ -1578,6 +1585,9 @@ function updateDDayDisplay() {
         }
       });
     }
+
+    // ⚠️ CRITICAL: quizCore.js와 다른 곳에서 이 함수를 사용하므로 window에 노출 필요
+    window.updateSummaryHighlight = updateSummaryHighlight;
 
     el.clearFilterBtn.addEventListener('click',()=>{
       el.filterSelect.value='all'; el.chapterSelect.value='';
@@ -2092,6 +2102,9 @@ function renderStats(){
     }
     const moveSourceFilterToSide=()=>{ if(!el.sourceFilterSide||!el.sourceGroupFilter) return; el.sourceFilterSide.innerHTML=''; el.sourceGroupFilter.classList.remove('mb-6'); el.sourceFilterSide.appendChild(el.sourceGroupFilter); };
     const refreshPanels=()=>{ renderCalendarMonth(); renderStats(); renderExplorer(); };
+
+    // ⚠️ CRITICAL: quizCore.js에서 이 함수를 사용하므로 window에 노출 필요
+    window.refreshPanels = refreshPanels;
 
     /* ========================================
      * HLR (Half-Life Regression) 복습 알고리즘
