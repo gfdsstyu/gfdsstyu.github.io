@@ -1590,6 +1590,12 @@ function updateDDayDisplay() {
       return { h_pred, p_current, timeSinceLastReview };
     }
 
+    // ⚠️ CRITICAL: calendarCore.js에서 HLR 통계 계산을 위해 window에 노출 필요
+    window.hlrPredictor = hlrPredictor;
+    window.LocalHLRPredictor = LocalHLRPredictor;
+    window.buildFeaturesForQID = buildFeaturesForQID;
+    window.calculateRecallProbability = calculateRecallProbability;
+
     const REVIEW_STRATEGY_LS='reviewStrategy_v1';
     const getReviewStrategy=()=> localStorage.getItem(REVIEW_STRATEGY_LS)||'smart';
     function prioritizeTodayReview(list){
@@ -1643,6 +1649,11 @@ function updateDDayDisplay() {
       if(strat==='recentWrong'){ return [...list].sort((a,b)=>{ const sa=questionScores[normId(a.고유ID)], sb=questionScores[normId(b.고유ID)], as=sa?.score??101, bs=sb?.score??101, ad=sa?.lastSolvedDate??0, bd=sb?.lastSolvedDate??0; return (as-bs)||(ad-bd); }); }
       return [...list].sort((a,b)=>{ const sa=questionScores[normId(a.고유ID)], sb=questionScores[normId(b.고유ID)], af=(sa?.userReviewFlag && !sa?.userReviewExclude)?0:1, bf=(sb?.userReviewFlag && !sb?.userReviewExclude)?0:1, aUn=sa?1:0, bUn=sb?1:0, aS=sa?.score??101, bS=sb?.score??101, aD=sa?.lastSolvedDate??0, bD=sb?.lastSolvedDate??0; return (af-bf)||(aUn-bUn)||(aS-bS)||(aD-bD); });
     }
+
+    // ⚠️ CRITICAL: filterCore.js에서 '오늘의 복습' 필터링을 위해 window에 노출 필요
+    window.prioritizeTodayReview = prioritizeTodayReview;
+    window.getReviewStrategy = getReviewStrategy;
+
     el.reviewStrategySelect?.addEventListener('change',e=>{ localStorage.setItem(REVIEW_STRATEGY_LS, e.target.value); showToast(`오늘의 복습 전략: ${e.target.value}`); refreshPanels(); });
     (function syncStrategy(){ const cur=getReviewStrategy(); if(el.reviewStrategySelect) el.reviewStrategySelect.value=cur; })();
     el.startReviewBtn?.addEventListener('click',()=>{ if(el.filterSelect) el.filterSelect.value='today-review'; reloadAndRefresh(); showToast('오늘의 복습 시작'); });
