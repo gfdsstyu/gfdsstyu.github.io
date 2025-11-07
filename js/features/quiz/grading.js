@@ -81,8 +81,9 @@ export function showResult(scoreVal, feedback, correctAnswer) {
   if (el.aiFeedback) el.aiFeedback.textContent = String(feedback || '');
   if (el.correctAnswer) el.correctAnswer.textContent = String(correctAnswer || '');
 
-  // 결과 박스 표시
+  // 결과 박스 및 모범답안 박스 표시
   el.resultBox?.classList.remove('hidden');
+  el.modelAnswerBox?.classList.remove('hidden');
 }
 
 // ============================================
