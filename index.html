@@ -700,9 +700,40 @@
 
   <script type="module">
     // ========================================
-    // ⚠️ CRITICAL: app.js를 먼저 import하여 전역 함수들이 정의되도록 보장
+    // Phase 5.2: 모듈 직접 import (전역 브릿지 제거)
     // ========================================
+    // app.js는 StateManager 초기화를 위해 여전히 필요
     import './js/app.js';
+
+    // 직접 모듈 import (window.* 의존성 제거)
+    import { $ } from './js/ui/elements.js';
+    import { showToast, applyDarkMode, initUIListeners } from './js/ui/domUtils.js';
+    import { loadData } from './js/core/dataManager.js';
+    import { getAllData, getSelectedAiModel } from './js/core/stateManager.js';
+    import {
+      initStatsDate,
+      updateDDayDisplay,
+      migrateData,
+      enforceExclusiveFlagsOnAll,
+      backfillReadStoreFromScores
+    } from './js/core/storageManager.js';
+    import { initSettings, ensureApiKeyGate, initSettingsListeners } from './js/features/settings/settingsCore.js';
+    import { initDataImportExport } from './js/services/dataImportExport.js';
+    import { initReportListeners } from './js/features/report/reportCore.js';
+    import { initAIAnalysisListeners } from './js/features/report/analysis.js';
+    import { initFlashcardListeners } from './js/features/flashcard/flashcardCore.js';
+    import { buildSourceFilterUI, initFilterListeners } from './js/features/filter/filterCore.js';
+    import { moveSourceFilterToSide, initExplorerListeners, renderExplorer } from './js/features/explorer/explorerCore.js';
+    import { initQuizListeners } from './js/features/quiz/quizCore.js';
+    import { initCalendarListeners, renderCalendarMonth, renderStats } from './js/features/calendar/calendarCore.js';
+    import { initKeyboardShortcuts } from './js/features/quiz/navigation.js';
+    import {
+      initAchievementListeners,
+      loadAchievements,
+      checkAchievements,
+      updateAchievementBadge
+    } from './js/features/achievements/achievementsCore.js';
+    import { initReviewListeners } from './js/features/review/reviewCore.js';
 
     // ========================================
     // [리팩토링] 상수는 js/config/config.js로 이동됨
@@ -831,63 +862,14 @@ function updateDDayDisplay() {
 }
 [이전 코드 계속...] */
 
-    const $ = id=>document.getElementById(id);
     // ============================================================
-    // ✂️ REFACTORED - el 객체는 app.js에서 초기화됨
+    // Phase 5.2: el 객체는 app.js에서 window.el로 초기화됨
     // ============================================================
-    // 이전에는 여기서 const el = { ... }로 선언했지만,
-    // 이것이 window.el을 가리는(shadowing) 문제가 발생
-    // 해결: 로컬 const el 선언 제거, window.el 사용
-    // app.js의 initElements()가 window.el을 생성하고 StateManager에 등록함
+    // $ 함수는 위에서 import됨 (line 709)
+    // el 객체는 app.js의 DOMContentLoaded에서 window.el로 생성됨
+    // 모듈들은 import { el } from './ui/elements.js'로 접근
+    // index.html 내부에서는 window.el로 접근
     // ============================================================
-
-    /* [이전 코드 - el 로컬 선언 제거됨]
-    const el = {
-      toast: $('toast'), apiModal:$('api-modal'), ...
-    };
-    [이전 코드 종료] */
-
-    // index.html의 el 객체 초기화
-    // ⚠️ 이 객체는 app.js의 window.el과는 별개로 생성됨
-    // 하지만 양쪽 모두 같은 DOM 요소를 참조하므로 동일하게 동작함
-    const el = {
-      toast: $('toast'), apiModal:$('api-modal'), apiModalInput:$('api-modal-input'), apiModalRemember:$('modal-remember'),
-      apiModalSaveBtn:$('api-save-btn'), apiModalCancelBtn:$('api-cancel-btn'),
-      settingsBtn:$('settings-btn'), settingsModal:$('settings-modal'),
-      settingsCloseBtn:$('settings-close-btn'), settingsCloseBtnBottom:$('settings-close-btn-bottom'),
-      openApiKeyModalBtn:$('open-api-key-modal-btn'), aiModelSelect:$('ai-model-select'), darkModeSelect:$('dark-mode-select'),
-      exportDataBtn:$('export-data-btn'), importDataBtn:$('import-data-btn'), importFileInput:$('import-file-input'),
-      mergeDataBtn:$('merge-data-btn'), mergeFileInput:$('merge-file-input'),
-      chapterSelect:$('chapter-select'), filterSelect:$('filter-select'), loadQuizBtn:$('load-quiz-btn'), randomQuizBtn:$('random-quiz-btn'),
-      quizArea:$('quiz-area'), questionNumber:$('question-number'), questionText:$('question-text'), questionCounter:$('question-counter'),
-      userAnswer:$('user-answer'), errorMessage:$('error-message'), prevBtn:$('prev-btn'), nextBtn:$('next-btn'),
-      gradeBtn:$('grade-btn'), gradeBtnText:$('grade-btn-text'), gradeLoader:$('grade-loader'), hintBtn:$('hint-btn'), hintBox:$('hint-container'),
-      loadPrevAnswerBtn:$('load-prev-answer-btn'), resultBox:$('result-box'), modelAnswerBox:$('model-answer-box'), score:$('score'), progressBar:$('progress-bar'),
-      aiFeedback:$('ai-feedback'), correctAnswer:$('correct-answer'), summaryArea:$('summary-area'), scoreSummary:$('score-summary'),
-      clearFilterBtn:$('clear-filter-btn'), resetScoresBtn:$('reset-scores-btn'), summaryViewAllBtn:$('summary-view-all'), summaryViewCurrentBtn:$('summary-view-current'),
-      dbQuestionId:$('db-question-id'), fixedHeader:$('fixed-header'), layoutRoot:$('layout-root'),
-      statsOverview:$('stats-overview'),
-      reviewStrategySelect:$('review-strategy-select'), startReviewBtn:$('start-review-btn'),
-      sourceFilterSide:$('source-filter-side'), sourceGroupFilter:$('source-group-filter'),
-      explorerChapters:$('explorer-chapters'), explorerProblems:$('explorer-problems'), explorerSearch:$('explorer-search'),
-      reviewFlagToggle:$('review-flag-toggle'), reviewExcludeToggle:$('review-exclude-toggle'),
-      hamburger:$('hamburger'), leftDashboard:$('left-dashboard'), drawerBackdrop:$('drawer-backdrop'), drawerClose:$('drawer-close'),
-      calPrev:$('cal-prev'), calNext:$('cal-next'), calTitle:$('cal-title'), calendarGrid:$('calendar-grid'),
-      openReportBtn:$('open-report-btn'), reportModal:$('report-modal'), reportCloseBtn:$('report-close-btn'),
-      reportPeriodSelect:$('report-period-select'), reportThresholdSelect:$('report-threshold-select'),
-      chartScopeSelect:$('chart-scope-select'),
-      reportRefreshBtn:$('report-refresh-btn'), reportSaveSnapshotBtn:$('report-save-snapshot-btn'), reportLoadSnapshotBtn:$('report-load-snapshot-btn'), reportLoadSnapshotInput:$('report-load-snapshot-input'), reportPrintBtn:$('report-print-btn'),
-      aiAnalysisStartBtn:$('ai-analysis-start-btn'), aiAnalysisResult:$('ai-analysis-result'), aiAnalysisLoading:$('ai-analysis-loading'),
-      aiAnalysisCopyBtn:$('ai-analysis-copy-btn'), aiErrorPattern:$('ai-error-pattern'), aiConceptWeakness:$('ai-concept-weakness'),
-      openAchievementsBtn:$('open-achievements-btn'), achievementsModal:$('achievements-modal'), achievementsCloseBtn:$('achievements-close-btn'),
-      achievementCountTotal:$('achievement-count-total'), achievementCountUnlocked:$('achievement-count-unlocked'),
-      achievementProgressPercent:$('achievement-progress-percent'), achievementPoints:$('achievement-points'), achievementsList:$('achievements-list'),
-      flashcardModeBtn:$('flashcard-mode-btn'), flashcardArea:$('flashcard-area'), flashcardTitle:$('flashcard-title'),
-      flashcardQuestion:$('flashcard-question'), flashcardAnswer:$('flashcard-answer'), flashcardCounter:$('flashcard-counter'),
-      flashcardToggleAnswer:$('flashcard-toggle-answer'), flashcardAnswerBox:$('flashcard-answer-box'), flashcardAnswerHidden:$('flashcard-answer-hidden'),
-      flashcardPrevBtn:$('flashcard-prev-btn'), flashcardNextBtn:$('flashcard-next-btn'), flashcardRandomBtn:$('flashcard-random-btn'), flashcardExitBtn:$('flashcard-exit-btn'),
-      ddayDisplay:$('dday-display'), examDateInput:$('exam-date-input'), saveExamDateBtn:$('save-exam-date-btn')
-    };
 
     // [리팩토링] 유틸리티 함수는 js/utils/helpers.js로 이동됨
     // const clamp = ... → js/utils/helpers.js
@@ -934,8 +916,9 @@ function updateDDayDisplay() {
     // function loadApiKey() - StateManager.initializeState()에서 처리
     //
     // loadSettings()는 UI 동기화만 수행 (값은 이미 StateManager에 로드됨)
+    // Phase 5.2: 직접 import한 함수 사용
     function loadSettings(){
-      if(el.aiModelSelect) el.aiModelSelect.value = getSelectedAiModel();
+      if(window.el.aiModelSelect) window.el.aiModelSelect.value = getSelectedAiModel();
     }
 
     // ============================================================
@@ -1058,9 +1041,11 @@ function updateDDayDisplay() {
     // All explorer functions moved to:
     // - js/features/explorer/explorerCore.js
 
+    // Phase 5.2: 직접 import한 함수 사용
     const refreshPanels=()=>{ renderCalendarMonth(); renderStats(); renderExplorer(); };
 
     // ⚠️ CRITICAL: quizCore.js에서 이 함수를 사용하므로 window에 노출 필요
+    // TODO Phase 5.3: quizCore.js가 refreshPanels를 직접 import하도록 수정 후 제거
     window.refreshPanels = refreshPanels;
 
     // ============================================================
@@ -1091,18 +1076,22 @@ function updateDDayDisplay() {
     // All achievement functions moved to:
     // - js/features/achievements/achievementsCore.js
 
+    // ========================================
+    // Phase 5.2: 전역 브릿지 제거 완료
+    // 모든 함수를 직접 import하여 사용
+    // ========================================
     document.addEventListener('DOMContentLoaded', async ()=>{
       // ✅ StateManager.initializeState()는 app.js에서 이미 호출됨
-      // ✅ 모든 전역 변수는 Object.defineProperty로 StateManager와 자동 동기화됨
-      // ✅ el 객체는 모듈 로드 시점에 이미 초기화됨 (line 825)
-      // 별도 복사 불필요 - window.questionScores, window.allData 등을 직접 사용
+      // ✅ window.el 객체는 app.js에서 이미 초기화됨
 
       try{
         await loadData();
-        // ✅ loadData()가 StateManager에 데이터를 저장하고, window 전역 변수로 노출됨
-        // Object.defineProperty로 자동 동기화되므로 별도 할당 불필요
-        console.log('✅ 데이터 로드 완료:', window.allData?.length || 0, '문제');
-      }catch(err){ console.error(err); $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).'; showToast(`문제 데이터 로드 실패: ${err.message}`,'error'); }
+        console.log('✅ 데이터 로드 완료:', getAllData()?.length || 0, '문제');
+      }catch(err){
+        console.error(err);
+        $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).';
+        showToast(`문제 데이터 로드 실패: ${err.message}`,'error');
+      }
 
       loadSettings(); // UI 동기화만 수행
       initStatsDate();
@@ -1131,7 +1120,8 @@ function updateDDayDisplay() {
       initFlashcardListeners();
 
       ensureApiKeyGate();
-      buildSourceFilterUI(); moveSourceFilterToSide();
+      buildSourceFilterUI();
+      moveSourceFilterToSide();
 
       // 이벤트 리스너 초기화 (Phase 5.1)
       initQuizListeners();        // 퀴즈 버튼, 입력, 플래그
