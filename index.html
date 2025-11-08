@@ -734,412 +734,54 @@
     } from './js/features/achievements/achievementsCore.js';
     import { initReviewListeners } from './js/features/review/reviewCore.js';
 
-    // ========================================
-    // [리팩토링] 상수는 js/config/config.js로 이동됨
-    // app.js를 통해 전역으로 노출됨
-    // ========================================
-    /*
-    const BASE_SYSTEM_PROMPT = ... (→ js/config/config.js)
-    const LITE_STRICT_ADDENDUM = ... (→ js/config/config.js)
-    */
-
-    // ============================================================
-    // ✂️ REFACTORED - 전역 변수는 app.js의 Object.defineProperty로 관리됨
-    // ============================================================
-    // 이전에는 여기서 let으로 선언했지만, 이것이 window 전역 변수를 가림(shadowing)
-    // 해결: 로컬 변수 선언 제거, window.allData 등을 직접 사용
-    // app.js에서 Object.defineProperty로 StateManager와 자동 동기화됨
-    // ============================================================
-
-    /* [이전 코드 - 로컬 변수 선언 제거됨]
-    let allData = [];
-    let currentQuizData = [];
-    let currentQuestionIndex = 0;
-    let questionScores = {};
-    let geminiApiKey = '';
-    let activeHintQuestionKey = null;
-    let selectedAiModel = 'gemini-2.5-flash';
-    let darkMode = 'system';
-    let prevLoaded = false;
-    let summaryViewMode = 'ALL';
-    let statsView = 'day';
-    [이전 코드 종료] */
-    let ctrlNavState='dashboard', lastScrollYBeforeFocus=0;
-
-    let calRefDate = (() => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(1); return d; })();
-
-// ⚠️ CRITICAL: statsRefDate는 로컬 변수로 선언하지 않음
-// window.statsRefDate (app.js에서 StorageManager와 연결됨)를 사용
-// 로컬 선언 시 window 변수를 가려서(shadowing) 동기화 실패
-/* [이전 코드 - 로컬 변수 선언 제거됨]
-let statsRefDate = new Date();
-statsRefDate.setHours(0,0,0,0);
-[이전 코드 종료] */
-
-// ============================================================
-// ✂️ REFACTORED → js/core/storageManager.js
-// ============================================================
-// function initStatsDate() → js/core/storageManager.js
-// function saveStatsDate() → js/core/storageManager.js
-// function loadExamDate() → js/core/storageManager.js
-// function saveExamDate() → js/core/storageManager.js
-// function calculateDDay() → js/core/storageManager.js
-// function updateDDayDisplay() → js/core/storageManager.js
-// function migrateData() → js/core/storageManager.js
-// function enforceExclusiveFlagsOnAll() → js/core/storageManager.js
-// function setFlagState() → js/core/storageManager.js
-// loadReadStore, saveReadStore, etc. → js/core/storageManager.js
-
-/* [이전 코드 - 삭제됨]
-function initStatsDate() {
-  const saved = localStorage.getItem(STATS_DATE_KEY);
-  if (saved) {
-    const d = new Date(saved + 'T00:00:00');
-    if (!isNaN(d.getTime())) {
-      statsRefDate = d;
-      return;
-    }
-  }
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  statsRefDate = now;
-}
-
-function saveStatsDate() {
-  const y = statsRefDate.getFullYear();
-  const m = String(statsRefDate.getMonth() + 1).padStart(2, '0');
-  const d = String(statsRefDate.getDate()).padStart(2, '0');
-  localStorage.setItem(STATS_DATE_KEY, `${y}-${m}-${d}`);
-}
-
-// D-DAY 관련 함수
-function loadExamDate() {
-  const saved = localStorage.getItem(EXAM_DATE_KEY);
-  if (saved) {
-    return saved; // YYYY-MM-DD format
-  }
-  return '2026-06-27'; // 기본값
-}
-
-function saveExamDate(dateStr) {
-  localStorage.setItem(EXAM_DATE_KEY, dateStr);
-}
-
-function calculateDDay(examDateStr) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const examDate = new Date(examDateStr + 'T00:00:00');
-  if (isNaN(examDate.getTime())) {
-    return null;
-  }
-
-  const diffTime = examDate.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  return diffDays;
-}
-
-function updateDDayDisplay() {
-  if (!el.ddayDisplay) return;
-
-  const examDate = loadExamDate();
-  const dday = calculateDDay(examDate);
-
-  if (dday === null) {
-    el.ddayDisplay.textContent = 'D-DAY';
-    return;
-  }
-
-  if (dday > 0) {
-    el.ddayDisplay.textContent = `D-${dday}`;
-  } else if (dday === 0) {
-    el.ddayDisplay.textContent = 'D-DAY';
-  } else {
-    el.ddayDisplay.textContent = `D+${Math.abs(dday)}`;
-  }
-}
-[이전 코드 계속...] */
-
-    // ============================================================
-    // Phase 5.2: el 객체는 app.js에서 window.el로 초기화됨
-    // ============================================================
-    // $ 함수는 위에서 import됨 (line 709)
-    // el 객체는 app.js의 DOMContentLoaded에서 window.el로 생성됨
-    // 모듈들은 import { el } from './ui/elements.js'로 접근
-    // index.html 내부에서는 window.el로 접근
-    // ============================================================
-
-    // [리팩토링] 유틸리티 함수는 js/utils/helpers.js로 이동됨
-    // const clamp = ... → js/utils/helpers.js
-    // const normId = ... → js/utils/helpers.js
-    // const sanitizeModelText = ... → js/utils/helpers.js
-    // [리팩토링] DOM 유틸리티는 js/ui/domUtils.js로 이동됨
-    // const showToast = ... → js/ui/domUtils.js
-    // const getHeaderOffset = ... → js/ui/domUtils.js
-    // const smoothScrollTo = ... → js/ui/domUtils.js
-    // const elmTop = ... → js/ui/domUtils.js
-
-    // [리팩토링] 색상 및 날짜 유틸리티는 js/utils/helpers.js로 이동됨
-    // function hslToHex(...) → js/utils/helpers.js
-    // function colorForCount(...) → js/utils/helpers.js
-    // const ymd = ... → js/utils/helpers.js
-    // const dowMon0 = ... → js/utils/helpers.js
-
-    // [리팩토링] 단원/파트 상수 및 헬퍼는 js/config/config.js로 이동됨
-    // const CHAPTER_LABELS = { ... } → js/config/config.js
-    // const PART_INSERTIONS = [ ... ] → js/config/config.js
-    // const chapterLabelText = ... → js/config/config.js
-    // const PART_VALUE = ... → js/config/config.js
-    // const isPartValue = ... → js/config/config.js
-    // const parsePartValue = ... → js/config/config.js
-    // [리팩토링] 단원 처리 함수는 js/utils/helpers.js로 이동됨
-    // ============================================================
-    // ✂️ REFACTORED → js/core/dataManager.js
-    // ============================================================
-    // const getAllChapterNums = ... → js/core/dataManager.js
-    // ============================================================
-    // ✂️ REFACTORED → js/core/dataManager.js
-    // ============================================================
-    // async function loadData() → js/core/dataManager.js
-    // function selfTest() → js/core/dataManager.js
-    // function populateChapterSelect() → js/core/dataManager.js
-    //
-    // 위 함수들은 app.js를 통해 전역으로 노출됨:
-    // window.getAllChapterNums, window.loadData, window.selfTest, window.populateChapterSelect
-
-    // ============================================================
-    // ✂️ REFACTORED → js/core/stateManager.js
-    // ============================================================
-    // function loadScores() - StateManager.initializeState()에서 처리
-    // function loadApiKey() - StateManager.initializeState()에서 처리
-    //
-    // loadSettings()는 UI 동기화만 수행 (값은 이미 StateManager에 로드됨)
-    // Phase 5.2: 직접 import한 함수 사용
+    // Phase 5.3: 모든 로직은 모듈로 이동됨
+    // Helper functions
     function loadSettings(){
       if(window.el.aiModelSelect) window.el.aiModelSelect.value = getSelectedAiModel();
     }
-
-    // ============================================================
-    // ✂️ REFACTORED → js/core/storageManager.js
-    // ============================================================
-    // function migrateData() → storageManager.js
-    // function enforceExclusiveFlagsOnAll() → storageManager.js
-    // function setFlagState() → storageManager.js
-    //
-    // 위 함수들은 app.js를 통해 전역으로 노출됨
-
-    // ============================================================
-    // ✂️ REFACTORED → js/features/settings/settingsCore.js
-    // ============================================================
-    // function openApiModal() → settingsCore.js
-    // function closeApiModal() → settingsCore.js
-    // function ensureApiKeyGate() → settingsCore.js
-    // function openSettingsModal() → settingsCore.js
-    // function closeSettingsModal() → settingsCore.js
-    // function initApiModalListeners() → settingsCore.js
-    // function initSettingsModalListeners() → settingsCore.js
-    // function initDDayListeners() → settingsCore.js
-    // function initGlobalEscapeHandler() → settingsCore.js
-    // function initSettings() → settingsCore.js (초기화 함수)
-    //
-    // 위 함수들은 app.js를 통해 전역으로 노출됨
-    // 이벤트 리스너 초기화는 DOMContentLoaded에서 initSettings() 호출로 수행
-
-    // ============================================================
-    // ✂️ REFACTORED → js/services/dataImportExport.js
-    // ============================================================
-    // function mergeQuizScores() → dataImportExport.js
-    // function exportData() → dataImportExport.js
-    // function importData() → dataImportExport.js
-    // function mergeData() → dataImportExport.js
-    // function initDataImportExport() → dataImportExport.js (초기화 함수)
-    //
-    // 위 함수들은 app.js를 통해 전역으로 노출됨
-    // 이벤트 리스너 초기화는 DOMContentLoaded에서 initDataImportExport() 호출로 수행
-
-    // ============================================================
-    // ✂️ REFACTORED → js/features/filter/filterCore.js
-    // ============================================================
-    // function buildSourceFilterUI() → filterCore.js
-    // function getSelectedSourceGroups() → filterCore.js
-    // function detectSourceGroup() → filterCore.js
-    // function applySourceFilter() → filterCore.js
-    // function filterByChapterSelection() → filterCore.js
-    // function getFilteredByUI() → filterCore.js
-    //
-    // 위 함수들은 app.js를 통해 전역으로 노출됨
-
-    // ============================================================
-    // ✂️ REFACTORED → js/features/quiz/quizCore.js
-    // ============================================================
-    // function reloadAndRefresh() → quizCore.js
-    // ============================================================
-    // ✂️ REFACTORED → Phase 5.1: Event Listeners Moved to Modules
-    // ============================================================
-    // - initFilterListeners() → filterCore.js (필터, 단원, 랜덤 퀴즈)
-    // - initQuizListeners() → quizCore.js (복습 플래그, 이전 답안, 네비게이션, 입력, 채점, 힌트)
-    // ============================================================
-
-    // ============================================================
-    // ✂️ REFACTORED → js/features/quiz/grading.js
-    // ============================================================
-    // async function handleGrade() → js/features/quiz/grading.js
-    // async function handleHint() → js/features/quiz/grading.js
-    // function showResult() → js/features/quiz/grading.js
-    // + Gemini API 함수들 → js/services/geminiApi.js
-    // ============================================================
-
-    // ============================================================
-    // ✂️ REFACTORED → js/features/summary/summaryCore.js
-    // - updateSummary()
-    // - updateSummaryHighlight()
-    // - ensureResultBoxReady()
-    // ============================================================
-
-    // ============================================================
-    // ✂️ REFACTORED → Phase 5.1: Settings Event Listeners
-    // ============================================================
-    // - initSettingsListeners() → settingsCore.js (필터 초기화, 학습 기록 초기화)
-    // ============================================================
-
-    // ============================================================
-    // ✂️ REFACTORED → Phase 5.1: Navigation & Keyboard Shortcuts
-    // ============================================================
-    // - enterFocusMode() → navigation.js
-    // - exitToDashboard() → navigation.js
-    // - backFromFocus() → navigation.js
-    // - initKeyboardShortcuts() → navigation.js (키보드 단축키: H, R, L, X, S, G, Ctrl+Arrow, Ctrl+[, Ctrl+])
-    // ============================================================
-
-    // ============================================================
-    // ✂️ REFACTORED → js/features/calendar/calendarCore.js
-    // ============================================================
-    // const getScopeFilteredData() → calendarCore.js (내부 함수)
-    // function renderCalendarMonth() → calendarCore.js
-    // function bindCalendarDateClick() → calendarCore.js
-    //
-    // 위 함수들은 app.js를 통해 전역으로 노출됨
-    // ============================================================
-
-    // ✅ MOVED TO calendarCore.js: initCalendarListeners() (Phase 5.1)
-    // el.calPrev, el.calNext event listeners
-
-    // ============================================================
-    // ✂️ REFACTORED → js/features/calendar/calendarCore.js
-    // ============================================================
-    // function renderStatsDateNav() → calendarCore.js
-    // function renderStats() → calendarCore.js
-    //
-    // 위 함수들은 app.js를 통해 전역으로 노출됨
-    // ============================================================
-
-    /* ========================================
-     * EXPLORER (Moved to features/explorer/)
-     * ======================================== */
-    // All explorer functions moved to:
-    // - js/features/explorer/explorerCore.js
-
-    // Phase 5.2: 직접 import한 함수 사용
     const refreshPanels=()=>{ renderCalendarMonth(); renderStats(); renderExplorer(); };
-
-    // ⚠️ CRITICAL: quizCore.js에서 이 함수를 사용하므로 window에 노출 필요
-    // TODO Phase 5.3: quizCore.js가 refreshPanels를 직접 import하도록 수정 후 제거
-    window.refreshPanels = refreshPanels;
-
-    // ============================================================
-    // ✂️ REFACTORED → Phase 5.1: Drawer (Mobile Menu) & UI Listeners
-    // ============================================================
-    // - openDrawer() → domUtils.js
-    // - closeDrawer() → domUtils.js
-    // - initUIListeners() → domUtils.js (hamburger, backdrop, drawer close, window resize)
-    // ============================================================
-
-    /* ========================================
-     * DEEP-LEARNING REPORT (Moved to features/report/)
-     * ======================================== */
-    // All report functions moved to:
-    // - js/features/report/reportCore.js (modal, data processing)
-    // - js/features/report/charts.js (chart rendering)
-    // - js/features/report/analysis.js (AI analysis)
-
-    /* ========================================
-     * FLASHCARD MODE (Moved to features/flashcard/)
-     * ======================================== */
-    // All flashcard functions moved to:
-    // - js/features/flashcard/flashcardCore.js
-
-    /* ========================================
-     * ACHIEVEMENT SYSTEM (Moved to features/achievements/)
-     * ======================================== */
-    // All achievement functions moved to:
-    // - js/features/achievements/achievementsCore.js
-
-    // ========================================
-    // Phase 5.2: 전역 브릿지 제거 완료
-    // 모든 함수를 직접 import하여 사용
-    // ========================================
+    window.refreshPanels = refreshPanels; // TODO: Remove after quizCore.js direct import
     document.addEventListener('DOMContentLoaded', async ()=>{
-      // ✅ StateManager.initializeState()는 app.js에서 이미 호출됨
-      // ✅ window.el 객체는 app.js에서 이미 초기화됨
-
       try{
         await loadData();
         console.log('✅ 데이터 로드 완료:', getAllData()?.length || 0, '문제');
       }catch(err){
         console.error(err);
-        $('question-text').textContent='문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).';
-        showToast(`문제 데이터 로드 실패: ${err.message}`,'error');
+        $('question-text').textContent='문제 데이터 로드 실패';
+        showToast(`데이터 로드 실패: ${err.message}`,'error');
       }
 
-      loadSettings(); // UI 동기화만 수행
+      loadSettings();
       initStatsDate();
       updateDDayDisplay();
       applyDarkMode();
       migrateData();
-
-      // 캘린더 날짜 초기화 (학습 캘린더 월간 이동용)
       window.calRefDate = (() => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(1); return d; })();
-
-      // 상호배타 정합성 1차 보정
       enforceExclusiveFlagsOnAll();
       backfillReadStoreFromScores(false);
 
-      // 설정 시스템 초기화 (Phase 3.4)
       initSettings();
-
-      // 데이터 Import/Export 초기화 (Phase 3.5)
       initDataImportExport();
-
-      // 리포트 시스템 초기화 (Phase 4.1)
       initReportListeners();
       initAIAnalysisListeners();
-
-      // 플래시카드 시스템 초기화 (Phase 4.2)
       initFlashcardListeners();
-
       ensureApiKeyGate();
       buildSourceFilterUI();
       moveSourceFilterToSide();
 
-      // 이벤트 리스너 초기화 (Phase 5.1)
-      initQuizListeners();        // 퀴즈 버튼, 입력, 플래그
-      initFilterListeners();      // 필터, 단원 선택
-      initSettingsListeners();    // 필터 초기화, 학습 기록 초기화
-      initCalendarListeners();    // 캘린더 월간 이동
-      initExplorerListeners();    // 탐색기 검색
-      initUIListeners();          // Drawer, responsive
-      initKeyboardShortcuts();    // 키보드 단축키
-
+      initQuizListeners();
+      initFilterListeners();
+      initSettingsListeners();
+      initCalendarListeners();
+      initExplorerListeners();
+      initUIListeners();
+      initKeyboardShortcuts();
       refreshPanels();
 
-      // 업적 시스템 초기화 (Phase 4.3)
       initAchievementListeners();
       loadAchievements();
       checkAchievements();
       updateAchievementBadge();
-
-      // 복습 시스템 초기화 (Phase 4.5)
       initReviewListeners();
     });
   </script>
