@@ -6,6 +6,7 @@ import { getElements } from '../../core/stateManager.js';
 import { isPartValue, parsePartValue } from '../../config/config.js';
 import { normId } from '../../utils/helpers.js';
 import { getQuestionScores, getAllData } from '../../core/stateManager.js';
+import { eventBus } from '../../core/eventBus.js';
 
 // 필터 설정 저장 키
 export const SOURCE_LS = 'sourceFilterSelectionV1';
@@ -47,10 +48,8 @@ export function buildSourceFilterUI() {
     cb.checked = saved.includes(cb.value);
     cb.addEventListener('change', () => {
       localStorage.setItem(SOURCE_LS, JSON.stringify(getSelectedSourceGroups()));
-      // reloadAndRefresh는 window를 통해 호출 (quizCore에서 제공)
-      if (typeof window.reloadAndRefresh === 'function') {
-        window.reloadAndRefresh();
-      }
+      // EventBus를 통해 quizCore에 리로드 요청 (순환 의존성 해결)
+      eventBus.emit('quiz:reload');
     });
   });
 
@@ -67,9 +66,8 @@ export function buildSourceFilterUI() {
       cb.checked = arr.includes(cb.value);
     });
     localStorage.setItem(SOURCE_LS, JSON.stringify(arr));
-    if (typeof window.reloadAndRefresh === 'function') {
-      window.reloadAndRefresh();
-    }
+    // EventBus를 통해 quizCore에 리로드 요청 (순환 의존성 해결)
+    eventBus.emit('quiz:reload');
   }
 }
 
@@ -255,22 +253,17 @@ export function initFilterListeners() {
   if (!el) return;
 
   // Chapter select, filter select, load quiz button
+  // EventBus를 통해 quizCore에 리로드 요청 (순환 의존성 해결)
   el.chapterSelect?.addEventListener('change', () => {
-    if (typeof window.reloadAndRefresh === 'function') {
-      window.reloadAndRefresh();
-    }
+    eventBus.emit('quiz:reload');
   });
 
   el.filterSelect?.addEventListener('change', () => {
-    if (typeof window.reloadAndRefresh === 'function') {
-      window.reloadAndRefresh();
-    }
+    eventBus.emit('quiz:reload');
   });
 
   el.loadQuizBtn?.addEventListener('click', () => {
-    if (typeof window.reloadAndRefresh === 'function') {
-      window.reloadAndRefresh();
-    }
+    eventBus.emit('quiz:reload');
   });
 
   // Random quiz button

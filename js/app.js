@@ -269,6 +269,7 @@ window.displayQuestion = QuizCore.displayQuestion;
 window.reloadAndRefresh = QuizCore.reloadAndRefresh;
 window.startRandomQuiz = QuizCore.startRandomQuiz;
 window.initQuizListeners = QuizCore.initQuizListeners;
+window.initQuizEventListeners = QuizCore.initQuizEventListeners;
 
 // Navigation (네비게이션 및 포커스 모드)
 window.Navigation = Navigation;

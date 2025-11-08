@@ -6,7 +6,7 @@
 import { normId } from '../../utils/helpers.js';
 import { isPartValue } from '../../config/config.js';
 import { showToast } from '../../ui/domUtils.js';
-import { detectSourceGroup } from '../filter/filterCore.js';
+import { detectSourceGroup, getFilteredByUI } from '../filter/filterCore.js';
 import {
   getElements,
   getCurrentQuizData,
@@ -21,6 +21,7 @@ import {
 } from '../../core/stateManager.js';
 import { showResult, handleGrade, handleHint } from './grading.js';
 import { handlePrevQuestion, handleNextQuestion } from './navigation.js';
+import { eventBus } from '../../core/eventBus.js';
 
 // ============================================
 // 복습 플래그 UI 업데이트
@@ -192,11 +193,8 @@ export function reloadAndRefresh() {
     el.summaryViewAllBtn?.classList.remove('bg-gray-100');
   }
 
-  // 필터링된 데이터 가져오기
-  console.log('🔍 getFilteredByUI 함수 존재:', typeof window.getFilteredByUI);
-  const filteredData = typeof window.getFilteredByUI === 'function'
-    ? window.getFilteredByUI()
-    : [];
+  // 필터링된 데이터 가져오기 (직접 import로 순환 의존성 해결)
+  const filteredData = getFilteredByUI();
   console.log('🔍 필터링된 데이터 길이:', filteredData?.length || 0);
 
   // 현재 퀴즈 데이터 설정 (StateManager 사용)
@@ -250,10 +248,8 @@ export function startRandomQuiz() {
   const el = getElements();
   if (!el) return;
 
-  // 필터링된 데이터 가져오기
-  const list = typeof window.getFilteredByUI === 'function'
-    ? window.getFilteredByUI()
-    : [];
+  // 필터링된 데이터 가져오기 (직접 import로 순환 의존성 해결)
+  const list = getFilteredByUI();
 
   if (!list.length) {
     showToast('선택 조건에 맞는 문제가 없습니다.', 'warn');
@@ -422,4 +418,20 @@ export function initQuizListeners() {
       setPrevLoaded(false);
     }
   });
+}
+
+// ============================================
+// EventBus 리스너 초기화 (순환 의존성 해결)
+// ============================================
+
+/**
+ * EventBus 리스너 초기화
+ * filterCore에서 발생한 quiz:reload 이벤트를 수신하여 reloadAndRefresh 실행
+ */
+export function initQuizEventListeners() {
+  eventBus.on('quiz:reload', () => {
+    console.log('🎧 EventBus: quiz:reload 이벤트 수신, reloadAndRefresh 실행');
+    reloadAndRefresh();
+  });
+  console.log('✅ Quiz EventBus 리스너 초기화 완료');
 }
