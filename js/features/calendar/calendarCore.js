@@ -6,7 +6,13 @@ import { getElements } from '../../core/stateManager.js';
 import { ymd, dowMon0, colorForCount } from '../../utils/helpers.js';
 import { chapterLabelText } from '../../config/config.js';
 import { showToast, getHeaderOffset } from '../../ui/domUtils.js';
-import { saveStatsDate } from '../../core/storageManager.js';
+import {
+  saveStatsDate,
+  getStatsRefDate,
+  setStatsRefDate,
+  getCalRefDate,
+  setCalRefDate
+} from '../../core/storageManager.js';
 import { getScopeFilteredData } from '../filter/filterCore.js';
 
 /**
@@ -19,8 +25,7 @@ export function renderCalendarMonth() {
 
   if (!grid || !title) return;
 
-  // calRefDate는 전역 변수 (window.calRefDate)
-  const calRefDate = window.calRefDate || new Date();
+  const calRefDate = getCalRefDate();
 
   title.textContent = `${calRefDate.getFullYear()}.${String(calRefDate.getMonth() + 1).padStart(2, '0')}`;
 
@@ -96,7 +101,7 @@ export function bindCalendarDateClick() {
       const clickedDate = new Date(dateStr + 'T00:00:00');
       if (isNaN(clickedDate.getTime())) return;
 
-      window.statsRefDate = clickedDate;
+      setStatsRefDate(clickedDate);
       saveStatsDate();
       renderStats();
 
@@ -128,7 +133,7 @@ export function renderStatsDateNav() {
   nav.id = 'stats-date-nav';
   nav.className = 'flex items-center justify-between mb-3 pb-3 border-b';
 
-  const statsRefDate = window.statsRefDate || new Date();
+  const statsRefDate = getStatsRefDate();
   const displayY = statsRefDate.getFullYear();
   const displayM = String(statsRefDate.getMonth() + 1).padStart(2, '0');
   const displayD = String(statsRefDate.getDate()).padStart(2, '0');
@@ -151,13 +156,15 @@ export function renderStatsDateNav() {
   const dateInput = el.statsOverview.querySelector('#stats-date-input');
 
   prevBtn?.addEventListener('click', () => {
-    window.statsRefDate.setDate(window.statsRefDate.getDate() - 1);
+    const date = getStatsRefDate();
+    date.setDate(date.getDate() - 1);
     saveStatsDate();
     renderStats();
   });
 
   nextBtn?.addEventListener('click', () => {
-    window.statsRefDate.setDate(window.statsRefDate.getDate() + 1);
+    const date = getStatsRefDate();
+    date.setDate(date.getDate() + 1);
     saveStatsDate();
     renderStats();
   });
@@ -165,7 +172,7 @@ export function renderStatsDateNav() {
   todayBtn?.addEventListener('click', () => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    window.statsRefDate = now;
+    setStatsRefDate(now);
     saveStatsDate();
     renderStats();
   });
@@ -174,7 +181,7 @@ export function renderStatsDateNav() {
     if (e.target.value) {
       const newDate = new Date(e.target.value + 'T00:00:00');
       if (!isNaN(newDate.getTime())) {
-        window.statsRefDate = newDate;
+        setStatsRefDate(newDate);
         saveStatsDate();
         renderStats();
       }
@@ -224,7 +231,7 @@ export function renderStats() {
     return t;
   };
 
-  const statsRefDate = window.statsRefDate || new Date();
+  const statsRefDate = getStatsRefDate();
   const statsView = window.statsView || 'day';
 
   // 기간 설정
@@ -491,26 +498,19 @@ export function renderStats() {
  * 캘린더 네비게이션 이벤트 리스너 초기화
  */
 export function initCalendarListeners() {
-  // Access global state via window (NEVER import from stateManager)
-  const el = window.el;
+  const el = getElements();
   if (!el) return;
 
   // Calendar prev/next buttons
   el.calPrev?.addEventListener('click', () => {
-    if (window.calRefDate) {
-      window.calRefDate.setMonth(window.calRefDate.getMonth() - 1);
-      if (typeof window.renderCalendarMonth === 'function') {
-        window.renderCalendarMonth();
-      }
-    }
+    const date = getCalRefDate();
+    date.setMonth(date.getMonth() - 1);
+    renderCalendarMonth();
   });
 
   el.calNext?.addEventListener('click', () => {
-    if (window.calRefDate) {
-      window.calRefDate.setMonth(window.calRefDate.getMonth() + 1);
-      if (typeof window.renderCalendarMonth === 'function') {
-        window.renderCalendarMonth();
-      }
-    }
+    const date = getCalRefDate();
+    date.setMonth(date.getMonth() + 1);
+    renderCalendarMonth();
   });
 }
