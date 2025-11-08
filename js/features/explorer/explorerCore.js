@@ -60,6 +60,7 @@ export function renderExplorer() {
         window.currentQuizData = list;
         window.currentQuestionIndex = 0;
         el.quizArea.classList.remove('hidden');
+        el.summaryArea.classList.remove('hidden');
         displayQuestion();
         updateSummaryHighlight();
         showToast(`${chapterLabelText(ch)} 로 이동`);
@@ -154,6 +155,7 @@ export function renderExplorer() {
           window.currentQuestionIndex = list.findIndex(x => String(x.고유ID).trim() === String(it.고유ID).trim());
           if (window.currentQuestionIndex < 0) window.currentQuestionIndex = 0;
           el.quizArea.classList.remove('hidden');
+          el.summaryArea.classList.remove('hidden');
           displayQuestion();
           updateSummaryHighlight();
           showToast(`'${label}' 로 이동`);

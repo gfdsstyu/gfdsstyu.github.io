@@ -179,7 +179,10 @@ export function updateSummary() {
         window.currentQuizData = set;
         setCurrentQuestionIndex(idx);
 
+        // Show both quiz area and summary area
         el.quizArea.classList.remove('hidden');
+        el.summaryArea.classList.remove('hidden');
+
         if (typeof window.displayQuestion === 'function') {
           window.displayQuestion();
         }
@@ -254,4 +257,29 @@ export function ensureResultBoxReady() {
     el.modelAnswerBox.classList.remove('hidden');
   }
   el.resultBox.classList.remove('hidden');
+}
+
+/**
+ * Summary 이벤트 리스너 초기화
+ */
+export function initSummaryListeners() {
+  const el = getElements();
+
+  // "모든 단원보기" 버튼
+  el.summaryViewAllBtn?.addEventListener('click', () => {
+    window.summaryViewMode = 'ALL';
+    el.summaryViewAllBtn.classList.add('bg-gray-100');
+    el.summaryViewCurrentBtn.classList.remove('bg-gray-100');
+    updateSummary();
+  });
+
+  // "현재 학습단원보기" 버튼
+  el.summaryViewCurrentBtn?.addEventListener('click', () => {
+    window.summaryViewMode = 'CURRENT';
+    el.summaryViewCurrentBtn.classList.add('bg-gray-100');
+    el.summaryViewAllBtn.classList.remove('bg-gray-100');
+    updateSummary();
+  });
+
+  console.log('✅ Summary 이벤트 리스너 초기화 완료');
 }
