@@ -89,11 +89,10 @@ window.hslToHex = Helpers.hslToHex;
 window.colorForCount = Helpers.colorForCount;
 window.computePartRanges = Helpers.computePartRanges;
 
-window.showToast = DomUtils.showToast;
+// Phase 6.1: showToast, closeDrawer removed (direct import in modules)
 window.getHeaderOffset = DomUtils.getHeaderOffset;
 window.smoothScrollTo = DomUtils.smoothScrollTo;
 window.openDrawer = DomUtils.openDrawer;
-window.closeDrawer = DomUtils.closeDrawer;
 window.initUIListeners = DomUtils.initUIListeners;
 window.elmTop = DomUtils.elmTop;
 window.applyDarkMode = DomUtils.applyDarkMode;
@@ -312,7 +311,7 @@ window.initCalendarListeners = Calendar.initCalendarListeners;
 
 // Settings (설정 관리)
 window.Settings = Settings;
-window.openApiModal = Settings.openApiModal;
+// Phase 6.1: openApiModal removed (direct import in modules)
 window.closeApiModal = Settings.closeApiModal;
 window.ensureApiKeyGate = Settings.ensureApiKeyGate;
 window.openSettingsModal = Settings.openSettingsModal;
@@ -327,7 +326,7 @@ window.initSettingsListeners = Settings.initSettingsListeners;
 // ReportCore (리포트 모달 및 데이터 처리)
 window.ReportCore = ReportCore;
 window.openReportModal = ReportCore.openReportModal;
-window.closeReportModal = ReportCore.closeReportModal;
+// Phase 6.1: closeReportModal removed (direct import in modules)
 window.switchReportTab = ReportCore.switchReportTab;
 window.getReportData = ReportCore.getReportData;
 window.generateReport = ReportCore.generateReport;

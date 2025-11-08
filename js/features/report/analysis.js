@@ -7,6 +7,8 @@
 import { el, $ } from '../../ui/elements.js';
 import { callGeminiTextAPI } from '../../services/geminiApi.js';
 import { getReportData } from './reportCore.js';
+import { showToast } from '../../ui/domUtils.js';
+import { openApiModal } from '../settings/settingsCore.js';
 
 /**
  * 마크다운을 HTML로 변환
@@ -54,8 +56,8 @@ export async function startAIAnalysis() {
 
   // Check API key first
   if(!window.geminiApiKey){
-    if (window.openApiModal) window.openApiModal(false);
-    if (window.showToast) window.showToast('Gemini API 키를 입력해주세요.','error');
+    openApiModal(false);
+    showToast('Gemini API 키를 입력해주세요.','error');
     return;
   }
 
@@ -66,7 +68,7 @@ export async function startAIAnalysis() {
     const data = getReportData();
 
     if (data.weakProblems.length === 0) {
-      if (window.showToast) window.showToast('분석할 오답 데이터가 없습니다', 'warn');
+      showToast('분석할 오답 데이터가 없습니다', 'warn');
       if (loading) loading.classList.add('hidden');
       if (startBtn) startBtn.parentElement.classList.remove('hidden');
       return;
@@ -252,7 +254,7 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
   } catch (err) {
     if (loading) loading.classList.add('hidden');
     if (startBtn) startBtn.parentElement.classList.remove('hidden');
-    if (window.showToast) window.showToast('AI 분석 실패: ' + err.message, 'error');
+    showToast('AI 분석 실패: ' + err.message, 'error');
   }
 }
 
@@ -265,9 +267,9 @@ export function copyAIAnalysis() {
   const text = `# 실수 유형 분석\n\n${errorPattern}\n\n# 주요 개념 약점\n\n${conceptWeakness}`;
 
   navigator.clipboard.writeText(text).then(() => {
-    if (window.showToast) window.showToast('분석 내용을 클립보드에 복사했습니다');
+    showToast('분석 내용을 클립보드에 복사했습니다');
   }).catch(() => {
-    if (window.showToast) window.showToast('복사 실패', 'error');
+    showToast('복사 실패', 'error');
   });
 }
 

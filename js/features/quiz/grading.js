@@ -18,6 +18,7 @@ import {
   getActiveHintQuestionKey,
   setActiveHintQuestionKey
 } from '../../core/stateManager.js';
+import { openApiModal } from '../settings/settingsCore.js';
 
 // ============================================
 // 로딩 상태 관리 (채점 버튼 전용)
@@ -129,9 +130,7 @@ export async function handleGrade() {
   // API 키 확인
   const geminiApiKey = getGeminiApiKey();
   if (!geminiApiKey) {
-    if (typeof window.openApiModal === 'function') {
-      window.openApiModal(false);
-    }
+    openApiModal(false);
     showToast('Gemini API 키를 입력해주세요.', 'error');
     return;
   }
@@ -288,9 +287,7 @@ export async function handleHint(q) {
   // API 키 확인
   const geminiApiKey = getGeminiApiKey();
   if (!geminiApiKey) {
-    if (typeof window.openApiModal === 'function') {
-      window.openApiModal(false);
-    }
+    openApiModal(false);
     showToast('Gemini API 키를 입력해주세요.', 'error');
     return;
   }

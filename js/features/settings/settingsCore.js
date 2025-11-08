@@ -13,6 +13,7 @@ import {
 } from '../../core/stateManager.js';
 import { showToast, applyDarkMode } from '../../ui/domUtils.js';
 import { loadExamDate, saveExamDate, updateDDayDisplay } from '../../core/storageManager.js';
+import { closeReportModal } from '../report/reportCore.js';
 
 /**
  * API 모달 열기
@@ -187,9 +188,7 @@ export function initGlobalEscapeHandler() {
 
       // Priority 2: Report modal
       if (!el.reportModal?.classList.contains('hidden')) {
-        if (typeof window.closeReportModal === 'function') {
-          window.closeReportModal();
-        }
+        closeReportModal();
         return;
       }
 
@@ -252,10 +251,8 @@ export function initSettingsListeners() {
       window.reloadAndRefresh();
     }
 
-    // Show toast (access from window)
-    if (typeof window.showToast === 'function') {
-      window.showToast('필터 해제: 모든 문제 표시');
-    }
+    // Show toast
+    showToast('필터 해제: 모든 문제 표시');
   });
 
   // Reset scores button
@@ -293,8 +290,6 @@ export function initSettingsListeners() {
     }
 
     // Show toast
-    if (typeof window.showToast === 'function') {
-      window.showToast('학습 기록 초기화 완료');
-    }
+    showToast('학습 기록 초기화 완료');
   });
 }

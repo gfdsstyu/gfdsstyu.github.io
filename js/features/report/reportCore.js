@@ -9,6 +9,7 @@ import { el, $ } from '../../ui/elements.js';
 import { normId, clamp } from '../../utils/helpers.js';
 import { chapterLabelText } from '../../config/config.js';
 import { renderDailyVolumeChart, renderScoreTrendChart, renderChapterWeaknessChart } from './charts.js';
+import { showToast, closeDrawer } from '../../ui/domUtils.js';
 
 // Module state
 let reportCharts = {};
@@ -19,7 +20,7 @@ let reportData = { period: 30, threshold: 60 };
  */
 export function openReportModal() {
   // Close hamburger menu if open (mobile)
-  if (window.closeDrawer) window.closeDrawer();
+  closeDrawer();
 
   el.reportModal?.classList.remove('hidden');
   el.reportModal?.classList.add('flex');
@@ -271,9 +272,7 @@ export function initReportListeners() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    if (window.showToast) {
-      window.showToast('AI 분석 및 액션 플랜이 저장되었습니다');
-    }
+    showToast('AI 분석 및 액션 플랜이 저장되었습니다');
   });
 
   // Load snapshot functionality
@@ -291,7 +290,7 @@ export function initReportListeners() {
 
       // Validate snapshot structure (new format: AI analysis + action plan)
       if (!snapshot.timestamp || !snapshot.aiAnalysis) {
-        if (window.showToast) window.showToast('올바른 학습 분석 파일이 아닙니다', 'error');
+        showToast('올바른 학습 분석 파일이 아닙니다', 'error');
         return;
       }
 
@@ -332,13 +331,13 @@ export function initReportListeners() {
       switchReportTab(2);
 
       const snapshotDate = new Date(snapshot.timestamp).toLocaleString('ko-KR');
-      if (window.showToast) window.showToast(`학습 분석 불러오기 완료 (저장 시각: ${snapshotDate})`);
+      showToast(`학습 분석 불러오기 완료 (저장 시각: ${snapshotDate})`);
 
       // Reset file input for next use
       e.target.value = '';
 
     } catch (err) {
-      if (window.showToast) window.showToast('파일 읽기 실패: ' + err.message, 'error');
+      showToast('파일 읽기 실패: ' + err.message, 'error');
       e.target.value = '';
     }
   });
