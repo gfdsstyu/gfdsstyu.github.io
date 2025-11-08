@@ -7,6 +7,7 @@ import { getAllData, setAllData, getElements } from './stateManager.js';
 import { showToast } from '../ui/domUtils.js';
 import { computePartRanges } from '../utils/helpers.js';
 import { PART_VALUE, chapterLabelText } from '../config/config.js';
+import { updateSummary } from '../features/summary/summaryCore.js';
 
 // ============================================
 // 데이터 조회
@@ -61,11 +62,7 @@ export async function loadData() {
 
       selfTest();
       populateChapterSelect();
-
-      // updateSummary()는 아직 index.html에 있으므로 전역 함수 호출
-      if (typeof window.updateSummary === 'function') {
-        window.updateSummary();
-      }
+      updateSummary();
 
       return;
     } catch (e) {
@@ -91,10 +88,7 @@ export async function loadData() {
 
     selfTest();
     populateChapterSelect();
-
-    if (typeof window.updateSummary === 'function') {
-      window.updateSummary();
-    }
+    updateSummary();
   } catch (err) {
     console.error('질문 데이터 로드 실패:', errs, err);
     showToast('문제 데이터 로드 실패: 콘솔 확인', 'error');

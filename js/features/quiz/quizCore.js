@@ -22,6 +22,7 @@ import {
 import { showResult, handleGrade, handleHint } from './grading.js';
 import { handlePrevQuestion, handleNextQuestion } from './navigation.js';
 import { eventBus } from '../../core/eventBus.js';
+import { updateSummary, updateSummaryHighlight } from '../summary/summaryCore.js';
 
 // ============================================
 // 복습 플래그 UI 업데이트
@@ -165,9 +166,7 @@ export function displayQuestion() {
   }
 
   // 요약 하이라이트 업데이트
-  if (typeof window.updateSummaryHighlight === 'function') {
-    window.updateSummaryHighlight();
-  }
+  updateSummaryHighlight();
 }
 
 // ============================================
@@ -229,9 +228,7 @@ export function reloadAndRefresh() {
   }
 
   // 요약 및 패널 업데이트
-  if (typeof window.updateSummary === 'function') {
-    window.updateSummary();
-  }
+  updateSummary();
   if (typeof window.refreshPanels === 'function') {
     window.refreshPanels();
   }
@@ -275,9 +272,7 @@ export function startRandomQuiz() {
 
   displayQuestion();
 
-  if (typeof window.updateSummary === 'function') {
-    window.updateSummary();
-  }
+  updateSummary();
   if (typeof window.refreshPanels === 'function') {
     window.refreshPanels();
   }

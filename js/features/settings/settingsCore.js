@@ -14,6 +14,7 @@ import {
 import { showToast, applyDarkMode } from '../../ui/domUtils.js';
 import { loadExamDate, saveExamDate, updateDDayDisplay } from '../../core/storageManager.js';
 import { closeReportModal } from '../report/reportCore.js';
+import { updateSummary } from '../summary/summaryCore.js';
 
 /**
  * API 모달 열기
@@ -271,9 +272,7 @@ export function initSettingsListeners() {
     localStorage.removeItem('readStoreBackfilled_v2');
 
     // Update UI
-    if (typeof window.updateSummary === 'function') {
-      window.updateSummary();
-    }
+    updateSummary();
 
     // Reload quiz if there's data
     const currentQuizData = window.currentQuizData || [];

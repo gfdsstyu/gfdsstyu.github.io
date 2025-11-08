@@ -19,6 +19,7 @@ import {
   setActiveHintQuestionKey
 } from '../../core/stateManager.js';
 import { openApiModal } from '../settings/settingsCore.js';
+import { updateSummary } from '../summary/summaryCore.js';
 
 // ============================================
 // 로딩 상태 관리 (채점 버튼 전용)
@@ -244,9 +245,7 @@ export async function handleGrade() {
     }
 
     // UI 업데이트
-    if (typeof window.updateSummary === 'function') {
-      window.updateSummary();
-    }
+    updateSummary();
     if (typeof window.refreshPanels === 'function') {
       window.refreshPanels();
     }

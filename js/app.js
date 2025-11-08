@@ -298,8 +298,7 @@ window.ADV_TAGS = Filter.ADV_TAGS;
 
 // Summary (요약/대시보드)
 window.Summary = Summary;
-window.updateSummary = Summary.updateSummary;
-window.updateSummaryHighlight = Summary.updateSummaryHighlight;
+// Phase 6.4.3: updateSummary, updateSummaryHighlight removed (direct import in modules)
 window.ensureResultBoxReady = Summary.ensureResultBoxReady;
 window.initSummaryListeners = Summary.initSummaryListeners;
 
