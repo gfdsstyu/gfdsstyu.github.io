@@ -301,6 +301,7 @@ window.Summary = Summary;
 window.updateSummary = Summary.updateSummary;
 window.updateSummaryHighlight = Summary.updateSummaryHighlight;
 window.ensureResultBoxReady = Summary.ensureResultBoxReady;
+window.initSummaryListeners = Summary.initSummaryListeners;
 
 // Calendar (캘린더/통계)
 window.Calendar = Calendar;
