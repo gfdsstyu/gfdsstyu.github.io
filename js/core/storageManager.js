@@ -8,11 +8,18 @@ import { showToast } from '../ui/domUtils.js';
 import { STATS_DATE_KEY, EXAM_DATE_KEY } from '../config/config.js';
 
 // ============================================
-// 전역 변수 (statsRefDate - 나중에 StateManager로 이전 고려)
+// 전역 변수 (statsRefDate, calRefDate - 나중에 StateManager로 이전 고려)
 // ============================================
 
 export let statsRefDate = new Date();
 statsRefDate.setHours(0, 0, 0, 0);
+
+export let calRefDate = (() => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(1); // 월의 첫날로 설정
+  return d;
+})();
 
 // ============================================
 // 통계 날짜 관리
@@ -366,4 +373,24 @@ export function getStatsRefDate() {
  */
 export function setStatsRefDate(date) {
   statsRefDate = date;
+}
+
+// ============================================
+// 유틸리티 - calRefDate getter/setter
+// ============================================
+
+/**
+ * 캘린더 기준 날짜 가져오기
+ * @returns {Date} calRefDate
+ */
+export function getCalRefDate() {
+  return calRefDate;
+}
+
+/**
+ * 캘린더 기준 날짜 설정
+ * @param {Date} date - 설정할 날짜
+ */
+export function setCalRefDate(date) {
+  calRefDate = date;
 }

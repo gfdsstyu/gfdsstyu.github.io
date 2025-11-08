@@ -757,7 +757,7 @@
       updateDDayDisplay();
       applyDarkMode();
       migrateData();
-      window.calRefDate = (() => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(1); return d; })();
+      // Phase 6.2: calRefDate moved to storageManager
       enforceExclusiveFlagsOnAll();
       backfillReadStoreFromScores(false);
 
