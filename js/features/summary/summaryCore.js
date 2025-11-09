@@ -9,6 +9,7 @@ import { showToast } from '../../ui/domUtils.js';
 
 /**
  * 요약 뷰 업데이트 (단원별 학습 현황)
+ * Phase 1: DocumentFragment로 DOM 조작 최적화
  */
 export function updateSummary() {
   const el = getElements();
@@ -41,6 +42,9 @@ export function updateSummary() {
   const readStore = loadReadStore();
   const _clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
+  // Phase 1: DocumentFragment로 모든 섹션을 배칭
+  const fragment = document.createDocumentFragment();
+
   chapters.forEach(ch => {
     const n = +ch;
 
@@ -51,7 +55,7 @@ export function updateSummary() {
         const part = document.createElement('div');
         part.className = 'w-full px-3 py-2 mb-2 rounded-lg border-2 bg-blue-50 border-blue-200 text-blue-800 font-bold';
         part.textContent = hit.label;
-        el.scoreSummary.appendChild(part);
+        fragment.appendChild(part);
       }
     }
 
@@ -104,6 +108,9 @@ export function updateSummary() {
 
     const grid = document.createElement('div');
     grid.className = 'flex flex-wrap gap-2 mt-2 mb-4';
+
+    // Phase 1: 문제 버튼을 DocumentFragment에 배칭
+    const gridFragment = document.createDocumentFragment();
 
     // 문제 버튼 생성
     list.forEach(q => {
@@ -189,8 +196,11 @@ export function updateSummary() {
         updateSummaryHighlight();
         showToast(`'${baseLabel}'로 이동`);
       });
-      grid.appendChild(btn);
+      gridFragment.appendChild(btn);
     });
+
+    // Phase 1: 한 번에 grid에 모든 버튼 추가
+    grid.appendChild(gridFragment);
 
     header.querySelector('.summary-toggle').addEventListener('click', e => {
       const hidden = grid.classList.toggle('hidden');
@@ -201,8 +211,11 @@ export function updateSummary() {
     section.className = 'w-full space-y-2 mb-3';
     section.appendChild(header);
     section.appendChild(grid);
-    el.scoreSummary.appendChild(section);
+    fragment.appendChild(section);
   });
+
+  // Phase 1: 한 번에 DOM에 모든 섹션 추가
+  el.scoreSummary.appendChild(fragment);
 
   updateSummaryHighlight();
 }

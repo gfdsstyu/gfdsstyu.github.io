@@ -14,6 +14,7 @@ import { displayQuestion } from '../../features/quiz/quizCore.js';
 
 /**
  * Render explorer: chapter buttons and problem list
+ * Phase 1: DocumentFragment로 DOM 조작 최적화
  */
 export function renderExplorer() {
   if (!el.explorerChapters || !el.explorerProblems) return;
@@ -40,8 +41,10 @@ export function renderExplorer() {
     return a.localeCompare(b, 'ko');
   });
 
-  // Render chapter buttons
+  // Phase 1: Render chapter buttons with DocumentFragment
   el.explorerChapters.innerHTML = '';
+  const chaptersFragment = document.createDocumentFragment();
+
   chapters.forEach(ch => {
     const btn = document.createElement('button');
     btn.className = 'w-full text-left px-3 py-2 rounded border hover:bg-gray-50';
@@ -66,8 +69,11 @@ export function renderExplorer() {
         showToast(`${chapterLabelText(ch)} 로 이동`);
       }
     });
-    el.explorerChapters.appendChild(btn);
+    chaptersFragment.appendChild(btn);
   });
+
+  // Phase 1: 한 번에 DOM에 모든 챕터 버튼 추가
+  el.explorerChapters.appendChild(chaptersFragment);
 
   // Filter and render problem list
   const q = (el.explorerSearch?.value || '').trim().toLowerCase();
@@ -77,6 +83,9 @@ export function renderExplorer() {
   );
 
   el.explorerProblems.innerHTML = '';
+
+  // Phase 1: Render problem list with DocumentFragment
+  const problemsFragment = document.createDocumentFragment();
 
   filtered.sort((a, b) => {
     // 1순위: 단원 정렬
@@ -162,8 +171,11 @@ export function renderExplorer() {
         }
       });
 
-      el.explorerProblems.appendChild(row);
+      problemsFragment.appendChild(row);
     });
+
+  // Phase 1: 한 번에 DOM에 모든 문제 행 추가
+  el.explorerProblems.appendChild(problemsFragment);
 }
 
 /**

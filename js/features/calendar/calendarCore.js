@@ -15,26 +15,30 @@ import {
 } from '../../core/storageManager.js';
 import { getScopeFilteredData } from '../filter/filterCore.js';
 
+// Phase 1: 메모이제이션 캐시
+let countsCache = null;
+let countsCacheKey = '';
+
 /**
- * 캘린더 월 렌더링 (히트맵)
+ * counts Map 생성 (메모이제이션 적용)
+ * @param {Array} base - 필터된 데이터
+ * @param {Object} scores - questionScores 객체
+ * @returns {Map} 날짜별 풀이 횟수
  */
-export function renderCalendarMonth() {
-  const el = getElements();
-  const grid = el.calendarGrid;
-  const title = el.calTitle;
+function getCountsMap(base, scores) {
+  // Phase 1: 캐시 키 생성 (base의 고유ID 배열 + scores 객체 길이)
+  const baseIds = base.map(q => String(q.고유ID).trim()).sort().join(',');
+  const scoresKeys = Object.keys(scores).sort().join(',');
+  const cacheKey = `${baseIds}::${scoresKeys}`;
 
-  if (!grid || !title) return;
+  // Phase 1: 캐시 히트
+  if (countsCacheKey === cacheKey && countsCache) {
+    return countsCache;
+  }
 
-  const calRefDate = getCalRefDate();
-
-  title.textContent = `${calRefDate.getFullYear()}.${String(calRefDate.getMonth() + 1).padStart(2, '0')}`;
-
-  const base = getScopeFilteredData();
+  // Phase 1: 캐시 미스 - 새로 계산
   const idSet = new Set(base.map(q => String(q.고유ID).trim()));
   const counts = new Map();
-
-  // questionScores는 전역 변수 (window.questionScores)
-  const scores = window.questionScores || window.getQuestionScores?.() || {};
 
   for (const [qid, rec] of Object.entries(scores)) {
     if (!idSet.has(qid)) continue;
@@ -49,6 +53,36 @@ export function renderCalendarMonth() {
     }
   }
 
+  // Phase 1: 캐시 저장
+  countsCache = counts;
+  countsCacheKey = cacheKey;
+
+  return counts;
+}
+
+/**
+ * 캘린더 월 렌더링 (히트맵)
+ * Phase 1: DocumentFragment + 메모이제이션 최적화
+ */
+export function renderCalendarMonth() {
+  const el = getElements();
+  const grid = el.calendarGrid;
+  const title = el.calTitle;
+
+  if (!grid || !title) return;
+
+  const calRefDate = getCalRefDate();
+
+  title.textContent = `${calRefDate.getFullYear()}.${String(calRefDate.getMonth() + 1).padStart(2, '0')}`;
+
+  const base = getScopeFilteredData();
+
+  // questionScores는 전역 변수 (window.questionScores)
+  const scores = window.questionScores || window.getQuestionScores?.() || {};
+
+  // Phase 1: 메모이제이션된 counts 가져오기
+  const counts = getCountsMap(base, scores);
+
   const first = new Date(calRefDate);
   const firstDow = dowMon0(first);
   const start = new Date(first);
@@ -60,6 +94,9 @@ export function renderCalendarMonth() {
   end.setDate(lastDay.getDate() + (6 - lastDow));
 
   grid.innerHTML = '';
+
+  // Phase 1: DocumentFragment로 모든 셀을 배칭
+  const fragment = document.createDocumentFragment();
 
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const inMonth = (d.getMonth() === calRefDate.getMonth() && d.getFullYear() === calRefDate.getFullYear());
@@ -77,8 +114,11 @@ export function renderCalendarMonth() {
     day.className = 'cal-day';
     day.textContent = String(d.getDate());
     cell.appendChild(day);
-    grid.appendChild(cell);
+    fragment.appendChild(cell);
   }
+
+  // Phase 1: 한 번에 DOM에 모든 셀 추가
+  grid.appendChild(fragment);
 
   bindCalendarDateClick();
 }
