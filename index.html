@@ -28,8 +28,10 @@
   <title>감린이 - 회계감사 학습 도우미 v3.3</title>
 
   <!-- Favicon - 404 에러 방지 -->
- <!-- Favicon - 404 에러 방지 -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%236D28D9'/><rect x='20' y='20' width='60' height='60' rx='10' fill='white'/><circle cx='36' cy='43' r='9' fill='%238B5CF6'/><text x='36' y='46' font-size='14' fill='white' font-family='-apple-system,BlinkMacSystemFont,sans-serif' font-weight='900' text-anchor='middle' dominant-baseline='central'>ㄱ</text><g transform='translate(64, 43)'><path d='M0 0 L 4 10 L 14 14 L 4 18 L 0 28 L -4 18 L -14 14 L -4 10 Z' fill='%23FACC15' transform='scale(0.8) translate(0, -14)'/></g><path d='M30 60 H 70 V 72 H 30 Z M35 60 V 72 M 40 60 V 72 M 45 60 V 72 M 50 60 V 72 M 55 60 V 72 M 60 60 V 72 M 65 60 V 72' fill='none' stroke='%234F46E5' stroke-width='2'/></svg>">  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%236D28D9'/><rect x='20' y='20' width='60' height='60' rx='10' fill='white'/><circle cx='36' cy='43' r='9' fill='%238B5CF6'/><text x='36' y='46' font-size='14' fill='white' font-family='-apple-system,BlinkMacSystemFont,sans-serif' font-weight='900' text-anchor='middle' dominant-baseline='central'>ㄱ</text><g transform='translate(64, 43)'><path d='M0 0 L 4 10 L 14 14 L 4 18 L 0 28 L -4 18 L -14 14 L -4 10 Z' fill='%23FACC15' transform='scale(0.8) translate(0, -14)'/></g><path d='M30 60 H 70 V 72 H 30 Z M35 60 V 72 M 40 60 V 72 M 45 60 V 72 M 50 60 V 72 M 55 60 V 72 M 60 60 V 72 M 65 60 V 72' fill='none' stroke='%234F46E5' stroke-width='2'/></svg>">
+
+  <!-- Phase 3: Tailwind CSS (Built & Optimized) -->
+  <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -200,8 +202,8 @@
 
         <div class="bg-white rounded-2xl shadow-xl p-4">
           <h3 class="font-bold text-lg mb-2">오늘의 복습</h3>
-          <label class="text-sm block mb-2">우선순위</label>
-          <select id="review-strategy-select" class="w-full p-2 border rounded">
+          <label for="review-strategy-select" class="text-sm block mb-2">우선순위</label>
+          <select id="review-strategy-select" name="review-strategy" class="w-full p-2 border rounded">
             <option value="smart">지능형 추천 (기본)</option>
             <option value="hlr">HLR 기반 (회상 확률)</option>
             <option value="low">점수 낮은 순</option>
@@ -404,7 +406,7 @@
         <div class="bg-white rounded-2xl shadow-xl p-4">
           <div class="flex items-center justify-between mb-2">
             <h3 class="font-bold text-lg whitespace-nowrap no-kr-break">문제 목록</h3>
-            <input id="explorer-search" class="border rounded px-2 py-1 text-sm" placeholder="검색...">
+            <input id="explorer-search" name="explorer-search" class="border rounded px-2 py-1 text-sm" placeholder="검색..." aria-label="문제 검색">
           </div>
           <div id="explorer-problems" class="space-y-1 max-h-[60vh] overflow-y-auto pr-1"></div>
         </div>
@@ -498,14 +500,14 @@
 
       <div class="mb-6 pb-6 border-b">
         <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">📅 시험 날짜 (D-DAY)</h3>
-        <input type="date" id="exam-date-input" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100" />
+        <input type="date" id="exam-date-input" name="exam-date" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100" aria-label="시험 날짜 (D-DAY)" />
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">시험 날짜를 설정하면 상단바에 D-DAY가 표시됩니다.</p>
         <button id="save-exam-date-btn" class="mt-3 w-full bg-red-50 border border-red-300 text-red-700 font-medium py-2 px-4 rounded-lg hover:bg-red-100 transition">D-DAY 저장</button>
       </div>
 
       <div class="mb-6 pb-6 border-b">
         <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">AI 모델 선택</h3>
-        <select id="ai-model-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700">
+        <select id="ai-model-select" name="ai-model" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700" aria-label="AI 모델 선택">
           <option value="gemini-2.5-flash">Gemini 2.5 Flash (기본)</option>
           <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (경량)</option>
         </select>
@@ -514,7 +516,7 @@
 
       <div class="mb-6 pb-6 border-b">
         <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">다크 모드</h3>
-        <select id="dark-mode-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700">
+        <select id="dark-mode-select" name="dark-mode" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700" aria-label="다크 모드">
           <option value="system">시스템 설정 (기본)</option>
           <option value="light">라이트 모드</option>
           <option value="dark">다크 모드</option>
