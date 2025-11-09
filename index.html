@@ -220,13 +220,13 @@
           <div class="flex flex-col md:flex-row gap-4 mb-6 items-center">
             <div class="flex-1 w-full">
               <label for="chapter-select" class="block text-sm font-medium text-gray-700 mb-1">단원 선택</label>
-              <select id="chapter-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
+              <select id="chapter-select" name="chapter" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
                 <option value="">-- 전체 단원 --</option>
               </select>
             </div>
             <div class="flex-1 w-full">
               <label for="filter-select" class="block text-sm font-medium text-gray-700 mb-1">문제 필터</label>
-              <select id="filter-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition dark:bg-gray-700 dark:text-gray-100 dark:border-gray-700">
+              <select id="filter-select" name="filter" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition dark:bg-gray-700 dark:text-gray-100 dark:border-gray-700">
                 <option value="all">모든 문제 풀기</option>
                 <option value="unanswered">아직 안 푼 문제</option>
                 <option value="today-review">오늘의 복습 (추천)</option>
@@ -330,7 +330,7 @@
               <label for="user-answer" class="text-sm font-medium text-gray-700">답안 입력</label>
               <button id="load-prev-answer-btn" class="text-xs text-blue-600 hover:underline">이전 답안 불러오기</button>
             </div>
-            <textarea id="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=포커스/현황판)"></textarea>
+            <textarea id="user-answer" name="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=포커스/현황판)"></textarea>
             <p id="error-message" class="text-red-500 text-sm mt-2 hidden">답안을 입력해주세요.</p>
             <p id="hotkey-guide" class="text-xs text-gray-500 mt-2">
               단축키: Ctrl+←/→ 이전/다음 · Enter/G 채점 · H 힌트 · L 이전답안 · R 랜덤 · X 복습제외 · S 현황판 · Ctrl+[ 이전위치 · Ctrl+] 포커스
@@ -424,12 +424,12 @@
       </p>
 
       <label for="api-modal-input" class="block text-sm font-medium text-gray-700 mt-4">🔑 API Key</label>
-      <input type="password" id="api-modal-input"
+      <input type="password" id="api-modal-input" name="api-key"
              class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700"
              placeholder="Google AI Studio API 키" autocomplete="off" spellcheck="false" inputmode="text" />
 
       <div class="flex items-center gap-2 mt-2">
-        <input type="checkbox" id="modal-remember" class="rounded border-gray-300" />
+        <input type="checkbox" id="modal-remember" name="remember-api-key" class="rounded border-gray-300" />
         <label for="modal-remember" class="text-sm text-gray-700">이 브라우저에 키 저장</label>
       </div>
       <p class="text-xs text-yellow-600 mt-1">⚠️ 공용 PC에서는 체크 해제를 권장합니다.</p>
@@ -532,8 +532,8 @@
         <div class="flex gap-3">
           <button id="merge-data-btn" class="flex-1 bg-blue-50 border border-blue-300 text-blue-700 font-medium py-2 px-4 rounded-lg hover:bg-blue-100 transition">🔀 데이터 병합 가져오기</button>
         </div>
-        <input type="file" id="import-file-input" accept=".json" class="hidden" />
-        <input type="file" id="merge-file-input" accept=".json" class="hidden" />
+        <input type="file" id="import-file-input" name="import-data-file" accept=".json" class="hidden" aria-label="데이터 가져오기 파일 선택" />
+        <input type="file" id="merge-file-input" name="merge-data-file" accept=".json" class="hidden" aria-label="데이터 병합 파일 선택" />
         <p class="text-xs text-gray-500 mt-2">학습 기록 및 설정을 백업하거나 복원할 수 있습니다. 병합 가져오기는 기존 데이터와 새 데이터를 합칩니다.</p>
       </div>
 
@@ -558,7 +558,7 @@
           <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
             <div class="flex items-center gap-2">
               <label for="report-period-select" class="text-sm font-medium whitespace-nowrap">데이터 범위:</label>
-              <select id="report-period-select" class="px-3 py-1.5 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700">
+              <select id="report-period-select" name="report-period" class="px-3 py-1.5 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700">
                 <option value="30">최근 30일</option>
                 <option value="60">최근 60일</option>
                 <option value="90">최근 90일</option>
@@ -567,7 +567,7 @@
             </div>
             <div class="flex items-center gap-2">
               <label for="report-threshold-select" class="text-sm font-medium whitespace-nowrap">분석 대상:</label>
-              <select id="report-threshold-select" class="px-3 py-1.5 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700">
+              <select id="report-threshold-select" name="report-threshold" class="px-3 py-1.5 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700">
                 <option value="60">60점 미만</option>
                 <option value="70">70점 미만</option>
                 <option value="80">80점 미만</option>
@@ -578,7 +578,7 @@
             <button id="report-refresh-btn" class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap">새로고침</button>
             <button id="report-save-snapshot-btn" class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap">💾 저장</button>
             <button id="report-load-snapshot-btn" class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap">📂 불러오기</button>
-            <input type="file" id="report-load-snapshot-input" accept=".json" style="display: none;">
+            <input type="file" id="report-load-snapshot-input" name="report-load-snapshot" accept=".json" style="display: none;" aria-label="리포트 스냅샷 파일 선택">
             <button id="report-print-btn" class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap">📤 내보내기/공유</button>
           </div>
         </div>
@@ -602,8 +602,8 @@
               <div class="flex justify-between items-center mb-3">
                 <h3 class="text-lg font-bold">학습 성과 추이</h3>
                 <div class="flex items-center gap-2">
-                  <label class="text-sm text-gray-600 dark:text-gray-400">차트 스코프:</label>
-                  <select id="chart-scope-select" class="px-2 py-1 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700">
+                  <label for="chart-scope-select" class="text-sm text-gray-600 dark:text-gray-400">차트 스코프:</label>
+                  <select id="chart-scope-select" name="chart-scope" class="px-2 py-1 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700">
                     <option value="daily">일간</option>
                     <option value="weekly">주간</option>
                     <option value="monthly">월간</option>
