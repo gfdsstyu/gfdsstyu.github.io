@@ -158,54 +158,23 @@ export function updateSummary() {
         : sc < 90 ? ['bg-green-100', 'text-green-700', 'border-green-300']
         : ['bg-blue-100', 'text-blue-700', 'border-blue-300'];
       btn.classList.add(...cls);
+
+      // Phase 1.5: Event delegation을 위한 데이터 속성
       btn.dataset.qid = id;
+      btn.dataset.chapter = ch;
+      btn.dataset.label = baseLabel;
 
-      btn.addEventListener('click', () => {
-        // Get the chapter set for the clicked problem
-        const chVal = String(q.단원).trim();
-        const set = base.filter(it => String(it.단원).trim() === chVal);
-
-        if (!set.length) {
-          showToast('데이터셋을 찾는 데 실패했습니다', 'error');
-          return;
-        }
-
-        // Handle flashcard mode
-        if (window.isFlashcardMode) {
-          // Use jumpToFlashcard function from flashcard module
-          if (typeof window.jumpToFlashcard === 'function') {
-            window.jumpToFlashcard(set, id, baseLabel);
-          }
-          return;
-        }
-
-        // Handle regular quiz mode
-        let idx = set.findIndex(it => String(it.고유ID).trim() === id);
-        if (idx < 0) idx = 0;
-
-        window.currentQuizData = set;
-        setCurrentQuestionIndex(idx);
-
-        // Show both quiz area and summary area
-        el.quizArea.classList.remove('hidden');
-        el.summaryArea.classList.remove('hidden');
-
-        if (typeof window.displayQuestion === 'function') {
-          window.displayQuestion();
-        }
-        updateSummaryHighlight();
-        showToast(`'${baseLabel}'로 이동`);
-      });
       gridFragment.appendChild(btn);
     });
 
     // Phase 1: 한 번에 grid에 모든 버튼 추가
     grid.appendChild(gridFragment);
 
-    header.querySelector('.summary-toggle').addEventListener('click', e => {
-      const hidden = grid.classList.toggle('hidden');
-      e.currentTarget.textContent = hidden ? '펼치기' : '접기';
-    });
+    // Phase 1.5: 접기/펼치기 버튼에 고유 ID 부여
+    const toggleBtn = header.querySelector('.summary-toggle');
+    const gridId = `grid-${ch}`;
+    grid.id = gridId;
+    toggleBtn.dataset.gridId = gridId;
 
     const section = document.createElement('div');
     section.className = 'w-full space-y-2 mb-3';
@@ -217,7 +186,89 @@ export function updateSummary() {
   // Phase 1: 한 번에 DOM에 모든 섹션 추가
   el.scoreSummary.appendChild(fragment);
 
+  // Phase 1.5: Event delegation 설정 (기존 리스너 제거 후 새로 추가)
+  setupSummaryEventDelegation(base);
+
   updateSummaryHighlight();
+}
+
+/**
+ * Phase 1.5: Summary 영역 Event Delegation 설정
+ * @param {Array} base - 현재 데이터셋 (CURRENT 또는 ALL)
+ */
+function setupSummaryEventDelegation(base) {
+  const el = getElements();
+
+  // 기존 리스너 제거 (중복 방지)
+  const oldHandler = el.scoreSummary._summaryClickHandler;
+  if (oldHandler) {
+    el.scoreSummary.removeEventListener('click', oldHandler);
+  }
+
+  // 새 리스너 생성
+  const clickHandler = (e) => {
+    const target = e.target;
+
+    // 1. 문제 버튼 클릭 처리
+    if (target.classList.contains('summary-btn')) {
+      const qid = target.dataset.qid;
+      const chVal = target.dataset.chapter;
+      const baseLabel = target.dataset.label;
+
+      if (!qid || !chVal) return;
+
+      // Get the chapter set for the clicked problem
+      const set = base.filter(it => String(it.단원).trim() === chVal);
+
+      if (!set.length) {
+        showToast('데이터셋을 찾는 데 실패했습니다', 'error');
+        return;
+      }
+
+      // Handle flashcard mode
+      if (window.isFlashcardMode) {
+        if (typeof window.jumpToFlashcard === 'function') {
+          window.jumpToFlashcard(set, qid, baseLabel);
+        }
+        return;
+      }
+
+      // Handle regular quiz mode
+      let idx = set.findIndex(it => String(it.고유ID).trim() === qid);
+      if (idx < 0) idx = 0;
+
+      window.currentQuizData = set;
+      setCurrentQuestionIndex(idx);
+
+      // Show both quiz area and summary area
+      el.quizArea.classList.remove('hidden');
+      el.summaryArea.classList.remove('hidden');
+
+      if (typeof window.displayQuestion === 'function') {
+        window.displayQuestion();
+      }
+      updateSummaryHighlight();
+      showToast(`'${baseLabel}'로 이동`);
+      return;
+    }
+
+    // 2. 접기/펼치기 버튼 클릭 처리
+    if (target.classList.contains('summary-toggle')) {
+      const gridId = target.dataset.gridId;
+      if (!gridId) return;
+
+      const grid = document.getElementById(gridId);
+      if (!grid) return;
+
+      const hidden = grid.classList.toggle('hidden');
+      target.textContent = hidden ? '펼치기' : '접기';
+      return;
+    }
+  };
+
+  // 리스너 추가 및 참조 저장 (나중에 제거할 수 있도록)
+  el.scoreSummary.addEventListener('click', clickHandler);
+  el.scoreSummary._summaryClickHandler = clickHandler;
 }
 
 /**

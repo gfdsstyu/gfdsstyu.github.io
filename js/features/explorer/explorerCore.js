@@ -47,33 +47,20 @@ export function renderExplorer() {
 
   chapters.forEach(ch => {
     const btn = document.createElement('button');
-    btn.className = 'w-full text-left px-3 py-2 rounded border hover:bg-gray-50';
+    btn.className = 'w-full text-left px-3 py-2 rounded border hover:bg-gray-50 explorer-chapter-btn';
     btn.textContent = chapterLabelText(ch);
-    btn.addEventListener('click', () => {
-      const list = group.get(ch) || [];
-      if (!list.length) return;
 
-      if (window.isFlashcardMode) {
-        // Flashcard mode: use module function
-        if (typeof window.jumpToFlashcard === 'function') {
-          window.jumpToFlashcard(list, list[0].고유ID, chapterLabelText(ch));
-        }
-      } else {
-        // Quiz mode: update quiz data
-        window.currentQuizData = list;
-        window.currentQuestionIndex = 0;
-        el.quizArea.classList.remove('hidden');
-        el.summaryArea.classList.remove('hidden');
-        displayQuestion();
-        updateSummaryHighlight();
-        showToast(`${chapterLabelText(ch)} 로 이동`);
-      }
-    });
+    // Phase 1.5: Event delegation을 위한 데이터 속성
+    btn.dataset.chapter = ch;
+
     chaptersFragment.appendChild(btn);
   });
 
   // Phase 1: 한 번에 DOM에 모든 챕터 버튼 추가
   el.explorerChapters.appendChild(chaptersFragment);
+
+  // Phase 1.5: 챕터 버튼 Event Delegation 설정
+  setupChapterEventDelegation(group);
 
   // Filter and render problem list
   const q = (el.explorerSearch?.value || '').trim().toLowerCase();
@@ -109,7 +96,7 @@ export function renderExplorer() {
       const flagged = !!rec.userReviewFlag && !excluded; // 제외 우선
 
       const row = document.createElement('button');
-      row.className = 'w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded hover:bg-gray-50 border text-left';
+      row.className = 'w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded hover:bg-gray-50 border text-left explorer-problem-row';
 
       const left = document.createElement('div');
       left.className = 'flex items-center gap-2 text-sm';
@@ -148,34 +135,112 @@ export function renderExplorer() {
       row.appendChild(right);
       row.title = `출처:${it.출처 || '-'} | ID:${it.고유ID}`;
 
-      row.addEventListener('click', () => {
-        const ch = String(it.단원).trim();
-        const list = base.filter(x => String(x.단원).trim() === ch);
-
-        if (window.isFlashcardMode) {
-          // Flashcard mode - use module function
-          const dataList = list.length ? list : [it];
-          if (typeof window.jumpToFlashcard === 'function') {
-            window.jumpToFlashcard(dataList, it.고유ID, label);
-          }
-        } else {
-          // Quiz mode
-          window.currentQuizData = list.length ? list : [it];
-          window.currentQuestionIndex = list.findIndex(x => String(x.고유ID).trim() === String(it.고유ID).trim());
-          if (window.currentQuestionIndex < 0) window.currentQuestionIndex = 0;
-          el.quizArea.classList.remove('hidden');
-          el.summaryArea.classList.remove('hidden');
-          displayQuestion();
-          updateSummaryHighlight();
-          showToast(`'${label}' 로 이동`);
-        }
-      });
+      // Phase 1.5: Event delegation을 위한 데이터 속성
+      row.dataset.qid = String(it.고유ID).trim();
+      row.dataset.chapter = String(it.단원).trim();
+      row.dataset.label = label;
 
       problemsFragment.appendChild(row);
     });
 
   // Phase 1: 한 번에 DOM에 모든 문제 행 추가
   el.explorerProblems.appendChild(problemsFragment);
+
+  // Phase 1.5: 문제 행 Event Delegation 설정
+  setupProblemEventDelegation(base);
+}
+
+/**
+ * Phase 1.5: 챕터 버튼 Event Delegation 설정
+ * @param {Map} group - 챕터별 문제 그룹
+ */
+function setupChapterEventDelegation(group) {
+  // 기존 리스너 제거 (중복 방지)
+  const oldHandler = el.explorerChapters._chapterClickHandler;
+  if (oldHandler) {
+    el.explorerChapters.removeEventListener('click', oldHandler);
+  }
+
+  // 새 리스너 생성
+  const clickHandler = (e) => {
+    const target = e.target;
+
+    if (target.classList.contains('explorer-chapter-btn')) {
+      const ch = target.dataset.chapter;
+      if (!ch) return;
+
+      const list = group.get(ch) || [];
+      if (!list.length) return;
+
+      if (window.isFlashcardMode) {
+        // Flashcard mode: use module function
+        if (typeof window.jumpToFlashcard === 'function') {
+          window.jumpToFlashcard(list, list[0].고유ID, chapterLabelText(ch));
+        }
+      } else {
+        // Quiz mode: update quiz data
+        window.currentQuizData = list;
+        window.currentQuestionIndex = 0;
+        el.quizArea.classList.remove('hidden');
+        el.summaryArea.classList.remove('hidden');
+        displayQuestion();
+        updateSummaryHighlight();
+        showToast(`${chapterLabelText(ch)} 로 이동`);
+      }
+    }
+  };
+
+  // 리스너 추가 및 참조 저장
+  el.explorerChapters.addEventListener('click', clickHandler);
+  el.explorerChapters._chapterClickHandler = clickHandler;
+}
+
+/**
+ * Phase 1.5: 문제 행 Event Delegation 설정
+ * @param {Array} base - 필터된 데이터
+ */
+function setupProblemEventDelegation(base) {
+  // 기존 리스너 제거 (중복 방지)
+  const oldHandler = el.explorerProblems._problemClickHandler;
+  if (oldHandler) {
+    el.explorerProblems.removeEventListener('click', oldHandler);
+  }
+
+  // 새 리스너 생성
+  const clickHandler = (e) => {
+    const target = e.target.closest('.explorer-problem-row');
+    if (!target) return;
+
+    const qid = target.dataset.qid;
+    const ch = target.dataset.chapter;
+    const label = target.dataset.label;
+
+    if (!qid || !ch) return;
+
+    const list = base.filter(x => String(x.단원).trim() === ch);
+
+    if (window.isFlashcardMode) {
+      // Flashcard mode - use module function
+      const dataList = list.length ? list : base.filter(x => String(x.고유ID).trim() === qid);
+      if (typeof window.jumpToFlashcard === 'function') {
+        window.jumpToFlashcard(dataList, qid, label);
+      }
+    } else {
+      // Quiz mode
+      window.currentQuizData = list.length ? list : base.filter(x => String(x.고유ID).trim() === qid);
+      window.currentQuestionIndex = list.findIndex(x => String(x.고유ID).trim() === qid);
+      if (window.currentQuestionIndex < 0) window.currentQuestionIndex = 0;
+      el.quizArea.classList.remove('hidden');
+      el.summaryArea.classList.remove('hidden');
+      displayQuestion();
+      updateSummaryHighlight();
+      showToast(`'${label}' 로 이동`);
+    }
+  };
+
+  // 리스너 추가 및 참조 저장
+  el.explorerProblems.addEventListener('click', clickHandler);
+  el.explorerProblems._problemClickHandler = clickHandler;
 }
 
 /**
