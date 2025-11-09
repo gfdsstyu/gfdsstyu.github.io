@@ -10,6 +10,14 @@ import { PART_VALUE, chapterLabelText } from '../config/config.js';
 import { updateSummary } from '../features/summary/summaryCore.js';
 
 // ============================================
+// localStorage 백업 상수
+// ============================================
+
+const QUESTIONS_BACKUP_KEY = 'questions_data_backup';
+const QUESTIONS_BACKUP_VERSION = 'v1';
+const QUESTIONS_BACKUP_TIMESTAMP_KEY = 'questions_data_timestamp';
+
+// ============================================
 // 데이터 조회
 // ============================================
 
@@ -23,18 +31,78 @@ export function getAllChapterNums() {
 }
 
 // ============================================
+// localStorage 백업/복원
+// ============================================
+
+/**
+ * 데이터를 localStorage에 백업
+ * @param {Array} data - 백업할 데이터
+ */
+function backupDataToLocalStorage(data) {
+  try {
+    const backup = {
+      version: QUESTIONS_BACKUP_VERSION,
+      timestamp: Date.now(),
+      data: data
+    };
+    localStorage.setItem(QUESTIONS_BACKUP_KEY, JSON.stringify(backup));
+    localStorage.setItem(QUESTIONS_BACKUP_TIMESTAMP_KEY, backup.timestamp.toString());
+    console.info('✅ [Backup] 데이터를 localStorage에 백업했습니다');
+  } catch (err) {
+    console.warn('⚠️ [Backup] localStorage 백업 실패:', err.message);
+    // localStorage 공간 부족 등의 이유로 실패할 수 있음 (치명적이지 않음)
+  }
+}
+
+/**
+ * localStorage에서 데이터 복원
+ * @returns {Array|null} 복원된 데이터 또는 null
+ */
+function restoreDataFromLocalStorage() {
+  try {
+    const backupStr = localStorage.getItem(QUESTIONS_BACKUP_KEY);
+    if (!backupStr) return null;
+
+    const backup = JSON.parse(backupStr);
+
+    // 버전 체크
+    if (backup.version !== QUESTIONS_BACKUP_VERSION) {
+      console.warn('⚠️ [Restore] 백업 버전 불일치, 백업 무시');
+      return null;
+    }
+
+    // 데이터 유효성 체크
+    if (!Array.isArray(backup.data) || backup.data.length === 0) {
+      console.warn('⚠️ [Restore] 백업 데이터 형식 오류');
+      return null;
+    }
+
+    const age = Date.now() - backup.timestamp;
+    const ageHours = Math.floor(age / (1000 * 60 * 60));
+
+    console.info(`✅ [Restore] localStorage에서 데이터 복원 (${ageHours}시간 전 백업)`);
+    return backup.data;
+  } catch (err) {
+    console.warn('⚠️ [Restore] localStorage 복원 실패:', err.message);
+    return null;
+  }
+}
+
+// ============================================
 // 데이터 로드
 // ============================================
 
 /**
  * questions.json 파일 로드
- * 여러 경로 후보를 순차적으로 시도하고, 실패 시 내장 데이터 사용
+ * 3단계 안전망: fetch → localStorage 백업 → 내장 데이터
  */
 export async function loadData() {
   const CAND = ['questions.json', './questions.json', './data/questions.json', './assets/questions.json'];
   const errs = [];
 
-  // 외부 파일 로드 시도
+  // ==========================================
+  // 1단계: 외부 파일 로드 시도 (우선순위 최상)
+  // ==========================================
   for (const path of CAND) {
     try {
       const res = await fetch(path, { cache: 'no-store' });
@@ -56,9 +124,10 @@ export async function loadData() {
         continue;
       }
 
-      // 성공: 데이터 설정
+      // ✅ 성공: 데이터 설정 및 localStorage 백업
       setAllData(arr);
-      console.info('[questions.json] loaded from', path);
+      backupDataToLocalStorage(arr);  // 백업 저장
+      console.info(`✅ [Load] questions.json 로드 성공: ${path}`);
 
       selfTest();
       populateChapterSelect();
@@ -70,7 +139,36 @@ export async function loadData() {
     }
   }
 
-  // 모든 외부 파일 실패: 내장 데이터 폴백
+  // ==========================================
+  // 2단계: localStorage 백업 복원 시도 (중간 안전망)
+  // ==========================================
+  console.warn('⚠️ [Load] 모든 외부 파일 로드 실패, localStorage 백업 시도...');
+  const cachedData = restoreDataFromLocalStorage();
+
+  if (cachedData) {
+    // 백업 데이터 검증
+    const need = ['고유ID', '단원', '물음', '정답'];
+    const bad = cachedData.findIndex(r => !r || need.some(k => !(k in r)));
+
+    if (bad === -1) {
+      setAllData(cachedData);
+      console.info(`✅ [Load] localStorage 백업에서 데이터 복원 성공 (${cachedData.length}개 문제)`);
+      showToast('오프라인 모드: 캐시된 데이터 사용', 'warn');
+
+      selfTest();
+      populateChapterSelect();
+      updateSummary();
+
+      return;
+    } else {
+      console.warn('⚠️ [Load] localStorage 백업 데이터 손상됨');
+    }
+  }
+
+  // ==========================================
+  // 3단계: 내장 데이터 폴백 (최후 수단)
+  // ==========================================
+  console.warn('⚠️ [Load] localStorage 백업도 없음, 내장 데이터 폴백 시도...');
   try {
     const el = getElements();
     const node = el?.datasetJson || document.getElementById('dataset-json');
@@ -83,20 +181,25 @@ export async function loadData() {
     if (!Array.isArray(parsed)) throw new Error('내장 데이터 최상위가 배열 아님');
 
     setAllData(parsed);
-    console.warn('[questions.json] 모든 후보 실패. 내장 데이터로 폴백', errs);
-    showToast('외부 DB 실패 → 내장 데이터 사용', 'warn');
+    console.warn('⚠️ [Load] 내장 데이터로 폴백 (개발/테스트용 샘플 데이터)', errs);
+    showToast('외부 DB 실패 → 내장 샘플 데이터 사용', 'warn');
 
     selfTest();
     populateChapterSelect();
     updateSummary();
+
+    return;
   } catch (err) {
-    console.error('질문 데이터 로드 실패:', errs, err);
-    showToast('문제 데이터 로드 실패: 콘솔 확인', 'error');
+    // ==========================================
+    // 모든 방법 실패: 치명적 오류
+    // ==========================================
+    console.error('❌ [Load] 모든 데이터 로드 방법 실패:', errs, err);
+    showToast('문제 데이터 로드 완전 실패: 콘솔 확인', 'error');
 
     const el = getElements();
     const questionText = el?.questionText || document.getElementById('question-text');
     if (questionText) {
-      questionText.textContent = '문제 데이터 로드 실패 (questions.json 또는 dataset-json 확인).';
+      questionText.textContent = '❌ 데이터 로드 실패\n\n시도한 방법:\n1. questions.json (외부 파일)\n2. localStorage 백업\n3. 내장 데이터\n\n모두 실패했습니다. 네트워크 또는 파일을 확인하세요.';
     }
   }
 }
