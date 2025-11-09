@@ -119,44 +119,6 @@ export function renderCalendarMonth() {
 
   // Phase 1: 한 번에 DOM에 모든 셀 추가
   grid.appendChild(fragment);
-
-  bindCalendarDateClick();
-}
-
-/**
- * 캘린더 날짜 클릭 이벤트 바인딩
- */
-export function bindCalendarDateClick() {
-  const el = getElements();
-  const cells = el.calendarGrid?.querySelectorAll('.cal-cell');
-
-  cells?.forEach(cell => {
-    cell.style.cursor = 'pointer';
-
-    cell.addEventListener('click', (e) => {
-      const title = cell.title;
-      if (!title) return;
-
-      const dateStr = title.split(' ')[0];
-      const clickedDate = new Date(dateStr + 'T00:00:00');
-      if (isNaN(clickedDate.getTime())) return;
-
-      setStatsRefDate(clickedDate);
-      saveStatsDate();
-      renderStats();
-
-      showToast(`${dateStr} 통계로 이동`, 'info');
-
-      setTimeout(() => {
-        const offset = getHeaderOffset();
-        const statsBox = el.statsOverview?.closest('.bg-white');
-        if (statsBox) {
-          const y = statsBox.getBoundingClientRect().top + window.pageYOffset - offset - 8;
-          window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
-        }
-      }, 100);
-    });
-  });
 }
 
 /**
@@ -536,6 +498,7 @@ export function renderStats() {
 
 /**
  * 캘린더 네비게이션 이벤트 리스너 초기화
+ * Phase 1.5: Event Delegation 적용
  */
 export function initCalendarListeners() {
   const el = getElements();
@@ -553,4 +516,40 @@ export function initCalendarListeners() {
     date.setMonth(date.getMonth() + 1);
     renderCalendarMonth();
   });
+
+  // Phase 1.5: 캘린더 셀 클릭 Event Delegation (한 번만 바인딩)
+  if (!el.calendarGrid._calendarCellClickHandler) {
+    const clickHandler = (e) => {
+      const target = e.target.closest('.cal-cell');
+      if (!target) return;
+
+      const title = target.title;
+      if (!title) return;
+
+      const dateStr = title.split(' ')[0];
+      const clickedDate = new Date(dateStr + 'T00:00:00');
+      if (isNaN(clickedDate.getTime())) return;
+
+      setStatsRefDate(clickedDate);
+      saveStatsDate();
+      renderStats();
+
+      showToast(`${dateStr} 통계로 이동`, 'info');
+
+      setTimeout(() => {
+        const offset = getHeaderOffset();
+        const statsBox = el.statsOverview?.closest('.bg-white');
+        if (statsBox) {
+          const y = statsBox.getBoundingClientRect().top + window.pageYOffset - offset - 8;
+          window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+        }
+      }, 100);
+    };
+
+    el.calendarGrid.addEventListener('click', clickHandler);
+    el.calendarGrid._calendarCellClickHandler = clickHandler;
+
+    // 커서 스타일을 CSS로 변경 권장하지만, 기존 동작 유지
+    el.calendarGrid.style.cursor = 'pointer';
+  }
 }
