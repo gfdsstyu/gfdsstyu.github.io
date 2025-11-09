@@ -727,10 +727,10 @@
       backfillReadStoreFromScores
     } from './js/core/storageManager.js';
     import { initSettings, ensureApiKeyGate, initSettingsListeners } from './js/features/settings/settingsCore.js';
-    import { initDataImportExport } from './js/services/dataImportExport.js';
+    // Phase 2: dataImportExport.js는 lazy loading
     import { initReportListeners } from './js/features/report/reportCore.js';
-    import { initAIAnalysisListeners } from './js/features/report/analysis.js';
-    import { initFlashcardListeners } from './js/features/flashcard/flashcardCore.js';
+    // Phase 2: analysis.js는 lazy loading
+    // Phase 2: flashcardCore.js는 lazy loading
     import { buildSourceFilterUI, initFilterListeners } from './js/features/filter/filterCore.js';
     import { moveSourceFilterToSide, initExplorerListeners, renderExplorer } from './js/features/explorer/explorerCore.js';
     import { initQuizListeners } from './js/features/quiz/quizCore.js';
@@ -743,6 +743,65 @@
       updateAchievementBadge
     } from './js/features/achievements/achievementsCore.js';
     import { initReviewListeners } from './js/features/review/reviewCore.js';
+
+    // Phase 2: Lazy Loading 모듈 관리
+    let aiAnalysisModule = null;
+    let flashcardModule = null;
+    let dataImportExportModule = null;
+
+    /**
+     * Phase 2: AI 분석 모듈 Lazy Loading
+     */
+    async function loadAIAnalysisModule() {
+      if (aiAnalysisModule) return aiAnalysisModule;
+
+      try {
+        aiAnalysisModule = await import('./js/features/report/analysis.js');
+        aiAnalysisModule.initAIAnalysisListeners();
+        console.log('✅ [Lazy] AI 분석 모듈 로드 완료');
+        return aiAnalysisModule;
+      } catch (err) {
+        console.error('❌ [Lazy] AI 분석 모듈 로드 실패:', err);
+        showToast('AI 분석 모듈 로드 실패', 'error');
+        throw err;
+      }
+    }
+
+    /**
+     * Phase 2: 플래시카드 모듈 Lazy Loading
+     */
+    async function loadFlashcardModule() {
+      if (flashcardModule) return flashcardModule;
+
+      try {
+        flashcardModule = await import('./js/features/flashcard/flashcardCore.js');
+        flashcardModule.initFlashcardListeners();
+        console.log('✅ [Lazy] 플래시카드 모듈 로드 완료');
+        return flashcardModule;
+      } catch (err) {
+        console.error('❌ [Lazy] 플래시카드 모듈 로드 실패:', err);
+        showToast('플래시카드 모듈 로드 실패', 'error');
+        throw err;
+      }
+    }
+
+    /**
+     * Phase 2: 데이터 Import/Export 모듈 Lazy Loading
+     */
+    async function loadDataImportExportModule() {
+      if (dataImportExportModule) return dataImportExportModule;
+
+      try {
+        dataImportExportModule = await import('./js/services/dataImportExport.js');
+        dataImportExportModule.initDataImportExport();
+        console.log('✅ [Lazy] 데이터 Import/Export 모듈 로드 완료');
+        return dataImportExportModule;
+      } catch (err) {
+        console.error('❌ [Lazy] 데이터 Import/Export 모듈 로드 실패:', err);
+        showToast('데이터 Import/Export 모듈 로드 실패', 'error');
+        throw err;
+      }
+    }
 
     // Phase 5.3: 모든 로직은 모듈로 이동됨
     // Helper functions
@@ -771,10 +830,14 @@
       backfillReadStoreFromScores(false);
 
       initSettings();
-      initDataImportExport();
+      // Phase 2: 데이터 Import/Export 모듈은 lazy loading (버튼 클릭 시 로드)
+      window.el.exportDataBtn?.addEventListener('click', loadDataImportExportModule, { once: true });
+      window.el.importDataBtn?.addEventListener('click', loadDataImportExportModule, { once: true });
       initReportListeners();
-      initAIAnalysisListeners();
-      initFlashcardListeners();
+      // Phase 2: AI 분석 모듈은 lazy loading (버튼 클릭 시 로드)
+      window.el.aiAnalysisStartBtn?.addEventListener('click', loadAIAnalysisModule, { once: true });
+      // Phase 2: 플래시카드 모듈은 lazy loading (버튼 클릭 시 로드)
+      window.el.flashcardModeBtn?.addEventListener('click', loadFlashcardModule, { once: true });
       ensureApiKeyGate();
       buildSourceFilterUI();
       moveSourceFilterToSide();
