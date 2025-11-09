@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles */
+.cal-cell {
+  @apply aspect-square flex flex-col items-center justify-center text-xs font-semibold rounded;
+}
+
+.cal-cell.muted {
+  @apply opacity-40;
+}
+
+.cal-day {
+  @apply text-center;
+}
