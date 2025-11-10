@@ -91,6 +91,21 @@
     .cal-cell.muted { opacity: 0.35; }
   </style>
 
+  <style id="header-scroll-css">
+    /* 헤더 스크롤 애니메이션 */
+    #fixed-header {
+      transition: transform 0.3s ease-in-out;
+    }
+
+    #fixed-header.header-visible {
+      transform: translateY(0);
+    }
+
+    #fixed-header.header-hidden {
+      transform: translateY(-100%);
+    }
+  </style>
+
   <style id="report-css">
     /* Chart container heights */
     #chart-daily-volume { min-height: 250px; max-height: 300px; }

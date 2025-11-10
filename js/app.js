@@ -18,6 +18,7 @@ import * as Helpers from './utils/helpers.js';
 // UI
 import { initElements, setElements, $ } from './ui/elements.js';
 import * as DomUtils from './ui/domUtils.js';
+import * as HeaderScroll from './ui/headerScroll.js';
 
 // 서비스
 import * as GeminiApi from './services/geminiApi.js';
@@ -447,6 +448,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // 3. 전역으로 el 객체 노출 (index.html의 기존 코드에서 사용)
   window.el = elements;
   StateManager.setElements(elements);
+
+  // 4. 헤더 스크롤 제어 초기화
+  HeaderScroll.initHeaderScroll();
 
   console.log('✅ DOM 엘리먼트 초기화 완료');
   console.log('✅ 임시 브릿지 설정 완료 - index.html 기존 코드와 연동됨');
