@@ -507,7 +507,7 @@ export function checkChapter1stCompletionPerChapter() {
 }
 
 /**
- * Check per-chapter mastery (단원별 85점 평균)
+ * Check per-chapter mastery (단원별 1회독 완료 + 85점 평균)
  */
 export function checkChapterMasteryPerChapter() {
   try {
@@ -521,10 +521,25 @@ export function checkChapterMasteryPerChapter() {
 
     chapters.forEach(chNum => {
       const chStr = String(chNum);
-      // Get ALL problems for this chapter (including advanced)
-      const chapterProblems = allData.filter(q => String(q.단원).trim() === chStr);
 
-      if (chapterProblems.length === 0) return;
+      // Get basic range problems (H, S, HS) for 1st completion check
+      const basicProblems = allData.filter(q =>
+        String(q.단원).trim() === chStr && ['H', 'S', 'HS'].includes(q.출처)
+      );
+
+      if (basicProblems.length === 0) return;
+
+      // Check 1st completion: all basic problems must be solved at least once
+      const all1stCompleted = basicProblems.every(q => {
+        const record = questionScores[normId(q.고유ID)];
+        return record !== undefined; // At least attempted once
+      });
+
+      // If 1st completion is not met, skip this chapter
+      if (!all1stCompleted) return;
+
+      // Get ALL problems for this chapter (including advanced) for average score
+      const chapterProblems = allData.filter(q => String(q.단원).trim() === chStr);
 
       // Get solved problems with scores
       const solvedWithScores = chapterProblems.filter(q => {
@@ -538,7 +553,7 @@ export function checkChapterMasteryPerChapter() {
       // Calculate average score
       const avgScore = solvedWithScores.reduce((sum, score) => sum + score, 0) / solvedWithScores.length;
 
-      // Unlock if average is 85 or higher
+      // Unlock if average is 85 or higher AND 1st completion is met
       if (avgScore >= 85) {
         unlockAchievement(`ch${chNum}_master`);
       }
