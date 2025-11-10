@@ -9,7 +9,12 @@ import {
   getSelectedAiModel,
   setSelectedAiModel,
   getDarkMode,
-  setDarkMode
+  setDarkMode,
+  getSttProvider,
+  setSttProvider,
+  getGoogleSttKey,
+  setGoogleSttKey,
+  saveSttSettings
 } from '../../core/stateManager.js';
 import { showToast, applyDarkMode } from '../../ui/domUtils.js';
 import { loadExamDate, saveExamDate, updateDDayDisplay } from '../../core/storageManager.js';
@@ -78,6 +83,14 @@ export function openSettingsModal() {
   const reviewModeSelect = document.getElementById('review-mode-select');
   if (reviewModeSelect) {
     reviewModeSelect.value = localStorage.getItem('reviewMode') || 'hlr';
+  }
+
+  // STT 설정 초기값 로드
+  if (el.sttProviderSelect) {
+    const currentProvider = getSttProvider();
+    el.sttProviderSelect.value = currentProvider;
+    el.googleSttKey.value = getGoogleSttKey();
+    updateSttKeyVisibility(currentProvider);
   }
 }
 
@@ -162,6 +175,32 @@ export function initSettingsModalListeners() {
     localStorage.setItem('reviewMode', mode);
     showToast(`복습 기준 변경: ${mode === 'hlr' ? 'HLR 기반' : '시간 기반'}`);
   });
+
+  // STT 공급자 변경
+  el.sttProviderSelect?.addEventListener('change', (e) => {
+    const provider = e.target.value;
+    setSttProvider(provider);
+    saveSttSettings();
+    updateSttKeyVisibility(provider);
+    showToast(`음성 엔진 변경: ${provider}`);
+  });
+
+  // Google STT 키 저장
+  el.googleSttKey?.addEventListener('change', (e) => {
+    setGoogleSttKey(e.target.value);
+    saveSttSettings();
+  });
+}
+
+/**
+ * STT 키 입력 필드 가시성 관리 함수
+ * @param {string} provider - 'none', 'google'
+ */
+function updateSttKeyVisibility(provider) {
+  const el = getElements();
+  if (el.sttGoogleSettings) {
+    el.sttGoogleSettings.classList.toggle('hidden', provider !== 'google');
+  }
 }
 
 /**

@@ -67,6 +67,11 @@ import * as Explorer from './features/explorer/explorerCore.js';
 import * as HLRDataset from './features/review/hlrDataset.js';
 import * as ReviewCore from './features/review/reviewCore.js';
 
+// 기능 - STT (음성 인식)
+import * as GoogleSttApi from './services/googleSttApi.js';
+import * as SttHandler from './features/stt/sttHandler.js';
+import * as SttVocabulary from './features/stt/sttVocabulary.js';
+
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
 // (Phase 3에서 모든 로직이 이전되면 제거 예정)
@@ -402,6 +407,11 @@ window.ReviewCore = ReviewCore;
 window.getReviewStrategy = ReviewCore.getReviewStrategy;
 window.prioritizeTodayReview = (list) => ReviewCore.prioritizeTodayReview(list, window.hlrPredictor);
 window.initReviewListeners = ReviewCore.initReviewListeners;
+
+// STT (음성 인식)
+window.transcribeGoogle = GoogleSttApi.transcribeGoogle;
+window.initSttListeners = SttHandler.initSttListeners;
+window.getBoostKeywords = SttVocabulary.getBoostKeywords;
 
 // Wrapper for calculateRecallProbability that uses global predictor
 window.calculateRecallProbability = (qid) => HLRDataset.calculateRecallProbability(qid, window.hlrPredictor);
