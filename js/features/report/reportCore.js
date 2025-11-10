@@ -289,14 +289,14 @@ function renderWrongAnswers(weakProblems) {
     const userAnswer = rec?.user_answer || '(답안 없음)';
     const aiFeedback = rec?.feedback || '(피드백 없음)';
     return `
-      <div class="border rounded-lg p-4 dark:border-gray-700">
+      <div class="border rounded-lg p-4 dark:border-gray-700" data-problem-container>
         <div class="flex justify-between items-start mb-2">
           <h4 class="font-semibold">${wp.problem.problemTitle || '문항 ' + wp.problem.표시번호}</h4>
           <span class="text-xs px-2 py-1 rounded-full ${wp.score < 60 ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}">${wp.score}점</span>
         </div>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-2"><strong>물음:</strong> ${wp.problem.물음}</p>
         <p class="text-sm mb-2"><strong>내 답안:</strong> ${userAnswer}</p>
-        <button class="show-answer-btn text-sm text-blue-600 dark:text-blue-400 hover:underline" data-qid="${wp.qid}">
+        <button class="show-answer-btn text-sm text-blue-600 dark:text-blue-400 hover:underline" type="button">
           🧠 모범 답안 및 AI 총평 보기
         </button>
         <div class="answer-detail hidden mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded">
@@ -307,16 +307,18 @@ function renderWrongAnswers(weakProblems) {
     `;
   }).join('');
 
-  // Add toggle listeners
-  wrongAnswers.querySelectorAll('.show-answer-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const detail = e.target.nextElementSibling;
+  // Add toggle listeners (이벤트 위임 방식으로 변경)
+  wrongAnswers.addEventListener('click', (e) => {
+    const btn = e.target.closest('.show-answer-btn');
+    if (btn) {
+      const container = btn.closest('[data-problem-container]');
+      const detail = container?.querySelector('.answer-detail');
       if (detail) {
         detail.classList.toggle('hidden');
-        e.target.textContent = detail.classList.contains('hidden') ?
+        btn.textContent = detail.classList.contains('hidden') ?
           '🧠 모범 답안 및 AI 총평 보기' : '🙈 답안 숨기기';
       }
-    });
+    }
   });
 }
 

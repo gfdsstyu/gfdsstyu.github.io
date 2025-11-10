@@ -171,13 +171,14 @@
         border: none !important;
       }
 
-      /* 4. 선택 해제된 탭 숨김 */
+      /* 4. 선택 해제된 탭 숨김 (우선순위 최상위) */
+      .report-content.print-hidden,
       .print-hidden {
         display: none !important;
       }
 
       /* 5. 모든 탭 컨텐츠를 순차적으로 표시 */
-      .report-content {
+      .report-content:not(.print-hidden) {
         display: block !important;
         page-break-after: always;
         page-break-inside: avoid;
