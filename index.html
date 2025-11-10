@@ -190,8 +190,13 @@
 
       /* 6. 차트 최적화 */
       canvas {
+        display: block !important;
+        max-width: 100% !important;
         max-height: 400px !important;
+        height: auto !important;
         page-break-inside: avoid;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
 
       /* 7. 페이지 헤더/푸터 */
