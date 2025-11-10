@@ -190,8 +190,13 @@
 
       /* 6. 차트 최적화 */
       canvas {
+        display: block !important;
+        max-width: 100% !important;
         max-height: 400px !important;
+        height: auto !important;
         page-break-inside: avoid;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
 
       /* 7. 페이지 헤더/푸터 */
@@ -813,7 +818,7 @@
   </div>
 
   <!-- PDF 옵션 선택 모달 (Task 2: 선택형 PDF 내보내기) -->
-  <div id="pdf-options-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+  <div id="pdf-options-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" style="z-index: 99999;">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
       <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">📤 내보내기 옵션 선택</h3>
 

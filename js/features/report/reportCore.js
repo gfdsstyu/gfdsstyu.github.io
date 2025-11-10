@@ -462,6 +462,10 @@ function openPdfOptionsModal() {
   if (checkAll) checkAll.checked = true;
   checkboxes.forEach(cb => cb.checked = true);
 
+  // 확실하게 최상위에 오도록 body 맨 끝으로 이동 & z-index 명시적 설정
+  document.body.appendChild(modal);
+  modal.style.zIndex = '99999';
+
   modal.classList.remove('hidden');
 }
 
@@ -508,23 +512,47 @@ function executePdfExport() {
   // 모달 닫기
   closePdfOptionsModal();
 
-  // 인쇄 실행
-  window.print();
-
-  // 인쇄 후 정리 (브라우저 호환성 대응)
-  const cleanup = () => {
-    contents.forEach(({ element }) => {
-      if (element) element.classList.remove('print-hidden');
+  // Chart.js 차트를 print에 최적화
+  // beforeprint 이벤트가 발생하면 차트가 이미 준비되어 있어야 함
+  if (tab1 && window.Chart && reportCharts) {
+    // 모든 차트의 animation을 끄고 업데이트
+    Object.values(reportCharts).forEach(chart => {
+      if (chart && chart.update) {
+        chart.options.animation = false;
+        chart.update('none'); // 즉시 업데이트, 애니메이션 없이
+      }
     });
-  };
+  }
 
-  // 표준 이벤트
-  window.addEventListener('afterprint', cleanup, { once: true });
+  // 약간의 지연을 두어 차트가 완전히 렌더링되도록 함
+  setTimeout(() => {
+    // 인쇄 실행
+    window.print();
 
-  // Safari/iOS 대응: 포커스 복귀 시 정리
-  window.addEventListener('focus', () => {
-    setTimeout(cleanup, 100);
-  }, { once: true });
+    // 인쇄 후 정리 (브라우저 호환성 대응)
+    const cleanup = () => {
+      contents.forEach(({ element }) => {
+        if (element) element.classList.remove('print-hidden');
+      });
+
+      // 차트 animation 복원
+      if (window.Chart && reportCharts) {
+        Object.values(reportCharts).forEach(chart => {
+          if (chart && chart.options) {
+            chart.options.animation = true;
+          }
+        });
+      }
+    };
+
+    // 표준 이벤트
+    window.addEventListener('afterprint', cleanup, { once: true });
+
+    // Safari/iOS 대응: 포커스 복귀 시 정리
+    window.addEventListener('focus', () => {
+      setTimeout(cleanup, 100);
+    }, { once: true });
+  }, 100); // 100ms 지연으로 차트 렌더링 보장
 }
 
 /**
