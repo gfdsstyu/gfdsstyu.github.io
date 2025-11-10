@@ -127,6 +127,7 @@ export const ACHIEVEMENTS = {
   flagged_50: { id: 'flagged_50', name: '반성의 기록', desc: '복습 추가(★) 플래그가 50개 이상 활성화됨', icon: '📝', tier: 'hidden', points: 30 },
   dawn_learner: { id: 'dawn_learner', name: '새벽의 감린이', desc: '오전 5:00 ~ 7:00 사이에 10문제 이상 풀이', icon: '🌅', tier: 'hidden', points: 25 },
   night_owl: { id: 'night_owl', name: '올빼미', desc: '다크 모드 상태로 오전 1:00 ~ 4:00 사이에 10문제 이상 풀이', icon: '🦉', tier: 'hidden', points: 25 },
+  d_day_minus_1: { id: 'd_day_minus_1', name: '정상 직전', desc: '시험 D-1입니다. 여기까지 온 당신의 여정을 감린이가 응원합니다. 마지막까지 힘내세요!', icon: '🏔️', tier: 'hidden', points: 50 },
 
   // Chapter 1st Completion (Bronze - 10 points each)
   ch1_1st: { id: 'ch1_1st', name: '감사의 첫걸음', desc: '제1장(기본) 1회독 완료', icon: '📖', tier: 'bronze', points: 10 },
