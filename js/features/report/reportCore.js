@@ -307,19 +307,7 @@ function renderWrongAnswers(weakProblems) {
     `;
   }).join('');
 
-  // Add toggle listeners (이벤트 위임 방식으로 변경)
-  wrongAnswers.addEventListener('click', (e) => {
-    const btn = e.target.closest('.show-answer-btn');
-    if (btn) {
-      const container = btn.closest('[data-problem-container]');
-      const detail = container?.querySelector('.answer-detail');
-      if (detail) {
-        detail.classList.toggle('hidden');
-        btn.textContent = detail.classList.contains('hidden') ?
-          '🧠 모범 답안 및 AI 총평 보기' : '🙈 답안 숨기기';
-      }
-    }
-  });
+  // 이벤트 리스너는 initReportListeners()에서 한 번만 등록됨
 }
 
 /**
@@ -448,6 +436,24 @@ export function initReportListeners() {
   document.querySelectorAll('.pdf-tab-checkbox').forEach(checkbox => {
     checkbox.addEventListener('change', updateCheckAllStatus);
   });
+
+  // 오답노트 버튼 이벤트 리스너 (전역 등록, 한 번만)
+  // innerHTML로 생성된 버튼에도 작동하도록 이벤트 위임 사용
+  const wrongAnswersContainer = $('action-wrong-answers');
+  if (wrongAnswersContainer) {
+    wrongAnswersContainer.addEventListener('click', (e) => {
+      const btn = e.target.closest('.show-answer-btn');
+      if (btn) {
+        const container = btn.closest('[data-problem-container]');
+        const detail = container?.querySelector('.answer-detail');
+        if (detail) {
+          detail.classList.toggle('hidden');
+          btn.textContent = detail.classList.contains('hidden') ?
+            '🧠 모범 답안 및 AI 총평 보기' : '🙈 답안 숨기기';
+        }
+      }
+    });
+  }
 }
 
 /**
