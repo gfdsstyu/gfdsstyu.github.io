@@ -69,7 +69,6 @@ import * as ReviewCore from './features/review/reviewCore.js';
 
 // 기능 - STT (음성 인식)
 import * as GoogleSttApi from './services/googleSttApi.js';
-import * as ClovaSttApi from './services/clovaSttApi.js';
 import * as SttHandler from './features/stt/sttHandler.js';
 import * as SttVocabulary from './features/stt/sttVocabulary.js';
 
@@ -411,7 +410,6 @@ window.initReviewListeners = ReviewCore.initReviewListeners;
 
 // STT (음성 인식)
 window.transcribeGoogle = GoogleSttApi.transcribeGoogle;
-window.transcribeClova = ClovaSttApi.transcribeClova;
 window.initSttListeners = SttHandler.initSttListeners;
 window.getBoostKeywords = SttVocabulary.getBoostKeywords;
 

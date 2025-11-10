@@ -14,10 +14,6 @@ import {
   setSttProvider,
   getGoogleSttKey,
   setGoogleSttKey,
-  getClovaSttKey,
-  setClovaSttKey,
-  getClovaSttInvokeUrl,
-  setClovaSttInvokeUrl,
   saveSttSettings
 } from '../../core/stateManager.js';
 import { showToast, applyDarkMode } from '../../ui/domUtils.js';
@@ -86,8 +82,6 @@ export function openSettingsModal() {
     const currentProvider = getSttProvider();
     el.sttProviderSelect.value = currentProvider;
     el.googleSttKey.value = getGoogleSttKey();
-    el.clovaSttKey.value = getClovaSttKey();
-    el.clovaSttInvokeUrl.value = getClovaSttInvokeUrl();
     updateSttKeyVisibility(currentProvider);
   }
 }
@@ -180,31 +174,16 @@ export function initSettingsModalListeners() {
     setGoogleSttKey(e.target.value);
     saveSttSettings();
   });
-
-  // Clova STT 키 (Secret) 저장
-  el.clovaSttKey?.addEventListener('change', (e) => {
-    setClovaSttKey(e.target.value);
-    saveSttSettings();
-  });
-
-  // Clova STT URL (Invoke) 저장
-  el.clovaSttInvokeUrl?.addEventListener('change', (e) => {
-    setClovaSttInvokeUrl(e.target.value);
-    saveSttSettings();
-  });
 }
 
 /**
  * STT 키 입력 필드 가시성 관리 함수
- * @param {string} provider - 'none', 'google', 'clova'
+ * @param {string} provider - 'none', 'google'
  */
 function updateSttKeyVisibility(provider) {
   const el = getElements();
   if (el.sttGoogleSettings) {
     el.sttGoogleSettings.classList.toggle('hidden', provider !== 'google');
-  }
-  if (el.sttClovaSettings) {
-    el.sttClovaSettings.classList.toggle('hidden', provider !== 'clova');
   }
 }
 

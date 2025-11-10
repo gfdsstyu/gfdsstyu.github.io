@@ -28,8 +28,6 @@ const state = {
   // STT (음성 인식 설정)
   sttProvider: 'none',
   googleSttKey: '',
-  clovaSttKey: '',
-  clovaSttInvokeUrl: '',
 
   // DOM 요소 (initElements로 초기화됨)
   el: null
@@ -71,8 +69,6 @@ export const getStatsView = () => state.statsView;
 export const getIsFlashcardMode = () => state.isFlashcardMode;
 export const getSttProvider = () => state.sttProvider;
 export const getGoogleSttKey = () => state.googleSttKey;
-export const getClovaSttKey = () => state.clovaSttKey;
-export const getClovaSttInvokeUrl = () => state.clovaSttInvokeUrl;
 export const getElements = () => state.el;
 
 // ============================================
@@ -113,8 +109,6 @@ export const setStatsView = (view) => { state.statsView = view; };
 export const setIsFlashcardMode = (mode) => { state.isFlashcardMode = mode; };
 export const setSttProvider = (provider) => { state.sttProvider = provider; };
 export const setGoogleSttKey = (key) => { state.googleSttKey = key; };
-export const setClovaSttKey = (key) => { state.clovaSttKey = key; };
-export const setClovaSttInvokeUrl = (url) => { state.clovaSttInvokeUrl = url; };
 export const setElements = (elements) => { state.el = elements; };
 
 // ============================================
@@ -132,9 +126,7 @@ const STORAGE_KEYS = {
 
   // STT (음성 인식)
   sttProvider: 'sttProvider_v1',
-  googleSttKey: 'googleSttKey_v1',
-  clovaSttKey: 'clovaSttKey_v1',
-  clovaSttInvokeUrl: 'clovaSttInvokeUrl_v1'
+  googleSttKey: 'googleSttKey_v1'
 };
 
 /**
@@ -169,8 +161,6 @@ export function loadFromStorage() {
   // STT 설정 로드
   state.sttProvider = localStorage.getItem(STORAGE_KEYS.sttProvider) || 'none';
   state.googleSttKey = localStorage.getItem(STORAGE_KEYS.googleSttKey) || '';
-  state.clovaSttKey = localStorage.getItem(STORAGE_KEYS.clovaSttKey) || '';
-  state.clovaSttInvokeUrl = localStorage.getItem(STORAGE_KEYS.clovaSttInvokeUrl) || '';
 }
 
 /**
@@ -191,8 +181,6 @@ export function saveQuestionScores() {
 export function saveSttSettings() {
   localStorage.setItem(STORAGE_KEYS.sttProvider, state.sttProvider);
   localStorage.setItem(STORAGE_KEYS.googleSttKey, state.googleSttKey);
-  localStorage.setItem(STORAGE_KEYS.clovaSttKey, state.clovaSttKey);
-  localStorage.setItem(STORAGE_KEYS.clovaSttInvokeUrl, state.clovaSttInvokeUrl);
 }
 
 /**
