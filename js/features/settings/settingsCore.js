@@ -9,7 +9,16 @@ import {
   getSelectedAiModel,
   setSelectedAiModel,
   getDarkMode,
-  setDarkMode
+  setDarkMode,
+  getSttProvider,
+  setSttProvider,
+  getGoogleSttKey,
+  setGoogleSttKey,
+  getClovaSttKey,
+  setClovaSttKey,
+  getClovaSttInvokeUrl,
+  setClovaSttInvokeUrl,
+  saveSttSettings
 } from '../../core/stateManager.js';
 import { showToast, applyDarkMode } from '../../ui/domUtils.js';
 import { loadExamDate, saveExamDate, updateDDayDisplay } from '../../core/storageManager.js';
@@ -72,6 +81,14 @@ export function openSettingsModal() {
   }
   if (el.examDateInput) {
     el.examDateInput.value = loadExamDate();
+  }
+  if (el.sttProviderSelect) {
+    const currentProvider = getSttProvider();
+    el.sttProviderSelect.value = currentProvider;
+    el.googleSttKey.value = getGoogleSttKey();
+    el.clovaSttKey.value = getClovaSttKey();
+    el.clovaSttInvokeUrl.value = getClovaSttInvokeUrl();
+    updateSttKeyVisibility(currentProvider);
   }
 }
 
@@ -148,6 +165,47 @@ export function initSettingsModalListeners() {
     applyDarkMode();
     showToast('다크 모드 설정 변경됨');
   });
+
+  // STT 공급자 변경
+  el.sttProviderSelect?.addEventListener('change', (e) => {
+    const provider = e.target.value;
+    setSttProvider(provider);
+    saveSttSettings();
+    updateSttKeyVisibility(provider);
+    showToast(`음성 엔진 변경: ${provider}`);
+  });
+
+  // Google STT 키 저장
+  el.googleSttKey?.addEventListener('change', (e) => {
+    setGoogleSttKey(e.target.value);
+    saveSttSettings();
+  });
+
+  // Clova STT 키 (Secret) 저장
+  el.clovaSttKey?.addEventListener('change', (e) => {
+    setClovaSttKey(e.target.value);
+    saveSttSettings();
+  });
+
+  // Clova STT URL (Invoke) 저장
+  el.clovaSttInvokeUrl?.addEventListener('change', (e) => {
+    setClovaSttInvokeUrl(e.target.value);
+    saveSttSettings();
+  });
+}
+
+/**
+ * STT 키 입력 필드 가시성 관리 함수
+ * @param {string} provider - 'none', 'google', 'clova'
+ */
+function updateSttKeyVisibility(provider) {
+  const el = getElements();
+  if (el.sttGoogleSettings) {
+    el.sttGoogleSettings.classList.toggle('hidden', provider !== 'google');
+  }
+  if (el.sttClovaSettings) {
+    el.sttClovaSettings.classList.toggle('hidden', provider !== 'clova');
+  }
 }
 
 /**
