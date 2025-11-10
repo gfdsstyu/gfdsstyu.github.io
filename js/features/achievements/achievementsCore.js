@@ -426,7 +426,7 @@ export function check1stCompletion() {
 }
 
 /**
- * Check time-based achievements (새벽, 심야 학습)
+ * Check time-based achievements (새벽, 심야 학습, D-1)
  */
 export function checkTimeBased() {
   try {
@@ -436,6 +436,8 @@ export function checkTimeBased() {
     const todayTime = today.getTime();
 
     const todayByHour = {};
+    let todayProblemCount = 0;
+
     Object.values(questionScores).forEach(record => {
       if (!record.solveHistory || !Array.isArray(record.solveHistory)) return;
 
@@ -448,6 +450,7 @@ export function checkTimeBased() {
           const hHour = hDate.getHours();
           if (!todayByHour[hHour]) todayByHour[hHour] = 0;
           todayByHour[hHour]++;
+          todayProblemCount++;
         }
       });
     });
@@ -467,6 +470,22 @@ export function checkTimeBased() {
         nightCount += (todayByHour[h] || 0);
       }
       if (nightCount >= 10) unlockAchievement('night_owl');
+    }
+
+    // D-1 achievement (정상 직전)
+    const examDateStr = localStorage.getItem('examDate_v1');
+    if (examDateStr && todayProblemCount >= 1) {
+      const examDate = new Date(examDateStr);
+      examDate.setHours(0, 0, 0, 0);
+
+      // Calculate D-1 (one day before exam)
+      const dMinus1 = new Date(examDate);
+      dMinus1.setDate(dMinus1.getDate() - 1);
+
+      // Check if today is D-1
+      if (today.getTime() === dMinus1.getTime()) {
+        unlockAchievement('d_day_minus_1');
+      }
     }
   } catch {}
 }
