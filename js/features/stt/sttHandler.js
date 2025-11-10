@@ -165,10 +165,20 @@ async function handleRecordClick() {
 
     } catch (err) {
       console.error('마이크 접근 실패:', err);
+      console.error('Error name:', err.name);
+      console.error('Error message:', err.message);
+      console.error('User agent:', navigator.userAgent);
 
       let errorMessage = '마이크 접근에 실패했습니다.';
 
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      // iOS Chrome 특별 처리
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isChrome = /CriOS/.test(navigator.userAgent);
+
+      if (isIOS && isChrome) {
+        errorMessage = 'iOS Chrome에서는 음성 입력이 제한될 수 있습니다. Safari 브라우저를 사용해주세요.';
+        console.warn('iOS Chrome detected - getUserMedia may be limited');
+      } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         errorMessage = '마이크 권한이 거부되었습니다. 브라우저 설정에서 마이크 권한을 허용해주세요.';
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         errorMessage = '마이크를 찾을 수 없습니다. 마이크가 연결되어 있는지 확인해주세요.';
@@ -178,9 +188,13 @@ async function handleRecordClick() {
         errorMessage = '마이크 설정이 지원되지 않습니다.';
       } else if (err.name === 'TypeError') {
         errorMessage = 'HTTPS 환경이 필요합니다. (http://에서는 사용 불가)';
+      } else if (err.name === 'SecurityError') {
+        errorMessage = '보안 정책으로 인해 마이크 접근이 차단되었습니다.';
       }
 
-      showToast(errorMessage, 'error');
+      // 상세 에러 정보를 토스트에 포함 (디버깅용)
+      const debugInfo = `\n(디버그: ${err.name} - ${err.message})`;
+      showToast(errorMessage + debugInfo, 'error');
       setButtonState('idle');
     }
   }
