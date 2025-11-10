@@ -599,6 +599,18 @@
         </select>
       </div>
 
+      <!-- Task 3: 복습 기준 설정 -->
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">복습 기준 설정</h3>
+        <select id="review-mode-select" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+          <option value="hlr">HLR 기반 (추천) - 망각 곡선 기반 지능형 복습</option>
+          <option value="time">시간 기반 (기존) - 3일/10일 기준 단순 분류</option>
+        </select>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          HLR(망각 곡선) 기반은 개인별 학습 패턴을 분석하여 최적의 복습 시기를 제안합니다.
+        </p>
+      </div>
+
       <div class="mb-6">
         <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">데이터 관리</h3>
         <div class="flex gap-3 mb-2">

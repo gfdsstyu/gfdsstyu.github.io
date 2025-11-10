@@ -10,6 +10,7 @@ import { normId, clamp } from '../../utils/helpers.js';
 import { chapterLabelText } from '../../config/config.js';
 import { renderDailyVolumeChart, renderScoreTrendChart, renderChapterWeaknessChart } from './charts.js';
 import { showToast, closeDrawer } from '../../ui/domUtils.js';
+import { LocalHLRPredictor, calculateRecallProbability } from '../review/hlrDataset.js';
 
 // Module state
 let reportCharts = {};
@@ -76,7 +77,7 @@ export function switchReportTab(tabNum) {
 }
 
 /**
- * 리포트 데이터 수집
+ * 리포트 데이터 수집 (Task 3: HLR 기반 복습 플래너)
  * @returns {{dailyData: Map, chapterData: Map, weakProblems: Array}}
  */
 export function getReportData() {
@@ -88,6 +89,9 @@ export function getReportData() {
   const dailyData = new Map(); // date -> {count, scores[]}
   const chapterData = new Map(); // chapter -> {scores[], dates[]}
   const weakProblems = []; // problems below threshold
+
+  // HLR 예측기 생성 (한 번만 생성하여 성능 최적화)
+  const predictor = new LocalHLRPredictor();
 
   for (const [qid, rec] of Object.entries(window.questionScores || {})) {
     const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
@@ -110,9 +114,20 @@ export function getReportData() {
         chapterData.get(chapter).scores.push(score);
         chapterData.get(chapter).dates.push(date);
 
-        // Weak problems
+        // Weak problems (HLR 데이터 추가)
         if (score < threshold) {
-          weakProblems.push({ qid, problem, score, date });
+          const hlrData = calculateRecallProbability(qid, predictor);
+
+          weakProblems.push({
+            qid,
+            problem,
+            score,
+            date,
+            // HLR 데이터 추가
+            p_current: hlrData?.p_current || null,
+            h_pred: hlrData?.h_pred || null,
+            timeSinceLastReview: hlrData?.timeSinceLastReview || null
+          });
         }
       }
     }
@@ -141,21 +156,42 @@ export function generateReport() {
 }
 
 /**
- * 액션 플랜 렌더링 (복습 우선순위)
- * @param {Array} weakProblems - 약점 문제 목록
+ * 액션 플랜 렌더링 (Task 3: HLR 기반 복습 우선순위)
+ * @param {Array} weakProblems - 약점 문제 목록 (HLR 데이터 포함)
  */
 export function renderActionPlan(weakProblems) {
   const now = Date.now();
-  const urgent = [], weekly = [], longterm = [];
+  const reviewMode = localStorage.getItem('reviewMode') || 'hlr'; // 'hlr' or 'time'
 
-  for (const wp of weakProblems) {
-    const daysSince = (now - wp.date) / (1000 * 60 * 60 * 24);
-    if (daysSince <= 3) {
-      urgent.push(wp);
-    } else if (daysSince <= 10) {
-      weekly.push(wp);
-    } else {
-      longterm.push(wp);
+  let urgent = [], weekly = [], longterm = [];
+
+  if (reviewMode === 'hlr') {
+    // HLR 기반 분류
+    for (const wp of weakProblems) {
+      if (wp.p_current === null) {
+        // HLR 데이터 없으면 시간 기반으로 fallback
+        const daysSince = (now - wp.date) / (1000 * 60 * 60 * 24);
+        if (daysSince <= 3) urgent.push(wp);
+        else if (daysSince <= 10) weekly.push(wp);
+        else longterm.push(wp);
+      } else {
+        // HLR 회상 확률 기반
+        if (wp.p_current < 0.5) {
+          urgent.push(wp);
+        } else if (wp.p_current < 0.8) {
+          weekly.push(wp);
+        } else {
+          longterm.push(wp);
+        }
+      }
+    }
+  } else {
+    // 기존 시간 기반 분류
+    for (const wp of weakProblems) {
+      const daysSince = (now - wp.date) / (1000 * 60 * 60 * 24);
+      if (daysSince <= 3) urgent.push(wp);
+      else if (daysSince <= 10) weekly.push(wp);
+      else longterm.push(wp);
     }
   }
 
@@ -163,69 +199,97 @@ export function renderActionPlan(weakProblems) {
   const weeklyList = $('action-weekly-list');
   const longtermList = $('action-longterm-list');
 
+  // 문제 목록 렌더링 (HLR 정보 포함)
+  const renderProblemItem = (wp) => {
+    let hlrInfo = '';
+    if (reviewMode === 'hlr' && wp.p_current !== null) {
+      const pPercent = Math.round(wp.p_current * 100);
+      const predictor = new LocalHLRPredictor();
+      const nextReviewDays = Math.round(predictor.getNextReviewDelta(wp.h_pred || 14, 0.9));
+
+      hlrInfo = `<div class="ml-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
+        회상 확률: ${pPercent}% | 다음 복습: ${nextReviewDays <= 0 ? '즉시!' : nextReviewDays + '일 후'}
+      </div>`;
+    }
+
+    const title = wp.problem.problemTitle || wp.problem.물음?.slice(0, 30) + '...';
+    return `<div class="text-sm border-b pb-2 mb-2 last:border-b-0">
+      <div>• ${title} <span class="text-red-600 dark:text-red-400">(${wp.score}점)</span></div>
+      ${hlrInfo}
+    </div>`;
+  };
+
   if (urgentList) {
-    urgentList.innerHTML = urgent.length ? urgent.slice(0, 10).map(wp =>
-      `<div class="text-sm">• ${wp.problem.problemTitle || wp.problem.물음?.slice(0, 30) + '...'} (${wp.score}점)</div>`
-    ).join('') : '<div class="text-sm text-gray-500">없음</div>';
+    urgentList.innerHTML = urgent.length
+      ? urgent.slice(0, 10).map(renderProblemItem).join('')
+      : '<div class="text-sm text-gray-500 dark:text-gray-400">없음</div>';
   }
 
   if (weeklyList) {
-    weeklyList.innerHTML = weekly.length ? weekly.slice(0, 10).map(wp =>
-      `<div class="text-sm">• ${wp.problem.problemTitle || wp.problem.물음?.slice(0, 30) + '...'} (${wp.score}점)</div>`
-    ).join('') : '<div class="text-sm text-gray-500">없음</div>';
+    weeklyList.innerHTML = weekly.length
+      ? weekly.slice(0, 10).map(renderProblemItem).join('')
+      : '<div class="text-sm text-gray-500 dark:text-gray-400">없음</div>';
   }
 
   if (longtermList) {
-    longtermList.innerHTML = longterm.length ? longterm.slice(0, 10).map(wp =>
-      `<div class="text-sm">• ${wp.problem.problemTitle || wp.problem.물음?.slice(0, 30) + '...'} (${wp.score}점)</div>`
-    ).join('') : '<div class="text-sm text-gray-500">없음</div>';
+    longtermList.innerHTML = longterm.length
+      ? longterm.slice(0, 10).map(renderProblemItem).join('')
+      : '<div class="text-sm text-gray-500 dark:text-gray-400">없음</div>';
   }
 
-  // Interactive wrong answers
+  // 오답노트 렌더링 (기존 로직 유지)
+  renderWrongAnswers(weakProblems);
+}
+
+/**
+ * 오답노트 렌더링 (기존 코드 분리)
+ * @param {Array} weakProblems - 약점 문제 목록
+ */
+function renderWrongAnswers(weakProblems) {
   const wrongAnswers = $('action-wrong-answers');
-  if (wrongAnswers) {
-    const uniqueProblems = new Map();
-    for (const wp of weakProblems) {
-      if (!uniqueProblems.has(wp.qid) || uniqueProblems.get(wp.qid).score > wp.score) {
-        uniqueProblems.set(wp.qid, wp);
-      }
+  if (!wrongAnswers) return;
+
+  const uniqueProblems = new Map();
+  for (const wp of weakProblems) {
+    if (!uniqueProblems.has(wp.qid) || uniqueProblems.get(wp.qid).score > wp.score) {
+      uniqueProblems.set(wp.qid, wp);
     }
-
-    wrongAnswers.innerHTML = Array.from(uniqueProblems.values()).slice(0, 20).map(wp => {
-      const rec = window.questionScores[wp.qid];
-      const userAnswer = rec?.user_answer || '(답안 없음)';
-      const aiFeedback = rec?.feedback || '(피드백 없음)';
-      return `
-        <div class="border rounded-lg p-4">
-          <div class="flex justify-between items-start mb-2">
-            <h4 class="font-semibold">${wp.problem.problemTitle || '문항 ' + wp.problem.표시번호}</h4>
-            <span class="text-xs px-2 py-1 rounded-full ${wp.score < 60 ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}">${wp.score}점</span>
-          </div>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-2"><strong>물음:</strong> ${wp.problem.물음}</p>
-          <p class="text-sm mb-2"><strong>내 답안:</strong> ${userAnswer}</p>
-          <button class="show-answer-btn text-sm text-blue-600 hover:underline" data-qid="${wp.qid}">
-            🧠 모범 답안 및 AI 총평 보기
-          </button>
-          <div class="answer-detail hidden mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded">
-            <p class="text-sm mb-2"><strong>모범 답안:</strong> ${wp.problem.정답}</p>
-            <p class="text-sm text-gray-600 dark:text-gray-400"><strong>AI 총평:</strong> ${aiFeedback}</p>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    // Add toggle listeners
-    wrongAnswers.querySelectorAll('.show-answer-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const detail = e.target.nextElementSibling;
-        if (detail) {
-          detail.classList.toggle('hidden');
-          e.target.textContent = detail.classList.contains('hidden') ?
-            '🧠 모범 답안 및 AI 총평 보기' : '🙈 답안 숨기기';
-        }
-      });
-    });
   }
+
+  wrongAnswers.innerHTML = Array.from(uniqueProblems.values()).slice(0, 20).map(wp => {
+    const rec = window.questionScores[wp.qid];
+    const userAnswer = rec?.user_answer || '(답안 없음)';
+    const aiFeedback = rec?.feedback || '(피드백 없음)';
+    return `
+      <div class="border rounded-lg p-4 dark:border-gray-700">
+        <div class="flex justify-between items-start mb-2">
+          <h4 class="font-semibold">${wp.problem.problemTitle || '문항 ' + wp.problem.표시번호}</h4>
+          <span class="text-xs px-2 py-1 rounded-full ${wp.score < 60 ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}">${wp.score}점</span>
+        </div>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2"><strong>물음:</strong> ${wp.problem.물음}</p>
+        <p class="text-sm mb-2"><strong>내 답안:</strong> ${userAnswer}</p>
+        <button class="show-answer-btn text-sm text-blue-600 dark:text-blue-400 hover:underline" data-qid="${wp.qid}">
+          🧠 모범 답안 및 AI 총평 보기
+        </button>
+        <div class="answer-detail hidden mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded">
+          <p class="text-sm mb-2"><strong>모범 답안:</strong> ${wp.problem.정답}</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400"><strong>AI 총평:</strong> ${aiFeedback}</p>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Add toggle listeners
+  wrongAnswers.querySelectorAll('.show-answer-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const detail = e.target.nextElementSibling;
+      if (detail) {
+        detail.classList.toggle('hidden');
+        e.target.textContent = detail.classList.contains('hidden') ?
+          '🧠 모범 답안 및 AI 총평 보기' : '🙈 답안 숨기기';
+      }
+    });
+  });
 }
 
 /**
