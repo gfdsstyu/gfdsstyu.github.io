@@ -16,11 +16,14 @@ export async function transcribeClova(audioBlob, clientSecret, invokeUrl, boostK
     }, {})
   });
 
+  // HTTP 헤더는 ISO-8859-1만 지원하므로 한글이 포함된 JSON을 Base64로 인코딩
+  const boostingsBase64 = btoa(unescape(encodeURIComponent(boostings)));
+
   const headers = {
     'Content-Type': 'application/octet-stream', // 오디오 Blob을 직접 전송
     'X-CLOVA-API-KEY': clientSecret,
     'X-CLOVA-DOMAIN': 'TALK', // 일반 대화
-    'X-CLOVA-BOOSTING': boostings // 커스텀 헤더로 전송
+    'X-CLOVA-BOOSTING': boostingsBase64 // Base64로 인코딩하여 전송
   };
 
   const response = await fetch(invokeUrl, {
