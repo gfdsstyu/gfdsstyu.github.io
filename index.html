@@ -526,11 +526,12 @@
         <label for="stt-provider-select" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">공급자 선택</label>
         <select id="stt-provider-select" name="stt-provider" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700" aria-label="STT 공급자 선택">
           <option value="none">사용 안 함 (기본)</option>
-          <option value="google">Google Cloud STT</option>
-          <option value="clova">Naver Clova Speech</option>
+          <option value="google">Google Cloud STT (권장)</option>
+          <option value="clova">Naver Clova Speech (고급 - CORS 설정 필요)</option>
         </select>
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">답안 입력 시 사용할 STT 엔진을 선택합니다. (API 키 별도 입력 필요)</p>
         <p class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">⚠️ STT API 사용에 따른 비용은 사용자 개인에게 청구됩니다.</p>
+        <p class="text-xs text-red-600 dark:text-red-400 mt-1">⚠️ Clova는 API Gateway CORS 설정이 필요합니다. 브라우저 직접 호출 시 오류 발생!</p>
 
         <div id="stt-google-settings" class="mt-4 hidden">
           <label for="google-stt-key" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Google STT API Key</label>

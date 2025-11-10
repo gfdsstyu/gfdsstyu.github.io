@@ -52,16 +52,29 @@ async function transcribeAudio() {
   const keywords = getBoostKeywords(); // Task 3에서 생성된 키워드 가져오기
   const audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' }); // 오디오 형식 지정
 
+  console.log('=== STT Transcription Start ===');
+  console.log('Provider:', provider);
+  console.log('Audio blob size:', audioBlob.size, 'bytes');
+  console.log('Audio blob type:', audioBlob.type);
+  console.log('Keywords count:', keywords.length);
+
   try {
     let transcribedText = '';
 
     if (provider === 'google') {
       const apiKey = getGoogleSttKey();
+      console.log('Google API key length:', apiKey.length);
+      console.log('Calling Google STT API...');
       transcribedText = await transcribeGoogle(audioBlob, apiKey, keywords);
+      console.log('Google STT result:', transcribedText);
     } else if (provider === 'clova') {
       const clientSecret = getClovaSttKey();
       const invokeUrl = getClovaSttInvokeUrl();
+      console.log('Clova Secret length:', clientSecret.length);
+      console.log('Clova URL:', invokeUrl);
+      console.log('Calling Clova STT API...');
       transcribedText = await transcribeClova(audioBlob, clientSecret, invokeUrl, keywords);
+      console.log('Clova STT result:', transcribedText);
     }
 
     // 텍스트박스에 결과 삽입
@@ -69,11 +82,32 @@ async function transcribeAudio() {
     if (el.userAnswer) {
       el.userAnswer.value = transcribedText;
     }
+
+    console.log('=== STT Transcription Success ===');
     showToast('음성 인식 완료');
 
   } catch (error) {
-    console.error('STT Error:', error);
-    showToast(`음성 인식 실패: ${error.message}`, 'error');
+    console.error('=== STT Transcription Error ===');
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Full error:', error);
+
+    // 더 자세한 에러 메시지
+    let userMessage = '음성 인식 실패';
+
+    if (error.message.includes('fetch')) {
+      userMessage = 'API 호출 실패: 네트워크 또는 CORS 문제일 수 있습니다.';
+    } else if (error.message.includes('API Key') || error.message.includes('401') || error.message.includes('403')) {
+      userMessage = 'API 키 인증 실패: API 키를 확인해주세요.';
+    } else if (error.message.includes('400')) {
+      userMessage = '잘못된 요청: 오디오 형식이나 API 파라미터를 확인해주세요.';
+    } else if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
+      userMessage = 'API 서버 오류: 잠시 후 다시 시도해주세요.';
+    }
+
+    const debugInfo = `\n\n[디버그]\nProvider: ${provider}\nError: ${error.name}\nMessage: ${error.message}`;
+    showToast(userMessage + debugInfo, 'error');
   } finally {
     setButtonState('idle');
   }
