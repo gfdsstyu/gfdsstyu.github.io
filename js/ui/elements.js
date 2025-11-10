@@ -167,9 +167,6 @@ export function initElements() {
     sttProviderSelect: $('stt-provider-select'),
     sttGoogleSettings: $('stt-google-settings'),
     googleSttKey: $('google-stt-key'),
-    sttClovaSettings: $('stt-clova-settings'),
-    clovaSttKey: $('clova-stt-key'),
-    clovaSttInvokeUrl: $('clova-stt-invoke-url'),
     recordBtn: $('record-btn'),
     recordBtnText: $('record-btn-text'),
     recordIconMic: $('record-icon-mic')

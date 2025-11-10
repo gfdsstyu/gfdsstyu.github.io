@@ -1,8 +1,7 @@
-import { getElements, getSttProvider, getGoogleSttKey, getClovaSttKey, getClovaSttInvokeUrl } from '../../core/stateManager.js';
+import { getElements, getSttProvider, getGoogleSttKey } from '../../core/stateManager.js';
 import { showToast } from '../../ui/domUtils.js';
 import { getBoostKeywords } from './sttVocabulary.js';
 import { transcribeGoogle } from '../../services/googleSttApi.js';
-import { transcribeClova } from '../../services/clovaSttApi.js';
 
 let mediaRecorder;
 let audioChunks = [];
@@ -67,14 +66,6 @@ async function transcribeAudio() {
       console.log('Calling Google STT API...');
       transcribedText = await transcribeGoogle(audioBlob, apiKey, keywords);
       console.log('Google STT result:', transcribedText);
-    } else if (provider === 'clova') {
-      const clientSecret = getClovaSttKey();
-      const invokeUrl = getClovaSttInvokeUrl();
-      console.log('Clova Secret length:', clientSecret.length);
-      console.log('Clova URL:', invokeUrl);
-      console.log('Calling Clova STT API...');
-      transcribedText = await transcribeClova(audioBlob, clientSecret, invokeUrl, keywords);
-      console.log('Clova STT result:', transcribedText);
     }
 
     // 텍스트박스에 결과 삽입
@@ -125,10 +116,8 @@ async function handleRecordClick() {
 
   // API 키 확인
   const googleKey = getGoogleSttKey();
-  const clovaKey = getClovaSttKey();
-  const clovaUrl = getClovaSttInvokeUrl();
 
-  if ((provider === 'google' && !googleKey) || (provider === 'clova' && (!clovaKey || !clovaUrl))) {
+  if (provider === 'google' && !googleKey) {
     showToast('STT API 키를 설정에서 입력해주세요.', 'warn');
     if (typeof window.openSettingsModal === 'function') {
       window.openSettingsModal(); // 설정 모달 열기
