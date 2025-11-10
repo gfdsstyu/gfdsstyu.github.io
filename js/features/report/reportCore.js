@@ -462,6 +462,10 @@ function openPdfOptionsModal() {
   if (checkAll) checkAll.checked = true;
   checkboxes.forEach(cb => cb.checked = true);
 
+  // 확실하게 최상위에 오도록 body 맨 끝으로 이동 & z-index 명시적 설정
+  document.body.appendChild(modal);
+  modal.style.zIndex = '99999';
+
   modal.classList.remove('hidden');
 }
 
