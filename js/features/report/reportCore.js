@@ -342,21 +342,120 @@ export function initReportListeners() {
     }
   });
 
-  // Print functionality - only print report modal content
-  el.reportPrintBtn?.addEventListener('click', () => {
-    const printContent = document.getElementById('report-modal');
-    const originalDisplay = printContent.style.display;
+  // PDF Export functionality (Task 2: 선택형 PDF 내보내기)
+  el.reportPrintBtn?.addEventListener('click', openPdfOptionsModal);
 
-    // Temporarily show modal for printing
-    printContent.style.display = 'block';
-    printContent.style.position = 'relative';
-    printContent.style.background = 'white';
+  // PDF 옵션 모달 이벤트 리스너
+  document.getElementById('pdf-options-cancel-btn')?.addEventListener('click', closePdfOptionsModal);
+  document.getElementById('pdf-options-execute-btn')?.addEventListener('click', executePdfExport);
+  document.getElementById('pdf-check-all')?.addEventListener('change', toggleAllCheckboxes);
 
-    window.print();
-
-    // Restore original state
-    printContent.style.display = originalDisplay;
-    printContent.style.position = '';
-    printContent.style.background = '';
+  // 개별 체크박스에 리스너 추가
+  document.querySelectorAll('.pdf-tab-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', updateCheckAllStatus);
   });
+}
+
+/**
+ * PDF 옵션 모달 열기
+ */
+function openPdfOptionsModal() {
+  const modal = document.getElementById('pdf-options-modal');
+  if (!modal) return;
+
+  // 모든 체크박스 초기화
+  const checkAll = document.getElementById('pdf-check-all');
+  const checkboxes = document.querySelectorAll('.pdf-tab-checkbox');
+
+  if (checkAll) checkAll.checked = true;
+  checkboxes.forEach(cb => cb.checked = true);
+
+  modal.classList.remove('hidden');
+}
+
+/**
+ * PDF 옵션 모달 닫기
+ */
+function closePdfOptionsModal() {
+  const modal = document.getElementById('pdf-options-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+}
+
+/**
+ * PDF 내보내기 실행
+ */
+function executePdfExport() {
+  const tab1 = document.getElementById('pdf-check-tab1')?.checked || false;
+  const tab2 = document.getElementById('pdf-check-tab2')?.checked || false;
+  const tab3 = document.getElementById('pdf-check-tab3')?.checked || false;
+
+  // 최소 1개는 선택해야 함
+  if (!tab1 && !tab2 && !tab3) {
+    showToast('최소 1개 탭을 선택해주세요', 'warn');
+    return;
+  }
+
+  // 선택 해제된 탭에 .print-hidden 클래스 추가
+  const contents = [
+    { element: document.getElementById('report-content-1'), checked: tab1 },
+    { element: document.getElementById('report-content-2'), checked: tab2 },
+    { element: document.getElementById('report-content-3'), checked: tab3 }
+  ];
+
+  contents.forEach(({ element, checked }) => {
+    if (element) {
+      if (!checked) {
+        element.classList.add('print-hidden');
+      } else {
+        element.classList.remove('print-hidden');
+      }
+    }
+  });
+
+  // 모달 닫기
+  closePdfOptionsModal();
+
+  // 인쇄 실행
+  window.print();
+
+  // 인쇄 후 정리 (브라우저 호환성 대응)
+  const cleanup = () => {
+    contents.forEach(({ element }) => {
+      if (element) element.classList.remove('print-hidden');
+    });
+  };
+
+  // 표준 이벤트
+  window.addEventListener('afterprint', cleanup, { once: true });
+
+  // Safari/iOS 대응: 포커스 복귀 시 정리
+  window.addEventListener('focus', () => {
+    setTimeout(cleanup, 100);
+  }, { once: true });
+}
+
+/**
+ * 전체 선택/해제 토글
+ */
+function toggleAllCheckboxes() {
+  const checkAll = document.getElementById('pdf-check-all');
+  const checkboxes = document.querySelectorAll('.pdf-tab-checkbox');
+
+  if (checkAll) {
+    checkboxes.forEach(cb => cb.checked = checkAll.checked);
+  }
+}
+
+/**
+ * 개별 체크박스 변경 시 전체 선택 상태 갱신
+ */
+function updateCheckAllStatus() {
+  const checkAll = document.getElementById('pdf-check-all');
+  const checkboxes = document.querySelectorAll('.pdf-tab-checkbox');
+
+  if (checkAll) {
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    checkAll.checked = allChecked;
+  }
 }

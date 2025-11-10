@@ -126,14 +126,90 @@
     html.dark .prose strong { color: #fbbf24; }
     html.dark .prose code { background: rgba(255,255,255,0.1); }
 
-    /* Print styles */
+    /* ================================================
+       PDF 내보내기 전용 스타일 (Task 2: 선택형 PDF 내보내기)
+       ================================================ */
     @media print {
-      #report-modal { display: block !important; position: relative; background: white; }
-      #report-modal > div { max-height: none; overflow: visible; box-shadow: none; }
-      .report-tab, #report-close-btn, #report-refresh-btn,
-      #report-save-snapshot-btn, #report-load-snapshot-btn, #report-print-btn { display: none !important; }
-      #report-content-2, #report-content-3 { display: block !important; }
-      .border-b { page-break-after: avoid; }
+      /* 1. 전체 페이지 초기화 */
+      * {
+        background: white !important;
+        color: black !important;
+        box-shadow: none !important;
+      }
+
+      /* 2. 불필요한 요소 숨김 */
+      body > *:not(#report-modal),
+      nav, aside, header, footer,
+      button, .no-print,
+      #left-dashboard,
+      #drawer-backdrop,
+      .report-tab,
+      #report-close-btn,
+      #report-refresh-btn,
+      #report-save-snapshot-btn,
+      #report-load-snapshot-btn,
+      #report-print-btn,
+      #pdf-options-modal {
+        display: none !important;
+      }
+
+      /* 3. 리포트 모달만 표시 */
+      #report-modal {
+        display: block !important;
+        position: static !important;
+        background: white !important;
+        overflow: visible !important;
+        max-height: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      #report-modal > div {
+        max-height: none !important;
+        overflow: visible !important;
+        box-shadow: none !important;
+        border: none !important;
+      }
+
+      /* 4. 선택 해제된 탭 숨김 */
+      .print-hidden {
+        display: none !important;
+      }
+
+      /* 5. 모든 탭 컨텐츠를 순차적으로 표시 */
+      .report-content {
+        display: block !important;
+        page-break-after: always;
+        page-break-inside: avoid;
+        margin-bottom: 20px;
+      }
+
+      .report-content:last-child {
+        page-break-after: auto;
+      }
+
+      /* 6. 차트 최적화 */
+      canvas {
+        max-height: 400px !important;
+        page-break-inside: avoid;
+      }
+
+      /* 7. 페이지 헤더/푸터 */
+      @page {
+        margin: 1.5cm;
+        size: A4;
+      }
+
+      /* 8. 제목 스타일 */
+      h1, h2, h3 {
+        page-break-after: avoid;
+        color: black !important;
+      }
+
+      /* 9. 다크모드 비활성화 */
+      .dark {
+        color: black !important;
+      }
     }
   </style>
 </head>
@@ -688,6 +764,51 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- PDF 옵션 선택 모달 (Task 2: 선택형 PDF 내보내기) -->
+  <div id="pdf-options-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1200]">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+      <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">📤 내보내기 옵션 선택</h3>
+
+      <!-- 전체 선택/해제 -->
+      <div class="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="pdf-check-all" class="w-4 h-4 rounded" checked>
+          <span class="font-semibold text-gray-700 dark:text-gray-300">전체 선택</span>
+        </label>
+      </div>
+
+      <!-- 개별 탭 선택 -->
+      <div class="space-y-3 mb-6">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="pdf-check-tab1" class="pdf-tab-checkbox w-4 h-4 rounded" checked>
+          <span class="text-gray-700 dark:text-gray-300">📊 차트 분석</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="pdf-check-tab2" class="pdf-tab-checkbox w-4 h-4 rounded" checked>
+          <span class="text-gray-700 dark:text-gray-300">🧠 AI 심층 분석</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="pdf-check-tab3" class="pdf-tab-checkbox w-4 h-4 rounded" checked>
+          <span class="text-gray-700 dark:text-gray-300">📝 액션 플랜 & 오답노트</span>
+        </label>
+      </div>
+
+      <!-- 버튼 -->
+      <div class="flex gap-3">
+        <button id="pdf-options-cancel-btn" class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+          취소
+        </button>
+        <button id="pdf-options-execute-btn" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          실행
+        </button>
+      </div>
+
+      <p class="text-xs text-gray-500 dark:text-gray-400 mt-4">
+        ℹ️ 선택한 탭만 PDF로 내보냅니다. 브라우저의 인쇄 대화상자에서 "PDF로 저장"을 선택하세요.
+      </p>
     </div>
   </div>
 
