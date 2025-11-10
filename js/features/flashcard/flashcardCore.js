@@ -172,6 +172,7 @@ export function flashcardPrev() {
   if (flashcardIndex > 0) {
     flashcardIndex--;
     displayFlashcard();
+    incrementFlashcardCounter();
   }
 }
 
@@ -182,7 +183,18 @@ export function flashcardNext() {
   if (flashcardIndex < flashcardData.length - 1) {
     flashcardIndex++;
     displayFlashcard();
+    incrementFlashcardCounter();
   }
+}
+
+/**
+ * Increment flashcard navigation counter (for achievements)
+ */
+function incrementFlashcardCounter() {
+  try {
+    const count = parseInt(localStorage.getItem('flashcard_navigation_count_v1') || '0', 10);
+    localStorage.setItem('flashcard_navigation_count_v1', String(count + 1));
+  } catch {}
 }
 
 /**

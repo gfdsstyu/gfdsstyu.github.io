@@ -15,6 +15,7 @@ import {
 } from '../core/stateManager.js';
 import { showToast, applyDarkMode } from '../ui/domUtils.js';
 import { enforceExclusiveFlagsOnAll } from '../core/storageManager.js';
+import { unlockAchievement } from '../features/achievements/achievementsCore.js';
 
 /**
  * 퀴즈 점수 데이터 병합
@@ -86,6 +87,9 @@ export function exportData() {
     a.download = `gamlini_backup_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
+
+    // Unlock data backup achievement
+    unlockAchievement('data_backup_1');
 
     showToast('데이터 내보내기 완료');
   } catch (err) {

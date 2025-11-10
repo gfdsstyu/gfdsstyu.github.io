@@ -101,6 +101,7 @@ export const ACHIEVEMENTS = {
   advanced_source: { id: 'advanced_source', name: '심화반', desc: 'SS 또는 P 출처 문제 10개 이상 풀이', icon: '🎓', tier: 'bronze', points: 20 },
   review_master: { id: 'review_master', name: '복습의 달인', desc: '오늘의 복습 기능 10회 이상 사용', icon: '🔄', tier: 'bronze', points: 15 },
   flagged_20: { id: 'flagged_20', name: '오답노트', desc: '복습 추가(★) 플래그 20개 이상 설정', icon: '⭐', tier: 'bronze', points: 10 },
+  flashcard_100: { id: 'flashcard_100', name: '전광석화', desc: '플래시카드 모드로 100개의 카드를 학습 (다음/이전 100회)', icon: '⚡️', tier: 'bronze', points: 15 },
 
   // Silver - Intermediate achievements
   first_90: { id: 'first_90', name: '고수의 반열', desc: '최초로 90점 이상 달성', icon: '🎖️', tier: 'silver', points: 20 },
@@ -114,13 +115,20 @@ export const ACHIEVEMENTS = {
   avg_80: { id: 'avg_80', name: '안정권 진입', desc: '전체 문제 누적 평균 점수 80점 돌파', icon: '🎯', tier: 'silver', points: 30 },
   chapter_master: { id: 'chapter_master', name: '챕터 마스터', desc: '특정 단원의 모든 문제 평균 80점 달성', icon: '👑', tier: 'silver', points: 40 },
   first_completion: { id: 'first_completion', name: '1회독 완료', desc: 'questions.json의 모든 단원을 1문제 이상 학습', icon: '📚', tier: 'silver', points: 50 },
+  flashcard_500: { id: 'flashcard_500', name: '삐깨삐갯피캐쮸', desc: '플래시카드 모드로 500개의 카드를 학습 (다음/이전 500회)', icon: '🚀', tier: 'silver', points: 30 },
+  stt_50: { id: 'stt_50', name: '말터디 에이스', desc: '음성 입력(STT) 기능으로 50개의 답안을 성공적으로 제출', icon: '🗣️', tier: 'silver', points: 25 },
 
   // Gold - Advanced achievements
   avg_90: { id: 'avg_90', name: '칭호: 예비 회계사', desc: '전체 문제 누적 평균 점수 90점 돌파', icon: '🏆', tier: 'gold', points: 100 },
   avg_95: { id: 'avg_95', name: '칭호: 기준서 프린터', desc: '전체 문제 누적 평균 점수 95점 돌파', icon: '🌟', tier: 'gold', points: 150 },
   streak_90: { id: 'streak_90', name: '세 달의 경지', desc: '90일 연속 학습', icon: '🔥', tier: 'gold', points: 120 },
   streak_120: { id: 'streak_120', name: '120일의 전문가', desc: '120일 연속 학습', icon: '👨‍🎓', tier: 'gold', points: 200 },
+  streak_180: { id: 'streak_180', name: '구도자', desc: '학습 시작일부터 시험 D-1일까지 연속 학습 달성', icon: '🧘‍♂️', tier: 'gold', points: 300 },
   monthly_300: { id: 'monthly_300', name: '월간 정복자', desc: '한 달 동안 300문제 이상 풀이 완료', icon: '📈', tier: 'gold', points: 80 },
+  problems_5000: { id: 'problems_5000', name: '태산', desc: '총 풀이 문제 5,000개 돌파 (누적)', icon: '⛰️', tier: 'gold', points: 200 },
+  all_chapter_mastery: { id: 'all_chapter_mastery', name: '올라운더', desc: '모든 단원 1회독 이상 달성 및 전 단원 평균 85점 달성', icon: '🏅', tier: 'gold', points: 200 },
+  advanced_mastery: { id: 'advanced_mastery', name: '심화반 수석', desc: '모든 심화(SS, P) 출처 문제를 1회 이상 풀고 평균 85점 달성', icon: '💎', tier: 'gold', points: 150 },
+  flashcard_1000: { id: 'flashcard_1000', name: '무아지경', desc: '플래시카드 모드로 1,000개의 카드를 학습 (다음/이전 1,000회)', icon: '✨', tier: 'gold', points: 50 },
 
   // Hidden - Special achievements
   comeback: { id: 'comeback', name: '칠전팔기', desc: '60점 미만으로 3회 이상 기록한 문제를 마침내 85점 이상으로 통과', icon: '🦅', tier: 'hidden', points: 50 },
@@ -128,6 +136,8 @@ export const ACHIEVEMENTS = {
   dawn_learner: { id: 'dawn_learner', name: '새벽의 감린이', desc: '오전 5:00 ~ 7:00 사이에 10문제 이상 풀이', icon: '🌅', tier: 'hidden', points: 25 },
   night_owl: { id: 'night_owl', name: '올빼미', desc: '다크 모드 상태로 오전 1:00 ~ 4:00 사이에 10문제 이상 풀이', icon: '🦉', tier: 'hidden', points: 25 },
   d_day_minus_1: { id: 'd_day_minus_1', name: '정상 직전', desc: '시험 D-1입니다. 여기까지 온 당신의 여정을 감린이가 응원합니다. 마지막까지 힘내세요!', icon: '🏔️', tier: 'hidden', points: 50 },
+  perfect_straight_10: { id: 'perfect_straight_10', name: '퍼펙트 스트레이트', desc: '10개의 새로운 문제를 연속으로 100점 달성', icon: '💯', tier: 'hidden', points: 100 },
+  data_backup_1: { id: 'data_backup_1', name: '보험 가입', desc: "'데이터 내보내기' 기능으로 첫 학습 데이터 백업", icon: '🛡️', tier: 'hidden', points: 10 },
 
   // Chapter 1st Completion (Bronze - 10 points each)
   ch1_1st: { id: 'ch1_1st', name: '감사의 첫걸음', desc: '제1장(기본) 1회독 완료', icon: '📖', tier: 'bronze', points: 10 },
