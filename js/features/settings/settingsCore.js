@@ -78,6 +78,14 @@ export function openSettingsModal() {
   if (el.examDateInput) {
     el.examDateInput.value = loadExamDate();
   }
+
+  // Task 3: 복습 기준 모드 초기값 로드
+  const reviewModeSelect = document.getElementById('review-mode-select');
+  if (reviewModeSelect) {
+    reviewModeSelect.value = localStorage.getItem('reviewMode') || 'hlr';
+  }
+
+  // STT 설정 초기값 로드
   if (el.sttProviderSelect) {
     const currentProvider = getSttProvider();
     el.sttProviderSelect.value = currentProvider;
@@ -158,6 +166,14 @@ export function initSettingsModalListeners() {
     localStorage.setItem('darkMode', e.target.value);
     applyDarkMode();
     showToast('다크 모드 설정 변경됨');
+  });
+
+  // Task 3: 복습 기준 변경
+  const reviewModeSelect = document.getElementById('review-mode-select');
+  reviewModeSelect?.addEventListener('change', (e) => {
+    const mode = e.target.value;
+    localStorage.setItem('reviewMode', mode);
+    showToast(`복습 기준 변경: ${mode === 'hlr' ? 'HLR 기반' : '시간 기반'}`);
   });
 
   // STT 공급자 변경

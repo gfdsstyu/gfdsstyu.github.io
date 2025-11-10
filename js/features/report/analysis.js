@@ -9,6 +9,129 @@ import { callGeminiTextAPI } from '../../services/geminiApi.js';
 import { getReportData } from './reportCore.js';
 import { showToast } from '../../ui/domUtils.js';
 import { openApiModal } from '../settings/settingsCore.js';
+import { calculateMovingAverage } from './charts.js';
+
+/**
+ * 차트 해석 규칙 (Task 4: trendhelp.html에서 핵심 내용 추출)
+ */
+const CHART_INTERPRETATION_RULES = `
+# 학습 점수 추세 차트 해석 규칙
+
+## 1. 이동평균선 정의
+- **5일선 (단기 컨디션선):** 최근 5 학습일의 평균 점수. 단기 학습 성과를 반영.
+- **20일선 (중기 실력선) ⭐️:** 최근 20 학습일의 평균 점수. 진짜 실력 추세를 나타내는 핵심 지표.
+- **60일선 (장기 기반선):** 최근 60 학습일의 평균 점수. 기본 실력 수준.
+
+## 2. 주요 시그널
+
+### 골든 크로스 (Golden Cross) 🟢
+- **정의:** 5일선이 20일선을 하향→상향 돌파
+- **의미:** 단기 학습 성과가 중기 실력을 추월 → **긍정적 신호**
+- **해석:** "최근 학습법이 효과적으로 작용하고 있습니다. 현재 페이스를 유지하세요."
+- **조치:** 현재 학습 전략 유지 및 강화
+
+### 데드 크로스 (Dead Cross) 🔴
+- **정의:** 5일선이 20일선을 상향→하향 이탈
+- **의미:** 최근 컨디션 저하 → **경고 신호**
+- **해석:** "최근 학습 성과가 떨어지고 있습니다. 슬럼프이거나 학습 방법에 문제가 있을 수 있습니다."
+- **조치:** 학습 방법 점검, 휴식 또는 전략 변경 필요
+
+### 정배열 (Perfect Order) 🚀
+- **정의:** 5일선 > 20일선 > 60일선 (3개 선이 모두 상승 방향으로 정렬)
+- **의미:** 단기·중기·장기 모두 상승 추세 → **최상의 상태**
+- **해석:** "현재 학습이 매우 안정적으로 상승 중입니다. 합격 가능성이 높아지고 있습니다."
+- **조치:** 현재 페이스 유지
+
+### 역배열 (Reverse Order) ⚠️
+- **정의:** 5일선 < 20일선 < 60일선
+- **의미:** 장기 침체 상태
+- **해석:** "학습 방법 전반을 재점검해야 합니다. 개념 복습이 필요합니다."
+
+## 3. 중요 원칙
+- **단기 등락에 일희일비하지 말 것:** 5일선은 변동성이 크므로, 20일선(중기) 추세를 더 신뢰해야 합니다.
+- **난이도 일관성 전제:** 매일 유사한 난이도의 문제를 풀 때 차트가 유효합니다.
+- **진단 도구임을 인지:** 이 차트는 미래를 예측하는 도구가 아니라, 현재 상태를 진단하는 계기판입니다.
+
+## 4. AI 분석 시 활용 방법
+사용자의 차트 데이터를 받으면:
+1. 골든크로스/데드크로스 발생 여부를 확인하고, 발생 시점을 명시하세요.
+2. 정배열/역배열 상태를 진단하세요.
+3. 20일선의 방향(상승/하락/보합)을 분석하세요.
+4. 위 해석 규칙에 따라 구체적인 조치 사항을 제안하세요.
+`;
+
+/**
+ * 차트 컨텍스트 추출 (Task 4: AI 프롬프트용)
+ * @param {object} reportData - getReportData() 반환값
+ * @returns {object|null} 차트 분석 컨텍스트
+ */
+function extractChartContext(reportData) {
+  const { dailyData, chapterData, chartData } = reportData;
+
+  // 성능 최적화: 사전 계산된 차트 데이터 사용
+  if (!chartData) {
+    return null; // 차트 데이터 없음
+  }
+
+  const { sorted, avgScores, ma5, ma20, ma60 } = chartData;
+
+  // 최근 7일치만 추출 (토큰 절약)
+  const recentDays = 7;
+  const recentMA5 = ma5.slice(-recentDays);
+  const recentMA20 = ma20.slice(-recentDays);
+  const recentMA60 = ma60.slice(-recentDays);
+
+  // 골든크로스/데드크로스 감지 (최근 7일)
+  let lastGoldenCross = null;
+  let lastDeadCross = null;
+
+  for (let i = Math.max(0, ma5.length - 7); i < ma5.length; i++) {
+    if (i < 1) continue;
+    if (ma5[i] !== null && ma20[i] !== null && ma5[i-1] !== null && ma20[i-1] !== null) {
+      // Golden Cross
+      if (ma5[i-1] <= ma20[i-1] && ma5[i] > ma20[i]) {
+        lastGoldenCross = {
+          date: sorted[i][0],
+          daysAgo: sorted.length - 1 - i
+        };
+      }
+      // Dead Cross
+      if (ma5[i-1] >= ma20[i-1] && ma5[i] < ma20[i]) {
+        lastDeadCross = {
+          date: sorted[i][0],
+          daysAgo: sorted.length - 1 - i
+        };
+      }
+    }
+  }
+
+  // 정배열 확인
+  const lastIdx = ma5.length - 1;
+  const isPerfectOrder = ma5[lastIdx] && ma20[lastIdx] && ma60[lastIdx] &&
+                        ma5[lastIdx] > ma20[lastIdx] && ma20[lastIdx] > ma60[lastIdx];
+
+  // 취약 단원 Top 3
+  const weakChapters = Array.from(chapterData.entries())
+    .map(([chapter, data]) => ({
+      chapter,
+      avgScore: Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length)
+    }))
+    .sort((a, b) => a.avgScore - b.avgScore)
+    .slice(0, 3);
+
+  return {
+    recentMA5,
+    recentMA20,
+    recentMA60,
+    lastGoldenCross,
+    lastDeadCross,
+    isPerfectOrder,
+    weakChapters,
+    currentMA5: ma5[lastIdx],
+    currentMA20: ma20[lastIdx],
+    currentMA60: ma60[lastIdx]
+  };
+}
 
 /**
  * 마크다운을 HTML로 변환
@@ -74,6 +197,9 @@ export async function startAIAnalysis() {
       return;
     }
 
+    // Task 4: 차트 컨텍스트 추출
+    const chartContext = extractChartContext(data);
+
     // Prepare prompt with actual user answers from solve history
     const weakProblemsSummary = data.weakProblems.slice(0, 20).map(wp => {
       const scoreData = window.questionScores[wp.qid];
@@ -100,6 +226,33 @@ export async function startAIAnalysis() {
 회계감사 2차 시험 '채점위원'
 
 답안을 기준서적 문구와 실제 평가 기준으로 냉철히 판단할 수 있는 평가자입니다.
+
+[추가 역할: 학습 추세 분석가]
+
+당신은 사용자의 학습 점수 추세 차트를 분석하여, 골든크로스·데드크로스·정배열 등의 시그널을 자동으로 해석합니다.
+
+[차트 해석 규칙]
+${CHART_INTERPRETATION_RULES}
+
+[사용자의 차트 데이터]
+${chartContext ? `
+- 최근 7일 이동평균:
+  - 5일선: ${chartContext.recentMA5.join(', ')}
+  - 20일선: ${chartContext.recentMA20.join(', ')}
+  - 60일선: ${chartContext.recentMA60.join(', ')}
+
+- 현재 이동평균:
+  - 5일선: ${chartContext.currentMA5?.toFixed(1) || 'N/A'}
+  - 20일선: ${chartContext.currentMA20?.toFixed(1) || 'N/A'}
+  - 60일선: ${chartContext.currentMA60?.toFixed(1) || 'N/A'}
+
+- 골든크로스: ${chartContext.lastGoldenCross ? `${chartContext.lastGoldenCross.daysAgo}일 전 발생 (${chartContext.lastGoldenCross.date})` : '최근 7일 내 발생 없음'}
+- 데드크로스: ${chartContext.lastDeadCross ? `${chartContext.lastDeadCross.daysAgo}일 전 발생 (${chartContext.lastDeadCross.date})` : '최근 7일 내 발생 없음'}
+- 정배열 상태: ${chartContext.isPerfectOrder ? '예 🚀 (5일 > 20일 > 60일)' : '아니오'}
+
+- 취약 단원 Top 3:
+${chartContext.weakChapters.map((c, i) => `  ${i+1}. ${c.chapter}: 평균 ${c.avgScore}점`).join('\n')}
+` : '(차트 데이터 부족)'}
 
 [핵심 어조 지침]
 
@@ -134,6 +287,22 @@ export async function startAIAnalysis() {
 
 안녕하세요. 최근 학습 데이터를 채점위원의 시각으로 면밀히 분석했습니다.
 객관적 데이터로 '현재 위치'를 진단하고, 성장 방향을 함께 설계해보겠습니다.
+
+📊 차트 추세 분석 (자동 생성)
+
+[여기에 차트 데이터 기반 자동 분석을 추가하세요]
+- 골든크로스/데드크로스 발생 여부와 의미
+- 정배열 상태 진단
+- 20일선 방향성 분석
+- 차트 기반 종합 진단 및 조치 사항
+
+**중요:** 위에서 제공된 실제 차트 데이터를 활용하여 구체적이고 정확한 분석을 제공하세요.
+차트 데이터가 제공되었다면, 반드시 이 섹션을 작성해야 합니다.
+
+예시:
+"최근 ${chartContext?.lastGoldenCross ? chartContext.lastGoldenCross.daysAgo + '일 전' : '7일 이내'} 골든크로스가 발생했습니다.
+이는 단기 학습 성과(5일선)가 중기 실력(20일선)을 추월했다는 의미로, 현재 학습법이 효과적으로 작용하고 있음을 나타냅니다.
+${chartContext?.isPerfectOrder ? '또한 정배열 상태(5일 > 20일 > 60일)가 형성되어, 단기·중기·장기 모두 상승 추세입니다. 현재 페이스를 유지하세요.' : ''}"
 
 1️⃣ 정량적 학습 성과 (Quantitative Performance)
 
@@ -231,12 +400,18 @@ export async function startAIAnalysis() {
 데이터가 없는 경우 해당 항목은 생략합니다.(입력답안이 없거나 무의미한 수준인 경우)
 
 보고서 생성은 항상 다음 순서로 진행합니다:
-① 데이터 요약 → ② 정량 분석 → ③ 정성 분석 → ④ 첨삭 → ⑤ 총평
+① 차트 추세 분석 → ② 정량 분석 → ③ 정성 분석 → ④ 첨삭 → ⑤ 총평
 
 모든 문장은 명확성·객관성·실질성을 우선합니다.
 
 감정적 표현은 "격려 섹션"에서만 허용됩니다.
-데이터:
+
+**차트 분석 주의사항:**
+- 차트 데이터가 제공되면, 반드시 "📊 차트 추세 분석" 섹션을 리포트 최상단에 포함하세요.
+- 골든크로스/데드크로스가 발생했다면, 그 의미를 사용자가 이해하기 쉽게 설명하세요.
+- 차트 데이터가 없거나 부족하면 해당 섹션을 생략하세요.
+
+[오답 데이터]
 ${JSON.stringify(weakProblemsSummary, null, 2)}
 
 마크다운 형식으로 답변하세요.`;
