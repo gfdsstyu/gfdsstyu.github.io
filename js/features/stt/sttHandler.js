@@ -110,12 +110,54 @@ async function handleRecordClick() {
   } else {
     // 녹음 시작
     try {
+      // HTTPS 체크 (localhost는 예외)
+      const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      if (!isSecure) {
+        showToast('음성 입력은 HTTPS 환경에서만 사용 가능합니다.', 'error');
+        console.error('getUserMedia requires HTTPS');
+        return;
+      }
+
+      // MediaDevices API 지원 체크
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showToast('이 브라우저는 음성 입력을 지원하지 않습니다.', 'error');
+        console.error('MediaDevices API not supported');
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+
+      // MediaRecorder 지원 체크
+      if (!window.MediaRecorder) {
+        showToast('이 브라우저는 음성 녹음을 지원하지 않습니다.', 'error');
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+
+      // 지원되는 MIME 타입 확인
+      let mimeType = 'audio/webm;codecs=opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'audio/webm';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/mp4';
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = ''; // 기본값 사용
+          }
+        }
+      }
+
+      mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
       audioChunks = [];
 
       mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-      mediaRecorder.onstop = transcribeAudio; // 녹음 중지 시 transcribeAudio 자동 호출
+      mediaRecorder.onstop = () => {
+        // 스트림 정리
+        stream.getTracks().forEach(track => track.stop());
+        transcribeAudio();
+      };
 
       mediaRecorder.start();
       isRecording = true;
@@ -123,7 +165,22 @@ async function handleRecordClick() {
 
     } catch (err) {
       console.error('마이크 접근 실패:', err);
-      showToast('마이크 접근에 실패했습니다. (권한 확인 필요)', 'error');
+
+      let errorMessage = '마이크 접근에 실패했습니다.';
+
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorMessage = '마이크 권한이 거부되었습니다. 브라우저 설정에서 마이크 권한을 허용해주세요.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errorMessage = '마이크를 찾을 수 없습니다. 마이크가 연결되어 있는지 확인해주세요.';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errorMessage = '마이크가 다른 앱에서 사용 중입니다. 다른 앱을 종료하고 다시 시도해주세요.';
+      } else if (err.name === 'OverconstrainedError' || err.name === 'ConstraintNotSatisfiedError') {
+        errorMessage = '마이크 설정이 지원되지 않습니다.';
+      } else if (err.name === 'TypeError') {
+        errorMessage = 'HTTPS 환경이 필요합니다. (http://에서는 사용 불가)';
+      }
+
+      showToast(errorMessage, 'error');
       setButtonState('idle');
     }
   }
