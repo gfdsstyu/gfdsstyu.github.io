@@ -36,12 +36,12 @@ function fillMissingDates(dailyData) {
 }
 
 /**
- * 이동평균 계산
+ * 이동평균 계산 (Task 4: AI 차트 해석에서 사용)
  * @param {Array<number>} data - 데이터 배열
  * @param {number} period - 이동평균 기간 (일)
  * @returns {Array<number|null>} - 이동평균 배열
  */
-function calculateMovingAverage(data, period) {
+export function calculateMovingAverage(data, period) {
   const result = [];
   for (let i = 0; i < data.length; i++) {
     if (i < period - 1) {
