@@ -8,7 +8,7 @@
 import { el, $ } from '../../ui/elements.js';
 import { normId, clamp } from '../../utils/helpers.js';
 import { chapterLabelText } from '../../config/config.js';
-import { renderDailyVolumeChart, renderScoreTrendChart, renderChapterWeaknessChart } from './charts.js';
+import { renderDailyVolumeChart, renderScoreTrendChart, renderChapterWeaknessChart, calculateMovingAverage } from './charts.js';
 import { showToast, closeDrawer } from '../../ui/domUtils.js';
 import { LocalHLRPredictor, calculateRecallProbability } from '../review/hlrDataset.js';
 
@@ -93,6 +93,9 @@ export function getReportData() {
   // HLR 예측기 생성 (한 번만 생성하여 성능 최적화)
   const predictor = new LocalHLRPredictor();
 
+  // HLR 계산 결과 캐싱 (성능 최적화)
+  const hlrCache = new Map();
+
   for (const [qid, rec] of Object.entries(window.questionScores || {})) {
     const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
     for (const h of hist) {
@@ -116,7 +119,11 @@ export function getReportData() {
 
         // Weak problems (HLR 데이터 추가)
         if (score < threshold) {
-          const hlrData = calculateRecallProbability(qid, predictor);
+          // 캐시 확인 후 계산 (동일 qid에 대해 중복 계산 방지)
+          if (!hlrCache.has(qid)) {
+            hlrCache.set(qid, calculateRecallProbability(qid, predictor));
+          }
+          const hlrData = hlrCache.get(qid);
 
           weakProblems.push({
             qid,
@@ -133,7 +140,28 @@ export function getReportData() {
     }
   }
 
-  return { dailyData, chapterData, weakProblems };
+  // 차트 데이터 사전 계산 (성능 최적화: 중복 계산 방지)
+  let chartData = null;
+  const sorted = Array.from(dailyData.entries())
+    .filter(([, v]) => v.scores.length > 0)
+    .sort((a, b) => a[0].localeCompare(b[0]));
+
+  if (sorted.length > 0) {
+    const avgScores = sorted.map(([, v]) => {
+      const avg = v.scores.reduce((a, b) => a + b, 0) / v.scores.length;
+      return Math.round(avg * 10) / 10;
+    });
+
+    chartData = {
+      sorted,
+      avgScores,
+      ma5: calculateMovingAverage(avgScores, 5),
+      ma20: calculateMovingAverage(avgScores, 20),
+      ma60: calculateMovingAverage(avgScores, 60)
+    };
+  }
+
+  return { dailyData, chapterData, weakProblems, chartData };
 }
 
 /**
@@ -150,7 +178,7 @@ export function generateReport() {
   reportCharts = {};
 
   renderDailyVolumeChart(data.dailyData, reportCharts);
-  renderScoreTrendChart(data.dailyData, reportCharts);
+  renderScoreTrendChart(data.dailyData, reportCharts, data.chartData); // 성능 최적화: 사전 계산된 데이터 전달
   renderChapterWeaknessChart(data.chapterData, reportCharts);
   renderActionPlan(data.weakProblems);
 }

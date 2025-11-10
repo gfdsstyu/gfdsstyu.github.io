@@ -66,26 +66,14 @@ const CHART_INTERPRETATION_RULES = `
  * @returns {object|null} 차트 분석 컨텍스트
  */
 function extractChartContext(reportData) {
-  const { dailyData, chapterData } = reportData;
+  const { dailyData, chapterData, chartData } = reportData;
 
-  // 일일 평균 점수 계산
-  const sorted = Array.from(dailyData.entries())
-    .filter(([, v]) => v.scores.length > 0)
-    .sort((a, b) => a[0].localeCompare(b[0]));
-
-  if (sorted.length === 0) {
-    return null; // 데이터 없음
+  // 성능 최적화: 사전 계산된 차트 데이터 사용
+  if (!chartData) {
+    return null; // 차트 데이터 없음
   }
 
-  const avgScores = sorted.map(([, v]) => {
-    const avg = v.scores.reduce((a, b) => a + b, 0) / v.scores.length;
-    return Math.round(avg * 10) / 10;
-  });
-
-  // 이동평균 계산 (charts.js의 함수 재사용)
-  const ma5 = calculateMovingAverage(avgScores, 5);
-  const ma20 = calculateMovingAverage(avgScores, 20);
-  const ma60 = calculateMovingAverage(avgScores, 60);
+  const { sorted, avgScores, ma5, ma20, ma60 } = chartData;
 
   // 최근 7일치만 추출 (토큰 절약)
   const recentDays = 7;

@@ -94,22 +94,35 @@ export function renderDailyVolumeChart(dailyData, reportCharts) {
 
 /**
  * 점수 추이 차트 렌더링 (이동평균선, 골든/데드크로스 포함)
- * @param {Map} dailyData - 날짜별 데이터
+ * @param {Map} dailyData - 날짜별 데이터 (사용 안 함, 하위 호환성 유지)
  * @param {Object} reportCharts - 차트 저장 객체
+ * @param {Object} chartData - 사전 계산된 차트 데이터 (성능 최적화)
  */
-export function renderScoreTrendChart(dailyData, reportCharts) {
+export function renderScoreTrendChart(dailyData, reportCharts, chartData = null) {
   const ctx = $('chart-score-trend');
   if (!ctx || !window.Chart) return;
 
-  // Only use days with actual data (no empty days)
-  const sorted = Array.from(dailyData.entries())
-    .filter(([, v]) => v.scores.length > 0)
-    .sort((a, b) => a[0].localeCompare(b[0]));
+  // 사전 계산된 데이터가 없으면 폴백 (하위 호환성)
+  let sorted, avgScores, ma5, ma20, ma60;
+
+  if (chartData) {
+    // 성능 최적화: 사전 계산된 데이터 사용
+    ({ sorted, avgScores, ma5, ma20, ma60 } = chartData);
+  } else {
+    // 폴백: 직접 계산
+    sorted = Array.from(dailyData.entries())
+      .filter(([, v]) => v.scores.length > 0)
+      .sort((a, b) => a[0].localeCompare(b[0]));
+    avgScores = sorted.map(([, v]) => {
+      const avg = v.scores.reduce((a, b) => a + b, 0) / v.scores.length;
+      return Math.round(avg * 10) / 10;
+    });
+    ma5 = calculateMovingAverage(avgScores, 5);
+    ma20 = calculateMovingAverage(avgScores, 20);
+    ma60 = calculateMovingAverage(avgScores, 60);
+  }
+
   const labels = sorted.map(([date]) => date.slice(5));
-  const avgScores = sorted.map(([, v]) => {
-    const avg = v.scores.reduce((a, b) => a + b, 0) / v.scores.length;
-    return Math.round(avg * 10) / 10;
-  });
 
   // Calculate cumulative average (총누적평균선)
   const cumulativeAvg = [];
@@ -118,11 +131,6 @@ export function renderScoreTrendChart(dailyData, reportCharts) {
     sum += avgScores[i];
     cumulativeAvg.push(Math.round((sum / (i + 1)) * 10) / 10);
   }
-
-  // Calculate moving averages
-  const ma5 = calculateMovingAverage(avgScores, 5);
-  const ma20 = calculateMovingAverage(avgScores, 20);
-  const ma60 = calculateMovingAverage(avgScores, 60);
 
   // Detect Golden Cross and Dead Cross points
   const goldenCross = [], deadCross = [];
