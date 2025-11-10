@@ -138,6 +138,75 @@ export function closeDrawer() {
 }
 
 // ============================================
+// Collapsible Sections (학습 범위 필터, 단원 네비게이터 접기/펼치기)
+// ============================================
+
+/**
+ * 섹션 접기/펼치기 토글
+ * @param {string} contentId - 컨텐츠 영역 ID
+ * @param {string} iconId - 아이콘 ID
+ * @param {string} storageKey - localStorage 키
+ */
+function toggleSection(contentId, iconId, storageKey) {
+  const content = document.getElementById(contentId);
+  const icon = document.getElementById(iconId);
+
+  if (!content || !icon) return;
+
+  const isCollapsed = content.classList.contains('hidden');
+
+  if (isCollapsed) {
+    // 펼치기
+    content.classList.remove('hidden');
+    icon.style.transform = 'rotate(0deg)';
+    localStorage.setItem(storageKey, 'false');
+  } else {
+    // 접기
+    content.classList.add('hidden');
+    icon.style.transform = 'rotate(-90deg)';
+    localStorage.setItem(storageKey, 'true');
+  }
+}
+
+/**
+ * 접을 수 있는 섹션 초기화
+ */
+export function initCollapsibleSections() {
+  // 학습 범위 필터
+  const sourceFilterToggle = document.getElementById('source-filter-toggle');
+  const sourceFilterContent = document.getElementById('source-filter-side');
+  const sourceFilterIcon = document.getElementById('source-filter-icon');
+
+  // 단원 네비게이터
+  const chapterNavToggle = document.getElementById('chapter-nav-toggle');
+  const chapterNavContent = document.getElementById('explorer-chapters');
+  const chapterNavIcon = document.getElementById('chapter-nav-icon');
+
+  // 초기 상태 복원 (localStorage에서)
+  const sourceFilterCollapsed = localStorage.getItem('sourceFilterCollapsed') === 'true';
+  const chapterNavCollapsed = localStorage.getItem('chapterNavCollapsed') === 'true';
+
+  if (sourceFilterCollapsed && sourceFilterContent && sourceFilterIcon) {
+    sourceFilterContent.classList.add('hidden');
+    sourceFilterIcon.style.transform = 'rotate(-90deg)';
+  }
+
+  if (chapterNavCollapsed && chapterNavContent && chapterNavIcon) {
+    chapterNavContent.classList.add('hidden');
+    chapterNavIcon.style.transform = 'rotate(-90deg)';
+  }
+
+  // 이벤트 리스너 등록
+  sourceFilterToggle?.addEventListener('click', () => {
+    toggleSection('source-filter-side', 'source-filter-icon', 'sourceFilterCollapsed');
+  });
+
+  chapterNavToggle?.addEventListener('click', () => {
+    toggleSection('explorer-chapters', 'chapter-nav-icon', 'chapterNavCollapsed');
+  });
+}
+
+// ============================================
 // 이벤트 리스너 초기화 (Phase 5.1)
 // ============================================
 
@@ -174,4 +243,7 @@ export function initUIListeners() {
       el.leftDashboard?.classList.add('hidden');
     }
   });
+
+  // 접을 수 있는 섹션 초기화
+  initCollapsibleSections();
 }
