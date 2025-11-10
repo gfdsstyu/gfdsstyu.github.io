@@ -129,6 +129,14 @@ export async function loadData() {
       backupDataToLocalStorage(arr);  // 백업 저장
       console.info(`✅ [Load] questions.json 로드 성공: ${path}`);
 
+      // STT 키워드 캐싱 트리거
+      // (약간의 지연을 주어 stateManager가 확실히 업데이트되도록 함)
+      setTimeout(() => {
+        if (window.getBoostKeywords) {
+          window.getBoostKeywords(); // 1회 호출하여 캐시 생성
+        }
+      }, 100);
+
       selfTest();
       populateChapterSelect();
       updateSummary();

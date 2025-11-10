@@ -161,7 +161,18 @@ export function initElements() {
     // D-DAY
     ddayDisplay: $('dday-display'),
     examDateInput: $('exam-date-input'),
-    saveExamDateBtn: $('save-exam-date-btn')
+    saveExamDateBtn: $('save-exam-date-btn'),
+
+    // STT (음성 인식)
+    sttProviderSelect: $('stt-provider-select'),
+    sttGoogleSettings: $('stt-google-settings'),
+    googleSttKey: $('google-stt-key'),
+    sttClovaSettings: $('stt-clova-settings'),
+    clovaSttKey: $('clova-stt-key'),
+    clovaSttInvokeUrl: $('clova-stt-invoke-url'),
+    recordBtn: $('record-btn'),
+    recordBtnText: $('record-btn-text'),
+    recordIconMic: $('record-icon-mic')
   };
 }
 
