@@ -140,6 +140,7 @@ export function checkAchievements() {
   const totalProblems = Object.keys(questionScores).length;
   if (totalProblems >= 100) unlockAchievement('problems_100');
   if (totalProblems >= 1000) unlockAchievement('problems_1000');
+  if (totalProblems >= 5000) unlockAchievement('problems_5000');
 
   // Check average score
   if (scores.length > 0) {
@@ -184,6 +185,12 @@ export function checkAchievements() {
   // Check chapter-specific achievements
   checkChapter1stCompletionPerChapter();
   checkChapterMasteryPerChapter();
+
+  // Check all chapter mastery
+  checkAllChapterMastery();
+
+  // Check flashcard navigation achievements
+  checkFlashcardAchievements();
 }
 
 /**
@@ -293,6 +300,27 @@ export function checkSourceAchievements() {
       return q && ['SS', 'P'].includes(q.출처);
     });
     if (advancedSolved.length >= 10) unlockAchievement('advanced_source');
+
+    // Advanced mastery: All SS, P problems solved at least once with avg 85+
+    const advancedProblems = allData.filter(q => ['SS', 'P'].includes(q.출처));
+    if (advancedProblems.length > 0) {
+      const advancedSolvedAll = advancedProblems.filter(q => questionScores[normId(q.고유ID)]);
+
+      // Check if all advanced problems are solved at least once
+      if (advancedSolvedAll.length === advancedProblems.length) {
+        // Calculate average score
+        const scores = advancedSolvedAll
+          .map(q => questionScores[normId(q.고유ID)].score)
+          .filter(s => s !== undefined);
+
+        if (scores.length > 0) {
+          const avgScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+          if (avgScore >= 85) {
+            unlockAchievement('advanced_mastery');
+          }
+        }
+      }
+    }
   } catch {}
 }
 
@@ -577,6 +605,43 @@ export function checkChapterMasteryPerChapter() {
         unlockAchievement(`ch${chNum}_master`);
       }
     });
+  } catch {}
+}
+
+/**
+ * Check all chapter mastery (올라운더: 모든 단원 1회독 + 전단원 평균 85점)
+ */
+export function checkAllChapterMastery() {
+  try {
+    // Check if all chapter master achievements are unlocked
+    const chapters = [1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20];
+    const achievementsData = JSON.parse(localStorage.getItem('achievements_v1') || '{}');
+
+    // Check if all chapter masters are unlocked
+    const allChapterMastersUnlocked = chapters.every(chNum => {
+      return achievementsData[`ch${chNum}_master`] !== undefined;
+    });
+
+    // Check if first_completion is unlocked
+    const firstCompletionUnlocked = achievementsData['first_completion'] !== undefined;
+
+    // Unlock if both conditions are met
+    if (allChapterMastersUnlocked && firstCompletionUnlocked) {
+      unlockAchievement('all_chapter_mastery');
+    }
+  } catch {}
+}
+
+/**
+ * Check flashcard navigation achievements
+ */
+export function checkFlashcardAchievements() {
+  try {
+    const count = parseInt(localStorage.getItem('flashcard_navigation_count_v1') || '0', 10);
+
+    if (count >= 100) unlockAchievement('flashcard_100');
+    if (count >= 500) unlockAchievement('flashcard_500');
+    if (count >= 1000) unlockAchievement('flashcard_1000');
   } catch {}
 }
 
