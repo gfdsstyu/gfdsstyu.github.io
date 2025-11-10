@@ -281,6 +281,35 @@
                          <p class="mt-2">점수는 <strong>참고용 보조 지표</strong>로 활용하고, 항상 <strong>모범 답안과 직접 비교</strong>하며 스스로 판단하는 것이 가장 중요합니다.</p>
                     </div>
                 </div>
+
+                <div class="border border-gray-200 rounded-lg">
+                    <button class="toggle-button w-full flex justify-between items-center p-5 text-left font-medium focus:outline-none" aria-expanded="false" data-toggle-target="faq-4">
+                        <span>Q. 모바일에서 로딩이 느려요.</span>
+                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                    <div id="faq-4" class="toggle-content px-5 pb-5 leading-relaxed">
+                        <p><strong>A. '감린이'는 데스크톱(PC) 환경에 최적화되어 있습니다.</strong></p>
+                        <ul class="list-disc list-outside pl-6 mt-2 space-y-1">
+                            <li>모바일 브라우저는 PC에 비해 성능(CPU/RAM) 제한이 있어, AI 리포트, 학습 캘린더, HLR 복습 알고리즘 등 무거운 기능을 처리할 때 로딩이 길어지거나 느려질 수 있습니다.</li>
+                            <li>가급적 PC의 Chrome 브라우저 사용을 권장합니다.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="border border-gray-200 rounded-lg">
+                    <button class="toggle-button w-full flex justify-between items-center p-5 text-left font-medium focus:outline-none" aria-expanded="false" data-toggle-target="faq-5">
+                        <span>Q. PC/태블릿/모바일에서 연동해서 쓰고싶어요.</span>
+                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                    <div id="faq-5" class="toggle-content px-5 pb-5 leading-relaxed">
+                        <p><strong>A. '감린이'는 별도 서버가 없는 앱으로, 모든 학습 기록은 현재 사용 중인 기기의 브라우저에만 저장됩니다.</strong> 데이터가 자동으로 연동되지 않으므로, 수동으로 '내보내기' 및 '가져오기'를 사용해야 합니다.</p>
+                        <ol class="list-decimal list-outside pl-6 mt-2 space-y-2">
+                            <li><strong>(기존 기기) 데이터 내보내기:</strong> [설정(⚙️)] > [데이터 관리] > <strong>[📥 데이터 내보내기]</strong> 버튼을 클릭하여 `gamlini_backup_...json` 파일을 저장합니다.</li>
+                            <li><strong>(새 기기) 데이터 가져오기 (덮어쓰기):</strong> 새 기기에서 [설정(⚙️)] > <strong>[📤 데이터 가져오기]</strong>를 눌러 1번의 백업 파일을 선택하면 기록이 덮어씌워집니다.</li>
+                            <li><strong>(권장) 데이터 병합:</strong> PC와 모바일에서 각각 학습한 경우, <strong>[🔀 데이터 병합 가져오기]</strong>를 사용하세요. 이 기능은 기존 기록을 지우지 않고, 두 기기의 풀이 이력을 합쳐줍니다. (예: PC 기록 내보내기 -> 모바일에서 병합)</li>
+                        </ol>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -315,3 +344,4 @@
     </script>
 </body>
 </html>
+
