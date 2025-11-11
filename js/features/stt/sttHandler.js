@@ -2,6 +2,7 @@ import { getElements, getSttProvider, getGoogleSttKey } from '../../core/stateMa
 import { showToast } from '../../ui/domUtils.js';
 import { getBoostKeywords } from './sttVocabulary.js';
 import { transcribeGoogle } from '../../services/googleSttApi.js';
+import * as WebSpeechApi from '../../services/webSpeechApi.js';
 
 let mediaRecorder;
 let audioChunks = [];
@@ -62,6 +63,77 @@ function stopRecording() {
     isRecording = false;
     clearRecordingTimers();
     // onstop 이벤트 핸들러가 transcribeAudio()를 자동 호출
+  }
+}
+
+/**
+ * Web Speech API 녹음 처리 (실시간 스트리밍)
+ */
+function handleWebSpeechRecording() {
+  if (!WebSpeechApi.isWebSpeechSupported()) {
+    showToast('Web Speech API를 지원하지 않는 브라우저입니다. Chrome 또는 Edge를 사용해주세요.', 'error');
+    return;
+  }
+
+  if (isRecording) {
+    // 중지
+    console.log('[Web Speech] 사용자가 중지 요청');
+    WebSpeechApi.stopRecognition();
+    isRecording = false;
+    clearRecordingTimers();
+    setButtonState('idle');
+    showToast('음성 인식 완료');
+  } else {
+    // 시작
+    console.log('[Web Speech] 음성 인식 시작');
+    isRecording = true;
+    recordingSeconds = 0;
+    setButtonState('recording');
+
+    // 타이머 시작
+    recordingTimer = setInterval(updateRecordingTimer, 1000);
+
+    // 55초 자동 중지
+    recordingTimeout = setTimeout(() => {
+      console.log('⏱️ 55초 자동 중지');
+      showToast('최대 녹음 시간에 도달하여 자동으로 중지되었습니다.', 'warn');
+      WebSpeechApi.stopRecognition();
+      isRecording = false;
+      clearRecordingTimers();
+      setButtonState('idle');
+    }, 55000);
+
+    const el = getElements();
+    const keywords = getBoostKeywords();
+
+    // 실시간 인식 시작
+    WebSpeechApi.startRecognition(
+      // onResult 콜백
+      (result) => {
+        if (el.userAnswer) {
+          // interim은 회색으로 표시, final은 검정으로 확정
+          if (result.isFinal && result.final) {
+            // final 결과가 왔을 때 텍스트 업데이트
+            const currentText = el.userAnswer.value.trim();
+            const newText = currentText ? `${currentText} ${result.final}` : result.final;
+            el.userAnswer.value = newText;
+            console.log('[Web Speech] Final added:', result.final);
+          } else if (result.interim) {
+            // interim 결과를 placeholder로 표시 (선택사항)
+            console.log('[Web Speech] Interim:', result.interim);
+          }
+        }
+      },
+      // onError 콜백
+      (error) => {
+        console.error('[Web Speech] Error:', error);
+        showToast(error.message, 'error');
+        isRecording = false;
+        clearRecordingTimers();
+        setButtonState('idle');
+      },
+      keywords
+    );
   }
 }
 
@@ -170,9 +242,14 @@ async function handleRecordClick() {
     return;
   }
 
-  // API 키 확인
-  const googleKey = getGoogleSttKey();
+  // Web Speech API 모드
+  if (provider === 'webspeech') {
+    handleWebSpeechRecording();
+    return;
+  }
 
+  // Google STT 모드 - API 키 확인
+  const googleKey = getGoogleSttKey();
   if (provider === 'google' && !googleKey) {
     showToast('STT API 키를 설정에서 입력해주세요.', 'warn');
     if (typeof window.openSettingsModal === 'function') {
@@ -185,7 +262,7 @@ async function handleRecordClick() {
     // 녹음 중지 (사용자가 직접 중지)
     stopRecording();
   } else {
-    // 녹음 시작
+    // 녹음 시작 (Google STT)
     try {
       // HTTPS 체크 (localhost는 예외)
       const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
