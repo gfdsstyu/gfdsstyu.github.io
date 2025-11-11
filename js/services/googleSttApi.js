@@ -31,11 +31,13 @@ export async function transcribeGoogle(audioBlob, apiKey, boostKeywords) {
     }]
   };
 
-  // WebM + Opus는 encoding 명시하지 않음 (Google 자동 감지가 가장 정확)
-  // timeslice 없이 단일 파일로 생성하므로 duration 메타데이터 정확함
-  if (audioBlob.type.includes('webm') && audioBlob.type.includes('opus')) {
-    console.log('[Google STT] WebM + Opus format, using auto-detection');
+  // Opus 코덱 처리
+  if (audioBlob.type.includes('opus')) {
+    // MP4 + Opus는 공식 지원 안 하지만 OGG_OPUS로 시도
+    config.encoding = 'OGG_OPUS';
+    console.log('[Google STT] Opus codec detected, using OGG_OPUS encoding');
   } else if (audioBlob.type.includes('webm')) {
+    // WebM (Opus 아닌 경우) - 자동 감지
     console.log('[Google STT] WebM format, using auto-detection');
   } else {
     console.log('[Google STT] Unknown format:', audioBlob.type, '- using auto-detection');
