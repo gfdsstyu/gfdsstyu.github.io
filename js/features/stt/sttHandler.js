@@ -113,25 +113,6 @@ async function transcribeAudio() {
   console.log('Audio blob type:', audioBlob.type);
   console.log('Keywords count:', keywords.length);
 
-  // 오디오 duration 체크 (디버깅용)
-  try {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const arrayBuffer = await audioBlob.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    const duration = audioBuffer.duration;
-    console.log('⏱️ Actual audio duration:', duration.toFixed(2), 'seconds');
-
-    if (duration > 60) {
-      console.warn('⚠️ Audio duration exceeds 60 seconds!', duration);
-      showToast(`경고: 오디오 길이가 ${duration.toFixed(1)}초로 API 제한(60초)을 초과합니다.`, 'error');
-      setButtonState('idle');
-      return;
-    }
-  } catch (err) {
-    console.warn('오디오 duration 체크 실패:', err);
-    // duration 체크 실패해도 계속 진행
-  }
-
   try {
     let transcribedText = '';
 
