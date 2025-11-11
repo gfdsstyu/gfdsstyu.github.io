@@ -196,10 +196,12 @@ async function transcribeAudio() {
       console.log('Google STT result:', transcribedText);
     }
 
-    // 텍스트박스에 결과 삽입
+    // 텍스트박스에 결과 삽입 (기존 텍스트 뒤에 추가)
     const el = getElements();
     if (el.userAnswer) {
-      el.userAnswer.value = transcribedText;
+      const currentText = el.userAnswer.value.trim();
+      const newText = currentText ? `${currentText} ${transcribedText}` : transcribedText;
+      el.userAnswer.value = newText;
     }
 
     console.log('=== STT Transcription Success ===');

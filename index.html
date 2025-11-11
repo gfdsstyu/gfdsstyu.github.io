@@ -336,9 +336,13 @@
               단축키: Ctrl+←/→ 이전/다음 · Enter/G 채점 · H 힌트 · L 이전답안 · R 랜덤 · X 복습제외 · S 현황판 · Ctrl+[ 이전위치 · Ctrl+] 포커스
             </p>
 
-            <div class="flex justify-between items-center my-5">
-              <button id="prev-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600">이전</button>
-              <div class="flex items-center gap-2">
+            <!-- 모바일: 2줄, 데스크탑: 1줄 -->
+            <div class="flex flex-wrap justify-between items-center gap-3 my-5">
+              <!-- 1줄: 이전/다음 (모바일), 전체 (데스크탑) -->
+              <button id="prev-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600 order-1">이전</button>
+
+              <!-- 음성입력 + 채점 그룹: 모바일에서 2줄 중앙, 데스크탑에서 중간 -->
+              <div class="flex items-center gap-2 w-full sm:w-auto justify-center order-3 sm:order-2">
                 <button id="record-btn" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition flex items-center gap-2" data-state="idle">
                   <svg id="record-icon-mic" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 10-2 0 7.001 7.001 0 006 6.93V17H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.07z" clip-rule="evenodd" /></svg>
                   <span id="record-btn-text">음성 입력</span>
@@ -348,7 +352,8 @@
                   <div id="grade-loader" class="loader absolute inset-0 m-auto hidden" aria-hidden="true"></div>
                 </button>
               </div>
-              <button id="next-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600">다음</button>
+
+              <button id="next-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600 order-2 sm:order-3">다음</button>
             </div>
           </div>
 
