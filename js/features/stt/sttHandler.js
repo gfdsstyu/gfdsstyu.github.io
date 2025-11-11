@@ -214,6 +214,9 @@ async function transcribeAudio() {
     console.error('Error stack:', error.stack);
     console.error('Full error:', error);
 
+    // iOS 감지
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
     // 더 자세한 에러 메시지
     let userMessage = '음성 인식 실패';
 
@@ -222,7 +225,11 @@ async function transcribeAudio() {
     } else if (error.message.includes('API Key') || error.message.includes('401') || error.message.includes('403')) {
       userMessage = 'API 키 인증 실패: API 키를 확인해주세요.';
     } else if (error.message.includes('400')) {
-      userMessage = '잘못된 요청: 오디오 형식이나 API 파라미터를 확인해주세요.';
+      if (isIOS) {
+        userMessage = '⚠️ iOS에서 Google STT 호환성 문제가 발생했습니다.\n\n💡 해결 방법: 설정에서 "Web Speech API (무료, 실시간)" 옵션으로 변경해주세요.';
+      } else {
+        userMessage = '잘못된 요청: 오디오 형식이나 API 파라미터를 확인해주세요.';
+      }
     } else if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
       userMessage = 'API 서버 오류: 잠시 후 다시 시도해주세요.';
     }
@@ -290,17 +297,38 @@ async function handleRecordClick() {
         return;
       }
 
-      // 지원되는 MIME 타입 확인 (Google STT 호환성 고려)
-      // MP4 + Opus 조합은 Google STT가 지원 안 함 - WebM + Opus 사용
-      let mimeType = 'audio/webm;codecs=opus';
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'audio/webm';
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-          mimeType = ''; // 기본값 사용
+      // 지원되는 MIME 타입 확인
+      // iOS Safari: mp4를 선호, Chrome/Edge: webm을 선호
+      let mimeType = '';
+
+      // iOS 감지
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+      if (isIOS) {
+        // iOS: mp4를 먼저 시도
+        console.log('📱 iOS detected, trying MP4 format');
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+          // iOS는 때때로 video/mp4만 지원
+          mimeType = 'video/mp4';
+          console.warn('⚠️ iOS only supports video/mp4, audio will be extracted');
+        }
+      } else {
+        // 데스크탑/Android: webm 시도
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm';
         }
       }
 
-      console.log('🎙️ Using MIME type:', mimeType);
+      // 폴백: 브라우저 기본값
+      if (!mimeType) {
+        console.log('⚠️ No preferred MIME type supported, using browser default');
+      }
+
+      console.log('🎙️ Requesting MIME type:', mimeType || 'default');
 
       mediaRecorder = mimeType
         ? new MediaRecorder(stream, { mimeType })
