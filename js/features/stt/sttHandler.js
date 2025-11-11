@@ -230,15 +230,13 @@ async function handleRecordClick() {
         return;
       }
 
-      // 지원되는 MIME 타입 확인 (MP4 우선 - duration 메타데이터가 더 정확함)
-      let mimeType = 'audio/mp4';
+      // 지원되는 MIME 타입 확인 (Google STT 호환성 고려)
+      // MP4 + Opus 조합은 Google STT가 지원 안 함 - WebM + Opus 사용
+      let mimeType = 'audio/webm;codecs=opus';
       if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'audio/webm;codecs=opus';
+        mimeType = 'audio/webm';
         if (!MediaRecorder.isTypeSupported(mimeType)) {
-          mimeType = 'audio/webm';
-          if (!MediaRecorder.isTypeSupported(mimeType)) {
-            mimeType = ''; // 기본값 사용
-          }
+          mimeType = ''; // 기본값 사용
         }
       }
 
