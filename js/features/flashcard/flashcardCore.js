@@ -14,6 +14,7 @@ import { displayQuestion } from '../../features/quiz/quizCore.js';
 // Module state
 let flashcardData = [];
 let flashcardIndex = 0;
+let flashcardQuestionVisible = false;
 let flashcardAnswerVisible = false;
 
 /**
@@ -44,6 +45,7 @@ export function startFlashcardMode() {
   flashcardIndex = (window.currentQuizData && window.currentQuizData.length > 0 && window.currentQuestionIndex >= 0)
     ? window.currentQuestionIndex
     : 0;
+  flashcardQuestionVisible = false;
   flashcardAnswerVisible = false;
   window.isFlashcardMode = true;
 
@@ -112,7 +114,8 @@ export function displayFlashcard() {
     el.flashcardCounter.textContent = `${flashcardIndex + 1} / ${flashcardData.length}`;
   }
 
-  // Reset answer visibility
+  // Reset visibility (question and answer both hidden by default)
+  hideFlashcardQuestion();
   hideFlashcardAnswer();
 
   // Update button states
@@ -128,6 +131,39 @@ export function displayFlashcard() {
 
   // Update problem list highlight
   updateSummaryHighlight();
+}
+
+/**
+ * 물음 표시/숨기기 토글
+ */
+export function toggleFlashcardQuestion() {
+  if (flashcardQuestionVisible) {
+    hideFlashcardQuestion();
+  } else {
+    showFlashcardQuestion();
+  }
+}
+
+/**
+ * 물음 표시
+ */
+export function showFlashcardQuestion() {
+  flashcardQuestionVisible = true;
+  el.flashcardQuestionBox?.classList.remove('hidden');
+  if (el.flashcardQuestionArrow) {
+    el.flashcardQuestionArrow.textContent = '▼';
+  }
+}
+
+/**
+ * 물음 숨기기
+ */
+export function hideFlashcardQuestion() {
+  flashcardQuestionVisible = false;
+  el.flashcardQuestionBox?.classList.add('hidden');
+  if (el.flashcardQuestionArrow) {
+    el.flashcardQuestionArrow.textContent = '▶';
+  }
 }
 
 /**
@@ -249,6 +285,7 @@ export function exitFlashcardMode() {
   el.summaryArea?.classList.remove('hidden');
   flashcardData = [];
   flashcardIndex = 0;
+  flashcardQuestionVisible = false;
   flashcardAnswerVisible = false;
   window.isFlashcardMode = false;
 
@@ -271,6 +308,7 @@ export function exitFlashcardMode() {
 export function initFlashcardListeners() {
   // Button event listeners
   el.flashcardModeBtn?.addEventListener('click', startFlashcardMode);
+  el.flashcardToggleQuestion?.addEventListener('click', toggleFlashcardQuestion);
   el.flashcardToggleAnswer?.addEventListener('click', toggleFlashcardAnswer);
   el.flashcardPrevBtn?.addEventListener('click', flashcardPrev);
   el.flashcardNextBtn?.addEventListener('click', flashcardNext);
@@ -290,6 +328,9 @@ export function initFlashcardListeners() {
       } else if (e.key === ' ' && !isEditing(e.target)) {
         e.preventDefault();
         toggleFlashcardAnswer();
+      } else if (e.key.toLowerCase() === 'q' && !isEditing(e.target)) {
+        e.preventDefault();
+        toggleFlashcardQuestion();
       } else if (e.key === 'Escape') {
         exitFlashcardMode();
       }
