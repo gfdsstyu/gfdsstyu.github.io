@@ -225,11 +225,7 @@ async function transcribeAudio() {
     } else if (error.message.includes('API Key') || error.message.includes('401') || error.message.includes('403')) {
       userMessage = 'API 키 인증 실패: API 키를 확인해주세요.';
     } else if (error.message.includes('400')) {
-      if (isIOS) {
-        userMessage = '⚠️ iOS에서 Google STT 호환성 문제가 발생했습니다.\n\n💡 해결 방법: 설정에서 "Web Speech API (무료, 실시간)" 옵션으로 변경해주세요.';
-      } else {
-        userMessage = '잘못된 요청: 오디오 형식이나 API 파라미터를 확인해주세요.';
-      }
+      userMessage = '잘못된 요청: 오디오 형식이나 API 파라미터를 확인해주세요.';
     } else if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
       userMessage = 'API 서버 오류: 잠시 후 다시 시도해주세요.';
     }
@@ -254,26 +250,6 @@ async function handleRecordClick() {
   // Web Speech API 모드
   if (provider === 'webspeech') {
     handleWebSpeechRecording();
-    return;
-  }
-
-  // iOS에서 Google STT 시도 시 Web Speech API 권장
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  if (provider === 'google' && isIOS) {
-    const confirmSwitch = confirm(
-      '⚠️ iOS에서는 Google STT가 제한적으로 작동합니다.\n\n' +
-      '💡 "Web Speech API (무료, 실시간)"를 사용하시는 것을 강력히 권장합니다.\n\n' +
-      '✅ Web Speech API 장점:\n' +
-      '- iOS 완벽 지원\n' +
-      '- 실시간 인식\n' +
-      '- 처리 시간 0초\n' +
-      '- 완전 무료\n\n' +
-      '설정 화면으로 이동하시겠습니까?'
-    );
-
-    if (confirmSwitch && typeof window.openSettingsModal === 'function') {
-      window.openSettingsModal();
-    }
     return;
   }
 
