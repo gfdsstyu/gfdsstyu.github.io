@@ -1,45 +1,93 @@
-import { getElements, getSttProvider, getGoogleSttKey, getClovaSttKey, getClovaSttInvokeUrl } from '../../core/stateManager.js';
+import { getElements, getSttProvider, getGoogleSttKey } from '../../core/stateManager.js';
 import { showToast } from '../../ui/domUtils.js';
 import { getBoostKeywords } from './sttVocabulary.js';
-// [수정] transcribeGoogleLong 제거
 import { transcribeGoogle } from '../../services/googleSttApi.js';
-import { transcribeClova } from '../../services/clovaSttApi.js';
 
 let mediaRecorder;
 let audioChunks = [];
 let isRecording = false;
-let recordingStartTime = 0;
-let recordTimerInterval = null; 
-let forceStopTimer = null;      
-let currentMimeType = ''; // [신규] 현재 사용 중인 MIME 타입 저장
+let recordingTimer = null; // 1초마다 UI 업데이트용 interval
+let recordingTimeout = null; // 60초 자동 중지용 timeout
+let recordingSeconds = 0; // 현재 녹음 시간 (초)
 
-// ... (SVG 아이콘 정의는 그대로) ...
+// 마이크 아이콘 (SVG Path)
+const micIcon = '<svg id="record-icon-mic" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 10-2 0 7.001 7.001 0 006 6.93V17H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.07z" clip-rule="evenodd" /></svg>';
+// 정지 아이콘 (SVG Path)
+const stopIcon = '<svg id="record-icon-stop" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1zm0 4a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>';
+
+/**
+ * 시간을 MM:SS 형식으로 포맷
+ * @param {number} seconds - 초
+ * @returns {string} "0:05", "1:23" 형식
+ */
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+/**
+ * 녹음 UI 타이머 업데이트 (1초마다 호출됨)
+ */
+function updateRecordingTimer() {
+  recordingSeconds++;
+  const el = getElements();
+  if (el && el.recordBtn) {
+    const timeText = formatTime(recordingSeconds);
+    el.recordBtn.innerHTML = `${stopIcon} <span id="record-btn-text">녹음 중지 (${timeText})</span>`;
+  }
+}
+
+/**
+ * 타이머 정리 (녹음 중지 시 호출)
+ */
+function clearRecordingTimers() {
+  if (recordingTimer) {
+    clearInterval(recordingTimer);
+    recordingTimer = null;
+  }
+  if (recordingTimeout) {
+    clearTimeout(recordingTimeout);
+    recordingTimeout = null;
+  }
+  recordingSeconds = 0;
+}
+
+/**
+ * 녹음 중지 처리 (사용자가 직접 중지하거나 60초 자동 중지)
+ */
+function stopRecording() {
+  if (mediaRecorder && isRecording) {
+    mediaRecorder.stop();
+    isRecording = false;
+    clearRecordingTimers();
+    // onstop 이벤트 핸들러가 transcribeAudio()를 자동 호출
+  }
+}
 
 /**
  * 버튼 UI 상태 업데이트
- * @param {'idle' | 'recording' | 'processing'} state 
- * @param {number} time - 녹음 시간(초)
+ * @param {'idle' | 'recording' | 'processing'} state
  */
-function setButtonState(state, time = 0) {
+function setButtonState(state) {
   const el = getElements();
   if (!el || !el.recordBtn) return;
+
   el.recordBtn.disabled = (state === 'processing');
-  
+
   switch (state) {
     case 'recording':
       el.recordBtn.classList.add('bg-red-600', 'hover:bg-red-700');
       el.recordBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-      const timeStr = `0:${String(time).padStart(2, '0')}`;
-      el.recordBtn.innerHTML = `${stopIcon} <span id="record-btn-text">녹음 중지 (${timeStr})</span>`;
+      el.recordBtn.innerHTML = `${stopIcon} <span id="record-btn-text">녹음 중지 (${formatTime(recordingSeconds)})</span>`;
       break;
     case 'processing':
-      // ... (processing 상태 UI)
       el.recordBtn.classList.remove('bg-red-600', 'hover:bg-red-700', 'bg-blue-600', 'hover:bg-blue-700');
       el.recordBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
       el.recordBtn.innerHTML = `${micIcon} <span id="record-btn-text">처리 중...</span>`;
       break;
-    default: // 'idle'
-      // ... (idle 상태 UI)
+    case 'idle':
+    default:
       el.recordBtn.classList.remove('bg-red-600', 'hover:bg-red-700', 'bg-gray-400', 'cursor-not-allowed');
       el.recordBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
       el.recordBtn.innerHTML = `${micIcon} <span id="record-btn-text">음성 입력</span>`;
@@ -51,179 +99,217 @@ function setButtonState(state, time = 0) {
  * 녹음 완료 후 오디오 변환
  */
 async function transcribeAudio() {
-  const durationInSeconds = (Date.now() - recordingStartTime) / 1000;
-
-  // [핵심] 55초 제한 (API의 60초 제한보다 5초 여유)
-  if (durationInSeconds > 55) { 
-    showToast(`녹음 시간이 55초를 초과했습니다. (${durationInSeconds.toFixed(0)}초) 55초 이내로 다시 시도해주세요.`, 'error');
-    setButtonState('idle');
-    audioChunks = []; // 데이터 비우기
-    return; // API 호출 중단
-  }
-  
   setButtonState('processing');
   const provider = getSttProvider();
-  const keywords = getBoostKeywords(); 
-  
-  // 현재 MIME 타입으로 Blob 생성
-  const audioBlob = new Blob(audioChunks, { type: currentMimeType }); 
-  
+  const keywords = getBoostKeywords(); // Task 3에서 생성된 키워드 가져오기
+  const audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' }); // 오디오 형식 지정
+
   console.log('=== STT Transcription Start ===');
-  console.log(`Provider: ${provider}`);
-  console.log(`Audio blob size: ${audioBlob.size} bytes`);
-  console.log(`Audio blob type: ${audioBlob.type}`); // 실제 생성된 타입 로깅
-  console.log(`Keywords count: ${keywords.length}`);
-  console.log(`Actual audio duration: ${durationInSeconds.toFixed(2)} seconds`);
+  console.log('Provider:', provider);
+  console.log('Audio blob size:', audioBlob.size, 'bytes');
+  console.log('Audio blob type:', audioBlob.type);
+  console.log('Keywords count:', keywords.length);
+
+  // 오디오 duration 체크 (디버깅용)
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    const duration = audioBuffer.duration;
+    console.log('⏱️ Actual audio duration:', duration.toFixed(2), 'seconds');
+
+    if (duration > 60) {
+      console.warn('⚠️ Audio duration exceeds 60 seconds!', duration);
+      showToast(`경고: 오디오 길이가 ${duration.toFixed(1)}초로 API 제한(60초)을 초과합니다.`, 'error');
+      setButtonState('idle');
+      return;
+    }
+  } catch (err) {
+    console.warn('오디오 duration 체크 실패:', err);
+    // duration 체크 실패해도 계속 진행
+  }
 
   try {
     let transcribedText = '';
-    
+
     if (provider === 'google') {
       const apiKey = getGoogleSttKey();
-      console.log(`Google API key length: ${apiKey.length}`);
+      console.log('Google API key length:', apiKey.length);
       console.log('Calling Google STT API...');
-      
-      // [수정] MIME 타입 파라미터 제거 (API가 자동 감지하도록)
-      transcribedText = await transcribeGoogle(audioBlob, apiKey, keywords); 
-
-    } else if (provider === 'clova') {
-      // ... (Clova 로직) ...
+      transcribedText = await transcribeGoogle(audioBlob, apiKey, keywords);
+      console.log('Google STT result:', transcribedText);
     }
-    
+
+    // 텍스트박스에 결과 삽입
     const el = getElements();
     if (el.userAnswer) {
       el.userAnswer.value = transcribedText;
     }
-    showToast('음성 인식 완료');
+
     console.log('=== STT Transcription Success ===');
-    console.log(`Result: ${transcribedText.substring(0, 50)}...`);
+    showToast('음성 인식 완료');
 
   } catch (error) {
     console.error('=== STT Transcription Error ===');
-    console.error(`Error name: ${error.name}`);
-    console.error(`Error message: ${error.message}`);
-    console.error(`Error stack: ${error.stack}`);
-    console.error(`Full error:`, error);
-    
-    let userMessage = `음성 인식 실패: ${error.message}`;
-    if (error.message.includes('400')) {
-        userMessage = 'Google STT Error (400): 잘못된 요청 (오디오 형식 또는 API 키 제한 확인)';
-    } else if (error.message.includes('401') || error.message.includes('403')) {
-        userMessage = 'Google STT Error: API 키 인증 실패 (키를 확인하세요)';
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Full error:', error);
+
+    // 더 자세한 에러 메시지
+    let userMessage = '음성 인식 실패';
+
+    if (error.message.includes('fetch')) {
+      userMessage = 'API 호출 실패: 네트워크 또는 CORS 문제일 수 있습니다.';
+    } else if (error.message.includes('API Key') || error.message.includes('401') || error.message.includes('403')) {
+      userMessage = 'API 키 인증 실패: API 키를 확인해주세요.';
+    } else if (error.message.includes('400')) {
+      userMessage = '잘못된 요청: 오디오 형식이나 API 파라미터를 확인해주세요.';
+    } else if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
+      userMessage = 'API 서버 오류: 잠시 후 다시 시도해주세요.';
     }
-    showToast(userMessage, 'error');
+
+    const debugInfo = `\n\n[디버그]\nProvider: ${provider}\nError: ${error.name}\nMessage: ${error.message}`;
+    showToast(userMessage + debugInfo, 'error');
   } finally {
     setButtonState('idle');
   }
 }
 
 /**
- * 모든 타이머 정리
- */
-function clearAllTimers() {
-  if (recordTimerInterval) {
-    clearInterval(recordTimerInterval);
-    recordTimerInterval = null;
-  }
-  if (forceStopTimer) {
-    clearTimeout(forceStopTimer);
-    forceStopTimer = null;
-  }
-}
-
-/**
- * MediaRecorder 중지 시 호출되는 공통 핸들러
- */
-function onRecordStop() {
-  const durationInSeconds = (Date.now() - recordingStartTime) / 1000;
-  console.log(`[STT] Recording stopped, total duration: ${durationInSeconds.toFixed(1)}s`);
-
-  clearAllTimers();
-  isRecording = false;
-
-  // [수정] 55초 제한으로 변경
-  if (durationInSeconds > 55.5) { // 0.5초 버퍼
-    showToast(`녹음이 55초에 도달하여 자동 중지되었습니다. 55초 이내로 다시 시도해주세요.`, 'warn');
-    setButtonState('idle');
-    audioChunks = []; // 데이터 비우기
-    return;
-  }
-  
-  transcribeAudio();
-}
-
-/**
  * 마이크 버튼 클릭 핸들러
  */
 async function handleRecordClick() {
-  // ... (API 키 확인 로직은 동일) ...
+  const provider = getSttProvider();
+  if (provider === 'none') {
+    showToast('음성 입력 기능을 사용하려면 설정에서 STT 공급자를 선택하세요.', 'warn');
+    return;
+  }
+
+  // API 키 확인
+  const googleKey = getGoogleSttKey();
+
+  if (provider === 'google' && !googleKey) {
+    showToast('STT API 키를 설정에서 입력해주세요.', 'warn');
+    if (typeof window.openSettingsModal === 'function') {
+      window.openSettingsModal(); // 설정 모달 열기
+    }
+    return;
+  }
 
   if (isRecording) {
-    // [수동 중지]
-    console.log('[STT] Manual stop.');
-    mediaRecorder.stop(); // onRecordStop()이 자동으로 호출됨
+    // 녹음 중지 (사용자가 직접 중지)
+    stopRecording();
   } else {
-    // [녹음 시작]
+    // 녹음 시작
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // [핵심 수정 1] audio/mp4를 최우선으로 시도
-      const mimeTypes = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'];
-      const bestMimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type));
-
-      if (!bestMimeType) {
-          showToast('브라우저가 지원하는 녹음 형식을 찾을 수 없습니다.', 'error');
-          return;
+      // HTTPS 체크 (localhost는 예외)
+      const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      if (!isSecure) {
+        showToast('음성 입력은 HTTPS 환경에서만 사용 가능합니다.', 'error');
+        console.error('getUserMedia requires HTTPS');
+        return;
       }
-      
-      currentMimeType = bestMimeType; // MIME 타입 저장
-      console.log(`[STT] Recording started. Using MIME type: ${currentMimeType}`);
-      
-      mediaRecorder = new MediaRecorder(stream, { mimeType: currentMimeType });
+
+      // MediaDevices API 지원 체크
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showToast('이 브라우저는 음성 입력을 지원하지 않습니다.', 'error');
+        console.error('MediaDevices API not supported');
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // MediaRecorder 지원 체크
+      if (!window.MediaRecorder) {
+        showToast('이 브라우저는 음성 녹음을 지원하지 않습니다.', 'error');
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+
+      // 지원되는 MIME 타입 확인
+      let mimeType = 'audio/webm;codecs=opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'audio/webm';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/mp4';
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = ''; // 기본값 사용
+          }
+        }
+      }
+
+      mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
       audioChunks = [];
 
       mediaRecorder.ondataavailable = (e) => {
-          // [핵심 수정 2] timeslice를 제거했으므로 이 이벤트는 onstop 직전에 한 번만 호출됨
-          console.log(`[STT] Data available: ${e.data.size} bytes. (Fires once on stop)`);
+        if (e.data.size > 0) {
           audioChunks.push(e.data);
+          console.log('📦 Chunk received:', e.data.size, 'bytes, total chunks:', audioChunks.length);
+        }
       };
-      mediaRecorder.onstop = onRecordStop; 
 
-      // [핵심 수정 3] start()에서 timeslice 파라미터(1000)를 제거
-      mediaRecorder.start(); 
-      
-      recordingStartTime = Date.now();
+      mediaRecorder.onstop = () => {
+        // 스트림 정리
+        stream.getTracks().forEach(track => track.stop());
+        clearRecordingTimers(); // 타이머 정리
+        console.log('🛑 Recording stopped, total chunks:', audioChunks.length);
+        transcribeAudio();
+      };
+
+      // timeslice 1초로 설정 - 정확한 시간 제어를 위함
+      mediaRecorder.start(1000);
       isRecording = true;
+      recordingSeconds = 0; // 타이머 초기화
+      setButtonState('recording');
 
-      // 55초 강제 중지 타이머 (그대로 유지)
-      forceStopTimer = setTimeout(() => {
-        if (isRecording) {
-          console.log('[STT] 55s timer triggered. Forcing stop.');
-          mediaRecorder.stop();
-        }
-      }, 55000); // 55초
+      // 1초마다 UI 업데이트 (타이머 표시)
+      recordingTimer = setInterval(updateRecordingTimer, 1000);
 
-      // 1초 UI 업데이트 타이머 (그대로 유지)
-      let seconds = 0;
-      setButtonState('recording', seconds);
-      recordTimerInterval = setInterval(() => {
-        seconds++;
-        if (isRecording) {
-          if (seconds < 56) { // 55초까지 표시
-            setButtonState('recording', seconds);
-          }
-        } else {
-          clearInterval(recordTimerInterval);
-        }
-      }, 1000);
+      // 55초 후 자동 중지 (API 제약으로 인한 필수 기능 - 60초 초과 시 오류)
+      recordingTimeout = setTimeout(() => {
+        console.log('⏱️ 55초 자동 중지 (API 제한 대비)');
+        showToast('최대 녹음 시간에 도달하여 자동으로 중지되었습니다.', 'warn');
+        stopRecording();
+      }, 55000); // 55초 = 55000ms (encoding 제거 후 정확한 duration 계산 가능)
 
     } catch (err) {
-      // ... (기존 에러 처리 로직) ...
       console.error('마이크 접근 실패:', err);
-      // ... (더 상세한 에러 메시지)
-      showToast(`마이크 접근 실패: ${err.message}`, 'error');
+      console.error('Error name:', err.name);
+      console.error('Error message:', err.message);
+      console.error('User agent:', navigator.userAgent);
+
+      let errorMessage = '마이크 접근에 실패했습니다.';
+
+      // iOS Chrome 특별 처리
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isChrome = /CriOS/.test(navigator.userAgent);
+
+      if (isIOS && isChrome) {
+        errorMessage = 'iOS Chrome에서는 음성 입력이 제한될 수 있습니다. Safari 브라우저를 사용해주세요.';
+        console.warn('iOS Chrome detected - getUserMedia may be limited');
+      } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorMessage = '마이크 권한이 거부되었습니다. 브라우저 설정에서 마이크 권한을 허용해주세요.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errorMessage = '마이크를 찾을 수 없습니다. 마이크가 연결되어 있는지 확인해주세요.';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errorMessage = '마이크가 다른 앱에서 사용 중입니다. 다른 앱을 종료하고 다시 시도해주세요.';
+      } else if (err.name === 'OverconstrainedError' || err.name === 'ConstraintNotSatisfiedError') {
+        errorMessage = '마이크 설정이 지원되지 않습니다.';
+      } else if (err.name === 'TypeError') {
+        errorMessage = 'HTTPS 환경이 필요합니다. (http://에서는 사용 불가)';
+      } else if (err.name === 'SecurityError') {
+        errorMessage = '보안 정책으로 인해 마이크 접근이 차단되었습니다.';
+      }
+
+      // 상세 에러 정보를 토스트에 포함 (디버깅용)
+      const debugInfo = `\n(디버그: ${err.name} - ${err.message})`;
+      showToast(errorMessage + debugInfo, 'error');
+      clearRecordingTimers(); // 에러 발생 시 타이머 정리
       setButtonState('idle');
-      clearAllTimers();
     }
   }
 }
@@ -234,5 +320,5 @@ async function handleRecordClick() {
 export function initSttListeners() {
   const el = getElements();
   el.recordBtn?.addEventListener('click', handleRecordClick);
-  console.log('✅ STT 이벤트 리스너 초기화 완료 (55초 제한, MP4 우선, Timeslice 제거)');
+  console.log('✅ STT 이벤트 리스너 초기화 완료');
 }
