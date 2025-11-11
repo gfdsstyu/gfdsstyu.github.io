@@ -31,18 +31,16 @@ export async function transcribeGoogle(audioBlob, apiKey, boostKeywords) {
     }]
   };
 
-  // MP4 코덱에 따라 encoding 결정
-  if (audioBlob.type.includes('mp4')) {
-    if (audioBlob.type.includes('opus')) {
-      // MP4 + Opus는 encoding 없이 자동 감지
-      console.log('[Google STT] MP4 with Opus codec, using auto-detection');
-    } else {
-      // MP4 + AAC/MP3
-      config.encoding = 'MP3';
-      console.log('[Google STT] MP4 format detected, using MP3 encoding');
-    }
-  } else {
+  // Opus 코덱 처리
+  if (audioBlob.type.includes('opus')) {
+    // MP4 + Opus는 공식 지원 안 하지만 OGG_OPUS로 시도
+    config.encoding = 'OGG_OPUS';
+    console.log('[Google STT] Opus codec detected, using OGG_OPUS encoding');
+  } else if (audioBlob.type.includes('webm')) {
+    // WebM (Opus 아닌 경우) - 자동 감지
     console.log('[Google STT] WebM format, using auto-detection');
+  } else {
+    console.log('[Google STT] Unknown format:', audioBlob.type, '- using auto-detection');
   }
 
   const body = {
