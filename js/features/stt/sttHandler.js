@@ -110,6 +110,25 @@ async function transcribeAudio() {
   console.log('Audio blob type:', audioBlob.type);
   console.log('Keywords count:', keywords.length);
 
+  // 오디오 duration 체크 (디버깅용)
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    const duration = audioBuffer.duration;
+    console.log('⏱️ Actual audio duration:', duration.toFixed(2), 'seconds');
+
+    if (duration > 60) {
+      console.warn('⚠️ Audio duration exceeds 60 seconds!', duration);
+      showToast(`경고: 오디오 길이가 ${duration.toFixed(1)}초로 API 제한(60초)을 초과합니다.`, 'error');
+      setButtonState('idle');
+      return;
+    }
+  } catch (err) {
+    console.warn('오디오 duration 체크 실패:', err);
+    // duration 체크 실패해도 계속 진행
+  }
+
   try {
     let transcribedText = '';
 
@@ -242,12 +261,12 @@ async function handleRecordClick() {
       // 1초마다 UI 업데이트 (타이머 표시)
       recordingTimer = setInterval(updateRecordingTimer, 1000);
 
-      // 45초 후 자동 중지 (API 제약으로 인한 필수 기능 - 60초 초과 시 오류)
+      // 30초 후 자동 중지 (API 제약으로 인한 필수 기능 - 60초 초과 시 오류)
       recordingTimeout = setTimeout(() => {
-        console.log('⏱️ 45초 자동 중지 (API 제한 대비)');
+        console.log('⏱️ 30초 자동 중지 (API 제한 대비)');
         showToast('최대 녹음 시간에 도달하여 자동으로 중지되었습니다.', 'warn');
         stopRecording();
-      }, 45000); // 45초 = 45000ms (안전 마진 15초 확보, MediaRecorder finalize 시간 고려)
+      }, 30000); // 30초 = 30000ms (안전 마진 30초 확보)
 
     } catch (err) {
       console.error('마이크 접근 실패:', err);
