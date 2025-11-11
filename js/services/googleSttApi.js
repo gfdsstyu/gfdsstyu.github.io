@@ -22,18 +22,10 @@ export async function transcribeGoogle(audioBlob, apiKey, boostKeywords) {
 
   console.log('[Google STT] Base64 인코딩 완료, length:', base64Audio.length);
 
-  // encoding 타입 결정
-  let encoding = 'WEBM_OPUS';
-  if (audioBlob.type.includes('mp4')) {
-    encoding = 'MP4';
-  } else if (audioBlob.type.includes('webm')) {
-    encoding = 'WEBM_OPUS';
-  }
-
   const body = {
     config: {
-      encoding: encoding,
-      // sampleRateHertz 제거 - Google이 자동 감지하도록 함
+      // encoding, sampleRateHertz 모두 제거 - Google이 완전히 자동 감지
+      // 명시적으로 지정하면 Google이 duration을 잘못 계산하는 버그 있음
       languageCode: 'ko-KR',
       speechContexts: [{
         phrases: boostKeywords,
