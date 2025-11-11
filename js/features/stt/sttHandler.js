@@ -6,11 +6,64 @@ import { transcribeGoogle } from '../../services/googleSttApi.js';
 let mediaRecorder;
 let audioChunks = [];
 let isRecording = false;
+let recordingTimer = null; // 1초마다 UI 업데이트용 interval
+let recordingTimeout = null; // 60초 자동 중지용 timeout
+let recordingSeconds = 0; // 현재 녹음 시간 (초)
 
 // 마이크 아이콘 (SVG Path)
 const micIcon = '<svg id="record-icon-mic" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 10-2 0 7.001 7.001 0 006 6.93V17H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.07z" clip-rule="evenodd" /></svg>';
 // 정지 아이콘 (SVG Path)
 const stopIcon = '<svg id="record-icon-stop" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1zm0 4a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>';
+
+/**
+ * 시간을 MM:SS 형식으로 포맷
+ * @param {number} seconds - 초
+ * @returns {string} "0:05", "1:23" 형식
+ */
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+/**
+ * 녹음 UI 타이머 업데이트 (1초마다 호출됨)
+ */
+function updateRecordingTimer() {
+  recordingSeconds++;
+  const el = getElements();
+  if (el && el.recordBtn) {
+    const timeText = formatTime(recordingSeconds);
+    el.recordBtn.innerHTML = `${stopIcon} <span id="record-btn-text">녹음 중지 (${timeText})</span>`;
+  }
+}
+
+/**
+ * 타이머 정리 (녹음 중지 시 호출)
+ */
+function clearRecordingTimers() {
+  if (recordingTimer) {
+    clearInterval(recordingTimer);
+    recordingTimer = null;
+  }
+  if (recordingTimeout) {
+    clearTimeout(recordingTimeout);
+    recordingTimeout = null;
+  }
+  recordingSeconds = 0;
+}
+
+/**
+ * 녹음 중지 처리 (사용자가 직접 중지하거나 60초 자동 중지)
+ */
+function stopRecording() {
+  if (mediaRecorder && isRecording) {
+    mediaRecorder.stop();
+    isRecording = false;
+    clearRecordingTimers();
+    // onstop 이벤트 핸들러가 transcribeAudio()를 자동 호출
+  }
+}
 
 /**
  * 버튼 UI 상태 업데이트
@@ -26,7 +79,7 @@ function setButtonState(state) {
     case 'recording':
       el.recordBtn.classList.add('bg-red-600', 'hover:bg-red-700');
       el.recordBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-      el.recordBtn.innerHTML = `${stopIcon} <span id="record-btn-text">녹음 중지</span>`;
+      el.recordBtn.innerHTML = `${stopIcon} <span id="record-btn-text">녹음 중지 (${formatTime(recordingSeconds)})</span>`;
       break;
     case 'processing':
       el.recordBtn.classList.remove('bg-red-600', 'hover:bg-red-700', 'bg-blue-600', 'hover:bg-blue-700');
@@ -126,10 +179,8 @@ async function handleRecordClick() {
   }
 
   if (isRecording) {
-    // 녹음 중지
-    mediaRecorder.stop();
-    isRecording = false;
-    // onstop 이벤트 핸들러가 transcribeAudio()를 자동 호출
+    // 녹음 중지 (사용자가 직접 중지)
+    stopRecording();
   } else {
     // 녹음 시작
     try {
@@ -179,12 +230,24 @@ async function handleRecordClick() {
       mediaRecorder.onstop = () => {
         // 스트림 정리
         stream.getTracks().forEach(track => track.stop());
+        clearRecordingTimers(); // 타이머 정리
         transcribeAudio();
       };
 
       mediaRecorder.start();
       isRecording = true;
+      recordingSeconds = 0; // 타이머 초기화
       setButtonState('recording');
+
+      // 1초마다 UI 업데이트 (타이머 표시)
+      recordingTimer = setInterval(updateRecordingTimer, 1000);
+
+      // 60초 후 자동 중지 (API 제약으로 인한 필수 기능)
+      recordingTimeout = setTimeout(() => {
+        console.log('⏱️ 60초 자동 중지');
+        showToast('최대 녹음 시간(60초)에 도달하여 자동으로 중지되었습니다.', 'warn');
+        stopRecording();
+      }, 60000); // 60초 = 60000ms
 
     } catch (err) {
       console.error('마이크 접근 실패:', err);
@@ -218,6 +281,7 @@ async function handleRecordClick() {
       // 상세 에러 정보를 토스트에 포함 (디버깅용)
       const debugInfo = `\n(디버그: ${err.name} - ${err.message})`;
       showToast(errorMessage + debugInfo, 'error');
+      clearRecordingTimers(); // 에러 발생 시 타이머 정리
       setButtonState('idle');
     }
   }

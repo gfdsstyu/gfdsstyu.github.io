@@ -433,12 +433,6 @@
               <button id="load-prev-answer-btn" class="text-xs text-blue-600 hover:underline">이전 답안 불러오기</button>
             </div>
             <textarea id="user-answer" name="user-answer" class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=포커스/현황판)"></textarea>
-            <div class="mt-3 flex justify-end">
-              <button id="record-btn" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition flex items-center gap-2" data-state="idle">
-                <svg id="record-icon-mic" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 10-2 0 7.001 7.001 0 006 6.93V17H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.07z" clip-rule="evenodd" /></svg>
-                <span id="record-btn-text">음성 입력</span>
-              </button>
-            </div>
             <p id="error-message" class="text-red-500 text-sm mt-2 hidden">답안을 입력해주세요.</p>
             <p id="hotkey-guide" class="text-xs text-gray-500 mt-2">
               단축키: Ctrl+←/→ 이전/다음 · Enter/G 채점 · H 힌트 · L 이전답안 · R 랜덤 · X 복습제외 · S 현황판 · Ctrl+[ 이전위치 · Ctrl+] 포커스
@@ -446,10 +440,16 @@
 
             <div class="flex justify-between items-center my-5">
               <button id="prev-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600">이전</button>
-              <button id="grade-btn" class="bg-green-500 text-white font-bold py-2 px-8 rounded-lg shadow-md hover:bg-green-600 transition duration-200 relative min-w-[120px]">
-                <span id="grade-btn-text">채점하기</span>
-                <div id="grade-loader" class="loader absolute inset-0 m-auto hidden" aria-hidden="true"></div>
-              </button>
+              <div class="flex items-center gap-2">
+                <button id="record-btn" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition flex items-center gap-2" data-state="idle">
+                  <svg id="record-icon-mic" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 10-2 0 7.001 7.001 0 006 6.93V17H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.07z" clip-rule="evenodd" /></svg>
+                  <span id="record-btn-text">음성 입력</span>
+                </button>
+                <button id="grade-btn" class="bg-green-500 text-white font-bold py-2 px-8 rounded-lg shadow-md hover:bg-green-600 transition duration-200 relative min-w-[120px]">
+                  <span id="grade-btn-text">채점하기</span>
+                  <div id="grade-loader" class="loader absolute inset-0 m-auto hidden" aria-hidden="true"></div>
+                </button>
+              </div>
               <button id="next-btn" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg shadow-sm hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600">다음</button>
             </div>
           </div>
