@@ -35,7 +35,8 @@ function updateRecordingTimer() {
   const el = getElements();
   if (el && el.recordBtn) {
     const timeText = formatTime(recordingSeconds);
-    el.recordBtn.innerHTML = `${stopIcon} <span id="record-btn-text">녹음 중지 (${timeText})</span>`;
+    el.recordBtn.innerHTML = `${stopIcon} <span id="record-btn-text" class="ml-1.5">${timeText}</span>`;
+    el.recordBtn.title = `녹음 중지 (${timeText})`;
   }
 }
 
@@ -151,18 +152,21 @@ function setButtonState(state) {
     case 'recording':
       el.recordBtn.classList.add('bg-red-600', 'hover:bg-red-700');
       el.recordBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-      el.recordBtn.innerHTML = `${stopIcon} <span id="record-btn-text">녹음 중지 (${formatTime(recordingSeconds)})</span>`;
+      el.recordBtn.innerHTML = `${stopIcon} <span id="record-btn-text" class="ml-1.5">${formatTime(recordingSeconds)}</span>`;
+      el.recordBtn.title = `녹음 중지 (${formatTime(recordingSeconds)})`;
       break;
     case 'processing':
       el.recordBtn.classList.remove('bg-red-600', 'hover:bg-red-700', 'bg-blue-600', 'hover:bg-blue-700');
       el.recordBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
-      el.recordBtn.innerHTML = `${micIcon} <span id="record-btn-text">처리 중...</span>`;
+      el.recordBtn.innerHTML = `${micIcon} <span id="record-btn-text" class="ml-1.5">처리중</span>`;
+      el.recordBtn.title = '처리 중...';
       break;
     case 'idle':
     default:
       el.recordBtn.classList.remove('bg-red-600', 'hover:bg-red-700', 'bg-gray-400', 'cursor-not-allowed');
       el.recordBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-      el.recordBtn.innerHTML = `${micIcon} <span id="record-btn-text">음성 입력</span>`;
+      el.recordBtn.innerHTML = `${micIcon} <span id="record-btn-text" class="sr-only">음성 입력</span>`;
+      el.recordBtn.title = '음성 입력 (STT)';
       break;
   }
 }
