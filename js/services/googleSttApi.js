@@ -6,88 +6,58 @@
  * @returns {Promise<string>} 인식된 텍스트
  */
 export async function transcribeGoogle(audioBlob, apiKey, boostKeywords) {
-  
   const API_URL = `https://speech.googleapis.com/v1/speech:recognize?key=${apiKey}`;
-  
+
   console.log('[Google STT] API 호출 시작');
-  console.log(`[Google STT] Audio size: ${audioBlob.size} bytes`);
-  console.log(`[Google STT] Audio type: ${audioBlob.type}`);
+  console.log('[Google STT] Audio size:', audioBlob.size, 'bytes');
+  console.log('[Google STT] Audio type:', audioBlob.type);
 
   // Blob을 Base64 문자열로 변환
   const reader = new FileReader();
   const base64Audio = await new Promise((resolve, reject) => {
-    reader.onloadend = () => {
-      const result = reader.result;
-      console.log(`[Google STT] Base64 인코딩 완료, length: ${result.length}`);
-      resolve(result.split(',')[1]); 
-    };
+    reader.onloadend = () => resolve(reader.result.split(',')[1]); // Base64 데이터만 추출
     reader.onerror = reject;
     reader.readAsDataURL(audioBlob);
   });
 
+  console.log('[Google STT] Base64 인코딩 완료, length:', base64Audio.length);
+
   const body = {
     config: {
-      // [핵심 수정] encoding과 sampleRateHertz를 제거하고 자동 감지 사용
-      // encoding: 'WEBM_OPUS',  // <-- 삭제
-      // sampleRateHertz: 48000, // <-- 삭제
-      
-      // Google API가 오디오 헤더를 읽고 'MP4' 또는 'WEBM_OPUS'를 자동으로 감지하도록 함
-      auto_decoding_config: {}, 
-
-      languageCode: 'ko-KR', 
+      // encoding, sampleRateHertz 모두 제거 - Google이 완전히 자동 감지
+      // 명시적으로 지정하면 Google이 duration을 잘못 계산하는 버그 있음
+      languageCode: 'ko-KR',
       speechContexts: [{
         phrases: boostKeywords,
-        boost: 15 
-      }],
-      model: 'short', 
-      maxAlternatives: 1, 
-      profanityFilter: true, 
-      enableAutomaticPunctuation: true, 
-      enableSpokenPunctuation: true
+        boost: 15 // 중요도 (1-20)
+      }]
     },
     audio: {
       content: base64Audio
     }
   };
 
-  try {
-    console.log('[Google STT] Fetch 시작...');
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
+  console.log('[Google STT] Fetch 시작...');
 
-    console.log(`[Google STT] Response status: ${response.status}`);
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      console.error('[Google STT] API 오류:', error); 
-      
-      if (response.status === 400 && error.error?.message.includes('Sync input too long')) {
-         throw new Error('Google STT Error (400): API가 60초 이상으로 오인 (메타데이터 오류 가능성)');
-      }
-      if (response.status === 400) {
-        throw new Error(`Google STT Error (400): 잘못된 요청 (오디오/파라미터 확인) - ${error.error?.message}`);
-      }
-      if (response.status === 401 || response.status === 403) {
-        throw new Error(`Google STT Error (${response.status}): API 키 인증 실패`);
-      }
-      throw new Error(`Google STT Error: ${error.error?.message || response.statusText}`);
-    }
+  console.log('[Google STT] Response status:', response.status);
 
-    const data = await response.json();
-    console.log('[Google STT] API 성공 응답:', data); 
-    
-    if (data.results && data.results[0] && data.results[0].alternatives[0]) {
-      return data.results[0].alternatives[0].transcript;
-    }
-    return ''; // 인식 실패
-  } catch (err) {
-    console.error('[Google STT] Fetch 실패:', err);
-    if (err.message.includes('Failed to fetch')) {
-      throw new Error('Google STT 네트워크 오류 (네트워크/방화벽 확인)');
-    }
-    throw err; 
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    console.error('[Google STT] API 오류:', error);
+    throw new Error(`Google STT Error (${response.status}): ${error.error?.message || response.statusText}`);
   }
+
+  const data = await response.json();
+  console.log('[Google STT] 응답 데이터:', data);
+
+  if (data.results && data.results[0] && data.results[0].alternatives[0]) {
+    return data.results[0].alternatives[0].transcript;
+  }
+  return ''; // 인식 실패
 }
