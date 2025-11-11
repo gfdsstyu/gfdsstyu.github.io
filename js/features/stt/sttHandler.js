@@ -110,6 +110,25 @@ async function transcribeAudio() {
   console.log('Audio blob type:', audioBlob.type);
   console.log('Keywords count:', keywords.length);
 
+  // 오디오 duration 체크 (디버깅용)
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    const duration = audioBuffer.duration;
+    console.log('⏱️ Actual audio duration:', duration.toFixed(2), 'seconds');
+
+    if (duration > 60) {
+      console.warn('⚠️ Audio duration exceeds 60 seconds!', duration);
+      showToast(`경고: 오디오 길이가 ${duration.toFixed(1)}초로 API 제한(60초)을 초과합니다.`, 'error');
+      setButtonState('idle');
+      return;
+    }
+  } catch (err) {
+    console.warn('오디오 duration 체크 실패:', err);
+    // duration 체크 실패해도 계속 진행
+  }
+
   try {
     let transcribedText = '';
 
@@ -226,15 +245,23 @@ async function handleRecordClick() {
 
       audioChunks = [];
 
-      mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunks.push(e.data);
+          console.log('📦 Chunk received:', e.data.size, 'bytes, total chunks:', audioChunks.length);
+        }
+      };
+
       mediaRecorder.onstop = () => {
         // 스트림 정리
         stream.getTracks().forEach(track => track.stop());
         clearRecordingTimers(); // 타이머 정리
+        console.log('🛑 Recording stopped, total chunks:', audioChunks.length);
         transcribeAudio();
       };
 
-      mediaRecorder.start();
+      // timeslice 1초로 설정 - 정확한 시간 제어를 위함
+      mediaRecorder.start(1000);
       isRecording = true;
       recordingSeconds = 0; // 타이머 초기화
       setButtonState('recording');
@@ -242,12 +269,12 @@ async function handleRecordClick() {
       // 1초마다 UI 업데이트 (타이머 표시)
       recordingTimer = setInterval(updateRecordingTimer, 1000);
 
-      // 50초 후 자동 중지 (API 제약으로 인한 필수 기능 - 60초 초과 시 오류)
+      // 55초 후 자동 중지 (API 제약으로 인한 필수 기능 - 60초 초과 시 오류)
       recordingTimeout = setTimeout(() => {
-        console.log('⏱️ 50초 자동 중지 (API 제한 대비)');
+        console.log('⏱️ 55초 자동 중지 (API 제한 대비)');
         showToast('최대 녹음 시간에 도달하여 자동으로 중지되었습니다.', 'warn');
         stopRecording();
-      }, 50000); // 50초 = 50000ms (안전 마진 10초 확보, MediaRecorder 처리 시간 고려)
+      }, 55000); // 55초 = 55000ms (timeslice + sampleRateHertz 수정으로 정확한 duration 계산)
 
     } catch (err) {
       console.error('마이크 접근 실패:', err);
