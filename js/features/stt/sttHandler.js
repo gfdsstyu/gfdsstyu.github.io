@@ -257,6 +257,26 @@ async function handleRecordClick() {
     return;
   }
 
+  // iOS에서 Google STT 시도 시 Web Speech API 권장
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (provider === 'google' && isIOS) {
+    const confirmSwitch = confirm(
+      '⚠️ iOS에서는 Google STT가 제한적으로 작동합니다.\n\n' +
+      '💡 "Web Speech API (무료, 실시간)"를 사용하시는 것을 강력히 권장합니다.\n\n' +
+      '✅ Web Speech API 장점:\n' +
+      '- iOS 완벽 지원\n' +
+      '- 실시간 인식\n' +
+      '- 처리 시간 0초\n' +
+      '- 완전 무료\n\n' +
+      '설정 화면으로 이동하시겠습니까?'
+    );
+
+    if (confirmSwitch && typeof window.openSettingsModal === 'function') {
+      window.openSettingsModal();
+    }
+    return;
+  }
+
   // Google STT 모드 - API 키 확인
   const googleKey = getGoogleSttKey();
   if (provider === 'google' && !googleKey) {
