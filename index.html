@@ -435,12 +435,11 @@
 
             <!-- 답안 입력 영역: 음성입력 버튼 포함 -->
             <div class="relative">
-              <textarea id="user-answer" name="user-answer" class="w-full p-4 pb-14 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=포커스/현황판)"></textarea>
+              <textarea id="user-answer" name="user-answer" class="w-full p-4 pr-12 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=포커스/현황판)"></textarea>
 
-              <!-- 음성입력 버튼: textarea 오른쪽 아래에 floating -->
-              <button id="record-btn" class="absolute bottom-2 right-2 px-2.5 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition shadow-md flex items-center" data-state="idle" title="음성 입력 (STT)">
+              <!-- 음성입력 버튼: textarea 오른쪽 위에 floating -->
+              <button id="record-btn" class="absolute top-2 right-2 p-2 min-w-[36px] bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md flex items-center justify-center gap-0.5" data-state="idle" title="음성 입력 (STT)">
                 <svg id="record-icon-mic" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 10-2 0 7.001 7.001 0 006 6.93V17H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.07z" clip-rule="evenodd" /></svg>
-                <span id="record-btn-text" class="sr-only">음성 입력</span>
               </button>
             </div>
 
