@@ -70,6 +70,7 @@ import * as ReviewCore from './features/review/reviewCore.js';
 
 // 기능 - STT (음성 인식)
 import * as GoogleSttApi from './services/googleSttApi.js';
+import * as WebSpeechApi from './services/webSpeechApi.js';
 import * as SttHandler from './features/stt/sttHandler.js';
 import * as SttVocabulary from './features/stt/sttVocabulary.js';
 
@@ -411,6 +412,9 @@ window.initReviewListeners = ReviewCore.initReviewListeners;
 
 // STT (음성 인식)
 window.transcribeGoogle = GoogleSttApi.transcribeGoogle;
+window.isWebSpeechSupported = WebSpeechApi.isWebSpeechSupported;
+window.startWebSpeechRecognition = WebSpeechApi.startRecognition;
+window.stopWebSpeechRecognition = WebSpeechApi.stopRecognition;
 window.initSttListeners = SttHandler.initSttListeners;
 window.getBoostKeywords = SttVocabulary.getBoostKeywords;
 

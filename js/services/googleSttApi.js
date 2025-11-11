@@ -31,16 +31,24 @@ export async function transcribeGoogle(audioBlob, apiKey, boostKeywords) {
     }]
   };
 
-  // Opus 코덱 처리
-  if (audioBlob.type.includes('opus')) {
-    // MP4 + Opus는 공식 지원 안 하지만 OGG_OPUS로 시도
+  // 오디오 포맷에 따라 encoding 결정
+  const mimeType = audioBlob.type.toLowerCase();
+  console.log('[Google STT] MIME type:', mimeType);
+
+  if (mimeType.includes('opus')) {
+    // WebM/MP4 + Opus 코덱
     config.encoding = 'OGG_OPUS';
-    console.log('[Google STT] Opus codec detected, using OGG_OPUS encoding');
-  } else if (audioBlob.type.includes('webm')) {
-    // WebM (Opus 아닌 경우) - 자동 감지
+    console.log('[Google STT] Using OGG_OPUS encoding for Opus codec');
+  } else if (mimeType.includes('mp4') || mimeType.includes('m4a') || mimeType.includes('aac')) {
+    // iOS Safari/Chrome: MP4/AAC 포맷
+    // LINEAR16 또는 encoding 생략으로 자동 감지
+    console.log('[Google STT] iOS MP4/AAC format detected, using auto-detection');
+    // encoding을 지정하지 않으면 Google이 자동으로 감지
+  } else if (mimeType.includes('webm')) {
+    // WebM (Opus 아닌 경우)
     console.log('[Google STT] WebM format, using auto-detection');
   } else {
-    console.log('[Google STT] Unknown format:', audioBlob.type, '- using auto-detection');
+    console.log('[Google STT] Unknown format:', mimeType, '- using auto-detection');
   }
 
   const body = {
