@@ -269,12 +269,12 @@ async function handleRecordClick() {
       // 1초마다 UI 업데이트 (타이머 표시)
       recordingTimer = setInterval(updateRecordingTimer, 1000);
 
-      // 27초 후 자동 중지 (API 제약으로 인한 필수 기능 - 60초 초과 시 오류)
+      // 55초 후 자동 중지 (API 제약으로 인한 필수 기능 - 60초 초과 시 오류)
       recordingTimeout = setTimeout(() => {
-        console.log('⏱️ 27초 자동 중지 (API 제한 대비)');
+        console.log('⏱️ 55초 자동 중지 (API 제한 대비)');
         showToast('최대 녹음 시간에 도달하여 자동으로 중지되었습니다.', 'warn');
         stopRecording();
-      }, 27000); // 27초 = 27000ms (안정적으로 테스트된 값)
+      }, 55000); // 55초 = 55000ms (encoding 제거 후 정확한 duration 계산 가능)
 
     } catch (err) {
       console.error('마이크 접근 실패:', err);
