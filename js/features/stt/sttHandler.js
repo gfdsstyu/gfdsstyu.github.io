@@ -253,7 +253,7 @@ async function handleRecordClick() {
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
           audioChunks.push(e.data);
-          console.log('📦 Chunk received:', e.data.size, 'bytes, total chunks:', audioChunks.length);
+          console.log('📦 Data available:', e.data.size, 'bytes (fires once on stop)');
         }
       };
 
@@ -266,8 +266,9 @@ async function handleRecordClick() {
         transcribeAudio();
       };
 
-      // timeslice 1초로 설정 - 정확한 시간 제어를 위함
-      mediaRecorder.start(1000);
+      // timeslice 제거 - MP4는 단일 파일로 생성해도 duration 메타데이터 정확함
+      // 조각 재결합(re-muxing) 오버헤드 제거로 처리 속도 대폭 개선
+      mediaRecorder.start();
       isRecording = true;
       recordingSeconds = 0; // 타이머 초기화
       setButtonState('recording');
