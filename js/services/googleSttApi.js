@@ -10,6 +10,7 @@ export async function transcribeGoogle(audioBlob, apiKey, boostKeywords) {
 
   console.log('[Google STT] API 호출 시작');
   console.log('[Google STT] Audio size:', audioBlob.size, 'bytes');
+  console.log('[Google STT] Audio type:', audioBlob.type);
 
   // Blob을 Base64 문자열로 변환
   const reader = new FileReader();
@@ -21,10 +22,18 @@ export async function transcribeGoogle(audioBlob, apiKey, boostKeywords) {
 
   console.log('[Google STT] Base64 인코딩 완료, length:', base64Audio.length);
 
+  // encoding 타입 결정
+  let encoding = 'WEBM_OPUS';
+  if (audioBlob.type.includes('mp4')) {
+    encoding = 'MP4';
+  } else if (audioBlob.type.includes('webm')) {
+    encoding = 'WEBM_OPUS';
+  }
+
   const body = {
     config: {
-      encoding: 'WEBM_OPUS', // MediaRecorder 기본값 (브라우저 호환성 확인 필요)
-      sampleRateHertz: 48000, // 브라우저 MediaRecorder 기본값일 수 있음
+      encoding: encoding,
+      // sampleRateHertz 제거 - Google이 자동 감지하도록 함
       languageCode: 'ko-KR',
       speechContexts: [{
         phrases: boostKeywords,

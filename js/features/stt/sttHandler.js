@@ -245,15 +245,23 @@ async function handleRecordClick() {
 
       audioChunks = [];
 
-      mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunks.push(e.data);
+          console.log('📦 Chunk received:', e.data.size, 'bytes, total chunks:', audioChunks.length);
+        }
+      };
+
       mediaRecorder.onstop = () => {
         // 스트림 정리
         stream.getTracks().forEach(track => track.stop());
         clearRecordingTimers(); // 타이머 정리
+        console.log('🛑 Recording stopped, total chunks:', audioChunks.length);
         transcribeAudio();
       };
 
-      mediaRecorder.start();
+      // timeslice 1초로 설정 - 정확한 시간 제어를 위함
+      mediaRecorder.start(1000);
       isRecording = true;
       recordingSeconds = 0; // 타이머 초기화
       setButtonState('recording');
