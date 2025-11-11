@@ -102,7 +102,10 @@ async function transcribeAudio() {
   setButtonState('processing');
   const provider = getSttProvider();
   const keywords = getBoostKeywords(); // Task 3에서 생성된 키워드 가져오기
-  const audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' }); // 오디오 형식 지정
+
+  // MediaRecorder의 실제 MIME 타입 사용
+  const actualMimeType = mediaRecorder?.mimeType || 'audio/webm;codecs=opus';
+  const audioBlob = new Blob(audioChunks, { type: actualMimeType });
 
   console.log('=== STT Transcription Start ===');
   console.log('Provider:', provider);
@@ -227,17 +230,19 @@ async function handleRecordClick() {
         return;
       }
 
-      // 지원되는 MIME 타입 확인
-      let mimeType = 'audio/webm;codecs=opus';
+      // 지원되는 MIME 타입 확인 (MP4 우선 - duration 메타데이터가 더 정확함)
+      let mimeType = 'audio/mp4';
       if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'audio/webm';
+        mimeType = 'audio/webm;codecs=opus';
         if (!MediaRecorder.isTypeSupported(mimeType)) {
-          mimeType = 'audio/mp4';
+          mimeType = 'audio/webm';
           if (!MediaRecorder.isTypeSupported(mimeType)) {
             mimeType = ''; // 기본값 사용
           }
         }
       }
+
+      console.log('🎙️ Using MIME type:', mimeType);
 
       mediaRecorder = mimeType
         ? new MediaRecorder(stream, { mimeType })
@@ -257,6 +262,7 @@ async function handleRecordClick() {
         stream.getTracks().forEach(track => track.stop());
         clearRecordingTimers(); // 타이머 정리
         console.log('🛑 Recording stopped, total chunks:', audioChunks.length);
+        console.log('🛑 Final MIME type:', mediaRecorder.mimeType);
         transcribeAudio();
       };
 
@@ -269,12 +275,12 @@ async function handleRecordClick() {
       // 1초마다 UI 업데이트 (타이머 표시)
       recordingTimer = setInterval(updateRecordingTimer, 1000);
 
-      // 27초 후 자동 중지 (API 제약으로 인한 필수 기능 - 60초 초과 시 오류)
+      // 55초 후 자동 중지 (API 제약으로 인한 필수 기능 - 60초 초과 시 오류)
       recordingTimeout = setTimeout(() => {
-        console.log('⏱️ 27초 자동 중지 (API 제한 대비)');
+        console.log('⏱️ 55초 자동 중지 (API 제한 대비)');
         showToast('최대 녹음 시간에 도달하여 자동으로 중지되었습니다.', 'warn');
         stopRecording();
-      }, 27000); // 27초 = 27000ms (Google STT의 webm duration 인식 한계)
+      }, 55000); // 55초 = 55000ms (MP4 포맷으로 duration 메타데이터 정확성 개선)
 
     } catch (err) {
       console.error('마이크 접근 실패:', err);
