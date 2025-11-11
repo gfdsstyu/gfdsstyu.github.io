@@ -274,7 +274,7 @@ async function handleRecordClick() {
         console.log('⏱️ 55초 자동 중지 (API 제한 대비)');
         showToast('최대 녹음 시간에 도달하여 자동으로 중지되었습니다.', 'warn');
         stopRecording();
-      }, 55000); // 55초 = 55000ms (timeslice + sampleRateHertz 수정으로 정확한 duration 계산)
+      }, 55000); // 55초 = 55000ms (encoding 제거 후 정확한 duration 계산 가능)
 
     } catch (err) {
       console.error('마이크 접근 실패:', err);
