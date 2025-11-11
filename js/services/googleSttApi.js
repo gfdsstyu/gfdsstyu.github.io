@@ -1,3 +1,5 @@
+import { convertToWav } from '../utils/audioConverter.js';
+
 /**
  * Google Cloud STT API 호출
  * @param {Blob} audioBlob - 오디오 데이터
@@ -12,12 +14,25 @@ export async function transcribeGoogle(audioBlob, apiKey, boostKeywords) {
   console.log('[Google STT] Audio size:', audioBlob.size, 'bytes');
   console.log('[Google STT] Audio type:', audioBlob.type);
 
+  // MP4/AAC는 Google STT API에서 지원하지 않으므로 WAV로 변환
+  const mimeType = audioBlob.type.toLowerCase();
+  let processedBlob = audioBlob;
+  let sampleRate = null;
+
+  if (mimeType.includes('mp4') || mimeType.includes('m4a') || mimeType.includes('aac')) {
+    console.log('[Google STT] MP4/AAC detected - converting to WAV for compatibility');
+    const converted = await convertToWav(audioBlob);
+    processedBlob = converted.blob;
+    sampleRate = converted.sampleRate;
+    console.log('[Google STT] Conversion complete - WAV size:', processedBlob.size, 'bytes, sample rate:', sampleRate, 'Hz');
+  }
+
   // Blob을 Base64 문자열로 변환
   const reader = new FileReader();
   const base64Audio = await new Promise((resolve, reject) => {
     reader.onloadend = () => resolve(reader.result.split(',')[1]); // Base64 데이터만 추출
     reader.onerror = reject;
-    reader.readAsDataURL(audioBlob);
+    reader.readAsDataURL(processedBlob);
   });
 
   console.log('[Google STT] Base64 인코딩 완료, length:', base64Audio.length);
@@ -32,23 +47,25 @@ export async function transcribeGoogle(audioBlob, apiKey, boostKeywords) {
   };
 
   // 오디오 포맷에 따라 encoding 결정
-  const mimeType = audioBlob.type.toLowerCase();
-  console.log('[Google STT] MIME type:', mimeType);
+  const finalMimeType = processedBlob.type.toLowerCase();
+  console.log('[Google STT] Final MIME type:', finalMimeType);
 
-  if (mimeType.includes('opus')) {
+  if (finalMimeType.includes('wav')) {
+    // WAV 포맷 (iOS에서 변환된 경우)
+    config.encoding = 'LINEAR16';
+    if (sampleRate) {
+      config.sampleRateHertz = sampleRate;
+    }
+    console.log('[Google STT] Using LINEAR16 encoding for WAV, sample rate:', sampleRate);
+  } else if (mimeType.includes('opus')) {
     // WebM/MP4 + Opus 코덱
     config.encoding = 'OGG_OPUS';
     console.log('[Google STT] Using OGG_OPUS encoding for Opus codec');
-  } else if (mimeType.includes('mp4') || mimeType.includes('m4a') || mimeType.includes('aac')) {
-    // iOS Safari/Chrome: MP4/AAC 포맷
-    // LINEAR16 또는 encoding 생략으로 자동 감지
-    console.log('[Google STT] iOS MP4/AAC format detected, using auto-detection');
-    // encoding을 지정하지 않으면 Google이 자동으로 감지
   } else if (mimeType.includes('webm')) {
     // WebM (Opus 아닌 경우)
     console.log('[Google STT] WebM format, using auto-detection');
   } else {
-    console.log('[Google STT] Unknown format:', mimeType, '- using auto-detection');
+    console.log('[Google STT] Unknown format:', finalMimeType, '- using auto-detection');
   }
 
   const body = {

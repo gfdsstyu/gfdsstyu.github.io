@@ -225,11 +225,7 @@ async function transcribeAudio() {
     } else if (error.message.includes('API Key') || error.message.includes('401') || error.message.includes('403')) {
       userMessage = 'API 키 인증 실패: API 키를 확인해주세요.';
     } else if (error.message.includes('400')) {
-      if (isIOS) {
-        userMessage = '⚠️ iOS에서 Google STT 호환성 문제가 발생했습니다.\n\n💡 해결 방법: 설정에서 "Web Speech API (무료, 실시간)" 옵션으로 변경해주세요.';
-      } else {
-        userMessage = '잘못된 요청: 오디오 형식이나 API 파라미터를 확인해주세요.';
-      }
+      userMessage = '잘못된 요청: 오디오 형식이나 API 파라미터를 확인해주세요.';
     } else if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
       userMessage = 'API 서버 오류: 잠시 후 다시 시도해주세요.';
     }
