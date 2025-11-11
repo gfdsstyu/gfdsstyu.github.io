@@ -15,6 +15,8 @@ let recordingSeconds = 0; // 현재 녹음 시간 (초)
 const micIcon = '<svg id="record-icon-mic" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 10-2 0 7.001 7.001 0 006 6.93V17H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.07z" clip-rule="evenodd" /></svg>';
 // 정지 아이콘 (SVG Path)
 const stopIcon = '<svg id="record-icon-stop" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1zm0 4a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>';
+// 로딩 스피너 아이콘 (회전 애니메이션)
+const spinnerIcon = '<svg class="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
 
 /**
  * 시간을 MM:SS 형식으로 포맷
@@ -35,7 +37,7 @@ function updateRecordingTimer() {
   const el = getElements();
   if (el && el.recordBtn) {
     const timeText = formatTime(recordingSeconds);
-    el.recordBtn.innerHTML = `${stopIcon} <span id="record-btn-text" class="ml-1.5">${timeText}</span>`;
+    el.recordBtn.innerHTML = `${stopIcon}<span class="ml-1 text-xs font-mono">${timeText}</span>`;
     el.recordBtn.title = `녹음 중지 (${timeText})`;
   }
 }
@@ -152,20 +154,20 @@ function setButtonState(state) {
     case 'recording':
       el.recordBtn.classList.add('bg-red-600', 'hover:bg-red-700');
       el.recordBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-      el.recordBtn.innerHTML = `${stopIcon} <span id="record-btn-text" class="ml-1.5">${formatTime(recordingSeconds)}</span>`;
+      el.recordBtn.innerHTML = `${stopIcon}<span class="ml-1 text-xs font-mono">${formatTime(recordingSeconds)}</span>`;
       el.recordBtn.title = `녹음 중지 (${formatTime(recordingSeconds)})`;
       break;
     case 'processing':
       el.recordBtn.classList.remove('bg-red-600', 'hover:bg-red-700', 'bg-blue-600', 'hover:bg-blue-700');
       el.recordBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
-      el.recordBtn.innerHTML = `${micIcon} <span id="record-btn-text" class="ml-1.5">처리중</span>`;
+      el.recordBtn.innerHTML = spinnerIcon;
       el.recordBtn.title = '처리 중...';
       break;
     case 'idle':
     default:
       el.recordBtn.classList.remove('bg-red-600', 'hover:bg-red-700', 'bg-gray-400', 'cursor-not-allowed');
       el.recordBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-      el.recordBtn.innerHTML = `${micIcon} <span id="record-btn-text" class="sr-only">음성 입력</span>`;
+      el.recordBtn.innerHTML = micIcon;
       el.recordBtn.title = '음성 입력 (STT)';
       break;
   }
