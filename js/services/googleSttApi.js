@@ -22,16 +22,25 @@ export async function transcribeGoogle(audioBlob, apiKey, boostKeywords) {
 
   console.log('[Google STT] Base64 인코딩 완료, length:', base64Audio.length);
 
+  // encoding 타입 결정 (MP4는 명시 필요, WebM은 자동 감지)
+  const config = {
+    languageCode: 'ko-KR',
+    speechContexts: [{
+      phrases: boostKeywords,
+      boost: 15 // 중요도 (1-20)
+    }]
+  };
+
+  // MP4는 encoding 명시, WebM은 자동 감지가 더 정확
+  if (audioBlob.type.includes('mp4')) {
+    config.encoding = 'MP3'; // MP4 컨테이너의 오디오는 보통 MP3 또는 AAC
+    console.log('[Google STT] MP4 format detected, using MP3 encoding');
+  } else {
+    console.log('[Google STT] WebM format, using auto-detection');
+  }
+
   const body = {
-    config: {
-      // encoding, sampleRateHertz 모두 제거 - Google이 완전히 자동 감지
-      // 명시적으로 지정하면 Google이 duration을 잘못 계산하는 버그 있음
-      languageCode: 'ko-KR',
-      speechContexts: [{
-        phrases: boostKeywords,
-        boost: 15 // 중요도 (1-20)
-      }]
-    },
+    config: config,
     audio: {
       content: base64Audio
     }
