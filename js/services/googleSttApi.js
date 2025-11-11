@@ -22,7 +22,7 @@ export async function transcribeGoogle(audioBlob, apiKey, boostKeywords) {
 
   console.log('[Google STT] Base64 인코딩 완료, length:', base64Audio.length);
 
-  // encoding 타입 결정 (MP4는 명시 필요, WebM은 자동 감지)
+  // encoding 타입 결정
   const config = {
     languageCode: 'ko-KR',
     speechContexts: [{
@@ -31,10 +31,16 @@ export async function transcribeGoogle(audioBlob, apiKey, boostKeywords) {
     }]
   };
 
-  // MP4는 encoding 명시, WebM은 자동 감지가 더 정확
+  // MP4 코덱에 따라 encoding 결정
   if (audioBlob.type.includes('mp4')) {
-    config.encoding = 'MP3'; // MP4 컨테이너의 오디오는 보통 MP3 또는 AAC
-    console.log('[Google STT] MP4 format detected, using MP3 encoding');
+    if (audioBlob.type.includes('opus')) {
+      // MP4 + Opus는 encoding 없이 자동 감지
+      console.log('[Google STT] MP4 with Opus codec, using auto-detection');
+    } else {
+      // MP4 + AAC/MP3
+      config.encoding = 'MP3';
+      console.log('[Google STT] MP4 format detected, using MP3 encoding');
+    }
   } else {
     console.log('[Google STT] WebM format, using auto-detection');
   }
