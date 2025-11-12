@@ -236,15 +236,11 @@ export function renderScoreTrendChart(dailyData, reportCharts, chartData = null)
         legend: {
           display: true,
           position: 'top',
-          onClick: (e, legendItem, legend) => {
-            const index = legendItem.datasetIndex;
-            // Disable click for golden/dead cross markers (indices 5 and 6)
-            if (index === 5 || index === 6) return;
-            // Default behavior for other datasets
-            const chart = legend.chart;
-            const meta = chart.getDatasetMeta(index);
-            meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
-            chart.update();
+          labels: {
+            filter: (legendItem) => {
+              // Hide golden/dead cross from legend (indices 5 and 6)
+              return legendItem.datasetIndex !== 5 && legendItem.datasetIndex !== 6;
+            }
           }
         },
         tooltip: {
@@ -512,15 +508,11 @@ export function showChapterDetail(chapter, data, reportCharts) {
         legend: {
           display: true,
           position: 'top',
-          onClick: (e, legendItem, legend) => {
-            const index = legendItem.datasetIndex;
-            // Disable click for golden/dead cross markers (indices 5 and 6)
-            if (index === 5 || index === 6) return;
-            // Default behavior for other datasets
-            const chart = legend.chart;
-            const meta = chart.getDatasetMeta(index);
-            meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
-            chart.update();
+          labels: {
+            filter: (legendItem) => {
+              // Hide golden/dead cross from legend (indices 5 and 6)
+              return legendItem.datasetIndex !== 5 && legendItem.datasetIndex !== 6;
+            }
           }
         },
         title: {
