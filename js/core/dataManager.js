@@ -284,8 +284,10 @@ export function populateChapterSelect() {
     // Part 구분선 옵션
     const opt = document.createElement('option');
     opt.value = PART_VALUE(r.start, r.end);
-    opt.textContent = `--- ${r.label} (${r.start}~${r.end}장) ---`;
-    opt.className = 'text-gray-700';
+    opt.textContent = `------ ${r.label} (${r.start}~${r.end}장) ------`;
+    opt.style.fontWeight = 'bold';
+    opt.style.color = '#111827'; // text-gray-900 equivalent
+    opt.style.backgroundColor = '#f3f4f6'; // bg-gray-100
     el.chapterSelect.appendChild(opt);
 
     // 해당 Part의 챕터들
