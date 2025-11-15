@@ -287,6 +287,16 @@ function renderDailyProblemList(date) {
             <p class="text-sm text-gray-600 dark:text-gray-400">${rec.feedback || '(피드백 없음)'}</p>
           </div>
         </div>
+
+        <div class="daily-coaching-tip hidden mt-3 p-4 bg-blue-50 dark:bg-blue-900/30 rounded">
+          <div class="flex justify-between items-start mb-2">
+            <p class="text-sm font-bold text-blue-900 dark:text-blue-100">💡 암기 팁</p>
+            <button class="coaching-copy-btn text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-700 transition" type="button">
+              📋 복사
+            </button>
+          </div>
+          <pre class="coaching-content whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100 font-sans leading-relaxed"></pre>
+        </div>
       </div>
     `;
   }).join('');
@@ -624,6 +634,21 @@ export function initReportListeners() {
           } else {
             showToast('암기 코치 기능이 아직 구현되지 않았습니다.', 'warn');
           }
+        }
+        return;
+      }
+
+      // 암기 팁 복사 버튼
+      const copyBtn = e.target.closest('.coaching-copy-btn');
+      if (copyBtn) {
+        const container = copyBtn.closest('[data-daily-problem]');
+        const content = container?.querySelector('.coaching-content')?.textContent;
+        if (content) {
+          navigator.clipboard.writeText(content).then(() => {
+            showToast('암기 팁을 복사했습니다');
+          }).catch(() => {
+            showToast('복사 실패', 'error');
+          });
         }
       }
     });
