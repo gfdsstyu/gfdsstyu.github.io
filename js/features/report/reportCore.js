@@ -288,14 +288,14 @@ function renderDailyProblemList(date) {
           </div>
         </div>
 
-        <div class="daily-coaching-tip hidden mt-3 p-4 bg-blue-50 dark:bg-blue-900/30 rounded">
+        <div class="daily-coaching-tip hidden mt-3 p-4 bg-blue-50 rounded">
           <div class="flex justify-between items-start mb-2">
-            <p class="text-sm font-bold text-blue-900 dark:text-blue-100">💡 암기 팁</p>
-            <button class="coaching-copy-btn text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-700 transition" type="button">
+            <p class="text-sm font-bold text-blue-900">💡 암기 팁</p>
+            <button class="coaching-copy-btn text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition" type="button">
               📋 복사
             </button>
           </div>
-          <pre class="coaching-content whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100 font-sans leading-relaxed"></pre>
+          <pre class="coaching-content whitespace-pre-wrap text-sm text-gray-900 font-sans leading-relaxed"></pre>
         </div>
       </div>
     `;
