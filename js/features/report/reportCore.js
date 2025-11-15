@@ -288,14 +288,14 @@ function renderDailyProblemList(date) {
           </div>
         </div>
 
-        <div class="daily-coaching-tip hidden mt-3 p-4 bg-blue-50 dark:bg-blue-900/30 rounded">
+        <div class="daily-coaching-tip hidden mt-3 p-4 bg-blue-50 rounded">
           <div class="flex justify-between items-start mb-2">
-            <p class="text-sm font-bold text-blue-900 dark:text-blue-100">💡 암기 팁</p>
-            <button class="coaching-copy-btn text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-700 transition" type="button">
+            <p class="text-sm font-bold text-blue-900">💡 암기 팁</p>
+            <button class="coaching-copy-btn text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition" type="button">
               📋 복사
             </button>
           </div>
-          <pre class="coaching-content whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100 font-sans leading-relaxed"></pre>
+          <pre class="coaching-content whitespace-pre-wrap text-sm text-gray-900 font-sans leading-relaxed"></pre>
         </div>
       </div>
     `;
@@ -662,12 +662,19 @@ function openPdfOptionsModal() {
   const modal = document.getElementById('pdf-options-modal');
   if (!modal) return;
 
-  // 모든 체크박스 초기화
+  // 체크박스 초기화 (Tab 1-3은 체크, Tab 4는 체크 해제)
   const checkAll = document.getElementById('pdf-check-all');
-  const checkboxes = document.querySelectorAll('.pdf-tab-checkbox');
+  const tab1 = document.getElementById('pdf-check-tab1');
+  const tab2 = document.getElementById('pdf-check-tab2');
+  const tab3 = document.getElementById('pdf-check-tab3');
+  const tab4 = document.getElementById('pdf-check-tab4');
 
-  if (checkAll) checkAll.checked = true;
-  checkboxes.forEach(cb => cb.checked = true);
+  if (tab1) tab1.checked = true;
+  if (tab2) tab2.checked = true;
+  if (tab3) tab3.checked = true;
+  if (tab4) tab4.checked = false; // Tab 4는 기본 체크 해제
+
+  if (checkAll) checkAll.checked = false; // 전체 선택도 해제
 
   // 확실하게 최상위에 오도록 body 맨 끝으로 이동 & z-index 명시적 설정
   document.body.appendChild(modal);
@@ -692,9 +699,10 @@ function executePdfExport() {
   const tab1 = document.getElementById('pdf-check-tab1')?.checked || false;
   const tab2 = document.getElementById('pdf-check-tab2')?.checked || false;
   const tab3 = document.getElementById('pdf-check-tab3')?.checked || false;
+  const tab4 = document.getElementById('pdf-check-tab4')?.checked || false;
 
   // 최소 1개는 선택해야 함
-  if (!tab1 && !tab2 && !tab3) {
+  if (!tab1 && !tab2 && !tab3 && !tab4) {
     showToast('최소 1개 탭을 선택해주세요', 'warn');
     return;
   }
@@ -703,7 +711,8 @@ function executePdfExport() {
   const contents = [
     { element: document.getElementById('report-content-1'), checked: tab1 },
     { element: document.getElementById('report-content-2'), checked: tab2 },
-    { element: document.getElementById('report-content-3'), checked: tab3 }
+    { element: document.getElementById('report-content-3'), checked: tab3 },
+    { element: document.getElementById('report-content-4'), checked: tab4 }
   ];
 
   contents.forEach(({ element, checked }) => {
