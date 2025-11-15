@@ -59,11 +59,11 @@ export function switchReportTab(tabNum) {
     const num = i + 1;
     if (num === tabNum) {
       tab.classList.add('border-blue-600', 'text-blue-600');
-      tab.classList.remove('border-transparent', 'text-gray-500');
+      tab.classList.remove('border-transparent');
       tab.setAttribute('aria-selected', 'true');
     } else {
       tab.classList.remove('border-blue-600', 'text-blue-600');
-      tab.classList.add('border-transparent', 'text-gray-500');
+      tab.classList.add('border-transparent');
       tab.setAttribute('aria-selected', 'false');
     }
   });
