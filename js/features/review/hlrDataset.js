@@ -7,6 +7,7 @@
 
 import { clamp, normId } from '../../utils/helpers.js';
 import { showToast } from '../../ui/domUtils.js';
+import { PASSIVE_WEIGHTS } from './difficultyTracker.js';
 
 /**
  * HLR 데이터셋 생성: solveHistory를 HLR 학습용 피처로 변환
@@ -201,8 +202,8 @@ export function calculateRecallProbability(qid, predictor) {
   const features = buildFeaturesForQID(qid);
   if (!features) return null;
 
-  // HLR 반감기 예측
-  const h_pred = predictor.predict(features);
+  // HLR 반감기 예측 (EnhancedHLRPredictor가 qid를 받으면 자동으로 FSRS 적용)
+  const h_pred = predictor.predict ? predictor.predict(features, qid) : predictor.predict(features);
 
   // 마지막 풀이 후 경과 시간
   const lastReview = rec?.lastSolvedDate || 0;
@@ -213,4 +214,119 @@ export function calculateRecallProbability(qid, predictor) {
   const p_current = Math.pow(2, -timeSinceLastReview / h_pred);
 
   return { h_pred, p_current, timeSinceLastReview };
+}
+
+// ============================================
+// EnhancedHLRPredictor: HLR + FSRS 하이브리드
+// ============================================
+
+/**
+ * 기존 HLR 모델에 FSRS Difficulty 요소를 부가한 향상된 예측기
+ */
+export class EnhancedHLRPredictor extends LocalHLRPredictor {
+  constructor() {
+    super();
+
+    // 기존 HLR 가중치에 FSRS 요소 추가
+    this.modelWeights.difficulty_feature = -0.8;  // 난이도 높을수록 h 감소
+    this.modelWeights.passive_views = 0.03;       // 수동 재인 횟수
+    this.modelWeights.rated_passive = 0.05;       // 평가된 재인의 추가 효과
+  }
+
+  /**
+   * 수동 재인의 HLR 기여도 계산
+   * @param {string} qid - 문제 고유 ID
+   * @returns {number} HLR log2(h) 기여도
+   */
+  calculatePassiveHLRContribution(qid) {
+    const readData = window.readStore?.[normId(qid)];
+    if (!readData?.viewHistory) return 0;
+
+    const now = Date.now();
+    let contribution = 0;
+
+    // 최근 30일 이내 재인만 고려
+    const thirtyDaysAgo = now - (30 * 86400 * 1000);
+    const recentViews = readData.viewHistory.filter(v =>
+      v.timestamp > thirtyDaysAgo
+    );
+
+    for (const view of recentViews) {
+      if (!view.answer_viewed) continue;
+
+      // 난이도별 가중치
+      const weight = PASSIVE_WEIGHTS[view.difficulty_rating] || 0;
+      if (weight === 0) continue;
+
+      // 시간 감쇠 (30일 반감기)
+      const ageInDays = (now - view.timestamp) / (86400 * 1000);
+      const timeDecay = Math.pow(2, -ageInDays / 30);
+
+      // 학습 시간 보정 (10초 이상 = 100%)
+      const timeSpentBonus = Math.min(1, (view.time_spent || 0) / 10000);
+
+      contribution += weight * timeDecay * timeSpentBonus;
+    }
+
+    // 최대 기여도 제한 (능동 회상의 30%)
+    return Math.min(contribution, 0.3);
+  }
+
+  /**
+   * HLR 피처 벡터 생성 (FSRS 요소 포함)
+   * @param {string} qid - 문제 고유 ID
+   * @returns {Object|null} 향상된 피처 객체
+   */
+  buildEnhancedFeatures(qid) {
+    const baseFeatures = buildFeaturesForQID(qid);
+    if (!baseFeatures) return null;
+
+    // FSRS 난이도 피처 추가
+    if (window.difficultyTracker) {
+      baseFeatures.difficulty_feature = window.difficultyTracker.getDifficultyFeature(normId(qid));
+    } else {
+      baseFeatures.difficulty_feature = 0.5; // 기본값 (중간 난이도)
+    }
+
+    // 수동 재인 통계 추가
+    const readData = window.readStore?.[normId(qid)];
+    if (readData) {
+      baseFeatures.passive_views = readData.stats?.total_views || 0;
+      baseFeatures.rated_passive = readData.stats?.rated_views || 0;
+    } else {
+      baseFeatures.passive_views = 0;
+      baseFeatures.rated_passive = 0;
+    }
+
+    return baseFeatures;
+  }
+
+  /**
+   * HLR 반감기 예측 (FSRS 요소 통합)
+   * @param {Object} features - HLR 피처 객체
+   * @param {string|null} qid - 문제 고유 ID (선택적, 제공 시 향상된 피처 사용)
+   * @returns {number} 반감기 (일 단위)
+   */
+  predict(features, qid = null) {
+    // qid가 있으면 향상된 피처 사용
+    if (qid) {
+      const enhancedFeatures = this.buildEnhancedFeatures(qid);
+      if (enhancedFeatures) {
+        features = enhancedFeatures;
+      }
+    }
+
+    // 기본 HLR 예측
+    let log2h = super.predict(features);
+
+    // 수동 재인 기여도 추가
+    if (qid) {
+      const passiveBoost = this.calculatePassiveHLRContribution(qid);
+      log2h += passiveBoost;
+    }
+
+    // log₂(h)를 h로 변환
+    const h = Math.pow(2, log2h);
+    return Math.max(1, Math.min(365, h));
+  }
 }

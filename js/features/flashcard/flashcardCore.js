@@ -10,12 +10,16 @@ import { showToast } from '../../ui/domUtils.js';
 import { getFilteredByUI } from '../../features/filter/filterCore.js';
 import { updateSummary, updateSummaryHighlight } from '../../features/summary/summaryCore.js';
 import { displayQuestion } from '../../features/quiz/quizCore.js';
+import { normId } from '../../utils/helpers.js';
+import { recordPassiveView, saveReadStoreToLocal } from '../review/difficultyTracker.js';
 
 // Module state
 let flashcardData = [];
 let flashcardIndex = 0;
 let flashcardQuestionVisible = false;
 let flashcardAnswerVisible = false;
+let cardStartTime = 0; // 카드 표시 시작 시간
+let sessionId = Date.now().toString(); // 세션 ID
 
 /**
  * Helper: Check if target is an editable element
@@ -118,6 +122,9 @@ export function displayFlashcard() {
   hideFlashcardQuestion();
   hideFlashcardAnswer();
 
+  // 카드 표시 시작 시간 기록
+  cardStartTime = Date.now();
+
   // Update button states
   if (el.flashcardPrevBtn) {
     el.flashcardPrevBtn.disabled = flashcardIndex === 0;
@@ -187,6 +194,120 @@ export function showFlashcardAnswer() {
   if (el.flashcardToggleAnswer) {
     el.flashcardToggleAnswer.textContent = '답변 숨기기 🙈';
   }
+
+  // 난이도 평가 UI 추가 (이미 있으면 제거 후 재생성)
+  removeDifficultyRatingUI();
+  addDifficultyRatingUI();
+}
+
+/**
+ * 난이도 평가 UI 추가
+ */
+function addDifficultyRatingUI() {
+  const answerBox = el.flashcardAnswerBox;
+  if (!answerBox) return;
+
+  // 이미 존재하면 추가하지 않음
+  if (document.getElementById('flashcard-difficulty')) return;
+
+  const difficultyHTML = `
+    <div id="flashcard-difficulty" class="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
+      <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium">이 문제를 기억하기 어려웠나요?</p>
+      <div class="flex gap-2 justify-center flex-wrap">
+        <button class="diff-btn px-4 py-2 bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 text-green-800 dark:text-green-100 rounded-lg font-medium transition-colors duration-200"
+                data-difficulty="easy">
+          😊 쉬움
+        </button>
+        <button class="diff-btn px-4 py-2 bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900 dark:hover:bg-yellow-800 text-yellow-800 dark:text-yellow-100 rounded-lg font-medium transition-colors duration-200"
+                data-difficulty="medium">
+          🤔 보통
+        </button>
+        <button class="diff-btn px-4 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-800 dark:text-red-100 rounded-lg font-medium transition-colors duration-200"
+                data-difficulty="hard">
+          😰 어려움
+        </button>
+        <button class="diff-btn px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors duration-200"
+                data-difficulty="skip">
+          ⏭️ 건너뛰기
+        </button>
+      </div>
+      <p class="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
+        키보드: 1(쉬움) 2(보통) 3(어려움) 0(건너뛰기)
+      </p>
+    </div>
+  `;
+
+  answerBox.insertAdjacentHTML('afterend', difficultyHTML);
+
+  // 버튼 이벤트 리스너 추가
+  const buttons = document.querySelectorAll('#flashcard-difficulty .diff-btn');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const difficulty = e.currentTarget.getAttribute('data-difficulty');
+      handleDifficultyRating(difficulty);
+    });
+  });
+}
+
+/**
+ * 난이도 평가 UI 제거
+ */
+function removeDifficultyRatingUI() {
+  const existing = document.getElementById('flashcard-difficulty');
+  if (existing) {
+    existing.remove();
+  }
+}
+
+/**
+ * 난이도 평가 처리
+ * @param {string} difficulty - 'easy', 'medium', 'hard', 'skip'
+ */
+export function handleDifficultyRating(difficulty) {
+  const currentCard = flashcardData[flashcardIndex];
+  if (!currentCard) return;
+
+  const qid = normId(currentCard.고유ID);
+
+  // 1. FSRS 스타일 난이도 업데이트
+  let newDifficulty = 5.0;
+  if (window.difficultyTracker && difficulty !== 'skip') {
+    newDifficulty = window.difficultyTracker.updateDifficulty(qid, difficulty);
+  }
+
+  // 2. readStore에 이벤트 기록
+  recordPassiveView(qid, {
+    event_type: 'passive_view_rated',
+    difficulty_rating: difficulty,
+    answer_viewed: flashcardAnswerVisible,
+    time_spent: Date.now() - cardStartTime,
+    session_id: sessionId
+  });
+
+  // 3. 저장
+  saveReadStoreToLocal();
+
+  // 4. UI 피드백
+  const emojiMap = { easy: '😊', medium: '🤔', hard: '😰', skip: '⏭️' };
+  const labelMap = { easy: '쉬움', medium: '보통', hard: '어려움', skip: '건너뛰기' };
+  const emoji = emojiMap[difficulty];
+  const label = labelMap[difficulty];
+
+  if (difficulty !== 'skip') {
+    showToast(`${emoji} ${label} (난이도: ${newDifficulty.toFixed(1)}/10)`, 'success');
+  } else {
+    showToast(`${emoji} ${label}`, 'info');
+  }
+
+  // 5. 난이도 평가 UI 제거 (중복 평가 방지)
+  removeDifficultyRatingUI();
+
+  // 6. 다음 카드 자동 진행 (skip 제외)
+  if (difficulty !== 'skip' && flashcardIndex < flashcardData.length - 1) {
+    setTimeout(() => {
+      flashcardNext();
+    }, 500);
+  }
 }
 
 /**
@@ -199,6 +320,9 @@ export function hideFlashcardAnswer() {
   if (el.flashcardToggleAnswer) {
     el.flashcardToggleAnswer.textContent = '답변 보기 👁️';
   }
+
+  // 난이도 평가 UI 제거
+  removeDifficultyRatingUI();
 }
 
 /**
@@ -333,6 +457,22 @@ export function initFlashcardListeners() {
         toggleFlashcardQuestion();
       } else if (e.key === 'Escape') {
         exitFlashcardMode();
+      } else if (e.key === '1' && !isEditing(e.target)) {
+        // 키보드 단축키: 1 = 쉬움
+        e.preventDefault();
+        if (flashcardAnswerVisible) handleDifficultyRating('easy');
+      } else if (e.key === '2' && !isEditing(e.target)) {
+        // 키보드 단축키: 2 = 보통
+        e.preventDefault();
+        if (flashcardAnswerVisible) handleDifficultyRating('medium');
+      } else if (e.key === '3' && !isEditing(e.target)) {
+        // 키보드 단축키: 3 = 어려움
+        e.preventDefault();
+        if (flashcardAnswerVisible) handleDifficultyRating('hard');
+      } else if (e.key === '0' && !isEditing(e.target)) {
+        // 키보드 단축키: 0 = 건너뛰기
+        e.preventDefault();
+        if (flashcardAnswerVisible) handleDifficultyRating('skip');
       }
     }
   });
