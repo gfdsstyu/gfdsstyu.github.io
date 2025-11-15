@@ -15,6 +15,7 @@ import { LocalHLRPredictor, calculateRecallProbability } from '../review/hlrData
 // Module state
 let reportCharts = {};
 let reportData = { period: 30, threshold: 60 };
+let dailyRecordDate = Date.now(); // Tab 4: 일일 학습 기록 날짜
 
 /**
  * 리포트 모달 열기
@@ -50,7 +51,7 @@ export function closeReportModal() {
 
 /**
  * 리포트 탭 전환
- * @param {number} tabNum - 탭 번호 (1, 2, 3)
+ * @param {number} tabNum - 탭 번호 (1, 2, 3, 4)
  */
 export function switchReportTab(tabNum) {
   const tabs = document.querySelectorAll('.report-tab');
@@ -74,6 +75,11 @@ export function switchReportTab(tabNum) {
       content.classList.add('hidden');
     }
   });
+
+  // Tab 4 진입 시 일일 학습 기록 렌더링
+  if (tabNum === 4) {
+    renderDailyProblemList(dailyRecordDate);
+  }
 }
 
 /**
@@ -162,6 +168,137 @@ export function getReportData() {
   }
 
   return { dailyData, chapterData, weakProblems, chartData };
+}
+
+// ============================================
+// Tab 4: 일일 학습 기록 (Daily Learning Record)
+// ============================================
+
+/**
+ * YYYY-MM-DD 형식의 날짜 문자열 반환
+ * @param {number|Date} d - 날짜 (timestamp 또는 Date 객체)
+ * @returns {string} YYYY-MM-DD
+ */
+function ymd(d) {
+  const dt = new Date(d);
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * 특정 날짜에 풀었던 문제 목록 조회
+ * @param {number} targetDate - 조회할 날짜 (timestamp)
+ * @returns {Array} 해당 날짜에 푼 문제 목록
+ */
+function getDailyRecordData(targetDate) {
+  const targetYmd = ymd(targetDate);
+  const records = [];
+
+  for (const [qid, rec] of Object.entries(window.questionScores || {})) {
+    const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
+    for (const h of hist) {
+      const hDate = +h?.date;
+      if (!Number.isFinite(hDate)) continue;
+
+      const hYmd = ymd(hDate);
+      if (hYmd === targetYmd) {
+        const problem = window.allData?.find(q => normId(q.고유ID) === qid);
+        if (problem) {
+          records.push({
+            qid,
+            problem,
+            score: clamp(+h?.score || 0, 0, 100),
+            timestamp: hDate,
+            user_answer: rec?.user_answer || '',
+            feedback: rec?.feedback || ''
+          });
+        }
+      }
+    }
+  }
+
+  // 시간순 정렬 (최신순)
+  records.sort((a, b) => b.timestamp - a.timestamp);
+  return records;
+}
+
+/**
+ * 일일 학습 기록 렌더링
+ * @param {number} date - 조회할 날짜 (timestamp)
+ */
+function renderDailyProblemList(date) {
+  const dateDisplay = el.dailyRecordDate;
+  const problemList = el.dailyProblemList;
+
+  if (!dateDisplay || !problemList) return;
+
+  // 날짜 표시
+  const dt = new Date(date);
+  const displayText = `${dt.getFullYear()}년 ${dt.getMonth() + 1}월 ${dt.getDate()}일 (${['일', '월', '화', '수', '목', '금', '토'][dt.getDay()]})`;
+  dateDisplay.textContent = displayText;
+
+  // 데이터 조회
+  const records = getDailyRecordData(date);
+
+  if (records.length === 0) {
+    problemList.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 py-8">이 날짜에 푼 문제가 없습니다.</div>';
+    return;
+  }
+
+  // 문제 카드 렌더링
+  problemList.innerHTML = records.map((rec, idx) => {
+    const title = rec.problem.problemTitle || `문항 ${rec.problem.표시번호}`;
+    const timeStr = new Date(rec.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    const scoreColor = rec.score >= 80 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                       rec.score >= 60 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
+                       'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300';
+
+    return `
+      <div class="border rounded-lg p-4 dark:border-gray-700" data-daily-problem="${idx}">
+        <div class="flex justify-between items-start mb-2">
+          <h4 class="font-semibold text-gray-900 dark:text-white">${title}</h4>
+          <span class="text-xs px-2 py-1 rounded-full ${scoreColor}">${rec.score}점</span>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">${timeStr} 풀이</p>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3"><strong>물음:</strong> ${rec.problem.물음}</p>
+
+        <div class="flex gap-2">
+          <button class="daily-show-answer-btn text-sm px-3 py-1 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition" type="button">
+            📖 답안 보기
+          </button>
+          <button class="daily-coach-btn text-sm px-3 py-1 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 transition" type="button" data-qid="${rec.qid}">
+            🧠 Gemini 암기 코치
+          </button>
+        </div>
+
+        <div class="daily-answer-detail hidden mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded space-y-2">
+          <div>
+            <p class="text-sm font-semibold text-gray-900 dark:text-white mb-1">내 답안:</p>
+            <p class="text-sm text-gray-700 dark:text-gray-300">${rec.user_answer || '(기록 없음)'}</p>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-gray-900 dark:text-white mb-1">모범 답안:</p>
+            <p class="text-sm text-gray-700 dark:text-gray-300">${rec.problem.정답}</p>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-gray-900 dark:text-white mb-1">AI 총평:</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">${rec.feedback || '(피드백 없음)'}</p>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/**
+ * 날짜 이동 핸들러
+ * @param {number} days - 이동할 일수 (음수: 이전, 양수: 다음)
+ */
+function handleDateNavigation(days) {
+  dailyRecordDate += days * 24 * 60 * 60 * 1000;
+  renderDailyProblemList(dailyRecordDate);
 }
 
 /**
@@ -450,6 +587,43 @@ export function initReportListeners() {
           detail.classList.toggle('hidden');
           btn.textContent = detail.classList.contains('hidden') ?
             '🧠 모범 답안 및 AI 총평 보기' : '🙈 답안 숨기기';
+        }
+      }
+    });
+  }
+
+  // Tab 4: 일일 학습 기록 이벤트 리스너
+  el.dailyPrevBtn?.addEventListener('click', () => handleDateNavigation(-1));
+  el.dailyNextBtn?.addEventListener('click', () => handleDateNavigation(1));
+
+  // 일일 학습 기록 버튼 이벤트 리스너 (이벤트 위임)
+  const dailyProblemList = el.dailyProblemList;
+  if (dailyProblemList) {
+    dailyProblemList.addEventListener('click', async (e) => {
+      // 답안 보기 토글
+      const showAnswerBtn = e.target.closest('.daily-show-answer-btn');
+      if (showAnswerBtn) {
+        const container = showAnswerBtn.closest('[data-daily-problem]');
+        const detail = container?.querySelector('.daily-answer-detail');
+        if (detail) {
+          detail.classList.toggle('hidden');
+          showAnswerBtn.textContent = detail.classList.contains('hidden') ?
+            '📖 답안 보기' : '🙈 답안 숨기기';
+        }
+        return;
+      }
+
+      // AI 암기 코치
+      const coachBtn = e.target.closest('.daily-coach-btn');
+      if (coachBtn) {
+        const qid = coachBtn.getAttribute('data-qid');
+        if (qid) {
+          // analysis.js의 handleCoachingRequest 함수 호출
+          if (typeof window.handleCoachingRequest === 'function') {
+            await window.handleCoachingRequest(qid, coachBtn);
+          } else {
+            showToast('암기 코치 기능이 아직 구현되지 않았습니다.', 'warn');
+          }
         }
       }
     });

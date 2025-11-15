@@ -451,6 +451,154 @@ export function copyAIAnalysis() {
 }
 
 /**
+ * AI 암기 코치 요청 (Tab 4: 일일 학습 기록 전용)
+ * @param {string} qid - 문제 고유 ID
+ * @param {HTMLElement} btn - 클릭된 버튼 요소 (로딩 상태 표시용)
+ */
+export async function handleCoachingRequest(qid, btn) {
+  // API 키 확인
+  const geminiApiKey = getGeminiApiKey();
+  if (!geminiApiKey) {
+    openApiModal(false);
+    showToast('Gemini API 키를 입력해주세요.', 'error');
+    return;
+  }
+
+  // 문제 데이터 조회
+  const problem = window.allData?.find(q => {
+    const normalizedId = String(q.고유ID || '').trim().toLowerCase();
+    return normalizedId === qid;
+  });
+
+  if (!problem) {
+    showToast('문제를 찾을 수 없습니다.', 'error');
+    return;
+  }
+
+  // 버튼 로딩 상태
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ 생성 중...';
+
+  try {
+    // 유연한 암기 팁 프롬프트
+    const prompt = `[역할]
+당신은 회계감사 2차 시험을 준비하는 학생의 암기 코치입니다.
+아래 문제와 정답을 보고, 학생이 쉽게 기억할 수 있도록 **유연한 암기 팁**을 제공하세요.
+
+[암기 기법 옵션 - 자유롭게 선택]
+1. **두문자 암기법**: 핵심 단어의 첫 글자를 조합 (예: "감사증거의 충분성과 적합성" → "충·적")
+2. **시각적 연상**: 개념을 이미지나 장면으로 비유 (예: "내부통제는 회사의 면역 체계")
+3. **실무 예시**: 실제 업무 상황으로 설명 (예: "재고조사는 창고에서 직접 세는 것")
+4. **비교 대조**: 유사 개념과 차이점 강조 (예: "직접확인 vs 간접확인")
+5. **어원/유래**: 용어의 어원이나 영어 원문 활용 (예: "materiality = 중요성")
+6. **스토리텔링**: 개념을 짧은 이야기로 연결
+7. **기타 창의적 방법**: 위 기법에 국한되지 않고, 해당 내용에 가장 잘 맞는 방법 자유 선택
+
+[중요 원칙]
+- **유연성**: 위 기법 중 1-2개만 선택하거나, 여러 개를 혼합해도 좋습니다
+- **간결성**: 2-4줄 이내로 핵심만 전달
+- **실용성**: 실제 시험장에서 떠올리기 쉬운 팁 제공
+- **정확성**: 개념의 핵심을 왜곡하지 말 것
+
+[문제]
+${problem.물음}
+
+[정답]
+${problem.정답}
+
+[요청]
+위 정답을 외우기 쉽게 만드는 암기 팁을 2-4줄로 제공하세요.
+가장 효과적인 기법을 자유롭게 선택하고, 간결하게 작성하세요.`;
+
+    const response = await callGeminiTextAPI(prompt, geminiApiKey);
+
+    // 결과 표시 (alert 대신 커스텀 알림)
+    showCoachingResult(problem.problemTitle || `문항 ${problem.표시번호}`, response);
+
+    showToast('암기 팁이 생성되었습니다! 💡');
+
+  } catch (err) {
+    console.error('암기 코치 오류:', err);
+    showToast('암기 팁 생성 실패: ' + err.message, 'error');
+  } finally {
+    // 버튼 복원
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+/**
+ * 암기 코치 결과 모달 표시
+ * @param {string} title - 문제 제목
+ * @param {string} content - 암기 팁 내용
+ */
+function showCoachingResult(title, content) {
+  // 모달 생성 (한 번만)
+  let modal = document.getElementById('coaching-result-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'coaching-result-modal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] hidden';
+    modal.innerHTML = `
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="coaching-result-title">💡 암기 팁</h3>
+            <button id="coaching-result-close" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl" aria-label="닫기">×</button>
+          </div>
+          <div class="mb-4">
+            <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" id="coaching-problem-title"></p>
+          </div>
+          <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+            <pre id="coaching-result-content" class="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-sans"></pre>
+          </div>
+          <div class="mt-4 flex justify-end gap-2">
+            <button id="coaching-copy-btn" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+              📋 복사
+            </button>
+            <button id="coaching-close-btn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+              확인
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    // 닫기 버튼 이벤트
+    const closeModal = () => {
+      modal.classList.add('hidden');
+    };
+    modal.querySelector('#coaching-result-close').addEventListener('click', closeModal);
+    modal.querySelector('#coaching-close-btn').addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    // 복사 버튼 이벤트
+    modal.querySelector('#coaching-copy-btn').addEventListener('click', () => {
+      const content = modal.querySelector('#coaching-result-content').textContent;
+      navigator.clipboard.writeText(content).then(() => {
+        showToast('암기 팁을 복사했습니다');
+      }).catch(() => {
+        showToast('복사 실패', 'error');
+      });
+    });
+  }
+
+  // 내용 업데이트 및 표시
+  modal.querySelector('#coaching-problem-title').textContent = title;
+  modal.querySelector('#coaching-result-content').textContent = content;
+  modal.classList.remove('hidden');
+}
+
+// 전역 함수로 등록 (reportCore.js에서 호출 가능하도록)
+if (typeof window !== 'undefined') {
+  window.handleCoachingRequest = handleCoachingRequest;
+}
+
+/**
  * AI 분석 이벤트 리스너 초기화
  */
 export function initAIAnalysisListeners() {
