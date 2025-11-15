@@ -125,6 +125,14 @@ export function initElements() {
     reportLoadSnapshotInput: $('report-load-snapshot-input'),
     reportPrintBtn: $('report-print-btn'),
 
+    // Report Tab 4 - Daily Record
+    reportTab4: $('report-tab-4'),
+    reportContent4: $('report-content-4'),
+    dailyPrevBtn: $('daily-prev-btn'),
+    dailyNextBtn: $('daily-next-btn'),
+    dailyRecordDate: $('daily-record-date'),
+    dailyProblemList: $('daily-problem-list'),
+
     // AI Analysis
     aiAnalysisStartBtn: $('ai-analysis-start-btn'),
     aiAnalysisResult: $('ai-analysis-result'),
