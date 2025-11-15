@@ -692,9 +692,10 @@ function executePdfExport() {
   const tab1 = document.getElementById('pdf-check-tab1')?.checked || false;
   const tab2 = document.getElementById('pdf-check-tab2')?.checked || false;
   const tab3 = document.getElementById('pdf-check-tab3')?.checked || false;
+  const tab4 = document.getElementById('pdf-check-tab4')?.checked || false;
 
   // 최소 1개는 선택해야 함
-  if (!tab1 && !tab2 && !tab3) {
+  if (!tab1 && !tab2 && !tab3 && !tab4) {
     showToast('최소 1개 탭을 선택해주세요', 'warn');
     return;
   }
@@ -703,7 +704,8 @@ function executePdfExport() {
   const contents = [
     { element: document.getElementById('report-content-1'), checked: tab1 },
     { element: document.getElementById('report-content-2'), checked: tab2 },
-    { element: document.getElementById('report-content-3'), checked: tab3 }
+    { element: document.getElementById('report-content-3'), checked: tab3 },
+    { element: document.getElementById('report-content-4'), checked: tab4 }
   ];
 
   contents.forEach(({ element, checked }) => {
