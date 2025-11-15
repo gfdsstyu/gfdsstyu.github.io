@@ -109,8 +109,8 @@ export function closeSettingsModal() {
 export function initApiModalListeners() {
   const el = getElements();
 
-  // API 키 저장 버튼
-  el.apiModalSaveBtn.addEventListener('click', () => {
+  // API 키 저장 로직 (함수로 추출)
+  const saveApiKey = () => {
     const key = (el.apiModalInput.value || '').trim();
 
     if (!key) {
@@ -130,7 +130,17 @@ export function initApiModalListeners() {
 
     closeApiModal();
     showToast('API 키 저장 완료');
+  };
+
+  // API 키 form submit 이벤트 (엔터키 지원)
+  const apiKeyForm = document.getElementById('api-key-form');
+  apiKeyForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    saveApiKey();
   });
+
+  // API 키 저장 버튼
+  el.apiModalSaveBtn.addEventListener('click', saveApiKey);
 
   // API 모달 취소 버튼
   el.apiModalCancelBtn.addEventListener('click', closeApiModal);
@@ -185,7 +195,18 @@ export function initSettingsModalListeners() {
     showToast(`음성 엔진 변경: ${provider}`);
   });
 
-  // Google STT 키 저장
+  // Google STT form submit 이벤트 (엔터키 지원)
+  const googleSttForm = document.getElementById('google-stt-form');
+  googleSttForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (el.googleSttKey) {
+      setGoogleSttKey(el.googleSttKey.value);
+      saveSttSettings();
+      showToast('Google STT API 키 저장 완료');
+    }
+  });
+
+  // Google STT 키 저장 (change 이벤트)
   el.googleSttKey?.addEventListener('change', (e) => {
     setGoogleSttKey(e.target.value);
     saveSttSettings();
