@@ -55,7 +55,7 @@ export function closeApiModal() {
  * API 키 게이트 체크 (키가 없으면 모달 띄우기)
  */
 export function ensureApiKeyGate() {
-  if (!window.geminiApiKey && !getGeminiApiKey?.()) {
+  if (!getGeminiApiKey()) {
     openApiModal(true);
   }
 }
