@@ -35,32 +35,61 @@ export function prioritizeTodayReview(list, predictor) {
 
   const strat = getReviewStrategy();
 
-  // HLR 전략: 회상 확률 기반 정렬
+  // HLR 전략: 회상 확률 + FSRS 난이도 기반 정렬
   if (strat === 'hlr') {
+    const readStore = window.readStore || {};
+    const difficultyTracker = window.difficultyTracker;
+
     const scored = list.map(q => {
       const qid = normId(q.고유ID);
       const rec = questionScores[qid];
+      const readData = readStore[qid];
 
       // 우선순위 점수 계산 (낮을수록 높은 우선순위)
       let priority = 0;
 
       // 1. 복습 플래그 최상위
-      if (rec?.userReviewFlag && !rec?.userReviewExclude) priority -= 1000;
+      if (rec?.userReviewFlag && !rec?.userReviewExclude) priority -= 10000;
 
       // 2. HLR 회상 확률 계산
       const hlrData = calculateRecallProbability(qid, predictor);
       if (hlrData) {
         // 회상 확률 낮을수록 우선순위 높음 (망각 임박)
-        priority += hlrData.p_current * 100; // 0~100
+        priority += hlrData.p_current * 1000; // 0~1000
 
-        // 마지막 풀이 오래된 순
-        priority += hlrData.timeSinceLastReview * 0.5;
+        // 반감기가 짧을수록 우선순위 높음
+        priority += hlrData.h_pred * 10;
       } else {
         // HLR 데이터 없으면 (미풀이) 중간 우선순위
-        priority += 50;
+        priority -= 500;
       }
 
-      // 3. 평균 점수 낮은 순
+      // 3. FSRS 난이도로 보정 (부가적)
+      if (difficultyTracker) {
+        const difficulty = difficultyTracker.getDifficulty(qid);
+        // 어려운 문제일수록 자주 복습 (난이도 5 기준)
+        priority -= (difficulty - 5) * 20;
+      }
+
+      // 4. 수동 재인 이력 고려
+      if (readData?.stats?.rated_views > 0) {
+        // 평가된 재인이 많을수록 약간 우선순위 낮춤
+        // (이미 어느 정도 학습됨)
+        priority += readData.stats.rated_views * 5;
+      }
+
+      // 5. 최근 재인 시간 고려
+      if (readData?.viewHistory?.length > 0) {
+        const lastView = readData.viewHistory[readData.viewHistory.length - 1];
+        const hoursSinceView = (Date.now() - lastView.timestamp) / (3600 * 1000);
+
+        // 24시간 이내 본 카드는 우선순위 낮춤
+        if (hoursSinceView < 24) {
+          priority += (24 - hoursSinceView) * 10;
+        }
+      }
+
+      // 6. 평균 점수 낮은 순
       const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
       if (hist.length > 0) {
         const scores = hist.map(h => clamp(+h?.score || 0, 0, 100));

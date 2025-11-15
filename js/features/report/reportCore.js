@@ -10,7 +10,7 @@ import { normId, clamp } from '../../utils/helpers.js';
 import { chapterLabelText } from '../../config/config.js';
 import { renderDailyVolumeChart, renderScoreTrendChart, renderChapterWeaknessChart, calculateMovingAverage } from './charts.js';
 import { showToast, closeDrawer } from '../../ui/domUtils.js';
-import { LocalHLRPredictor, calculateRecallProbability } from '../review/hlrDataset.js';
+import { LocalHLRPredictor, EnhancedHLRPredictor, calculateRecallProbability } from '../review/hlrDataset.js';
 
 // Module state
 let reportCharts = {};
@@ -90,8 +90,8 @@ export function getReportData() {
   const chapterData = new Map(); // chapter -> {scores[], dates[]}
   const weakProblems = []; // problems below threshold
 
-  // HLR 예측기 생성 (한 번만 생성하여 성능 최적화)
-  const predictor = new LocalHLRPredictor();
+  // HLR 예측기 생성 (Enhanced with FSRS difficulty)
+  const predictor = new EnhancedHLRPredictor();
 
   // HLR 계산 결과 캐싱 (성능 최적화)
   const hlrCache = new Map();
@@ -232,7 +232,7 @@ export function renderActionPlan(weakProblems) {
     let hlrInfo = '';
     if (reviewMode === 'hlr' && wp.p_current !== null) {
       const pPercent = Math.round(wp.p_current * 100);
-      const predictor = new LocalHLRPredictor();
+      const predictor = new EnhancedHLRPredictor();
       const nextReviewDays = Math.round(predictor.getNextReviewDelta(wp.h_pred || 14, 0.9));
 
       hlrInfo = `<div class="ml-3 mt-1 text-xs text-gray-500 dark:text-gray-400">

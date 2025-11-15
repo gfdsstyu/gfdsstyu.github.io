@@ -67,6 +67,7 @@ import * as Explorer from './features/explorer/explorerCore.js';
 // 기능 - 복습 시스템 (HLR)
 import * as HLRDataset from './features/review/hlrDataset.js';
 import * as ReviewCore from './features/review/reviewCore.js';
+import * as DifficultyTracker from './features/review/difficultyTracker.js';
 
 // 기능 - STT (음성 인식)
 import * as GoogleSttApi from './services/googleSttApi.js';
@@ -401,8 +402,8 @@ window.LocalHLRPredictor = HLRDataset.LocalHLRPredictor;
 window.buildFeaturesForQID = HLRDataset.buildFeaturesForQID;
 window.calculateRecallProbability = HLRDataset.calculateRecallProbability;
 
-// HLR Predictor global instance
-window.hlrPredictor = new HLRDataset.LocalHLRPredictor();
+// HLR Predictor global instance (Enhanced with FSRS difficulty)
+window.hlrPredictor = new HLRDataset.EnhancedHLRPredictor();
 
 // Review Core (복습 전략)
 window.ReviewCore = ReviewCore;
@@ -455,6 +456,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 4. 헤더 스크롤 제어 초기화
   HeaderScroll.initHeaderScroll();
+
+  // 5. FSRS 난이도 추적 시스템 초기화
+  DifficultyTracker.initDifficultySystem();
 
   console.log('✅ DOM 엘리먼트 초기화 완료');
   console.log('✅ 임시 브릿지 설정 완료 - index.html 기존 코드와 연동됨');
