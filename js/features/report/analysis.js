@@ -10,6 +10,7 @@ import { getReportData } from './reportCore.js';
 import { showToast } from '../../ui/domUtils.js';
 import { openApiModal } from '../settings/settingsCore.js';
 import { calculateMovingAverage } from './charts.js';
+import { getGeminiApiKey } from '../../core/stateManager.js';
 
 /**
  * 차트 해석 규칙 (Task 4: trendhelp.html에서 핵심 내용 추출)
@@ -178,9 +179,10 @@ export async function startAIAnalysis() {
   const result = $('ai-analysis-result');
 
   // Check API key first
-  if(!window.geminiApiKey){
+  const geminiApiKey = getGeminiApiKey();
+  if (!geminiApiKey) {
     openApiModal(false);
-    showToast('Gemini API 키를 입력해주세요.','error');
+    showToast('Gemini API 키를 입력해주세요.', 'error');
     return;
   }
 
@@ -416,7 +418,7 @@ ${JSON.stringify(weakProblemsSummary, null, 2)}
 
 마크다운 형식으로 답변하세요.`;
 
-    const response = await callGeminiTextAPI(prompt, window.geminiApiKey);
+    const response = await callGeminiTextAPI(prompt, geminiApiKey);
 
     if (loading) loading.classList.add('hidden');
     if (result) result.classList.remove('hidden');
