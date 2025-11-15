@@ -464,6 +464,23 @@ export async function handleCoachingRequest(qid, btn) {
     return;
   }
 
+  // 문제 카드 컨테이너 찾기
+  const container = btn.closest('[data-daily-problem]');
+  if (!container) return;
+
+  const coachingTip = container.querySelector('.daily-coaching-tip');
+  const coachingContent = container.querySelector('.coaching-content');
+
+  if (!coachingTip || !coachingContent) return;
+
+  // 이미 생성된 팁이 있으면 토글만
+  if (coachingContent.textContent.trim()) {
+    coachingTip.classList.toggle('hidden');
+    btn.textContent = coachingTip.classList.contains('hidden') ?
+      '🧠 Gemini 암기 코치' : '🙈 암기 팁 숨기기';
+    return;
+  }
+
   // 문제 데이터 조회
   const problem = window.allData?.find(q => {
     const normalizedId = String(q.고유ID || '').trim().toLowerCase();
@@ -513,84 +530,21 @@ ${problem.정답}
 
     const response = await callGeminiTextAPI(prompt, geminiApiKey);
 
-    // 결과 표시 (alert 대신 커스텀 알림)
-    showCoachingResult(problem.problemTitle || `문항 ${problem.표시번호}`, response);
+    // 결과를 카드 내 암기 팁 영역에 표시
+    coachingContent.textContent = response;
+    coachingTip.classList.remove('hidden');
+    btn.textContent = '🙈 암기 팁 숨기기';
 
     showToast('암기 팁이 생성되었습니다! 💡');
 
   } catch (err) {
     console.error('암기 코치 오류:', err);
     showToast('암기 팁 생성 실패: ' + err.message, 'error');
-  } finally {
-    // 버튼 복원
-    btn.disabled = false;
     btn.textContent = originalText;
+  } finally {
+    // 버튼 활성화
+    btn.disabled = false;
   }
-}
-
-/**
- * 암기 코치 결과 모달 표시
- * @param {string} title - 문제 제목
- * @param {string} content - 암기 팁 내용
- */
-function showCoachingResult(title, content) {
-  // 모달 생성 (한 번만)
-  let modal = document.getElementById('coaching-result-modal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'coaching-result-modal';
-    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] hidden';
-    modal.innerHTML = `
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-        <div class="p-6">
-          <div class="flex justify-between items-start mb-4">
-            <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="coaching-result-title">💡 암기 팁</h3>
-            <button id="coaching-result-close" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl" aria-label="닫기">×</button>
-          </div>
-          <div class="mb-4">
-            <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" id="coaching-problem-title"></p>
-          </div>
-          <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-            <pre id="coaching-result-content" class="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-sans"></pre>
-          </div>
-          <div class="mt-4 flex justify-end gap-2">
-            <button id="coaching-copy-btn" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-              📋 복사
-            </button>
-            <button id="coaching-close-btn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
-              확인
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-
-    // 닫기 버튼 이벤트
-    const closeModal = () => {
-      modal.classList.add('hidden');
-    };
-    modal.querySelector('#coaching-result-close').addEventListener('click', closeModal);
-    modal.querySelector('#coaching-close-btn').addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal();
-    });
-
-    // 복사 버튼 이벤트
-    modal.querySelector('#coaching-copy-btn').addEventListener('click', () => {
-      const content = modal.querySelector('#coaching-result-content').textContent;
-      navigator.clipboard.writeText(content).then(() => {
-        showToast('암기 팁을 복사했습니다');
-      }).catch(() => {
-        showToast('복사 실패', 'error');
-      });
-    });
-  }
-
-  // 내용 업데이트 및 표시
-  modal.querySelector('#coaching-problem-title').textContent = title;
-  modal.querySelector('#coaching-result-content').textContent = content;
-  modal.classList.remove('hidden');
 }
 
 // 전역 함수로 등록 (reportCore.js에서 호출 가능하도록)
