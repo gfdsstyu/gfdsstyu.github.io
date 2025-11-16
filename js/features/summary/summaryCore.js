@@ -6,6 +6,7 @@ import { getElements, getQuestionScores, getCurrentQuizData, getCurrentQuestionI
 import { chapterLabelText, PART_INSERTIONS } from '../../config/config.js';
 import { loadReadStore, computeUniqueReadsFromHistory } from '../../core/storageManager.js';
 import { showToast } from '../../ui/domUtils.js';
+import { applySourceFilter } from '../filter/filterCore.js';
 
 /**
  * 요약 뷰 업데이트 (단원별 학습 현황)
@@ -20,7 +21,9 @@ export function updateSummary() {
   const currentQuizData = getCurrentQuizData();
   const allData = getAllData();
 
-  const base = (summaryViewMode === 'CURRENT') ? (currentQuizData || []) : (allData || []);
+  // Apply source group filter to both CURRENT and ALL modes
+  let base = (summaryViewMode === 'CURRENT') ? (currentQuizData || []) : (allData || []);
+  base = applySourceFilter(base);
 
   // 단원별 그룹화
   const groups = new Map();
