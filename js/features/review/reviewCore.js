@@ -1,6 +1,6 @@
 /**
  * @fileoverview 복습 전략 및 우선순위 정렬
- * - 복습 전략 관리 (smart, HLR, flag, low, recentWrong)
+ * - 복습 전략 관리 (smart, HLR, flag, low, recentWrong, oldWrong)
  * - 문제 우선순위 정렬
  * - 복습 UI 이벤트 핸들러
  */
@@ -14,7 +14,7 @@ const REVIEW_STRATEGY_LS = 'reviewStrategy_v1';
 
 /**
  * Get current review strategy from localStorage
- * @returns {string} 'smart' | 'hlr' | 'flag' | 'low' | 'recentWrong'
+ * @returns {string} 'smart' | 'hlr' | 'flag' | 'low' | 'recentWrong' | 'oldWrong'
  */
 export function getReviewStrategy() {
   return localStorage.getItem(REVIEW_STRATEGY_LS) || 'smart';
@@ -130,6 +130,21 @@ export function prioritizeTodayReview(list, predictor) {
       const bs = sb?.score ?? 101;
       const ad = sa?.lastSolvedDate ?? 0;
       const bd = sb?.lastSolvedDate ?? 0;
+      // 점수 낮은 순 우선, 같으면 최근 틀린 순 (날짜 높은 것 우선)
+      return (as - bs) || (bd - ad);
+    });
+  }
+
+  // 오래전 오답 우선
+  if (strat === 'oldWrong') {
+    return [...list].sort((a, b) => {
+      const sa = questionScores[normId(a.고유ID)];
+      const sb = questionScores[normId(b.고유ID)];
+      const as = sa?.score ?? 101;
+      const bs = sb?.score ?? 101;
+      const ad = sa?.lastSolvedDate ?? 0;
+      const bd = sb?.lastSolvedDate ?? 0;
+      // 점수 낮은 순 우선, 같으면 오래전 틀린 순 (날짜 낮은 것 우선)
       return (as - bs) || (ad - bd);
     });
   }
