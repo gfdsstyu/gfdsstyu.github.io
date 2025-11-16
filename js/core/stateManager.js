@@ -17,6 +17,7 @@ const state = {
   geminiApiKey: '',
   selectedAiModel: 'gemini-2.5-flash',
   darkMode: 'system',
+  memoryTipMode: 'mild', // 암기팁 스타일 ('mild' | 'stimulating')
 
   // UI 상태
   activeHintQuestionKey: null,
@@ -65,6 +66,7 @@ export const getSelectedAiModel = () => state.selectedAiModel;
 export const getDarkMode = () => state.darkMode;
 export const getActiveHintQuestionKey = () => state.activeHintQuestionKey;
 export const getActiveMemoryTipQuestionKey = () => state.activeMemoryTipQuestionKey;
+export const getMemoryTipMode = () => state.memoryTipMode;
 export const getPrevLoaded = () => state.prevLoaded;
 export const getSummaryViewMode = () => state.summaryViewMode;
 export const getStatsView = () => state.statsView;
@@ -106,6 +108,10 @@ export const setSelectedAiModel = (model) => { state.selectedAiModel = model; };
 export const setDarkMode = (mode) => { state.darkMode = mode; };
 export const setActiveHintQuestionKey = (key) => { state.activeHintQuestionKey = key; };
 export const setActiveMemoryTipQuestionKey = (key) => { state.activeMemoryTipQuestionKey = key; };
+export const setMemoryTipMode = (mode) => {
+  state.memoryTipMode = mode;
+  localStorage.setItem('memoryTipMode', mode);
+};
 export const setPrevLoaded = (loaded) => { state.prevLoaded = loaded; };
 export const setSummaryViewMode = (mode) => { state.summaryViewMode = mode; };
 export const setStatsView = (view) => { state.statsView = view; };
@@ -164,6 +170,9 @@ export function loadFromStorage() {
   // STT 설정 로드
   state.sttProvider = localStorage.getItem(STORAGE_KEYS.sttProvider) || 'webspeech';
   state.googleSttKey = localStorage.getItem(STORAGE_KEYS.googleSttKey) || '';
+
+  // 암기팁 모드 로드
+  state.memoryTipMode = localStorage.getItem('memoryTipMode') || 'mild';
 }
 
 /**

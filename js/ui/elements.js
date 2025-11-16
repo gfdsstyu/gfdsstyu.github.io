@@ -29,6 +29,7 @@ export function initElements() {
     settingsCloseBtn: $('settings-close-btn'),
     settingsCloseBtnBottom: $('settings-close-btn-bottom'),
     openApiKeyModalBtn: $('open-api-key-modal-btn'),
+    memoryTipModeSelect: $('memory-tip-mode-select'),
     aiModelSelect: $('ai-model-select'),
     darkModeSelect: $('dark-mode-select'),
 

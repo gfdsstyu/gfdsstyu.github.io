@@ -14,7 +14,9 @@ import {
   setSttProvider,
   getGoogleSttKey,
   setGoogleSttKey,
-  saveSttSettings
+  saveSttSettings,
+  getMemoryTipMode,
+  setMemoryTipMode
 } from '../../core/stateManager.js';
 import { showToast, applyDarkMode } from '../../ui/domUtils.js';
 import { loadExamDate, saveExamDate, updateDDayDisplay } from '../../core/storageManager.js';
@@ -91,6 +93,11 @@ export function openSettingsModal() {
     el.sttProviderSelect.value = currentProvider;
     el.googleSttKey.value = getGoogleSttKey();
     updateSttKeyVisibility(currentProvider);
+  }
+
+  // 암기팁 모드 초기값 로드
+  if (el.memoryTipModeSelect) {
+    el.memoryTipModeSelect.value = getMemoryTipMode();
   }
 }
 
@@ -184,6 +191,13 @@ export function initSettingsModalListeners() {
     const mode = e.target.value;
     localStorage.setItem('reviewMode', mode);
     showToast(`복습 기준 변경: ${mode === 'hlr' ? 'HLR 기반' : '시간 기반'}`);
+  });
+
+  // 암기팁 모드 변경
+  el.memoryTipModeSelect?.addEventListener('change', (e) => {
+    const mode = e.target.value;
+    setMemoryTipMode(mode);
+    showToast(`암기팁 스타일 변경: ${mode === 'mild' ? 'Mild 버전' : '자극적인 버전'}`);
   });
 
   // STT 공급자 변경

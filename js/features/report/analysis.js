@@ -10,7 +10,7 @@ import { getReportData } from './reportCore.js';
 import { showToast } from '../../ui/domUtils.js';
 import { openApiModal } from '../settings/settingsCore.js';
 import { calculateMovingAverage } from './charts.js';
-import { getGeminiApiKey, getQuestionScores, setQuestionScores, saveQuestionScores } from '../../core/stateManager.js';
+import { getGeminiApiKey, getQuestionScores, setQuestionScores, saveQuestionScores, getMemoryTipMode } from '../../core/stateManager.js';
 import { normId } from '../../utils/helpers.js';
 import { createMemoryTipPrompt } from '../../config/config.js';
 
@@ -517,8 +517,9 @@ export async function handleCoachingRequest(qid, btn, forceRegenerate = false) {
   btn.textContent = '⏳ 생성 중...';
 
   try {
-    // config.js의 통합 프롬프트 템플릿 사용
-    const prompt = createMemoryTipPrompt(problem.물음, problem.정답);
+    // config.js의 통합 프롬프트 템플릿 사용 (사용자 설정 모드 반영)
+    const mode = getMemoryTipMode();
+    const prompt = createMemoryTipPrompt(problem.물음, problem.정답, mode);
     const response = await callGeminiTextAPI(prompt, geminiApiKey);
 
     // questionScores에 저장
