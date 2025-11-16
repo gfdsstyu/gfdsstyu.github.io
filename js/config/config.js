@@ -9,8 +9,8 @@ export const BASE_SYSTEM_PROMPT =
 `당신은 매우 엄격한 회계감사 과목 채점 교수님입니다.
 - 사용자 답안을 모범답안과 비교해 0~100의 "score"(NUMBER)와 "feedback"(STRING, 한국어)을 JSON으로만 반환하세요.
 - 채점 기준을 매우 엄격하게(strictly) 적용합니다.
-- 대신 띄어쓰기나 맞춤법 실수 같은 단순한 타이핑실수는 봐줍니다. 또한 중요왜곡표시위험을 RMM으로, 성격·시기·범위를 성시범으로, 공인회계사를 CPA로 줄여쓰는 정도의 수험상 합의된 언어는 봐줍니다.
-
+- 대신 띄어쓰기나 맞춤법 실수 같은 단순한 타이핑실수는 봐줍니다. 또한 중요왜곡표시위험을 RMM으로, 성격·시기·범위를 성시범으로,충분하고 적합한 감사증거를 충적감증으로, 공인회계사를 CPA로 줄여쓰는 정도의 수험상 합의된 언어는 봐줍니다.
+- (주) 나 (참고), ()괄호안 설명 등은 설명부분이니 채점에서는 제외
 [채점 기준]
 1. 모범 답안의 핵심 키워드 포함 여부
 2. 핵심 키워드 대부분 누락: 50점 미만
@@ -18,7 +18,7 @@ export const BASE_SYSTEM_PROMPT =
 4. 모든 핵심 키워드 + 의도 일치: 80점 이상
 5. 조사까지 동일할 때만 100점
 6. 키워드는 모범답안에서 스스로 추출하되, 한국 회계감사 기준·규정(ISA, KSA, 외부감사법, 윤리기준)에 맞는 동의어·표현 변형을 허용
-7. 물음에서의 물음 부분이 굳이 답변에 포함되지 않아도 됨(물음의 내용이 모범답안에 재진술되어있다고해서 굳이 사용자 답안에 해당 내용이 포함되지 않아도됨)
+7. 물음에서의 물음 부분이 굳이 답변에 포함되지 않아도 됨(물음의 내용이 모범답안에서 물음의 내용을 밝히고 답변을 제시하는 구조로 되어있다고해서 굳이 사용자 답안에 해당 내용이 포함되지 않아도됨)
 
 - 불필요한 말/코드블록 금지. JSON 객체만 반환.`;
 
@@ -26,9 +26,8 @@ export const LITE_STRICT_ADDENDUM =
 `[엄격 모드 지침(라이트 전용)]
 - 모호/추정/확장 서술은 감점.
 - 점수 짜게준다.
-- 필수 키워드가 문장 내 명시적으로 없으면 큰 감점.
-- 레퍼런스 밖 주장은 근거 없으면 감점.
-- 도출한 점수보다 7점 깎아서 제시할 것`;
+- 중요한 필수 키워드가 문장 내 명시적으로 없으면 큰 감점.
+- 도출한 점수보다 5점 깎아서 제시할 것(출력문구에 언급은 X)`;
 
 // ========================================
 // localStorage 키
@@ -188,7 +187,7 @@ export const ACHIEVEMENTS = {
   after_work_warrior: { id: 'after_work_warrior', name: '퇴근후 전사', desc: '18~20시 사이에 누적 200문제 풀이', icon: '💼', tier: 'hidden', points: 50 },
   morning_warmup: { id: 'morning_warmup', name: '출근전 워밍업', desc: '7~9시 사이에 누적 100문제 풀이', icon: '🌄', tier: 'hidden', points: 30 },
   new_year_dedication: { id: 'new_year_dedication', name: '신정의 각오', desc: '1월 1일 신정에 30문제 이상 풀이', icon: '🎆', tier: 'hidden', points: 50 },
-  christmas_studier: { id: 'christmas_studier', name: '크리스마스 학습러', desc: '12월 25일 크리스마스에 30문제 이상 풀이', icon: '🎄', tier: 'hidden', points: 50 },
+  christmas_studier: { id: 'christmas_studier', name: '메리 크리스마스', desc: '12월 25일 크리스마스에 30문제 이상 풀이', icon: '🎄', tier: 'hidden', points: 50 },
   lunar_new_year: { id: 'lunar_new_year', name: '설날의 다짐', desc: '음력 설날 당일에 30문제 이상 풀이', icon: '🧧', tier: 'hidden', points: 50 },
 
   // Chapter 1st Completion (Bronze - 10 points each)
