@@ -119,8 +119,8 @@ export const ACHIEVEMENTS = {
   stt_50: { id: 'stt_50', name: '말터디 에이스', desc: '음성 입력(STT) 기능으로 50개의 답안을 성공적으로 제출', icon: '🗣️', tier: 'silver', points: 25 },
 
   // Gold - Advanced achievements
-  avg_90: { id: 'avg_90', name: '칭호: 예비 회계사', desc: '전체 문제 누적 평균 점수 90점 돌파', icon: '🏆', tier: 'gold', points: 100 },
-  avg_95: { id: 'avg_95', name: '칭호: 기준서 프린터', desc: '전체 문제 누적 평균 점수 95점 돌파', icon: '🌟', tier: 'gold', points: 150 },
+  avg_90: { id: 'avg_90', name: '칭호: 예비 회계사', desc: '기본문제(H, S, HS) 전부 풀이 완료 + 전체 문제 누적 평균 점수 90점 돌파', icon: '🏆', tier: 'gold', points: 100 },
+  avg_95: { id: 'avg_95', name: '칭호: 기준서 프린터', desc: '모든 문제 전부 풀이 완료 + 전체 문제 누적 평균 점수 95점 돌파', icon: '🌟', tier: 'gold', points: 150 },
   streak_90: { id: 'streak_90', name: '세 달의 경지', desc: '90일 연속 학습', icon: '🔥', tier: 'gold', points: 120 },
   streak_120: { id: 'streak_120', name: '120일의 전문가', desc: '120일 연속 학습', icon: '👨‍🎓', tier: 'gold', points: 200 },
   streak_180: { id: 'streak_180', name: '구도자', desc: '학습 시작일부터 시험 D-1일까지 연속 학습 달성', icon: '🧘‍♂️', tier: 'gold', points: 300 },

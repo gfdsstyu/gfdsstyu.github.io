@@ -145,9 +145,26 @@ export function checkAchievements() {
   // Check average score
   if (scores.length > 0) {
     const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+
+    // avg_80: 평균 80점 이상 (조건 없음)
     if (avgScore >= 80) unlockAchievement('avg_80');
-    if (avgScore >= 90) unlockAchievement('avg_90');
-    if (avgScore >= 95) unlockAchievement('avg_95');
+
+    // avg_90 (예비 회계사): 기본문제(H, S, HS) 전부 풀이 + 평균 90점 이상
+    if (avgScore >= 90) {
+      const basicSources = allData.filter(q => ['H', 'S', 'HS'].includes(q.출처));
+      const basicSolved = basicSources.filter(q => questionScores[normId(q.고유ID)]);
+      if (basicSources.length > 0 && basicSolved.length === basicSources.length) {
+        unlockAchievement('avg_90');
+      }
+    }
+
+    // avg_95 (기준서 프린터): 모든 문제 전부 풀이 + 평균 95점 이상
+    if (avgScore >= 95) {
+      const allProblemsSolved = allData.length > 0 && allData.every(q => questionScores[normId(q.고유ID)]);
+      if (allProblemsSolved) {
+        unlockAchievement('avg_95');
+      }
+    }
   }
 
   // Check streaks
