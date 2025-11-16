@@ -26,7 +26,7 @@ const state = {
   isFlashcardMode: false,
 
   // STT (음성 인식 설정)
-  sttProvider: 'none',
+  sttProvider: 'webspeech',
   googleSttKey: '',
 
   // DOM 요소 (initElements로 초기화됨)
@@ -159,7 +159,7 @@ export function loadFromStorage() {
   state.statsView = localStorage.getItem(STORAGE_KEYS.statsView) || 'day';
 
   // STT 설정 로드
-  state.sttProvider = localStorage.getItem(STORAGE_KEYS.sttProvider) || 'none';
+  state.sttProvider = localStorage.getItem(STORAGE_KEYS.sttProvider) || 'webspeech';
   state.googleSttKey = localStorage.getItem(STORAGE_KEYS.googleSttKey) || '';
 }
 
