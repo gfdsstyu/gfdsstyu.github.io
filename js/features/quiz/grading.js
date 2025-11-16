@@ -22,7 +22,6 @@ import {
 } from '../../core/stateManager.js';
 import { openApiModal } from '../settings/settingsCore.js';
 import { updateSummary } from '../summary/summaryCore.js';
-import { saveToLocal } from '../../core/storage.js';
 
 // ============================================
 // 로딩 상태 관리 (채점 버튼 전용)
@@ -429,7 +428,8 @@ ${q.정답}
       questionScores[qKey] = {};
     }
     questionScores[qKey].memoryTip = response;
-    saveToLocal(); // localStorage에 저장
+    setQuestionScores(questionScores);
+    saveQuestionScores(); // localStorage에 저장
 
     // 결과 표시
     if (el.memoryTipContent) {

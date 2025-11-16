@@ -10,9 +10,9 @@ import { getReportData } from './reportCore.js';
 import { showToast } from '../../ui/domUtils.js';
 import { openApiModal } from '../settings/settingsCore.js';
 import { calculateMovingAverage } from './charts.js';
-import { getGeminiApiKey, getQuestionScores } from '../../core/stateManager.js';
+import { getGeminiApiKey, getQuestionScores, setQuestionScores } from '../../core/stateManager.js';
 import { normId } from '../../utils/helpers.js';
-import { saveToLocal } from '../../core/storage.js';
+import { saveQuestionScores } from '../../core/stateManager.js';
 
 /**
  * 차트 해석 규칙 (Task 4: trendhelp.html에서 핵심 내용 추출)
@@ -556,7 +556,8 @@ ${problem.정답}
       questionScores[nid] = {};
     }
     questionScores[nid].memoryTip = response;
-    saveToLocal(); // localStorage에 저장
+    setQuestionScores(questionScores);
+    saveQuestionScores(); // localStorage에 저장
 
     // 결과를 카드 내 암기 팁 영역에 표시
     coachingContent.textContent = response;
