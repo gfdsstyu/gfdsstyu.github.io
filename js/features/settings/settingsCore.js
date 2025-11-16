@@ -211,6 +211,40 @@ export function initSettingsModalListeners() {
     setGoogleSttKey(e.target.value);
     saveSttSettings();
   });
+
+  // STT 설정 토글 버튼
+  const sttSettingsToggle = document.getElementById('stt-settings-toggle');
+  const sttSettingsContent = document.getElementById('stt-settings-content');
+  const sttSettingsArrow = document.getElementById('stt-settings-arrow');
+
+  sttSettingsToggle?.addEventListener('click', () => {
+    const isHidden = sttSettingsContent.classList.contains('hidden');
+
+    if (isHidden) {
+      sttSettingsContent.classList.remove('hidden');
+      sttSettingsArrow.textContent = '▼';
+    } else {
+      sttSettingsContent.classList.add('hidden');
+      sttSettingsArrow.textContent = '▶';
+    }
+  });
+
+  // D-DAY 설정 토글 버튼
+  const ddaySettingsToggle = document.getElementById('dday-settings-toggle');
+  const ddaySettingsContent = document.getElementById('dday-settings-content');
+  const ddaySettingsArrow = document.getElementById('dday-settings-arrow');
+
+  ddaySettingsToggle?.addEventListener('click', () => {
+    const isHidden = ddaySettingsContent.classList.contains('hidden');
+
+    if (isHidden) {
+      ddaySettingsContent.classList.remove('hidden');
+      ddaySettingsArrow.textContent = '▼';
+    } else {
+      ddaySettingsContent.classList.add('hidden');
+      ddaySettingsArrow.textContent = '▶';
+    }
+  });
 }
 
 /**
