@@ -6,6 +6,7 @@
 import { clamp, normId } from '../../utils/helpers.js';
 import { callGeminiAPI, callGeminiHintAPI, callGeminiTextAPI } from '../../services/geminiApi.js';
 import { showToast } from '../../ui/domUtils.js';
+import { createMemoryTipPrompt } from '../../config/config.js';
 import {
   getElements,
   getCurrentQuizData,
@@ -390,36 +391,8 @@ export async function handleMemoryTip(q, forceRegenerate = false) {
   setGradeLoading(true);
 
   try {
-    // 유연한 암기 팁 프롬프트 (analysis.js와 동일)
-    const prompt = `[역할]
-당신은 회계감사 2차 시험을 준비하는 학생의 암기 코치입니다.
-아래 문제와 정답을 보고, 학생이 쉽게 기억할 수 있도록 **유연한 암기 팁**을 제공하세요.
-
-[암기 기법 옵션 - 자유롭게 선택]
-1. **두문자 암기법**: 핵심 단어의 첫 글자를 조합. 익살스러워서 기억에 남으면 좋음. 선정적이거나 자극적이어도 좋음. (예: "감사증거의 충분성과 적합성" → "충·적")
-2. **시각적 연상**: 개념을 이미지나 장면으로 비유. 자극 강렬 황당 기괴하여도 기억에만 잘 남으면 좋음. (예: "내부통제는 회사의 면역 체계")
-3. **실무 예시**: 실제 업무 상황으로 설명 (예: "재고조사는 창고에서 직접 세는 것")
-4. **비교 대조**: 유사 개념과 차이점 강조 (예: "직접확인 vs 간접확인")
-5. **어원/유래**: 용어의 어원이나 영어 원문 활용 (예: "materiality = 중요성")
-6. **스토리텔링**: 개념을 짧은 이야기로 연결. 경선식 스타일처럼 익살스럽고 웃기거나 충격적이거나 선정적이거나 자극적이어도 좋음.
-7. **기타 창의적 방법**: 위 기법에 국한되지 않고, 해당 내용에 가장 잘 맞는 방법 자유 선택
-
-[중요 원칙]
-- **유연성**: 위 기법 중 1-2개만 선택하거나, 여러 개를 혼합해도 좋습니다. 하지만 1. 두문자를 제시하는 것이 다수의 학생들이 사용하는 방식이니 먼저 고려해주세요.
-- **간결성**: 2-5줄 이내로 핵심만 전달
-- **실용성**: 실제 시험장에서 떠올리기 쉬운 팁 제공
-- **완전성**: 개념의 핵심을 왜곡하지 말고 모든 항목을 포함할것. 예를들어 번호 1~4까지 있다면 4항목을 모두 포함하시오.
-
-[문제]
-${q.물음}
-
-[정답]
-${q.정답}
-
-[요청]
-위 정답을 외우기 쉽게 만드는 암기 팁을 2-4줄로 제공하세요.
-가장 효과적인 기법을 자유롭게 선택하고, 간결하게 작성하세요.`;
-
+    // config.js의 통합 프롬프트 템플릿 사용
+    const prompt = createMemoryTipPrompt(q.물음, q.정답);
     const response = await callGeminiTextAPI(prompt, geminiApiKey);
 
     // questionScores에 저장
