@@ -19,7 +19,8 @@ import {
   getActiveHintQuestionKey,
   setActiveHintQuestionKey,
   getActiveMemoryTipQuestionKey,
-  setActiveMemoryTipQuestionKey
+  setActiveMemoryTipQuestionKey,
+  getMemoryTipMode
 } from '../../core/stateManager.js';
 import { openApiModal } from '../settings/settingsCore.js';
 import { updateSummary } from '../summary/summaryCore.js';
@@ -391,8 +392,9 @@ export async function handleMemoryTip(q, forceRegenerate = false) {
   setGradeLoading(true);
 
   try {
-    // config.js의 통합 프롬프트 템플릿 사용
-    const prompt = createMemoryTipPrompt(q.물음, q.정답);
+    // config.js의 통합 프롬프트 템플릿 사용 (사용자 설정 모드 반영)
+    const mode = getMemoryTipMode();
+    const prompt = createMemoryTipPrompt(q.물음, q.정답, mode);
     const response = await callGeminiTextAPI(prompt, geminiApiKey);
 
     // questionScores에 저장

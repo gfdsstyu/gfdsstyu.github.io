@@ -707,7 +707,7 @@
       </div>
 
       <!-- Task 3: 복습 기준 설정 -->
-      <div class="mb-6">
+      <div class="mb-6 pb-6 border-b">
         <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">복습 기준 설정</h3>
         <select id="review-mode-select" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
           <option value="hlr">HLR 기반 (추천) - 망각 곡선 기반 지능형 복습</option>
@@ -715,6 +715,19 @@
         </select>
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
           HLR(망각 곡선) 기반은 개인별 학습 패턴을 분석하여 최적의 복습 시기를 제안합니다.
+        </p>
+      </div>
+
+      <!-- 암기팁 스타일 설정 -->
+      <div class="mb-6 pb-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">💡 암기팁 스타일</h3>
+        <select id="memory-tip-mode-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
+          <option value="mild">Mild 버전 (권장)</option>
+          <option value="stimulating">⚠️ 자극적인 버전 (주의)</option>
+        </select>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          <strong>Mild:</strong> 일반적이고 온건한 암기 기법 사용<br>
+          <strong>자극적인 버전:</strong> 선정적이고 강렬한 표현을 포함할 수 있습니다.
         </p>
       </div>
 
