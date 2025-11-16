@@ -830,7 +830,7 @@ export function createAchievementCard(achievement, isUnlocked) {
   div.className = `bg-gradient-to-r ${tierColors[achievement.tier]} dark:from-gray-800 dark:to-gray-700 border rounded-lg p-4 ${isUnlocked ? '' : 'opacity-50 grayscale'}`;
   div.innerHTML = `
     <div class="flex items-start gap-3">
-      <span class="text-4xl">${achievement.icon}</span>
+      <span class="text-4xl w-14 flex-shrink-0 text-center">${achievement.icon}</span>
       <div class="flex-1">
         <div class="flex items-center gap-2 mb-1">
           <h3 class="font-bold text-gray-900 dark:text-gray-100">${achievement.name}</h3>
