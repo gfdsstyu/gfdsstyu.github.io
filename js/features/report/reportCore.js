@@ -264,12 +264,12 @@ function renderDailyProblemList(date) {
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">${timeStr} 풀이</p>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-3"><strong>물음:</strong> ${rec.problem.물음}</p>
 
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap">
           <button class="daily-show-answer-btn text-sm px-3 py-1 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition" type="button">
             📖 답안 보기
           </button>
           <button class="daily-coach-btn text-sm px-3 py-1 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 transition" type="button" data-qid="${rec.qid}">
-            🧠 Gemini 암기 코치
+            💡 암기팁 보기
           </button>
         </div>
 
@@ -291,9 +291,14 @@ function renderDailyProblemList(date) {
         <div class="daily-coaching-tip hidden mt-3 p-4 bg-blue-50 rounded">
           <div class="flex justify-between items-start mb-2">
             <p class="text-sm font-bold text-blue-900">💡 암기 팁</p>
-            <button class="coaching-copy-btn text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition" type="button">
-              📋 복사
-            </button>
+            <div class="flex gap-2">
+              <button class="coaching-regen-btn text-xs px-2 py-1 rounded bg-orange-100 text-orange-700 hover:bg-orange-200 transition" type="button" data-qid="${rec.qid}">
+                🔄 새로 생성
+              </button>
+              <button class="coaching-copy-btn text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition" type="button">
+                📋 복사
+              </button>
+            </div>
           </div>
           <pre class="coaching-content whitespace-pre-wrap text-sm text-gray-900 font-sans leading-relaxed"></pre>
         </div>
@@ -649,6 +654,21 @@ export function initReportListeners() {
           }).catch(() => {
             showToast('복사 실패', 'error');
           });
+        }
+        return;
+      }
+
+      // 암기 팁 새로 생성 버튼
+      const regenBtn = e.target.closest('.coaching-regen-btn');
+      if (regenBtn) {
+        const qid = regenBtn.getAttribute('data-qid');
+        if (qid) {
+          // analysis.js의 handleCoachingRequest 함수를 forceRegenerate = true로 호출
+          if (typeof window.handleCoachingRequest === 'function') {
+            await window.handleCoachingRequest(qid, regenBtn, true);
+          } else {
+            showToast('암기 코치 기능이 아직 구현되지 않았습니다.', 'warn');
+          }
         }
       }
     });

@@ -20,6 +20,7 @@ const state = {
 
   // UI 상태
   activeHintQuestionKey: null,
+  activeMemoryTipQuestionKey: null,
   prevLoaded: false,
   summaryViewMode: 'ALL',
   statsView: 'day',
@@ -63,6 +64,7 @@ export const getGeminiApiKey = () => state.geminiApiKey;
 export const getSelectedAiModel = () => state.selectedAiModel;
 export const getDarkMode = () => state.darkMode;
 export const getActiveHintQuestionKey = () => state.activeHintQuestionKey;
+export const getActiveMemoryTipQuestionKey = () => state.activeMemoryTipQuestionKey;
 export const getPrevLoaded = () => state.prevLoaded;
 export const getSummaryViewMode = () => state.summaryViewMode;
 export const getStatsView = () => state.statsView;
@@ -103,6 +105,7 @@ export const setGeminiApiKey = (key) => { state.geminiApiKey = key; };
 export const setSelectedAiModel = (model) => { state.selectedAiModel = model; };
 export const setDarkMode = (mode) => { state.darkMode = mode; };
 export const setActiveHintQuestionKey = (key) => { state.activeHintQuestionKey = key; };
+export const setActiveMemoryTipQuestionKey = (key) => { state.activeMemoryTipQuestionKey = key; };
 export const setPrevLoaded = (loaded) => { state.prevLoaded = loaded; };
 export const setSummaryViewMode = (mode) => { state.summaryViewMode = mode; };
 export const setStatsView = (view) => { state.statsView = view; };

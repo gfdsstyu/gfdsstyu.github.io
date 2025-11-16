@@ -61,6 +61,11 @@ export function initElements() {
     gradeLoader: $('grade-loader'),
     hintBtn: $('hint-btn'),
     hintBox: $('hint-container'),
+    memoryTipBtn: $('memory-tip-btn'),
+    memoryTipContainer: $('memory-tip-container'),
+    memoryTipContent: $('memory-tip-content'),
+    memoryTipRegenBtn: $('memory-tip-regen-btn'),
+    memoryTipCopyBtn: $('memory-tip-copy-btn'),
     loadPrevAnswerBtn: $('load-prev-answer-btn'),
 
     // Result Display
