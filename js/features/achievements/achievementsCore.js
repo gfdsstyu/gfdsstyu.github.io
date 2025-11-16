@@ -145,9 +145,26 @@ export function checkAchievements() {
   // Check average score
   if (scores.length > 0) {
     const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+
+    // avg_80: 평균 80점 이상 (조건 없음)
     if (avgScore >= 80) unlockAchievement('avg_80');
-    if (avgScore >= 90) unlockAchievement('avg_90');
-    if (avgScore >= 95) unlockAchievement('avg_95');
+
+    // avg_90 (예비 회계사): 기본문제(H, S, HS) 전부 풀이 + 평균 90점 이상
+    if (avgScore >= 90) {
+      const basicSources = allData.filter(q => ['H', 'S', 'HS'].includes(q.출처));
+      const basicSolved = basicSources.filter(q => questionScores[normId(q.고유ID)]);
+      if (basicSources.length > 0 && basicSolved.length === basicSources.length) {
+        unlockAchievement('avg_90');
+      }
+    }
+
+    // avg_95 (기준서 프린터): 모든 문제 전부 풀이 + 평균 95점 이상
+    if (avgScore >= 95) {
+      const allProblemsSolved = allData.length > 0 && allData.every(q => questionScores[normId(q.고유ID)]);
+      if (allProblemsSolved) {
+        unlockAchievement('avg_95');
+      }
+    }
   }
 
   // Check streaks
@@ -191,6 +208,26 @@ export function checkAchievements() {
 
   // Check flashcard navigation achievements
   checkFlashcardAchievements();
+
+  // Check new achievements
+  checkRetrySameDay();
+  checkExplorer();
+  checkPerfectionist();
+  checkWeekendWarrior();
+  checkRapidGrowth();
+  checkChapterHopping();
+  checkReviewKing();
+  checkLegendaryStart();
+  checkConsistencyMaster();
+  checkComebackMaster();
+  checkLucky777();
+  checkExtremePerfectionist();
+  checkTimeTraveler();
+  checkFullCourse();
+  checkPerfectCollector();
+  checkPersistenceMaster();
+  checkMidnightLearner();
+  checkRushHourAvoider();
 }
 
 /**
@@ -271,9 +308,20 @@ export function checkVolumeAchievements() {
       }
     });
 
+    // Daily achievements
     if (todayCount >= 20) unlockAchievement('daily_20');
+    if (todayCount >= 50) unlockAchievement('daily_50');
+    if (todayCount >= 100) unlockAchievement('daily_100');
+
+    // Weekly achievements
     if (weekCount >= 100) unlockAchievement('weekly_100');
+    if (weekCount >= 200) unlockAchievement('weekly_200');
+    if (weekCount >= 300) unlockAchievement('weekly_300');
+
+    // Monthly achievements
     if (monthCount >= 300) unlockAchievement('monthly_300');
+    if (monthCount >= 600) unlockAchievement('monthly_600');
+    if (monthCount >= 1000) unlockAchievement('monthly_1000');
   } catch {}
 }
 
@@ -294,12 +342,25 @@ export function checkSourceAchievements() {
       unlockAchievement('basic_source');
     }
 
-    // Advanced sources: SS, P
+    // Advanced sources: SS, P (심화반 입반: 50개)
     const advancedSolved = Object.keys(questionScores).filter(id => {
       const q = allData.find(item => normId(item.고유ID) === id);
       return q && ['SS', 'P'].includes(q.출처);
     });
-    if (advancedSolved.length >= 10) unlockAchievement('advanced_source');
+    if (advancedSolved.length >= 50) unlockAchievement('advanced_source');
+
+    // Advanced graduate: 150개 + 평균 80점 이상
+    if (advancedSolved.length >= 150) {
+      const advancedScores = advancedSolved
+        .map(id => questionScores[id]?.score)
+        .filter(s => s !== undefined);
+      if (advancedScores.length > 0) {
+        const avgScore = advancedScores.reduce((sum, s) => sum + s, 0) / advancedScores.length;
+        if (avgScore >= 80) {
+          unlockAchievement('advanced_graduate');
+        }
+      }
+    }
 
     // Advanced mastery: All SS, P problems solved at least once with avg 85+
     const advancedProblems = allData.filter(q => ['SS', 'P'].includes(q.출처));
@@ -760,6 +821,507 @@ export function createAchievementCard(achievement, isUnlocked) {
   `;
 
   return div;
+}
+
+/**
+ * Check retry same day (오늘도 힘내요)
+ */
+export function checkRetrySameDay() {
+  try {
+    const questionScores = window.questionScores || {};
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const todayTime = today.getTime();
+
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory || record.solveHistory.length < 2) return;
+
+      const todayHistory = record.solveHistory.filter(h => {
+        const hDate = new Date(h.date);
+        hDate.setHours(0, 0, 0, 0);
+        return hDate.getTime() === todayTime;
+      });
+
+      if (todayHistory.length >= 2) {
+        // Check if first was < 60, then retried
+        const firstScore = todayHistory[0]?.score;
+        if (firstScore !== undefined && firstScore < 60) {
+          unlockAchievement('retry_same_day');
+        }
+      }
+    });
+  } catch {}
+}
+
+/**
+ * Check explorer (탐험가: 5개 이상 다른 단원)
+ */
+export function checkExplorer() {
+  try {
+    const questionScores = window.questionScores || {};
+    const allData = window.allData || [];
+    if (!allData || !allData.length) return;
+
+    const chaptersExplored = new Set();
+    Object.keys(questionScores).forEach(id => {
+      const q = allData.find(item => normId(item.고유ID) === id);
+      if (q) {
+        chaptersExplored.add(String(q.단원).trim());
+      }
+    });
+
+    if (chaptersExplored.size >= 5) {
+      unlockAchievement('explorer');
+    }
+  } catch {}
+}
+
+/**
+ * Check perfectionist (완벽주의자: 한 문제 3회 이상 모두 90점 이상)
+ */
+export function checkPerfectionist() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory || record.solveHistory.length < 3) return;
+
+      const scores = record.solveHistory.map(h => h.score).filter(s => s !== undefined);
+      if (scores.length >= 3 && scores.every(s => s >= 90)) {
+        unlockAchievement('perfectionist');
+      }
+    });
+  } catch {}
+}
+
+/**
+ * Check weekend warrior (주말 학습러: 토/일 모두 10문제 이상, 4회 이상)
+ */
+export function checkWeekendWarrior() {
+  try {
+    const questionScores = window.questionScores || {};
+    const weekendCounts = {}; // { 'YYYY-WW': {sat: 0, sun: 0} }
+
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        const d = new Date(h.date);
+        const day = d.getDay(); // 0=일, 6=토
+        if (day !== 0 && day !== 6) return;
+
+        // Get week key
+        const weekStart = new Date(d);
+        weekStart.setDate(d.getDate() - d.getDay()); // Start of week (Sunday)
+        const weekKey = `${weekStart.getFullYear()}-${weekStart.getMonth()}-${weekStart.getDate()}`;
+
+        if (!weekendCounts[weekKey]) {
+          weekendCounts[weekKey] = { sat: 0, sun: 0 };
+        }
+
+        if (day === 6) weekendCounts[weekKey].sat++;
+        if (day === 0) weekendCounts[weekKey].sun++;
+      });
+    });
+
+    const validWeekends = Object.values(weekendCounts).filter(w => w.sat >= 10 && w.sun >= 10).length;
+    if (validWeekends >= 4) {
+      unlockAchievement('weekend_warrior');
+    }
+  } catch {}
+}
+
+/**
+ * Check rapid growth (급성장: 첫 시도 70점 이하 → 두 번째 95점 이상)
+ */
+export function checkRapidGrowth() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory || record.solveHistory.length < 2) return;
+
+      const first = record.solveHistory[0]?.score;
+      const second = record.solveHistory[1]?.score;
+
+      if (first !== undefined && second !== undefined && first <= 70 && second >= 95) {
+        unlockAchievement('rapid_growth');
+      }
+    });
+  } catch {}
+}
+
+/**
+ * Check chapter hopping (챕터 호핑: 하루 5개 이상 다른 단원)
+ */
+export function checkChapterHopping() {
+  try {
+    const questionScores = window.questionScores || {};
+    const allData = window.allData || [];
+    if (!allData || !allData.length) return;
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const todayTime = today.getTime();
+    const todayChapters = new Set();
+
+    Object.entries(questionScores).forEach(([id, record]) => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        const hDate = new Date(h.date);
+        hDate.setHours(0, 0, 0, 0);
+        if (hDate.getTime() === todayTime) {
+          const q = allData.find(item => normId(item.고유ID) === id);
+          if (q) {
+            todayChapters.add(String(q.단원).trim());
+          }
+        }
+      });
+    });
+
+    if (todayChapters.size >= 5) {
+      unlockAchievement('chapter_hopping');
+    }
+  } catch {}
+}
+
+/**
+ * Check review king (복습왕: 플래그 10개 이상 모두 85점 이상)
+ */
+export function checkReviewKing() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    const flaggedProblems = Object.values(questionScores).filter(
+      s => s.userReviewFlag && !s.userReviewExclude
+    );
+
+    if (flaggedProblems.length >= 10) {
+      const allAbove85 = flaggedProblems.every(s => s.score >= 85);
+      if (allAbove85) {
+        unlockAchievement('review_king');
+      }
+    }
+  } catch {}
+}
+
+/**
+ * Check legendary start (전설의 시작: 연속 10문제 첫 시도에 95점 이상)
+ */
+export function checkLegendaryStart() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    // Get all first-attempt scores in chronological order
+    const firstAttempts = Object.values(questionScores)
+      .filter(r => r.solveHistory && r.solveHistory.length > 0)
+      .map(r => ({
+        timestamp: r.solveHistory[0].date,
+        score: r.solveHistory[0].score
+      }))
+      .filter(a => a.score !== undefined)
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    // Check for 10 consecutive 95+ scores
+    let streak = 0;
+    for (const attempt of firstAttempts) {
+      if (attempt.score >= 95) {
+        streak++;
+        if (streak >= 10) {
+          unlockAchievement('legendary_start');
+          break;
+        }
+      } else {
+        streak = 0;
+      }
+    }
+  } catch {}
+}
+
+/**
+ * Check consistency master (일관성의 화신: 10일 연속 30~50문제)
+ */
+export function checkConsistencyMaster() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    // Count problems per day
+    const dailyCounts = {};
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        const d = new Date(h.date);
+        d.setHours(0, 0, 0, 0);
+        const key = d.toDateString();
+        dailyCounts[key] = (dailyCounts[key] || 0) + 1;
+      });
+    });
+
+    // Sort by date
+    const sortedDates = Object.keys(dailyCounts).sort((a, b) => new Date(a) - new Date(b));
+
+    // Check for 10 consecutive days with 30~50 problems
+    let streak = 0;
+    let prevDate = null;
+
+    for (const dateStr of sortedDates) {
+      const count = dailyCounts[dateStr];
+      const d = new Date(dateStr);
+
+      if (count >= 30 && count <= 50) {
+        if (prevDate) {
+          const diff = Math.floor((d - prevDate) / (1000 * 60 * 60 * 24));
+          if (diff === 1) {
+            streak++;
+          } else {
+            streak = 1;
+          }
+        } else {
+          streak = 1;
+        }
+
+        if (streak >= 10) {
+          unlockAchievement('consistency_master');
+          break;
+        }
+      } else {
+        streak = 0;
+      }
+
+      prevDate = d;
+    }
+  } catch {}
+}
+
+/**
+ * Check comeback master (역전의 명수: 60점 미만 50개 모두 85점 이상)
+ */
+export function checkComebackMaster() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    const comebackProblems = Object.values(questionScores).filter(record => {
+      if (!record.solveHistory || record.solveHistory.length < 2) return false;
+      const scores = record.solveHistory.map(h => h.score).filter(s => s !== undefined);
+      const hadLow = scores.some(s => s < 60);
+      const currentScore = record.score;
+      return hadLow && currentScore >= 85;
+    });
+
+    if (comebackProblems.length >= 50) {
+      unlockAchievement('comeback_master');
+    }
+  } catch {}
+}
+
+/**
+ * Check lucky 777 (행운의 숫자: 정확히 777개)
+ */
+export function checkLucky777() {
+  try {
+    const questionScores = window.questionScores || {};
+    const totalProblems = Object.keys(questionScores).length;
+    if (totalProblems === 777) {
+      unlockAchievement('lucky_777');
+    }
+  } catch {}
+}
+
+/**
+ * Check extreme perfectionist (완벽주의의 극치: 하루 20문제 모두 95점 이상)
+ */
+export function checkExtremePerfectionist() {
+  try {
+    const questionScores = window.questionScores || {};
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const todayTime = today.getTime();
+
+    const todayProblems = [];
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        const hDate = new Date(h.date);
+        hDate.setHours(0, 0, 0, 0);
+        if (hDate.getTime() === todayTime && h.score !== undefined) {
+          todayProblems.push(h.score);
+        }
+      });
+    });
+
+    if (todayProblems.length >= 20 && todayProblems.every(s => s >= 95)) {
+      unlockAchievement('extreme_perfectionist');
+    }
+  } catch {}
+}
+
+/**
+ * Check time traveler (시간여행자: 자정 10문제 이상)
+ */
+export function checkTimeTraveler() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    let midnightCount = 0;
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        const d = new Date(h.date);
+        const hour = d.getHours();
+        if (hour === 0) midnightCount++;
+      });
+    });
+
+    if (midnightCount >= 10) {
+      unlockAchievement('time_traveler');
+    }
+  } catch {}
+}
+
+/**
+ * Check full course (풀코스: 하루 모든 단원 1문제씩)
+ */
+export function checkFullCourse() {
+  try {
+    const questionScores = window.questionScores || {};
+    const allData = window.allData || [];
+    if (!allData || !allData.length) return;
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const todayTime = today.getTime();
+    const todayChapters = new Set();
+
+    // Available chapters: 1-20 (19 chapters actually, excluding 9, 19)
+    const requiredChapters = [1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20];
+
+    Object.entries(questionScores).forEach(([id, record]) => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        const hDate = new Date(h.date);
+        hDate.setHours(0, 0, 0, 0);
+        if (hDate.getTime() === todayTime) {
+          const q = allData.find(item => normId(item.고유ID) === id);
+          if (q) {
+            const chNum = Number(q.단원);
+            if (requiredChapters.includes(chNum)) {
+              todayChapters.add(chNum);
+            }
+          }
+        }
+      });
+    });
+
+    if (todayChapters.size >= requiredChapters.length) {
+      unlockAchievement('full_course');
+    }
+  } catch {}
+}
+
+/**
+ * Check perfect collector (백점 컬렉터: 100점 50번 이상)
+ */
+export function checkPerfectCollector() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    let perfectCount = 0;
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        if (h.score === 100) perfectCount++;
+      });
+    });
+
+    if (perfectCount >= 50) {
+      unlockAchievement('perfect_collector');
+    }
+  } catch {}
+}
+
+/**
+ * Check persistence master (끈기의 달인: 한 문제 5회 이상 재시도하여 90점 이상)
+ */
+export function checkPersistenceMaster() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory || record.solveHistory.length < 5) return;
+
+      const latestScore = record.score;
+      if (latestScore >= 90) {
+        unlockAchievement('persistence_master');
+      }
+    });
+  } catch {}
+}
+
+/**
+ * Check midnight learner (심야 학습러: 새벽 2~4시 연속 3일)
+ */
+export function checkMidnightLearner() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    // Count problems per day during 2-4am
+    const midnightDays = new Set();
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        const d = new Date(h.date);
+        const hour = d.getHours();
+        if (hour >= 2 && hour <= 4) {
+          const dayOnly = new Date(d);
+          dayOnly.setHours(0, 0, 0, 0);
+          midnightDays.add(dayOnly.toDateString());
+        }
+      });
+    });
+
+    // Check for 3 consecutive days
+    const sortedDays = Array.from(midnightDays).sort((a, b) => new Date(a) - new Date(b));
+    let streak = 0;
+    let prevDate = null;
+
+    for (const dateStr of sortedDays) {
+      const d = new Date(dateStr);
+      if (prevDate) {
+        const diff = Math.floor((d - prevDate) / (1000 * 60 * 60 * 24));
+        if (diff === 1) {
+          streak++;
+          if (streak >= 2) { // 3 days = streak of 2 (day1->day2->day3)
+            unlockAchievement('midnight_learner');
+            break;
+          }
+        } else {
+          streak = 0;
+        }
+      }
+      prevDate = d;
+    }
+  } catch {}
+}
+
+/**
+ * Check rush hour avoider (러시아워 회피: 9~11, 18~20 제외 100문제 이상)
+ */
+export function checkRushHourAvoider() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    let nonRushCount = 0;
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        const d = new Date(h.date);
+        const hour = d.getHours();
+        // Exclude 9-11 and 18-20 (6pm-8pm)
+        if (!((hour >= 9 && hour <= 11) || (hour >= 18 && hour <= 20))) {
+          nonRushCount++;
+        }
+      });
+    });
+
+    if (nonRushCount >= 100) {
+      unlockAchievement('rush_hour_avoider');
+    }
+  } catch {}
 }
 
 /**
