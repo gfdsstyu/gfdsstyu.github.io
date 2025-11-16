@@ -228,6 +228,29 @@ export function checkAchievements() {
   checkPersistenceMaster();
   checkMidnightLearner();
   checkRushHourAvoider();
+
+  // Check phase 2 achievements
+  checkMorningRoutine();
+  checkRetryNextDay();
+  checkMemoryTest();
+  checkNonstopLearning();
+  checkWeaknessAnalyzer();
+  checkConsistencyBasic();
+  checkSpeedHands();
+  checkMemoryGod();
+  checkMonthlyMaster();
+  checkRetention99();
+  checkFlashLearning();
+  checkLongTermMemory();
+  checkPhotographicMemory();
+  checkScoreStairs();
+  checkDejaVu();
+  checkMirroring();
+  checkMemoryGarden();
+  checkPatternBreaker();
+  checkDaySpecificAchievements();
+  checkTimeSlotAchievements();
+  checkHolidayAchievements();
 }
 
 /**
@@ -1321,6 +1344,839 @@ export function checkRushHourAvoider() {
     if (nonRushCount >= 100) {
       unlockAchievement('rush_hour_avoider');
     }
+  } catch {}
+}
+
+/**
+ * Check morning routine (아침 루틴: 7일 연속 같은 시간대 ±1시간)
+ */
+export function checkMorningRoutine() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    // Get first solve time per day (오전만)
+    const dailyFirstSolve = {};
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        const d = new Date(h.date);
+        const hour = d.getHours();
+        if (hour < 12) { // 오전만
+          const dayKey = new Date(d);
+          dayKey.setHours(0, 0, 0, 0);
+          const dayStr = dayKey.toDateString();
+
+          if (!dailyFirstSolve[dayStr] || d < dailyFirstSolve[dayStr].time) {
+            dailyFirstSolve[dayStr] = { time: d, hour };
+          }
+        }
+      });
+    });
+
+    // Check for 7 consecutive days within ±1 hour range
+    const sortedDays = Object.keys(dailyFirstSolve).sort((a, b) => new Date(a) - new Date(b));
+    let streak = 1;
+    let prevDate = null;
+    let baseHour = null;
+
+    for (const dayStr of sortedDays) {
+      const d = new Date(dayStr);
+      const hour = dailyFirstSolve[dayStr].hour;
+
+      if (prevDate) {
+        const diff = Math.floor((d - prevDate) / (1000 * 60 * 60 * 24));
+        if (diff === 1) {
+          // Check if within ±1 hour of base hour
+          if (Math.abs(hour - baseHour) <= 1) {
+            streak++;
+            if (streak >= 7) {
+              unlockAchievement('morning_routine');
+              break;
+            }
+          } else {
+            streak = 1;
+            baseHour = hour;
+          }
+        } else {
+          streak = 1;
+          baseHour = hour;
+        }
+      } else {
+        baseHour = hour;
+      }
+      prevDate = d;
+    }
+  } catch {}
+}
+
+/**
+ * Check retry next day (재도전의 미학: 하루 전 틀린 문제 다음날 복습 20회)
+ */
+export function checkRetryNextDay() {
+  try {
+    const questionScores = window.questionScores || {};
+    let retryCount = 0;
+
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory || record.solveHistory.length < 2) return;
+
+      for (let i = 1; i < record.solveHistory.length; i++) {
+        const prevAttempt = record.solveHistory[i - 1];
+        const currAttempt = record.solveHistory[i];
+
+        if (prevAttempt.score < 60) {
+          const prevDate = new Date(prevAttempt.date);
+          prevDate.setHours(0, 0, 0, 0);
+          const currDate = new Date(currAttempt.date);
+          currDate.setHours(0, 0, 0, 0);
+
+          const diffDays = Math.floor((currDate - prevDate) / (1000 * 60 * 60 * 24));
+          if (diffDays === 1) {
+            retryCount++;
+            if (retryCount >= 20) {
+              unlockAchievement('retry_next_day');
+              return;
+            }
+          }
+        }
+      }
+    });
+  } catch {}
+}
+
+/**
+ * Check memory test (기억력 테스트: 7일 전 문제 재풀이 점수 향상 30개)
+ */
+export function checkMemoryTest() {
+  try {
+    const questionScores = window.questionScores || {};
+    let improvedCount = 0;
+
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory || record.solveHistory.length < 2) return;
+
+      for (let i = 1; i < record.solveHistory.length; i++) {
+        const prevAttempt = record.solveHistory[i - 1];
+        const currAttempt = record.solveHistory[i];
+
+        const prevDate = new Date(prevAttempt.date);
+        const currDate = new Date(currAttempt.date);
+        const diffDays = Math.floor((currDate - prevDate) / (1000 * 60 * 60 * 24));
+
+        // 정확히 7일 간격 (±1일 허용)
+        if (diffDays >= 6 && diffDays <= 8) {
+          if (currAttempt.score > prevAttempt.score) {
+            improvedCount++;
+            if (improvedCount >= 30) {
+              unlockAchievement('memory_test');
+              return;
+            }
+          }
+        }
+      }
+    });
+  } catch {}
+}
+
+/**
+ * Check nonstop learning (논스톱 학습: 30분 내 20문제)
+ */
+export function checkNonstopLearning() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    // Get all solve timestamps
+    const allSolves = [];
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        allSolves.push(new Date(h.date).getTime());
+      });
+    });
+
+    allSolves.sort((a, b) => a - b);
+
+    // Check for 20 problems within 30 minutes
+    for (let i = 0; i <= allSolves.length - 20; i++) {
+      const start = allSolves[i];
+      const end = allSolves[i + 19];
+      const diff = end - start;
+
+      if (diff <= 30 * 60 * 1000) { // 30 minutes
+        unlockAchievement('nonstop_learning');
+        break;
+      }
+    }
+  } catch {}
+}
+
+/**
+ * Check weakness analyzer (약점 분석가: 60점 미만 30개 재도전)
+ */
+export function checkWeaknessAnalyzer() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    const retriedWeaknesses = Object.values(questionScores).filter(record => {
+      if (!record.solveHistory || record.solveHistory.length < 2) return false;
+
+      // Check if first attempt was < 60 and retried
+      const firstScore = record.solveHistory[0]?.score;
+      return firstScore !== undefined && firstScore < 60;
+    });
+
+    if (retriedWeaknesses.length >= 30) {
+      unlockAchievement('weakness_analyzer');
+    }
+  } catch {}
+}
+
+/**
+ * Check consistency basic (꾸준함의 정석: 30일 연속 최소 5문제)
+ */
+export function checkConsistencyBasic() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    // Count problems per day
+    const dailyCounts = {};
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        const d = new Date(h.date);
+        d.setHours(0, 0, 0, 0);
+        const key = d.toDateString();
+        dailyCounts[key] = (dailyCounts[key] || 0) + 1;
+      });
+    });
+
+    // Check for 30 consecutive days with at least 5 problems
+    const sortedDates = Object.keys(dailyCounts).sort((a, b) => new Date(a) - new Date(b));
+    let streak = 0;
+    let prevDate = null;
+
+    for (const dateStr of sortedDates) {
+      const count = dailyCounts[dateStr];
+      const d = new Date(dateStr);
+
+      if (count >= 5) {
+        if (prevDate) {
+          const diff = Math.floor((d - prevDate) / (1000 * 60 * 60 * 24));
+          if (diff === 1) {
+            streak++;
+            if (streak >= 29) { // 30 days = streak of 29
+              unlockAchievement('consistency_basic');
+              break;
+            }
+          } else {
+            streak = 0;
+          }
+        }
+      } else {
+        streak = 0;
+      }
+
+      prevDate = count >= 5 ? d : null;
+    }
+  } catch {}
+}
+
+/**
+ * Check speed hands (빠른 손: 30분 내 15문제 평균 80점)
+ */
+export function checkSpeedHands() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    // Get all solve timestamps with scores
+    const allSolves = [];
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        if (h.score !== undefined) {
+          allSolves.push({ time: new Date(h.date).getTime(), score: h.score });
+        }
+      });
+    });
+
+    allSolves.sort((a, b) => a.time - b.time);
+
+    // Check for 15 problems within 30 minutes with avg 80+
+    for (let i = 0; i <= allSolves.length - 15; i++) {
+      const window = allSolves.slice(i, i + 15);
+      const start = window[0].time;
+      const end = window[14].time;
+      const diff = end - start;
+
+      if (diff <= 30 * 60 * 1000) { // 30 minutes
+        const avg = window.reduce((sum, s) => sum + s.score, 0) / 15;
+        if (avg >= 80) {
+          unlockAchievement('speed_hands');
+          break;
+        }
+      }
+    }
+  } catch {}
+}
+
+/**
+ * Check memory god (암기의 신: 3일 이상 간격 100개 점수 유지/향상)
+ */
+export function checkMemoryGod() {
+  try {
+    const questionScores = window.questionScores || {};
+    let qualifiedCount = 0;
+
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory || record.solveHistory.length < 2) return;
+
+      for (let i = 1; i < record.solveHistory.length; i++) {
+        const prevAttempt = record.solveHistory[i - 1];
+        const currAttempt = record.solveHistory[i];
+
+        const prevDate = new Date(prevAttempt.date);
+        const currDate = new Date(currAttempt.date);
+        const diffDays = Math.floor((currDate - prevDate) / (1000 * 60 * 60 * 24));
+
+        if (diffDays >= 3 && currAttempt.score >= prevAttempt.score) {
+          qualifiedCount++;
+          if (qualifiedCount >= 100) {
+            unlockAchievement('memory_god');
+            return;
+          }
+          break; // Only count once per problem
+        }
+      }
+    });
+  } catch {}
+}
+
+/**
+ * Check monthly master (월간 마스터: 30일 연속 평균 85점 이상)
+ */
+export function checkMonthlyMaster() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    // Calculate daily average scores
+    const dailyAverages = {};
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        if (h.score === undefined) return;
+        const d = new Date(h.date);
+        d.setHours(0, 0, 0, 0);
+        const key = d.toDateString();
+
+        if (!dailyAverages[key]) dailyAverages[key] = [];
+        dailyAverages[key].push(h.score);
+      });
+    });
+
+    // Check for 30 consecutive days with avg 85+
+    const sortedDates = Object.keys(dailyAverages).sort((a, b) => new Date(a) - new Date(b));
+    let streak = 0;
+    let prevDate = null;
+
+    for (const dateStr of sortedDates) {
+      const scores = dailyAverages[dateStr];
+      const avg = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+      const d = new Date(dateStr);
+
+      if (avg >= 85) {
+        if (prevDate) {
+          const diff = Math.floor((d - prevDate) / (1000 * 60 * 60 * 24));
+          if (diff === 1) {
+            streak++;
+            if (streak >= 29) { // 30 days
+              unlockAchievement('monthly_master');
+              break;
+            }
+          } else {
+            streak = 0;
+          }
+        }
+      } else {
+        streak = 0;
+      }
+
+      prevDate = avg >= 85 ? d : null;
+    }
+  } catch {}
+}
+
+/**
+ * Check retention 99 (기억 유지율 99%: 2주 전 90점 문제 50개 모두 85점 이상)
+ */
+export function checkRetention99() {
+  try {
+    const questionScores = window.questionScores || {};
+    let qualifiedCount = 0;
+
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory || record.solveHistory.length < 2) return;
+
+      for (let i = 1; i < record.solveHistory.length; i++) {
+        const prevAttempt = record.solveHistory[i - 1];
+        const currAttempt = record.solveHistory[i];
+
+        if (prevAttempt.score >= 90) {
+          const prevDate = new Date(prevAttempt.date);
+          const currDate = new Date(currAttempt.date);
+          const diffDays = Math.floor((currDate - prevDate) / (1000 * 60 * 60 * 24));
+
+          // 2주 = 14일 (±2일 허용)
+          if (diffDays >= 12 && diffDays <= 16) {
+            if (currAttempt.score >= 85) {
+              qualifiedCount++;
+              if (qualifiedCount >= 50) {
+                unlockAchievement('retention_99');
+                return;
+              }
+            }
+            break;
+          }
+        }
+      }
+    });
+  } catch {}
+}
+
+/**
+ * Check flash learning (플래시 학습: 하루 100문제 평균 85점)
+ */
+export function checkFlashLearning() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    // Group by day
+    const dailyScores = {};
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        if (h.score === undefined) return;
+        const d = new Date(h.date);
+        d.setHours(0, 0, 0, 0);
+        const key = d.toDateString();
+
+        if (!dailyScores[key]) dailyScores[key] = [];
+        dailyScores[key].push(h.score);
+      });
+    });
+
+    // Check for any day with 100+ problems and avg 85+
+    Object.values(dailyScores).forEach(scores => {
+      if (scores.length >= 100) {
+        const avg = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+        if (avg >= 85) {
+          unlockAchievement('flash_learning');
+        }
+      }
+    });
+  } catch {}
+}
+
+/**
+ * Check long term memory (장기 기억: 한 달 전 문제 30개 모두 85점 이상)
+ */
+export function checkLongTermMemory() {
+  try {
+    const questionScores = window.questionScores || {};
+    let qualifiedCount = 0;
+
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory || record.solveHistory.length < 2) return;
+
+      for (let i = 1; i < record.solveHistory.length; i++) {
+        const prevAttempt = record.solveHistory[i - 1];
+        const currAttempt = record.solveHistory[i];
+
+        const prevDate = new Date(prevAttempt.date);
+        const currDate = new Date(currAttempt.date);
+        const diffDays = Math.floor((currDate - prevDate) / (1000 * 60 * 60 * 24));
+
+        // 한 달 = 30일 (±3일 허용)
+        if (diffDays >= 27 && diffDays <= 33) {
+          if (currAttempt.score >= 85) {
+            qualifiedCount++;
+            if (qualifiedCount >= 30) {
+              unlockAchievement('long_term_memory');
+              return;
+            }
+          }
+          break;
+        }
+      }
+    });
+  } catch {}
+}
+
+/**
+ * Check photographic memory (포토그래픽 메모리: 연속 50문제 첫 시도 90점 이상)
+ */
+export function checkPhotographicMemory() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    // Get all first-attempt scores in chronological order
+    const firstAttempts = Object.values(questionScores)
+      .filter(r => r.solveHistory && r.solveHistory.length > 0)
+      .map(r => ({
+        timestamp: r.solveHistory[0].date,
+        score: r.solveHistory[0].score
+      }))
+      .filter(a => a.score !== undefined)
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    // Check for 50 consecutive 90+ scores
+    let streak = 0;
+    for (const attempt of firstAttempts) {
+      if (attempt.score >= 90) {
+        streak++;
+        if (streak >= 50) {
+          unlockAchievement('photographic_memory');
+          break;
+        }
+      } else {
+        streak = 0;
+      }
+    }
+  } catch {}
+}
+
+/**
+ * Check score stairs (점수 계단: 60→70→80→90→100 순서대로)
+ */
+export function checkScoreStairs() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    // Get all scores in chronological order
+    const allScores = [];
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        if (h.score !== undefined) {
+          allScores.push({ time: new Date(h.date).getTime(), score: h.score });
+        }
+      });
+    });
+
+    allScores.sort((a, b) => a.time - b.time);
+
+    // Track milestones: 60, 70, 80, 90, 100
+    const milestones = [60, 70, 80, 90, 100];
+    let currentMilestone = 0;
+
+    for (const { score } of allScores) {
+      if (currentMilestone < milestones.length && score >= milestones[currentMilestone]) {
+        currentMilestone++;
+        if (currentMilestone === milestones.length) {
+          unlockAchievement('score_stairs');
+          break;
+        }
+      }
+    }
+  } catch {}
+}
+
+/**
+ * Check deja vu (데자뷰: 같은 문제 7일 간격 3번)
+ */
+export function checkDejaVu() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory || record.solveHistory.length < 3) return;
+
+      // Check if any 3 attempts are approximately 7 days apart
+      for (let i = 0; i < record.solveHistory.length - 2; i++) {
+        const first = new Date(record.solveHistory[i].date);
+        const second = new Date(record.solveHistory[i + 1].date);
+        const third = new Date(record.solveHistory[i + 2].date);
+
+        const diff1 = Math.floor((second - first) / (1000 * 60 * 60 * 24));
+        const diff2 = Math.floor((third - second) / (1000 * 60 * 60 * 24));
+
+        // Both gaps should be around 7 days (±1 day)
+        if (diff1 >= 6 && diff1 <= 8 && diff2 >= 6 && diff2 <= 8) {
+          unlockAchievement('deja_vu');
+          return;
+        }
+      }
+    });
+  } catch {}
+}
+
+/**
+ * Check mirroring (미러링: 어제와 같은 개수, 같은 평균)
+ */
+export function checkMirroring() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    // Calculate daily stats
+    const dailyStats = {};
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        if (h.score === undefined) return;
+        const d = new Date(h.date);
+        d.setHours(0, 0, 0, 0);
+        const key = d.toDateString();
+
+        if (!dailyStats[key]) dailyStats[key] = [];
+        dailyStats[key].push(h.score);
+      });
+    });
+
+    // Check for consecutive days with same count and avg
+    const sortedDates = Object.keys(dailyStats).sort((a, b) => new Date(a) - new Date(b));
+
+    for (let i = 1; i < sortedDates.length; i++) {
+      const prevDate = new Date(sortedDates[i - 1]);
+      const currDate = new Date(sortedDates[i]);
+      const diff = Math.floor((currDate - prevDate) / (1000 * 60 * 60 * 24));
+
+      if (diff === 1) {
+        const prevScores = dailyStats[sortedDates[i - 1]];
+        const currScores = dailyStats[sortedDates[i]];
+
+        if (prevScores.length === currScores.length && prevScores.length >= 10) {
+          const prevAvg = prevScores.reduce((sum, s) => sum + s, 0) / prevScores.length;
+          const currAvg = currScores.reduce((sum, s) => sum + s, 0) / currScores.length;
+
+          // Same count and avg within 0.5 points
+          if (Math.abs(prevAvg - currAvg) < 0.5) {
+            unlockAchievement('mirroring');
+            break;
+          }
+        }
+      }
+    }
+  } catch {}
+}
+
+/**
+ * Check memory garden (기억의 정원: 각 단원 최고점 95점 이상)
+ */
+export function checkMemoryGarden() {
+  try {
+    const questionScores = window.questionScores || {};
+    const allData = window.allData || [];
+    if (!allData || !allData.length) return;
+
+    // Get highest score per chapter
+    const chapterHighScores = {};
+    allData.forEach(q => {
+      const ch = String(q.단원).trim();
+      const record = questionScores[normId(q.고유ID)];
+      if (record && record.score !== undefined) {
+        if (!chapterHighScores[ch] || record.score > chapterHighScores[ch]) {
+          chapterHighScores[ch] = record.score;
+        }
+      }
+    });
+
+    // All chapters must have at least one problem with 95+
+    const chapters = [1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20];
+    const allAbove95 = chapters.every(ch => chapterHighScores[String(ch)] >= 95);
+
+    if (allAbove95) {
+      unlockAchievement('memory_garden');
+    }
+  } catch {}
+}
+
+/**
+ * Check pattern breaker (패턴 브레이커: 7일 연속 다른 시간대)
+ */
+export function checkPatternBreaker() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    // Get first solve time slot per day (0-6, 6-12, 12-18, 18-24)
+    const dailyTimeSlots = {};
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        const d = new Date(h.date);
+        const hour = d.getHours();
+        const slot = Math.floor(hour / 6); // 0, 1, 2, 3
+
+        const dayKey = new Date(d);
+        dayKey.setHours(0, 0, 0, 0);
+        const dayStr = dayKey.toDateString();
+
+        if (!dailyTimeSlots[dayStr] || d < dailyTimeSlots[dayStr].time) {
+          dailyTimeSlots[dayStr] = { time: d, slot };
+        }
+      });
+    });
+
+    // Check for 7 consecutive days with all different slots
+    const sortedDays = Object.keys(dailyTimeSlots).sort((a, b) => new Date(a) - new Date(b));
+    let streak = 1;
+    let prevDate = null;
+    let prevSlot = null;
+
+    for (const dayStr of sortedDays) {
+      const d = new Date(dayStr);
+      const slot = dailyTimeSlots[dayStr].slot;
+
+      if (prevDate) {
+        const diff = Math.floor((d - prevDate) / (1000 * 60 * 60 * 24));
+        if (diff === 1 && slot !== prevSlot) {
+          streak++;
+          if (streak >= 7) {
+            unlockAchievement('pattern_breaker');
+            break;
+          }
+        } else {
+          streak = 1;
+        }
+      }
+
+      prevDate = d;
+      prevSlot = slot;
+    }
+  } catch {}
+}
+
+/**
+ * Check day-specific achievements (월요병, 불금, 일요일)
+ */
+export function checkDaySpecificAchievements() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    // Count problems by day of week
+    const dayProblems = { 1: [], 5: [], 0: [] }; // Monday, Friday, Sunday
+
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        const d = new Date(h.date);
+        const day = d.getDay();
+        const hour = d.getHours();
+        const dateKey = new Date(d);
+        dateKey.setHours(0, 0, 0, 0);
+        const dateStr = dateKey.toDateString();
+
+        // Monday (1)
+        if (day === 1) {
+          if (!dayProblems[1][dateStr]) dayProblems[1][dateStr] = 0;
+          dayProblems[1][dateStr]++;
+        }
+
+        // Friday evening (5, 18-24)
+        if (day === 5 && hour >= 18) {
+          if (!dayProblems[5][dateStr]) dayProblems[5][dateStr] = 0;
+          dayProblems[5][dateStr]++;
+        }
+
+        // Sunday (0)
+        if (day === 0) {
+          if (!dayProblems[0][dateStr]) dayProblems[0][dateStr] = 0;
+          dayProblems[0][dateStr]++;
+        }
+      });
+    });
+
+    // Check Monday: 30 problems
+    Object.values(dayProblems[1]).forEach(count => {
+      if (count >= 30) unlockAchievement('monday_conqueror');
+    });
+
+    // Check Friday evening: 30 problems
+    Object.values(dayProblems[5]).forEach(count => {
+      if (count >= 30) unlockAchievement('friday_learner');
+    });
+
+    // Check Sunday: 50 problems
+    Object.values(dayProblems[0]).forEach(count => {
+      if (count >= 50) unlockAchievement('sunday_miracle');
+    });
+  } catch {}
+}
+
+/**
+ * Check time slot achievements (점심, 퇴근후, 출근전)
+ */
+export function checkTimeSlotAchievements() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    let lunchCount = 0; // 12-13
+    let afterWorkCount = 0; // 18-20
+    let morningCount = 0; // 7-9
+
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        const hour = new Date(h.date).getHours();
+
+        if (hour >= 12 && hour < 13) lunchCount++;
+        if (hour >= 18 && hour < 20) afterWorkCount++;
+        if (hour >= 7 && hour < 9) morningCount++;
+      });
+    });
+
+    if (lunchCount >= 100) unlockAchievement('lunch_learner');
+    if (afterWorkCount >= 200) unlockAchievement('after_work_warrior');
+    if (morningCount >= 100) unlockAchievement('morning_warmup');
+  } catch {}
+}
+
+/**
+ * Check holiday achievements (신정, 크리스마스, 설날)
+ */
+export function checkHolidayAchievements() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    // Lunar New Year dates (hardcoded 2024-2030)
+    const lunarNewYears = [
+      '2024-02-10', '2025-01-29', '2026-02-17', '2027-02-06',
+      '2028-01-26', '2029-02-13', '2030-02-03'
+    ];
+
+    // Count by specific dates
+    const holidayProblems = {};
+
+    Object.values(questionScores).forEach(record => {
+      if (!record.solveHistory) return;
+      record.solveHistory.forEach(h => {
+        const d = new Date(h.date);
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+        if (!holidayProblems[dateStr]) holidayProblems[dateStr] = 0;
+        holidayProblems[dateStr]++;
+      });
+    });
+
+    // Check each date
+    Object.entries(holidayProblems).forEach(([dateStr, count]) => {
+      if (count < 30) return;
+
+      const [year, month, day] = dateStr.split('-');
+
+      // New Year (1/1)
+      if (month === '01' && day === '01') {
+        unlockAchievement('new_year_dedication');
+      }
+
+      // Christmas (12/25)
+      if (month === '12' && day === '25') {
+        unlockAchievement('christmas_studier');
+      }
+
+      // Lunar New Year
+      if (lunarNewYears.includes(dateStr)) {
+        unlockAchievement('lunar_new_year');
+      }
+    });
   } catch {}
 }
 
