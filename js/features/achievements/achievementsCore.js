@@ -288,9 +288,20 @@ export function checkVolumeAchievements() {
       }
     });
 
+    // Daily achievements
     if (todayCount >= 20) unlockAchievement('daily_20');
+    if (todayCount >= 50) unlockAchievement('daily_50');
+    if (todayCount >= 100) unlockAchievement('daily_100');
+
+    // Weekly achievements
     if (weekCount >= 100) unlockAchievement('weekly_100');
+    if (weekCount >= 200) unlockAchievement('weekly_200');
+    if (weekCount >= 300) unlockAchievement('weekly_300');
+
+    // Monthly achievements
     if (monthCount >= 300) unlockAchievement('monthly_300');
+    if (monthCount >= 600) unlockAchievement('monthly_600');
+    if (monthCount >= 1000) unlockAchievement('monthly_1000');
   } catch {}
 }
 
