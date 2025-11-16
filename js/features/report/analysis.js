@@ -10,7 +10,9 @@ import { getReportData } from './reportCore.js';
 import { showToast } from '../../ui/domUtils.js';
 import { openApiModal } from '../settings/settingsCore.js';
 import { calculateMovingAverage } from './charts.js';
-import { getGeminiApiKey } from '../../core/stateManager.js';
+import { getGeminiApiKey, getQuestionScores } from '../../core/stateManager.js';
+import { normId } from '../../utils/helpers.js';
+import { saveToLocal } from '../../core/storage.js';
 
 /**
  * 차트 해석 규칙 (Task 4: trendhelp.html에서 핵심 내용 추출)
@@ -454,16 +456,9 @@ export function copyAIAnalysis() {
  * AI 암기 코치 요청 (Tab 4: 일일 학습 기록 전용)
  * @param {string} qid - 문제 고유 ID
  * @param {HTMLElement} btn - 클릭된 버튼 요소 (로딩 상태 표시용)
+ * @param {boolean} forceRegenerate - true이면 저장된 팁 무시하고 새로 생성
  */
-export async function handleCoachingRequest(qid, btn) {
-  // API 키 확인
-  const geminiApiKey = getGeminiApiKey();
-  if (!geminiApiKey) {
-    openApiModal(false);
-    showToast('Gemini API 키를 입력해주세요.', 'error');
-    return;
-  }
-
+export async function handleCoachingRequest(qid, btn, forceRegenerate = false) {
   // 문제 카드 컨테이너 찾기
   const container = btn.closest('[data-daily-problem]');
   if (!container) return;
@@ -473,11 +468,35 @@ export async function handleCoachingRequest(qid, btn) {
 
   if (!coachingTip || !coachingContent) return;
 
-  // 이미 생성된 팁이 있으면 토글만
-  if (coachingContent.textContent.trim()) {
+  // DOM에 이미 표시된 팁이 있고 forceRegenerate가 아니면 토글만
+  if (coachingContent.textContent.trim() && !forceRegenerate) {
     coachingTip.classList.toggle('hidden');
     btn.textContent = coachingTip.classList.contains('hidden') ?
-      '🧠 Gemini 암기 코치' : '🙈 암기 팁 숨기기';
+      '💡 암기팁 보기' : '🙈 암기 팁 숨기기';
+    return;
+  }
+
+  // 1순위: questionScores에 저장된 팁 불러오기 (forceRegenerate가 아닐 때만)
+  if (!forceRegenerate) {
+    const questionScores = getQuestionScores();
+    const nid = normId(qid);
+    const savedTip = questionScores[nid]?.memoryTip;
+
+    if (savedTip) {
+      coachingContent.textContent = savedTip;
+      coachingTip.classList.remove('hidden');
+      btn.textContent = '🙈 암기 팁 숨기기';
+      showToast('저장된 암기 팁을 불러왔습니다! 💡');
+      return;
+    }
+  }
+
+  // 2순위: Gemini API 호출하여 새로 생성
+  // API 키 확인
+  const geminiApiKey = getGeminiApiKey();
+  if (!geminiApiKey) {
+    openApiModal(false);
+    showToast('Gemini API 키를 입력해주세요.', 'error');
     return;
   }
 
@@ -530,12 +549,21 @@ ${problem.정답}
 
     const response = await callGeminiTextAPI(prompt, geminiApiKey);
 
+    // questionScores에 저장
+    const questionScores = getQuestionScores();
+    const nid = normId(qid);
+    if (!questionScores[nid]) {
+      questionScores[nid] = {};
+    }
+    questionScores[nid].memoryTip = response;
+    saveToLocal(); // localStorage에 저장
+
     // 결과를 카드 내 암기 팁 영역에 표시
     coachingContent.textContent = response;
     coachingTip.classList.remove('hidden');
     btn.textContent = '🙈 암기 팁 숨기기';
 
-    showToast('암기 팁이 생성되었습니다! 💡');
+    showToast(forceRegenerate ? '암기 팁을 새로 생성했습니다! 💡' : '암기 팁이 생성되었습니다! 💡');
 
   } catch (err) {
     console.error('암기 코치 오류:', err);

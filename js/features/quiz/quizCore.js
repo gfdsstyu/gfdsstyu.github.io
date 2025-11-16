@@ -16,10 +16,11 @@ import {
   getQuestionScores,
   setSummaryViewMode,
   setActiveHintQuestionKey,
+  setActiveMemoryTipQuestionKey,
   setPrevLoaded,
   getIsFlashcardMode
 } from '../../core/stateManager.js';
-import { showResult, handleGrade, handleHint } from './grading.js';
+import { showResult, handleGrade, handleHint, handleMemoryTip } from './grading.js';
 import { handlePrevQuestion, handleNextQuestion } from './navigation.js';
 import { eventBus } from '../../core/eventBus.js';
 import { updateSummary, updateSummaryHighlight } from '../summary/summaryCore.js';
@@ -134,6 +135,11 @@ export function displayQuestion() {
   setActiveHintQuestionKey(null);
   el.hintBox?.classList.add('hidden');
   if (el.hintBox) el.hintBox.innerHTML = '';
+
+  // 암기팁 초기화
+  setActiveMemoryTipQuestionKey(null);
+  el.memoryTipContainer?.classList.add('hidden');
+  if (el.memoryTipContent) el.memoryTipContent.textContent = '';
 
   // 결과 및 답안 초기화
   el.resultBox?.classList.add('hidden');
@@ -314,6 +320,30 @@ export function initQuizListeners() {
     const cqd = getCurrentQuizData();
     const cqi = getCurrentQuestionIndex();
     if (cqd.length) handleHint(cqd[cqi]);
+  });
+
+  // Memory tip buttons
+  el.memoryTipBtn?.addEventListener('click', () => {
+    const cqd = getCurrentQuizData();
+    const cqi = getCurrentQuestionIndex();
+    if (cqd.length) handleMemoryTip(cqd[cqi], false);
+  });
+
+  el.memoryTipRegenBtn?.addEventListener('click', () => {
+    const cqd = getCurrentQuizData();
+    const cqi = getCurrentQuestionIndex();
+    if (cqd.length) handleMemoryTip(cqd[cqi], true); // forceRegenerate = true
+  });
+
+  el.memoryTipCopyBtn?.addEventListener('click', () => {
+    const content = el.memoryTipContent?.textContent;
+    if (content) {
+      navigator.clipboard.writeText(content).then(() => {
+        showToast('암기 팁을 복사했습니다');
+      }).catch(() => {
+        showToast('복사 실패', 'error');
+      });
+    }
   });
 
   // Review flag toggle (★) - mutually exclusive with exclude (➖)
