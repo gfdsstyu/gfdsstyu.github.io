@@ -151,12 +151,11 @@ async function fetchRankings(period, criteria) {
     const rankingData = doc.data();
     console.log(`🔍 [Ranking DEBUG] 문서 ${doc.id}:`, rankingData);
 
-    // 기간별 데이터 추출
-    const periodData = period === 'daily' ? rankingData.daily?.[periodKey] :
-                       period === 'weekly' ? rankingData.weekly?.[periodKey] :
-                       rankingData.monthly?.[periodKey];
+    // 기간별 데이터 추출 (flat field structure)
+    const fieldName = `${period}.${periodKey}`;
+    const periodData = rankingData[fieldName];
 
-    console.log(`🔍 [Ranking DEBUG] ${doc.id}의 ${period}[${periodKey}] 데이터:`, periodData);
+    console.log(`🔍 [Ranking DEBUG] ${doc.id}의 필드명 "${fieldName}" 데이터:`, periodData);
 
     if (!periodData) {
       console.log(`🔍 [Ranking DEBUG] ${doc.id} - ${period}[${periodKey}] 데이터 없음, 제외`);
