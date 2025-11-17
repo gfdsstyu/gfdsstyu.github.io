@@ -22,6 +22,35 @@ import { showToast, applyDarkMode } from '../../ui/domUtils.js';
 import { loadExamDate, saveExamDate, updateDDayDisplay } from '../../core/storageManager.js';
 import { closeReportModal } from '../report/reportCore.js';
 import { updateSummary } from '../summary/summaryCore.js';
+import { getCurrentUser } from '../auth/authCore.js';
+import { syncSettingsToFirestore } from '../sync/syncCore.js';
+
+// ============================================
+// Helper: Settings 동기화 (Phase 2.5: Option C)
+// ============================================
+
+/**
+ * Settings를 Firestore에 동기화 (설정 변경 시 호출)
+ */
+function syncSettings() {
+  const currentUser = getCurrentUser();
+  if (currentUser) {
+    console.log('⚙️ [Settings] 설정 변경됨 - Firestore 동기화 시작');
+    syncSettingsToFirestore(currentUser.uid)
+      .then(result => {
+        if (result.success) {
+          console.log(`✅ [Settings] Firestore 동기화 성공: ${result.message}`);
+        } else {
+          console.warn(`⚠️ [Settings] Firestore 동기화 실패: ${result.message}`);
+        }
+      })
+      .catch(error => {
+        console.error(`❌ [Settings] Firestore 동기화 에러:`, error);
+      });
+  } else {
+    console.log('⚠️ [Settings] 로그아웃 상태 - Firestore 동기화 스킵');
+  }
+}
 
 /**
  * API 모달 열기
@@ -176,6 +205,7 @@ export function initSettingsModalListeners() {
     setSelectedAiModel(model);
     localStorage.setItem('aiModel', model);
     showToast(`AI 모델 변경: ${model}`);
+    syncSettings(); // Sync to Firestore
   });
 
   // 다크모드 변경
@@ -183,6 +213,7 @@ export function initSettingsModalListeners() {
     localStorage.setItem('darkMode', e.target.value);
     applyDarkMode();
     showToast('다크 모드 설정 변경됨');
+    syncSettings(); // Sync to Firestore
   });
 
   // Task 3: 복습 기준 변경
@@ -191,6 +222,7 @@ export function initSettingsModalListeners() {
     const mode = e.target.value;
     localStorage.setItem('reviewMode', mode);
     showToast(`복습 기준 변경: ${mode === 'hlr' ? 'HLR 기반' : '시간 기반'}`);
+    syncSettings(); // Sync to Firestore
   });
 
   // 암기팁 모드 변경
@@ -198,6 +230,7 @@ export function initSettingsModalListeners() {
     const mode = e.target.value;
     setMemoryTipMode(mode);
     showToast(`암기팁 스타일 변경: ${mode === 'mild' ? 'Mild 버전' : '자극적인 버전'}`);
+    syncSettings(); // Sync to Firestore
   });
 
   // STT 공급자 변경
@@ -207,6 +240,7 @@ export function initSettingsModalListeners() {
     saveSttSettings();
     updateSttKeyVisibility(provider);
     showToast(`음성 엔진 변경: ${provider}`);
+    syncSettings(); // Sync to Firestore
   });
 
   // Google STT form submit 이벤트 (엔터키 지원)
@@ -290,6 +324,7 @@ export function initDDayListeners() {
     saveExamDate(dateStr);
     updateDDayDisplay();
     showToast('시험 날짜가 저장되었습니다');
+    syncSettings(); // Sync to Firestore
   });
 
   // D-DAY 표시 클릭 시 설정 모달 열기
