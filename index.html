@@ -168,6 +168,32 @@
         display: none !important;
       }
 
+      /* 2-1. 리포트 헤더 최적화 */
+      #report-modal .sticky {
+        position: static !important;
+        padding: 0.5rem 0 !important;
+        margin-bottom: 0.5rem !important;
+        border-bottom: 1px solid #e5e7eb !important;
+      }
+
+      #report-title {
+        font-size: 1.125rem !important;
+        margin-bottom: 0.25rem !important;
+      }
+
+      #report-modal .flex.flex-col.lg\\:flex-row {
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 0.5rem !important;
+        font-size: 0.75rem !important;
+      }
+
+      #report-modal label,
+      #report-modal select {
+        font-size: 0.75rem !important;
+        padding: 0.125rem 0.25rem !important;
+      }
+
       /* 3. 리포트 모달만 표시 */
       #report-modal {
         display: block !important;
@@ -208,7 +234,7 @@
       canvas {
         display: block !important;
         max-width: 100% !important;
-        max-height: 400px !important;
+        max-height: 280px !important;
         height: auto !important;
         page-break-inside: avoid;
         -webkit-print-color-adjust: exact !important;
@@ -434,9 +460,9 @@
               <!-- 암기팁 컨테이너 -->
               <div id="memory-tip-container" class="hidden mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <div class="flex justify-between items-start mb-2">
-                  <p class="text-sm font-bold text-blue-900">💡 암기 팁</p>
+                  <p class="text-sm font-bold text-gray-900">💡 암기 팁</p>
                   <div class="flex gap-2">
-                    <button id="memory-tip-regen-btn" class="text-xs px-2 py-1 rounded bg-orange-100 text-orange-700 hover:bg-orange-200 transition">
+                    <button id="memory-tip-regen-btn" class="text-xs px-2 py-1 rounded bg-orange-100 text-gray-900 hover:bg-orange-200 transition">
                       🔄 새로 생성
                     </button>
                     <button id="memory-tip-copy-btn" class="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition">
@@ -444,7 +470,7 @@
                     </button>
                   </div>
                 </div>
-                <pre id="memory-tip-content" class="whitespace-pre-wrap text-sm text-gray-900 font-sans leading-relaxed"></pre>
+                <pre id="memory-tip-content" class="whitespace-pre-wrap text-sm font-sans leading-relaxed" style="color: #111827 !important;"></pre>
               </div>
             </div>
 
@@ -751,14 +777,14 @@
     </div>
   </div>
 
-  <!-- Deep-Learning Report 모달 -->
+  <!-- 학습 리포트 모달 -->
   <div id="report-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1002] p-4 overflow-y-auto">
     <div role="dialog" aria-modal="true" aria-labelledby="report-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-5xl shadow-xl max-h-[90vh] overflow-y-auto" style="-webkit-overflow-scrolling: touch;">
       <!-- 헤더 -->
       <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-6 z-10">
   <div class="flex items-center justify-between mb-4">
-    
-    <h2 id="report-title" class="text-2xl font-bold text-gray-900 dark:text-white">📊 딥-러닝 리포트 (Deep-Learning Report)</h2>
+
+    <h2 id="report-title" class="text-2xl font-bold text-gray-900 dark:text-white">📊 학습 리포트</h2>
 
     <button id="report-close-btn" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl" aria-label="닫기">✕</button>
   </div>
@@ -944,7 +970,7 @@
           <span class="text-gray-700 dark:text-gray-300">📝 액션 플랜 & 오답노트</span>
         </label>
         <label class="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" id="pdf-check-tab4" class="pdf-tab-checkbox w-4 h-4 rounded">
+          <input type="checkbox" id="pdf-check-tab4" class="pdf-tab-checkbox w-4 h-4 rounded" checked>
           <span class="text-gray-700 dark:text-gray-300">📅 일일 학습 기록</span>
         </label>
       </div>

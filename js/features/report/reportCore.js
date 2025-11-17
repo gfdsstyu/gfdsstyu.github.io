@@ -290,9 +290,9 @@ function renderDailyProblemList(date) {
 
         <div class="daily-coaching-tip hidden mt-3 p-4 bg-blue-50 rounded">
           <div class="flex justify-between items-start mb-2">
-            <p class="text-sm font-bold text-blue-900">💡 암기 팁</p>
+            <p class="text-sm font-bold text-gray-900">💡 암기 팁</p>
             <div class="flex gap-2">
-              <button class="coaching-regen-btn text-xs px-2 py-1 rounded bg-orange-100 text-orange-700 hover:bg-orange-200 transition" type="button" data-qid="${rec.qid}">
+              <button class="coaching-regen-btn text-xs px-2 py-1 rounded bg-orange-100 text-gray-900 hover:bg-orange-200 transition" type="button" data-qid="${rec.qid}">
                 🔄 새로 생성
               </button>
               <button class="coaching-copy-btn text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition" type="button">
@@ -300,7 +300,7 @@ function renderDailyProblemList(date) {
               </button>
             </div>
           </div>
-          <pre class="coaching-content whitespace-pre-wrap text-sm text-gray-900 font-sans leading-relaxed"></pre>
+          <pre class="coaching-content whitespace-pre-wrap text-sm font-sans leading-relaxed" style="color: #111827 !important;"></pre>
         </div>
       </div>
     `;
