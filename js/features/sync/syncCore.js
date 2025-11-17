@@ -11,8 +11,18 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 import { db } from '../../app.js';
-import { getQuestionScores, setQuestionScores, saveQuestionScores } from '../../core/stateManager.js';
+import {
+  getQuestionScores,
+  setQuestionScores,
+  saveQuestionScores,
+  setSelectedAiModel,
+  setDarkMode,
+  setMemoryTipMode,
+  setSttProvider
+} from '../../core/stateManager.js';
 import { mergeQuizScores } from '../../services/dataImportExport.js';
+import { applyDarkMode } from '../../ui/domUtils.js';
+import { updateDDayDisplay } from '../../core/storageManager.js';
 
 // Achievement and settings management (for Option C)
 const ACHIEVEMENTS_LS_KEY = 'achievements_v1';
@@ -147,6 +157,46 @@ export function settingsToLocalStorageFormat(firestoreSettings) {
       localStorage.setItem(lsKey, firestoreSettings[key]);
     }
   });
+}
+
+/**
+ * Settings를 StateManager와 UI에 적용
+ * @param {Object} settings - Firestore settings 객체
+ */
+function applySettingsToUI(settings) {
+  if (!settings) return;
+
+  console.log('   - 적용할 설정:', settings);
+
+  // 1. StateManager 업데이트
+  if (settings.selectedAiModel) {
+    setSelectedAiModel(settings.selectedAiModel);
+    console.log(`   - AI 모델: ${settings.selectedAiModel}`);
+  }
+
+  if (settings.darkMode) {
+    setDarkMode(settings.darkMode);
+    applyDarkMode(); // UI 반영
+    console.log(`   - 다크모드: ${settings.darkMode}`);
+  }
+
+  if (settings.memoryTipMode) {
+    setMemoryTipMode(settings.memoryTipMode);
+    console.log(`   - 암기팁 모드: ${settings.memoryTipMode}`);
+  }
+
+  if (settings.sttProvider) {
+    setSttProvider(settings.sttProvider);
+    console.log(`   - STT 공급자: ${settings.sttProvider}`);
+  }
+
+  // 2. D-Day 업데이트 (examDate가 변경되었을 수 있음)
+  if (settings.examDate) {
+    updateDDayDisplay();
+    console.log(`   - 시험 날짜: ${settings.examDate}`);
+  }
+
+  console.log('✅ Settings UI 반영 완료');
 }
 
 // ============================================
@@ -290,6 +340,11 @@ export async function syncOnLogin(userId) {
       // Cloud에 설정이 있으면 → Local로 다운로드 (Cloud 우선)
       console.log('📥 Settings: Cloud → Local 동기화 중...');
       settingsToLocalStorageFormat(cloudSettings);
+
+      // UI 및 StateManager 반영
+      console.log('🔄 Settings UI 반영 중...');
+      applySettingsToUI(cloudSettings);
+
       console.log(`✅ ${cloudSettingsCount}개 설정 다운로드 완료`);
       syncMessage += `, settings: ${cloudSettingsCount}개 다운로드`;
     } else if (localSettingsCount > 0) {
