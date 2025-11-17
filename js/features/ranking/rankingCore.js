@@ -60,8 +60,10 @@ function getPeriodKey(period = 'daily') {
  * @returns {Promise<{success: boolean, message: string}>}
  */
 export async function updateUserStats(userId, score) {
+  console.log(`🔍 [Ranking DEBUG] updateUserStats 호출됨 - userId: ${userId}, score: ${score}`);
+
   if (!userId) {
-    console.warn('⚠️ [Ranking] userId가 없습니다.');
+    console.error('❌ [Ranking] userId가 없습니다!');
     return { success: false, message: 'userId 누락' };
   }
 
@@ -127,21 +129,34 @@ export async function updateUserStats(userId, score) {
 
     // 2. Phase 3.4: rankings 컬렉션 업데이트 (성능 최적화용)
     try {
-      const nickname = await getNickname();
-      const rankingDocRef = doc(db, 'rankings', userId);
+      console.log(`🔍 [Ranking DEBUG] rankings 컬렉션 업데이트 시도 중...`);
 
-      await setDoc(rankingDocRef, {
+      const nickname = await getNickname();
+      console.log(`🔍 [Ranking DEBUG] 닉네임: ${nickname || '익명'}`);
+
+      const rankingDocRef = doc(db, 'rankings', userId);
+      console.log(`🔍 [Ranking DEBUG] rankings 문서 경로: rankings/${userId}`);
+
+      const rankingData = {
         userId: userId,
         nickname: nickname || '익명',
         [`daily.${dailyKey}`]: dailyStats,
         [`weekly.${weeklyKey}`]: weeklyStats,
         [`monthly.${monthlyKey}`]: monthlyStats,
         lastUpdatedAt: serverTimestamp()
-      }, { merge: true }); // merge: true로 기존 데이터 유지
+      };
+
+      console.log(`🔍 [Ranking DEBUG] 저장할 데이터:`, rankingData);
+
+      await setDoc(rankingDocRef, rankingData, { merge: true });
 
       console.log(`✅ [Ranking] rankings 컬렉션 업데이트 완료`);
     } catch (rankingError) {
-      console.warn('⚠️ [Ranking] rankings 컬렉션 업데이트 실패:', rankingError);
+      console.error('❌ [Ranking] rankings 컬렉션 업데이트 실패!');
+      console.error('   - 에러 타입:', rankingError.name);
+      console.error('   - 에러 메시지:', rankingError.message);
+      console.error('   - 에러 코드:', rankingError.code);
+      console.error('   - 전체 에러:', rankingError);
       // rankings 실패해도 users는 업데이트되었으므로 계속 진행
     }
 
