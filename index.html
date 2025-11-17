@@ -306,6 +306,9 @@
           <span class="hidden sm:inline">업적</span><span>🏆</span>
           <span id="new-achievement-badge" class="hidden absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
         </button>
+        <button id="open-ranking-btn" class="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-md transition" title="랭킹">
+          <span class="hidden sm:inline">랭킹</span><span>📊</span>
+        </button>
         <a id="help-button" href="README.html" target="_blank" class="hidden sm:inline text-sm text-gray-700 hover:text-blue-700 dark:text-gray-300 dark:hover:text-white">도움말</a>
 
         <!-- Firebase 인증 버튼 -->
@@ -709,6 +712,61 @@
 
         <!-- 업적 리스트 -->
         <div id="achievements-list" class="space-y-3"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 3.3: 랭킹 모달 -->
+  <div id="ranking-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1002] p-4 overflow-y-auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="ranking-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-5xl shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+        <h2 id="ranking-title" class="text-2xl font-bold">📊 랭킹</h2>
+        <button id="ranking-close-btn" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl leading-none" aria-label="닫기">×</button>
+      </div>
+
+      <div class="p-6">
+        <!-- 내 순위 카드 -->
+        <div class="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-6 mb-6 border border-purple-200 dark:border-purple-800">
+          <h3 class="text-lg font-bold mb-4 text-purple-900 dark:text-purple-100">내 통계</h3>
+          <div class="grid grid-cols-3 gap-4">
+            <div class="text-center">
+              <div class="text-3xl font-bold text-purple-600 dark:text-purple-400" id="my-total-score">-</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">총점수</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-blue-600 dark:text-blue-400" id="my-problem-count">-</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">문풀횟수</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-green-600 dark:text-green-400" id="my-average-score">-</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">평균점수</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 필터: 기간 선택 -->
+        <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+          <button class="ranking-period-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-blue-500 text-white" data-period="daily">일간</button>
+          <button class="ranking-period-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-period="weekly">주간</button>
+          <button class="ranking-period-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-period="monthly">월간</button>
+        </div>
+
+        <!-- 필터: 기준 선택 -->
+        <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+          <button class="ranking-criteria-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-purple-500 text-white" data-criteria="totalScore">총점수</button>
+          <button class="ranking-criteria-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-criteria="problems">문풀횟수</button>
+          <button class="ranking-criteria-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-criteria="avgScore">평균점수</button>
+        </div>
+
+        <!-- 랭킹 리스트 -->
+        <div id="ranking-list" class="space-y-2">
+          <!-- 로그인 필요 안내 -->
+          <div id="ranking-login-required" class="text-center py-12 text-gray-500 dark:text-gray-400">
+            <p class="text-lg mb-2">🔒 로그인이 필요합니다</p>
+            <p class="text-sm">로그인하여 랭킹을 확인하세요!</p>
+          </div>
+          <!-- 랭킹 항목들이 여기에 동적으로 추가됨 -->
+        </div>
       </div>
     </div>
   </div>
@@ -1134,6 +1192,7 @@
       checkAchievements,
       updateAchievementBadge
     } from './js/features/achievements/achievementsCore.js';
+    import { initRankingUI, openRankingModal } from './js/features/ranking/rankingUI.js';
     import { initReviewListeners } from './js/features/review/reviewCore.js';
     import { initSttListeners } from './js/features/stt/sttHandler.js';
 
@@ -1250,6 +1309,15 @@
       loadAchievements();
       checkAchievements();
       updateAchievementBadge();
+
+      // Phase 3.3: 랭킹 시스템 초기화
+      initRankingUI();
+
+      // 랭킹 버튼 클릭 이벤트
+      document.getElementById('open-ranking-btn')?.addEventListener('click', () => {
+        openRankingModal();
+      });
+
       initReviewListeners();
 
       // STT 리스너 초기화
