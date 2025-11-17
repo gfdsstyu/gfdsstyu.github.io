@@ -137,6 +137,7 @@ export function initElements() {
     dailyPrevBtn: $('daily-prev-btn'),
     dailyNextBtn: $('daily-next-btn'),
     dailyRecordDate: $('daily-record-date'),
+    dailyDatePicker: $('daily-date-picker'),
     dailyProblemList: $('daily-problem-list'),
 
     // AI Analysis
