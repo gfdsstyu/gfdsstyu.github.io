@@ -23,6 +23,11 @@ import { showToast } from '../../ui/domUtils.js';
 let currentPeriod = 'daily';
 let currentCriteria = 'totalScore';
 
+// Phase 3.5.1: 탭 상태
+let currentMainTab = 'global'; // 'global', 'groups', 'classes'
+let currentGroupSubtab = 'group-level'; // 'group-level', 'intra-group'
+let currentClassSubtab = 'class-level'; // 'class-level', 'intra-class'
+
 // 평균점수 랭킹 최소 문제 수 기준 (기간별)
 const MIN_PROBLEMS_FOR_AVG = {
   daily: 3,
@@ -49,10 +54,16 @@ export async function openRankingModal() {
   modal.classList.remove('hidden');
   modal.classList.add('flex');
 
-  // 내 통계 업데이트
+  // Phase 3.5.1: 탭 초기화
+  currentMainTab = 'global';
+  currentGroupSubtab = 'group-level';
+  currentClassSubtab = 'class-level';
+  switchMainTab('global');
+
+  // 내 통계 업데이트 (전체 탭 전용)
   await updateMyStatsDisplay();
 
-  // 랭킹 리스트 로드
+  // 랭킹 리스트 로드 (전체 탭 전용)
   await loadRankings();
 }
 
@@ -63,6 +74,153 @@ export function closeRankingModal() {
   const modal = document.getElementById('ranking-modal');
   modal.classList.add('hidden');
   modal.classList.remove('flex');
+}
+
+// ============================================
+// Phase 3.5.1: Tab Switching
+// ============================================
+
+/**
+ * 메인 탭 전환
+ * @param {string} tab - 'global', 'groups', 'classes'
+ */
+function switchMainTab(tab) {
+  currentMainTab = tab;
+
+  // 모든 탭 콘텐츠 숨기기
+  document.querySelectorAll('.ranking-tab-content').forEach(content => {
+    content.classList.add('hidden');
+  });
+
+  // 선택된 탭 콘텐츠 표시
+  const selectedTabContent = document.getElementById(`ranking-tab-${tab}`);
+  selectedTabContent?.classList.remove('hidden');
+
+  // 탭 버튼 활성화 상태 업데이트
+  document.querySelectorAll('.ranking-main-tab').forEach(btn => {
+    if (btn.dataset.tab === tab) {
+      btn.classList.remove('bg-gray-200', 'dark:bg-gray-700');
+      btn.classList.add('bg-gradient-to-r', 'from-blue-500', 'to-indigo-500', 'text-white', 'shadow-lg');
+    } else {
+      btn.classList.remove('bg-gradient-to-r', 'from-blue-500', 'to-indigo-500', 'text-white', 'shadow-lg');
+      btn.classList.add('bg-gray-200', 'dark:bg-gray-700');
+    }
+  });
+
+  // 로그인 상태에 따른 UI 표시
+  const currentUser = getCurrentUser();
+
+  if (tab === 'groups') {
+    updateGroupsTabUI(currentUser);
+  } else if (tab === 'classes') {
+    updateClassesTabUI(currentUser);
+  }
+}
+
+/**
+ * 그룹 탭 UI 업데이트
+ */
+function updateGroupsTabUI(currentUser) {
+  const loginRequired = document.getElementById('groups-login-required');
+  const groupsContent = document.getElementById('groups-content');
+  const emptyState = document.getElementById('groups-empty-state');
+
+  if (!currentUser) {
+    // 로그인 안 됨
+    loginRequired?.classList.remove('hidden');
+    groupsContent?.classList.add('hidden');
+    emptyState?.classList.add('hidden');
+    return;
+  }
+
+  // 로그인 됨
+  loginRequired?.classList.add('hidden');
+
+  // TODO: Phase 3.5.2에서 실제 그룹 가입 여부 확인
+  // 현재는 빈 상태만 표시
+  groupsContent?.classList.add('hidden');
+  emptyState?.classList.remove('hidden');
+}
+
+/**
+ * 고시반 탭 UI 업데이트
+ */
+function updateClassesTabUI(currentUser) {
+  const loginRequired = document.getElementById('classes-login-required');
+  const classesContent = document.getElementById('classes-content');
+  const emptyState = document.getElementById('classes-empty-state');
+
+  if (!currentUser) {
+    // 로그인 안 됨
+    loginRequired?.classList.remove('hidden');
+    classesContent?.classList.add('hidden');
+    emptyState?.classList.add('hidden');
+    return;
+  }
+
+  // 로그인 됨
+  loginRequired?.classList.add('hidden');
+
+  // TODO: Phase 3.6에서 실제 고시반 가입 여부 확인
+  // 현재는 빈 상태만 표시
+  classesContent?.classList.add('hidden');
+  emptyState?.classList.remove('hidden');
+}
+
+/**
+ * 그룹 서브 탭 전환
+ * @param {string} subtab - 'group-level', 'intra-group'
+ */
+function switchGroupSubtab(subtab) {
+  currentGroupSubtab = subtab;
+
+  // 모든 서브 탭 콘텐츠 숨기기
+  document.querySelectorAll('.ranking-group-subtab-content').forEach(content => {
+    content.classList.add('hidden');
+  });
+
+  // 선택된 서브 탭 콘텐츠 표시
+  const selectedContent = document.getElementById(`${subtab}-content`);
+  selectedContent?.classList.remove('hidden');
+
+  // 서브 탭 버튼 활성화 상태 업데이트
+  document.querySelectorAll('.ranking-group-subtab').forEach(btn => {
+    if (btn.dataset.subtab === subtab) {
+      btn.classList.remove('bg-gray-200', 'dark:bg-gray-700');
+      btn.classList.add('bg-gradient-to-r', 'from-green-500', 'to-emerald-500', 'text-white', 'shadow-md');
+    } else {
+      btn.classList.remove('bg-gradient-to-r', 'from-green-500', 'to-emerald-500', 'text-white', 'shadow-md');
+      btn.classList.add('bg-gray-200', 'dark:bg-gray-700');
+    }
+  });
+}
+
+/**
+ * 고시반 서브 탭 전환
+ * @param {string} subtab - 'class-level', 'intra-class'
+ */
+function switchClassSubtab(subtab) {
+  currentClassSubtab = subtab;
+
+  // 모든 서브 탭 콘텐츠 숨기기
+  document.querySelectorAll('.ranking-class-subtab-content').forEach(content => {
+    content.classList.add('hidden');
+  });
+
+  // 선택된 서브 탭 콘텐츠 표시
+  const selectedContent = document.getElementById(`${subtab}-content`);
+  selectedContent?.classList.remove('hidden');
+
+  // 서브 탭 버튼 활성화 상태 업데이트
+  document.querySelectorAll('.ranking-class-subtab').forEach(btn => {
+    if (btn.dataset.subtab === subtab) {
+      btn.classList.remove('bg-gray-200', 'dark:bg-gray-700');
+      btn.classList.add('bg-gradient-to-r', 'from-purple-500', 'to-pink-500', 'text-white', 'shadow-md');
+    } else {
+      btn.classList.remove('bg-gradient-to-r', 'from-purple-500', 'to-pink-500', 'text-white', 'shadow-md');
+      btn.classList.add('bg-gray-200', 'dark:bg-gray-700');
+    }
+  });
 }
 
 // ============================================
@@ -410,6 +568,27 @@ export function initRankingUI() {
   const closeBtn = document.getElementById('ranking-close-btn');
   closeBtn?.addEventListener('click', closeRankingModal);
 
+  // Phase 3.5.1: 메인 탭 버튼들
+  document.querySelectorAll('.ranking-main-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      switchMainTab(btn.dataset.tab);
+    });
+  });
+
+  // Phase 3.5.1: 그룹 서브 탭 버튼들
+  document.querySelectorAll('.ranking-group-subtab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      switchGroupSubtab(btn.dataset.subtab);
+    });
+  });
+
+  // Phase 3.5.1: 고시반 서브 탭 버튼들
+  document.querySelectorAll('.ranking-class-subtab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      switchClassSubtab(btn.dataset.subtab);
+    });
+  });
+
   // 기간 필터 버튼들
   document.querySelectorAll('[data-period]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -424,7 +603,7 @@ export function initRankingUI() {
     });
   });
 
-  console.log('✅ Ranking UI 모듈 초기화 완료');
+  console.log('✅ Ranking UI 모듈 초기화 완료 (Phase 3.5.1: 탭 구조 포함)');
 }
 
 // ============================================

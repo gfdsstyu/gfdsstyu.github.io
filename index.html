@@ -719,56 +719,175 @@
   <!-- Phase 3.3: 랭킹 모달 -->
   <div id="ranking-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1002] p-4 overflow-y-auto">
     <div role="dialog" aria-modal="true" aria-labelledby="ranking-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-5xl shadow-xl max-h-[90vh] overflow-y-auto">
-      <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+      <!-- 헤더 -->
+      <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
         <h2 id="ranking-title" class="text-2xl font-bold">📊 랭킹</h2>
         <button id="ranking-close-btn" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl leading-none" aria-label="닫기">×</button>
       </div>
 
+      <!-- 메인 탭 -->
+      <div class="sticky top-[73px] bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-3 z-10">
+        <div class="flex gap-2 overflow-x-auto pb-1">
+          <button class="ranking-main-tab px-6 py-3 rounded-lg text-sm font-bold whitespace-nowrap bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg" data-tab="global">
+            🌍 전체
+          </button>
+          <button class="ranking-main-tab px-6 py-3 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-tab="groups">
+            👥 내 그룹
+          </button>
+          <button class="ranking-main-tab px-6 py-3 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-tab="classes">
+            🎓 내 고시반
+          </button>
+        </div>
+      </div>
+
       <div class="p-6">
-        <!-- 내 통계 카드 (개선된 UI) -->
-        <div class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/30 dark:via-indigo-900/30 dark:to-purple-900/30 rounded-2xl p-8 mb-6 border-2 border-blue-200 dark:border-blue-700 shadow-xl">
-          <div class="flex items-center gap-3 mb-6">
-            <div class="text-3xl">👤</div>
-            <h3 class="text-2xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400">내 통계</h3>
+        <!-- ======================================== -->
+        <!-- 🌍 전체 탭 콘텐츠 (개인 전체 랭킹) -->
+        <!-- ======================================== -->
+        <div id="ranking-tab-global" class="ranking-tab-content">
+          <!-- 내 통계 카드 -->
+          <div class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/30 dark:via-indigo-900/30 dark:to-purple-900/30 rounded-2xl p-8 mb-6 border-2 border-blue-200 dark:border-blue-700 shadow-xl">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="text-3xl">👤</div>
+              <h3 class="text-2xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400">내 통계</h3>
+            </div>
+            <div class="grid grid-cols-3 gap-6">
+              <div class="text-center p-4 rounded-xl bg-white/50 dark:bg-gray-800/50 transition-all hover:scale-105">
+                <div class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">📊 총점수</div>
+                <div class="text-3xl font-bold text-gray-900 dark:text-gray-100 transition-all" id="my-total-score">-</div>
+              </div>
+              <div class="text-center p-4 rounded-xl bg-white/50 dark:bg-gray-800/50 transition-all hover:scale-105">
+                <div class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">✍️ 문풀횟수</div>
+                <div class="text-3xl font-bold text-gray-900 dark:text-gray-100 transition-all" id="my-problem-count">-</div>
+              </div>
+              <div class="text-center p-4 rounded-xl bg-white/50 dark:bg-gray-800/50 transition-all hover:scale-105">
+                <div class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">⭐ 평균점수</div>
+                <div class="text-3xl font-bold text-gray-900 dark:text-gray-100 transition-all" id="my-average-score">-</div>
+              </div>
+            </div>
           </div>
-          <div class="grid grid-cols-3 gap-6">
-            <div class="text-center p-4 rounded-xl bg-white/50 dark:bg-gray-800/50 transition-all hover:scale-105">
-              <div class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">📊 총점수</div>
-              <div class="text-3xl font-bold text-gray-900 dark:text-gray-100 transition-all" id="my-total-score">-</div>
+
+          <!-- 필터: 기간 선택 -->
+          <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+            <button class="ranking-period-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-blue-500 text-white" data-period="daily">일간</button>
+            <button class="ranking-period-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-period="weekly">주간</button>
+            <button class="ranking-period-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-period="monthly">월간</button>
+          </div>
+
+          <!-- 필터: 기준 선택 -->
+          <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+            <button class="ranking-criteria-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-purple-500 text-white" data-criteria="totalScore">총점수</button>
+            <button class="ranking-criteria-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-criteria="problems">문풀횟수</button>
+            <button class="ranking-criteria-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-criteria="avgScore">평균점수</button>
+          </div>
+
+          <!-- 랭킹 리스트 -->
+          <div id="ranking-list" class="space-y-2">
+            <!-- 로그인 필요 안내 -->
+            <div id="ranking-login-required" class="text-center py-12 text-gray-500 dark:text-gray-400">
+              <p class="text-lg mb-2">🔒 로그인이 필요합니다</p>
+              <p class="text-sm">로그인하여 랭킹을 확인하세요!</p>
             </div>
-            <div class="text-center p-4 rounded-xl bg-white/50 dark:bg-gray-800/50 transition-all hover:scale-105">
-              <div class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">✍️ 문풀횟수</div>
-              <div class="text-3xl font-bold text-gray-900 dark:text-gray-100 transition-all" id="my-problem-count">-</div>
-            </div>
-            <div class="text-center p-4 rounded-xl bg-white/50 dark:bg-gray-800/50 transition-all hover:scale-105">
-              <div class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">⭐ 평균점수</div>
-              <div class="text-3xl font-bold text-gray-900 dark:text-gray-100 transition-all" id="my-average-score">-</div>
-            </div>
+            <!-- 랭킹 항목들이 여기에 동적으로 추가됨 -->
           </div>
         </div>
 
-        <!-- 필터: 기간 선택 -->
-        <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
-          <button class="ranking-period-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-blue-500 text-white" data-period="daily">일간</button>
-          <button class="ranking-period-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-period="weekly">주간</button>
-          <button class="ranking-period-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-period="monthly">월간</button>
-        </div>
-
-        <!-- 필터: 기준 선택 -->
-        <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-          <button class="ranking-criteria-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-purple-500 text-white" data-criteria="totalScore">총점수</button>
-          <button class="ranking-criteria-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-criteria="problems">문풀횟수</button>
-          <button class="ranking-criteria-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-criteria="avgScore">평균점수</button>
-        </div>
-
-        <!-- 랭킹 리스트 -->
-        <div id="ranking-list" class="space-y-2">
+        <!-- ======================================== -->
+        <!-- 👥 내 그룹 탭 콘텐츠 -->
+        <!-- ======================================== -->
+        <div id="ranking-tab-groups" class="ranking-tab-content hidden">
           <!-- 로그인 필요 안내 -->
-          <div id="ranking-login-required" class="text-center py-12 text-gray-500 dark:text-gray-400">
+          <div id="groups-login-required" class="text-center py-12 text-gray-500 dark:text-gray-400">
             <p class="text-lg mb-2">🔒 로그인이 필요합니다</p>
-            <p class="text-sm">로그인하여 랭킹을 확인하세요!</p>
+            <p class="text-sm">로그인하여 그룹 기능을 이용하세요!</p>
           </div>
-          <!-- 랭킹 항목들이 여기에 동적으로 추가됨 -->
+
+          <!-- 그룹 가입 시 표시될 콘텐츠 -->
+          <div id="groups-content" class="hidden">
+            <!-- 서브 탭 (그룹별 / 그룹내) -->
+            <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+              <button class="ranking-group-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md" data-subtab="group-level">
+                🏆 그룹별 랭킹
+              </button>
+              <button class="ranking-group-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-subtab="intra-group">
+                👤 그룹 내 랭킹
+              </button>
+            </div>
+
+            <!-- 그룹별 랭킹 콘텐츠 -->
+            <div id="group-level-content" class="ranking-group-subtab-content">
+              <p class="text-center text-gray-500 dark:text-gray-400 py-8">그룹별 랭킹 (구현 예정)</p>
+            </div>
+
+            <!-- 그룹 내 랭킹 콘텐츠 -->
+            <div id="intra-group-content" class="ranking-group-subtab-content hidden">
+              <p class="text-center text-gray-500 dark:text-gray-400 py-8">그룹 내 랭킹 (구현 예정)</p>
+            </div>
+          </div>
+
+          <!-- 빈 상태 (그룹 미가입) -->
+          <div id="groups-empty-state" class="text-center py-16">
+            <div class="text-6xl mb-4">📭</div>
+            <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">가입한 그룹이 없습니다</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">스터디 그룹에 가입하여 함께 공부하세요!</p>
+            <div class="flex gap-3 justify-center">
+              <button class="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+                ➕ 그룹 만들기
+              </button>
+              <button class="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+                🔍 그룹 찾기
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================================== -->
+        <!-- 🎓 내 고시반 탭 콘텐츠 -->
+        <!-- ======================================== -->
+        <div id="ranking-tab-classes" class="ranking-tab-content hidden">
+          <!-- 로그인 필요 안내 -->
+          <div id="classes-login-required" class="text-center py-12 text-gray-500 dark:text-gray-400">
+            <p class="text-lg mb-2">🔒 로그인이 필요합니다</p>
+            <p class="text-sm">로그인하여 고시반 기능을 이용하세요!</p>
+          </div>
+
+          <!-- 고시반 가입 시 표시될 콘텐츠 -->
+          <div id="classes-content" class="hidden">
+            <!-- 서브 탭 (반별 / 반내) -->
+            <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+              <button class="ranking-class-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md" data-subtab="class-level">
+                🏆 반별 랭킹
+              </button>
+              <button class="ranking-class-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-subtab="intra-class">
+                👤 반 내 랭킹
+              </button>
+            </div>
+
+            <!-- 반별 랭킹 콘텐츠 -->
+            <div id="class-level-content" class="ranking-class-subtab-content">
+              <p class="text-center text-gray-500 dark:text-gray-400 py-8">반별 랭킹 (구현 예정)</p>
+            </div>
+
+            <!-- 반 내 랭킹 콘텐츠 -->
+            <div id="intra-class-content" class="ranking-class-subtab-content hidden">
+              <p class="text-center text-gray-500 dark:text-gray-400 py-8">반 내 랭킹 (구현 예정)</p>
+            </div>
+          </div>
+
+          <!-- 빈 상태 (고시반 미가입) -->
+          <div id="classes-empty-state" class="text-center py-16">
+            <div class="text-6xl mb-4">📚</div>
+            <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">가입한 고시반이 없습니다</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">고시반에 가입하여 집중 학습하세요!</p>
+            <div class="flex gap-3 justify-center">
+              <button class="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+                ➕ 고시반 만들기
+              </button>
+              <button class="px-6 py-3 bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+                🔍 고시반 찾기
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
