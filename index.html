@@ -728,13 +728,13 @@
       <!-- 메인 탭 -->
       <div class="sticky top-[73px] bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-3 z-10">
         <div class="flex gap-2 overflow-x-auto pb-1">
-          <button class="ranking-main-tab px-6 py-3 rounded-lg text-sm font-bold whitespace-nowrap bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg" data-tab="global">
+          <button class="ranking-main-tab px-6 py-3 rounded-lg text-sm font-bold whitespace-nowrap bg-blue-600 dark:bg-blue-500 text-white" data-tab="global">
             🌍 전체
           </button>
-          <button class="ranking-main-tab px-6 py-3 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-tab="groups">
+          <button class="ranking-main-tab px-6 py-3 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-tab="groups">
             👥 내 그룹
           </button>
-          <button class="ranking-main-tab px-6 py-3 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-tab="classes">
+          <button class="ranking-main-tab px-6 py-3 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-tab="classes">
             🎓 내 고시반
           </button>
         </div>
@@ -746,10 +746,10 @@
         <!-- ======================================== -->
         <div id="ranking-tab-global" class="ranking-tab-content">
           <!-- 내 통계 카드 -->
-          <div class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/30 dark:via-indigo-900/30 dark:to-purple-900/30 rounded-2xl p-8 mb-6 border-2 border-blue-200 dark:border-blue-700 shadow-xl">
+          <div class="bg-blue-50 dark:bg-blue-900/30 rounded-2xl p-8 mb-6 border-2 border-blue-300 dark:border-blue-700 shadow-lg">
             <div class="flex items-center gap-3 mb-6">
               <div class="text-3xl">👤</div>
-              <h3 class="text-2xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400">내 통계</h3>
+              <h3 class="text-2xl font-extrabold text-blue-700 dark:text-blue-300">내 통계</h3>
             </div>
             <div class="grid grid-cols-3 gap-6">
               <div class="text-center p-4 rounded-xl bg-white/50 dark:bg-gray-800/50 transition-all hover:scale-105">
@@ -806,10 +806,10 @@
           <div id="groups-content" class="hidden">
             <!-- 서브 탭 (그룹별 / 그룹내) -->
             <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-              <button class="ranking-group-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md" data-subtab="group-level">
+              <button class="ranking-group-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-green-600 dark:bg-green-500 text-white" data-subtab="group-level">
                 🏆 그룹별 랭킹
               </button>
-              <button class="ranking-group-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-subtab="intra-group">
+              <button class="ranking-group-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-subtab="intra-group">
                 👤 그룹 내 랭킹
               </button>
             </div>
@@ -831,10 +831,10 @@
             <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">가입한 그룹이 없습니다</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">스터디 그룹에 가입하여 함께 공부하세요!</p>
             <div class="flex gap-3 justify-center">
-              <button class="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+              <button class="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
                 ➕ 그룹 만들기
               </button>
-              <button class="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+              <button class="px-6 py-3 bg-green-600 dark:bg-green-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
                 🔍 그룹 찾기
               </button>
             </div>
@@ -855,10 +855,10 @@
           <div id="classes-content" class="hidden">
             <!-- 서브 탭 (반별 / 반내) -->
             <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-              <button class="ranking-class-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md" data-subtab="class-level">
+              <button class="ranking-class-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-purple-600 dark:bg-purple-500 text-white" data-subtab="class-level">
                 🏆 반별 랭킹
               </button>
-              <button class="ranking-class-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-subtab="intra-class">
+              <button class="ranking-class-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-subtab="intra-class">
                 👤 반 내 랭킹
               </button>
             </div>
@@ -880,10 +880,10 @@
             <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">가입한 고시반이 없습니다</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">고시반에 가입하여 집중 학습하세요!</p>
             <div class="flex gap-3 justify-center">
-              <button class="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+              <button class="px-6 py-3 bg-purple-600 dark:bg-purple-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
                 ➕ 고시반 만들기
               </button>
-              <button class="px-6 py-3 bg-gradient-to-r from-indigo-500 to-blue-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+              <button class="px-6 py-3 bg-indigo-600 dark:bg-indigo-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
                 🔍 고시반 찾기
               </button>
             </div>
