@@ -86,9 +86,28 @@ async function updateMyStatsDisplay() {
   }
 
   // 순서: 총점수, 문풀횟수, 평균점수
-  document.getElementById('my-total-score').textContent = myStats.totalScore.toLocaleString();
-  document.getElementById('my-problem-count').textContent = myStats.problems.toLocaleString();
-  document.getElementById('my-average-score').textContent = myStats.avgScore.toFixed(1);
+  const totalScoreEl = document.getElementById('my-total-score');
+  const problemCountEl = document.getElementById('my-problem-count');
+  const avgScoreEl = document.getElementById('my-average-score');
+
+  totalScoreEl.textContent = myStats.totalScore.toLocaleString();
+  problemCountEl.textContent = myStats.problems.toLocaleString();
+  avgScoreEl.textContent = myStats.avgScore.toFixed(1);
+
+  // 현재 선택된 기준 강조
+  const allStatEls = [totalScoreEl, problemCountEl, avgScoreEl];
+  allStatEls.forEach(el => {
+    el.classList.remove('text-5xl', 'text-blue-600', 'dark:text-blue-400', 'animate-pulse');
+    el.classList.add('text-3xl');
+  });
+
+  // 선택된 기준만 크게
+  const selectedEl = currentCriteria === 'totalScore' ? totalScoreEl :
+                     currentCriteria === 'problems' ? problemCountEl :
+                     avgScoreEl;
+
+  selectedEl.classList.remove('text-3xl');
+  selectedEl.classList.add('text-5xl', 'text-blue-600', 'dark:text-blue-400');
 }
 
 // ============================================
@@ -234,45 +253,81 @@ function renderRankingList(rankings) {
     const rank = index + 1;
     const isMe = currentUser && user.userId === currentUser.uid;
 
-    // 순위 메달
-    let rankDisplay = rank;
-    if (rank === 1) rankDisplay = '🥇';
-    else if (rank === 2) rankDisplay = '🥈';
-    else if (rank === 3) rankDisplay = '🥉';
+    // 순위 표시 (메달 + 배경)
+    let rankDisplay = '';
+    let rankBadgeClass = '';
 
-    // 내 순위 하이라이트
-    const highlightClass = isMe ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-500' : 'bg-white dark:bg-gray-800';
+    if (rank === 1) {
+      rankDisplay = '<span class="text-3xl">🥇</span>';
+      rankBadgeClass = 'bg-yellow-100 dark:bg-yellow-900/30';
+    } else if (rank === 2) {
+      rankDisplay = '<span class="text-3xl">🥈</span>';
+      rankBadgeClass = 'bg-gray-100 dark:bg-gray-700';
+    } else if (rank === 3) {
+      rankDisplay = '<span class="text-3xl">🥉</span>';
+      rankBadgeClass = 'bg-orange-100 dark:bg-orange-900/30';
+    } else if (rank <= 10) {
+      rankDisplay = `<div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg">${rank}</div>`;
+    } else {
+      rankDisplay = `<div class="text-gray-400 dark:text-gray-500 font-semibold text-lg">${rank}</div>`;
+    }
+
+    // 내 순위 강조 (매우 명확하게!)
+    let cardClass = '';
+    let meIndicator = '';
+
+    if (isMe) {
+      cardClass = 'bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/40 dark:to-indigo-900/40 border-3 border-blue-500 shadow-lg shadow-blue-200 dark:shadow-blue-900/50';
+      meIndicator = `
+        <div class="absolute -left-2 top-1/2 -translate-y-1/2">
+          <div class="bg-blue-500 text-white px-2 py-1 rounded-r-lg font-bold text-sm shadow-lg">
+            ⭐ 내 순위
+          </div>
+        </div>
+      `;
+    } else {
+      cardClass = `bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 ${rankBadgeClass}`;
+    }
+
+    // 현재 선택된 기준 값 강조
+    const criteriaValue = currentCriteria === 'totalScore' ? user.totalScore :
+                          currentCriteria === 'problems' ? user.problems :
+                          user.avgScore;
+
+    const highlightCriteria = (criteria, value) => {
+      const isHighlight = currentCriteria === criteria;
+      const valueClass = isHighlight ? 'text-blue-600 dark:text-blue-400 font-extrabold text-xl' : 'font-bold text-gray-900 dark:text-gray-100 text-lg';
+      const labelClass = isHighlight ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-gray-500 dark:text-gray-400';
+
+      return `
+        <div class="text-center ${isHighlight ? 'transform scale-110' : ''}">
+          <div class="${labelClass} text-xs mb-1">${criteria === 'totalScore' ? '총점수' : criteria === 'problems' ? '문풀횟수' : '평균점수'}</div>
+          <div class="${valueClass}">${typeof value === 'number' && value % 1 !== 0 ? value.toFixed(1) : value.toLocaleString()}</div>
+        </div>
+      `;
+    };
 
     html += `
-      <div class="${highlightClass} rounded-lg p-4 mb-3 shadow-sm transition-all hover:shadow-md">
-        <div class="flex items-center justify-between">
-          <!-- 순위 & 닉네임 -->
-          <div class="flex items-center gap-4 flex-1">
-            <div class="text-2xl font-bold w-12 text-center">
-              ${rankDisplay}
-            </div>
-            <div>
-              <div class="font-semibold text-gray-900 dark:text-gray-100">
-                ${user.nickname}
-                ${isMe ? '<span class="ml-2 text-xs bg-blue-500 text-white px-2 py-1 rounded">나</span>' : ''}
-              </div>
+      <div class="${cardClass} rounded-xl p-5 mb-4 transition-all hover:shadow-xl hover:scale-[1.02] relative overflow-visible">
+        ${meIndicator}
+        <div class="flex items-center justify-between gap-6">
+          <!-- 순위 -->
+          <div class="flex items-center justify-center w-16">
+            ${rankDisplay}
+          </div>
+
+          <!-- 닉네임 -->
+          <div class="flex-1">
+            <div class="${isMe ? 'text-blue-900 dark:text-blue-100 font-bold text-lg' : 'font-semibold text-gray-900 dark:text-gray-100'}">
+              ${user.nickname}
             </div>
           </div>
 
           <!-- 통계 (순서: 총점수, 문풀횟수, 평균점수) -->
-          <div class="flex gap-6 text-sm">
-            <div class="text-center">
-              <div class="text-gray-500 dark:text-gray-400 text-xs">총점수</div>
-              <div class="font-semibold text-gray-900 dark:text-gray-100">${user.totalScore.toLocaleString()}</div>
-            </div>
-            <div class="text-center">
-              <div class="text-gray-500 dark:text-gray-400 text-xs">문풀횟수</div>
-              <div class="font-semibold text-gray-900 dark:text-gray-100">${user.problems.toLocaleString()}</div>
-            </div>
-            <div class="text-center">
-              <div class="text-gray-500 dark:text-gray-400 text-xs">평균점수</div>
-              <div class="font-semibold text-gray-900 dark:text-gray-100">${user.avgScore.toFixed(1)}</div>
-            </div>
+          <div class="flex gap-8">
+            ${highlightCriteria('totalScore', user.totalScore)}
+            ${highlightCriteria('problems', user.problems)}
+            ${highlightCriteria('avgScore', user.avgScore)}
           </div>
         </div>
       </div>
