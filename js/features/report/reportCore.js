@@ -300,7 +300,7 @@ function renderDailyProblemList(date) {
               </button>
             </div>
           </div>
-          <pre class="coaching-content whitespace-pre-wrap text-sm text-gray-900 font-sans leading-relaxed"></pre>
+          <pre class="coaching-content whitespace-pre-wrap text-sm font-sans leading-relaxed" style="color: #111827 !important;"></pre>
         </div>
       </div>
     `;
@@ -622,8 +622,7 @@ export function initReportListeners() {
         const detail = container?.querySelector('.daily-answer-detail');
         if (detail) {
           detail.classList.toggle('hidden');
-          showAnswerBtn.textContent = detail.classList.contains('hidden') ?
-            '📖 답안 보기' : '🙈 답안 숨기기';
+          // 버튼 텍스트는 항상 "답안 보기"로 유지
         }
         return;
       }
