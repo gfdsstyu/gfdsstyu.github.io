@@ -11,8 +11,30 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 import { db } from '../../app.js';
-import { getQuestionScores, setQuestionScores, saveQuestionScores } from '../../core/stateManager.js';
+import {
+  getQuestionScores,
+  setQuestionScores,
+  saveQuestionScores,
+  setSelectedAiModel,
+  setDarkMode,
+  setMemoryTipMode,
+  setSttProvider
+} from '../../core/stateManager.js';
 import { mergeQuizScores } from '../../services/dataImportExport.js';
+import { applyDarkMode } from '../../ui/domUtils.js';
+import { updateDDayDisplay } from '../../core/storageManager.js';
+
+// Achievement and settings management (for Option C)
+const ACHIEVEMENTS_LS_KEY = 'achievements_v1';
+const SETTINGS_KEYS = {
+  selectedAiModel: 'aiModel',
+  darkMode: 'darkMode',
+  examDate: 'examDate_v1',
+  reviewMode: 'reviewMode',
+  memoryTipMode: 'memoryTipMode',
+  sttProvider: 'sttProvider_v1'
+  // NOTE: geminiApiKey and googleSttKey are intentionally excluded for security
+};
 
 // ============================================
 // 데이터 변환 함수
@@ -78,6 +100,106 @@ export function toLocalStorageFormat(firestoreScores) {
 }
 
 // ============================================
+// Achievements 변환 함수
+// ============================================
+
+/**
+ * localStorage의 achievements를 Firestore 형식으로 변환
+ * @param {Object} localAchievements - localStorage의 achievements
+ * @returns {Object} Firestore 형식의 achievements
+ */
+export function achievementsToFirestoreFormat(localAchievements) {
+  // achievements는 이미 { achievementId: { unlockedAt, seen } } 형태이므로
+  // 그대로 반환 (추가 변환 불필요)
+  return localAchievements || {};
+}
+
+/**
+ * Firestore의 achievements를 localStorage 형식으로 변환
+ * @param {Object} firestoreAchievements - Firestore의 achievements
+ * @returns {Object} localStorage 형식의 achievements
+ */
+export function achievementsToLocalStorageFormat(firestoreAchievements) {
+  // achievements는 동일한 형태이므로 그대로 반환
+  return firestoreAchievements || {};
+}
+
+// ============================================
+// Settings 변환 함수
+// ============================================
+
+/**
+ * localStorage의 settings를 Firestore 형식으로 변환
+ * @returns {Object} Firestore 형식의 settings
+ */
+export function settingsToFirestoreFormat() {
+  const settings = {};
+
+  Object.entries(SETTINGS_KEYS).forEach(([key, lsKey]) => {
+    const value = localStorage.getItem(lsKey);
+    if (value !== null) {
+      settings[key] = value;
+    }
+  });
+
+  return settings;
+}
+
+/**
+ * Firestore의 settings를 localStorage로 복원
+ * @param {Object} firestoreSettings - Firestore의 settings
+ */
+export function settingsToLocalStorageFormat(firestoreSettings) {
+  if (!firestoreSettings) return;
+
+  Object.entries(SETTINGS_KEYS).forEach(([key, lsKey]) => {
+    if (firestoreSettings[key] !== undefined) {
+      localStorage.setItem(lsKey, firestoreSettings[key]);
+    }
+  });
+}
+
+/**
+ * Settings를 StateManager와 UI에 적용
+ * @param {Object} settings - Firestore settings 객체
+ */
+function applySettingsToUI(settings) {
+  if (!settings) return;
+
+  console.log('   - 적용할 설정:', settings);
+
+  // 1. StateManager 업데이트
+  if (settings.selectedAiModel) {
+    setSelectedAiModel(settings.selectedAiModel);
+    console.log(`   - AI 모델: ${settings.selectedAiModel}`);
+  }
+
+  if (settings.darkMode) {
+    setDarkMode(settings.darkMode);
+    applyDarkMode(); // UI 반영
+    console.log(`   - 다크모드: ${settings.darkMode}`);
+  }
+
+  if (settings.memoryTipMode) {
+    setMemoryTipMode(settings.memoryTipMode);
+    console.log(`   - 암기팁 모드: ${settings.memoryTipMode}`);
+  }
+
+  if (settings.sttProvider) {
+    setSttProvider(settings.sttProvider);
+    console.log(`   - STT 공급자: ${settings.sttProvider}`);
+  }
+
+  // 2. D-Day 업데이트 (examDate가 변경되었을 수 있음)
+  if (settings.examDate) {
+    updateDDayDisplay();
+    console.log(`   - 시험 날짜: ${settings.examDate}`);
+  }
+
+  console.log('✅ Settings UI 반영 완료');
+}
+
+// ============================================
 // 로그인 시 동기화 (Cloud 우선)
 // ============================================
 
@@ -112,35 +234,56 @@ export async function syncOnLogin(userId) {
     const cloudCount = Object.keys(cloudScores).length;
     const localCount = Object.keys(localScores).length;
 
-    console.log(`   - Cloud: ${cloudCount}개 문제`);
-    console.log(`   - Local: ${localCount}개 문제`);
+    console.log(`   - Cloud questionScores: ${cloudCount}개 문제`);
+    console.log(`   - Local questionScores: ${localCount}개 문제`);
+
+    // Phase 2.5: Achievements and settings sync
+    console.log('🔄 Achievements & Settings 동기화 시작...');
+
+    // Load local achievements
+    const localAchievementsStr = localStorage.getItem(ACHIEVEMENTS_LS_KEY);
+    const localAchievements = localAchievementsStr ? JSON.parse(localAchievementsStr) : {};
+    const cloudAchievements = userData.achievements || {};
+
+    console.log(`   - Cloud achievements: ${Object.keys(cloudAchievements).length}개`);
+    console.log(`   - Local achievements: ${Object.keys(localAchievements).length}개`);
+
+    // Load local settings
+    const localSettings = settingsToFirestoreFormat();
+    const cloudSettings = userData.settings || {};
+
+    console.log(`   - Cloud settings: ${Object.keys(cloudSettings).length}개 항목`);
+    console.log(`   - Local settings: ${Object.keys(localSettings).length}개 항목`);
 
     // 2. 동기화 전략 결정
+    let syncMessage = '';
+
+    // 2-1. QuestionScores 동기화
     if (cloudCount === 0 && localCount === 0) {
       // 양쪽 모두 비어있음 - 아무것도 안 함
-      console.log('✅ 동기화 불필요 (양쪽 모두 비어있음)');
-      return { success: true, message: '동기화 불필요' };
+      console.log('✅ questionScores 동기화 불필요 (양쪽 모두 비어있음)');
+      syncMessage += 'questionScores: 없음';
     } else if (cloudCount > 0 && localCount === 0) {
       // Cloud만 있음 → Local로 다운로드
-      console.log('📥 Cloud → Local 동기화 중...');
+      console.log('📥 questionScores: Cloud → Local 동기화 중...');
       const convertedScores = toLocalStorageFormat(cloudScores);
       setQuestionScores(convertedScores);
       saveQuestionScores();
       console.log(`✅ ${cloudCount}개 문제 다운로드 완료`);
-      return { success: true, message: `${cloudCount}개 문제 동기화 완료` };
+      syncMessage += `questionScores: ${cloudCount}개 다운로드`;
     } else if (cloudCount === 0 && localCount > 0) {
       // Local만 있음 → Cloud로 업로드
-      console.log('📤 Local → Cloud 동기화 중...');
+      console.log('📤 questionScores: Local → Cloud 동기화 중...');
       const convertedScores = toFirestoreFormat(localScores);
       await updateDoc(userDocRef, {
         userScores: convertedScores,
         'profile.lastSyncAt': serverTimestamp()
       });
       console.log(`✅ ${localCount}개 문제 업로드 완료`);
-      return { success: true, message: `${localCount}개 문제 업로드 완료` };
+      syncMessage += `questionScores: ${localCount}개 업로드`;
     } else {
       // 양쪽 모두 있음 → 병합
-      console.log('🔀 Cloud ↔ Local 병합 중...');
+      console.log('🔀 questionScores: Cloud ↔ Local 병합 중...');
       const convertedCloudScores = toLocalStorageFormat(cloudScores);
       const mergedScores = mergeQuizScores(localScores, convertedCloudScores);
 
@@ -157,8 +300,69 @@ export async function syncOnLogin(userId) {
 
       const mergedCount = Object.keys(mergedScores).length;
       console.log(`✅ ${mergedCount}개 문제 병합 완료`);
-      return { success: true, message: `${mergedCount}개 문제 병합 완료` };
+      syncMessage += `questionScores: ${mergedCount}개 병합`;
     }
+
+    // 2-2. Achievements 동기화 (병합: union of unlocked achievements)
+    console.log('🏆 Achievements 병합 중...');
+    const mergedAchievements = { ...cloudAchievements };
+    Object.entries(localAchievements).forEach(([achievementId, data]) => {
+      if (!mergedAchievements[achievementId]) {
+        // Local에만 있는 업적 추가
+        mergedAchievements[achievementId] = data;
+      } else {
+        // 양쪽에 있으면 더 빠른 시간 우선 (더 먼저 달성한 것)
+        if (data.unlockedAt < mergedAchievements[achievementId].unlockedAt) {
+          mergedAchievements[achievementId] = data;
+        }
+      }
+    });
+
+    // Local에 병합 결과 저장
+    localStorage.setItem(ACHIEVEMENTS_LS_KEY, JSON.stringify(mergedAchievements));
+
+    // Cloud에 병합 결과 업로드
+    await updateDoc(userDocRef, {
+      achievements: mergedAchievements,
+      'profile.lastSyncAt': serverTimestamp()
+    });
+
+    const achievementCount = Object.keys(mergedAchievements).length;
+    console.log(`✅ ${achievementCount}개 업적 병합 완료`);
+    syncMessage += `, achievements: ${achievementCount}개`;
+
+    // 2-3. Settings 동기화 (Cloud 우선)
+    console.log('⚙️ Settings 동기화 중...');
+    const cloudSettingsCount = Object.keys(cloudSettings).length;
+    const localSettingsCount = Object.keys(localSettings).length;
+
+    if (cloudSettingsCount > 0) {
+      // Cloud에 설정이 있으면 → Local로 다운로드 (Cloud 우선)
+      console.log('📥 Settings: Cloud → Local 동기화 중...');
+      settingsToLocalStorageFormat(cloudSettings);
+
+      // UI 및 StateManager 반영
+      console.log('🔄 Settings UI 반영 중...');
+      applySettingsToUI(cloudSettings);
+
+      console.log(`✅ ${cloudSettingsCount}개 설정 다운로드 완료`);
+      syncMessage += `, settings: ${cloudSettingsCount}개 다운로드`;
+    } else if (localSettingsCount > 0) {
+      // Cloud에 설정이 없으면 → Local을 Cloud로 업로드
+      console.log('📤 Settings: Local → Cloud 동기화 중...');
+      await updateDoc(userDocRef, {
+        settings: localSettings,
+        'profile.lastSyncAt': serverTimestamp()
+      });
+      console.log(`✅ ${localSettingsCount}개 설정 업로드 완료`);
+      syncMessage += `, settings: ${localSettingsCount}개 업로드`;
+    } else {
+      console.log('✅ Settings 동기화 불필요 (양쪽 모두 비어있음)');
+      syncMessage += `, settings: 없음`;
+    }
+
+    console.log('✅ 전체 동기화 완료');
+    return { success: true, message: syncMessage };
   } catch (error) {
     console.error('❌ 동기화 실패:', error);
     return { success: false, message: `동기화 실패: ${error.message}` };
@@ -219,6 +423,76 @@ export async function syncToFirestore(userId) {
     }
 
     return { success: false, message };
+  }
+}
+
+/**
+ * Achievements 실시간 동기화 (업적 달성 시 호출)
+ * @param {string} userId - 사용자 UID
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export async function syncAchievementsToFirestore(userId) {
+  if (!userId) {
+    console.warn('⚠️ [SyncCore] 로그인되지 않음 - Achievements 동기화 스킵');
+    return { success: false, message: '로그인되지 않음' };
+  }
+
+  try {
+    console.log(`🏆 [SyncCore] Achievements 업로드 시작... (userId: ${userId})`);
+
+    const localAchievementsStr = localStorage.getItem(ACHIEVEMENTS_LS_KEY);
+    const localAchievements = localAchievementsStr ? JSON.parse(localAchievementsStr) : {};
+    const achievementCount = Object.keys(localAchievements).length;
+
+    console.log(`   - Local 업적 수: ${achievementCount}개`);
+
+    const convertedAchievements = achievementsToFirestoreFormat(localAchievements);
+    const userDocRef = doc(db, 'users', userId);
+
+    await updateDoc(userDocRef, {
+      achievements: convertedAchievements,
+      'profile.lastSyncAt': serverTimestamp()
+    });
+
+    console.log(`✅ [SyncCore] Achievements 동기화 완료: ${achievementCount}개 업적`);
+    return { success: true, message: `${achievementCount}개 업적 동기화` };
+  } catch (error) {
+    console.error('❌ [SyncCore] Achievements 동기화 실패:', error);
+    return { success: false, message: `동기화 실패: ${error.message}` };
+  }
+}
+
+/**
+ * Settings 실시간 동기화 (설정 변경 시 호출)
+ * @param {string} userId - 사용자 UID
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export async function syncSettingsToFirestore(userId) {
+  if (!userId) {
+    console.warn('⚠️ [SyncCore] 로그인되지 않음 - Settings 동기화 스킵');
+    return { success: false, message: '로그인되지 않음' };
+  }
+
+  try {
+    console.log(`⚙️ [SyncCore] Settings 업로드 시작... (userId: ${userId})`);
+
+    const localSettings = settingsToFirestoreFormat();
+    const settingsCount = Object.keys(localSettings).length;
+
+    console.log(`   - Local 설정 수: ${settingsCount}개`);
+
+    const userDocRef = doc(db, 'users', userId);
+
+    await updateDoc(userDocRef, {
+      settings: localSettings,
+      'profile.lastSyncAt': serverTimestamp()
+    });
+
+    console.log(`✅ [SyncCore] Settings 동기화 완료: ${settingsCount}개 설정`);
+    return { success: true, message: `${settingsCount}개 설정 동기화` };
+  } catch (error) {
+    console.error('❌ [SyncCore] Settings 동기화 실패:', error);
+    return { success: false, message: `동기화 실패: ${error.message}` };
   }
 }
 

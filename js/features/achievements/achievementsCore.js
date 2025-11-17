@@ -9,6 +9,8 @@ import { el } from '../../ui/elements.js';
 import { showToast } from '../../ui/domUtils.js';
 import { ACHIEVEMENTS, ACHIEVEMENTS_LS_KEY } from '../../config/config.js';
 import { normId } from '../../utils/helpers.js';
+import { getCurrentUser } from '../auth/authCore.js';
+import { syncAchievementsToFirestore } from '../sync/syncCore.js';
 
 // Module state
 let achievementsData = {};
@@ -56,6 +58,25 @@ export function unlockAchievement(achievementId) {
 
   // Update badge
   updateAchievementBadge();
+
+  // Sync to Firestore (Phase 2.5: Option C)
+  const currentUser = getCurrentUser();
+  if (currentUser) {
+    console.log(`🏆 [Achievements] 업적 "${achievement.name}" 달성 - Firestore 동기화 시작`);
+    syncAchievementsToFirestore(currentUser.uid)
+      .then(result => {
+        if (result.success) {
+          console.log(`✅ [Achievements] Firestore 동기화 성공: ${result.message}`);
+        } else {
+          console.warn(`⚠️ [Achievements] Firestore 동기화 실패: ${result.message}`);
+        }
+      })
+      .catch(error => {
+        console.error(`❌ [Achievements] Firestore 동기화 에러:`, error);
+      });
+  } else {
+    console.log('⚠️ [Achievements] 로그아웃 상태 - Firestore 동기화 스킵');
+  }
 }
 
 /**
