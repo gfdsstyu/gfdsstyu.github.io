@@ -302,7 +302,7 @@ export function renderScoreTrendChart(dailyData, reportCharts, chartData = null)
 }
 
 /**
- * 단원별 약점 차트 렌더링 (상위 10개 취약 단원)
+ * 단원별 약점 차트 렌더링 (모든 단원 표시, 취약한 순서로 정렬)
  * @param {Map} chapterData - 단원별 데이터
  * @param {Object} reportCharts - 차트 저장 객체
  */
@@ -313,7 +313,7 @@ export function renderChapterWeaknessChart(chapterData, reportCharts) {
   const chapters = Array.from(chapterData.entries()).map(([chapter, data]) => {
     const avgScore = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
     return { chapter, avgScore };
-  }).sort((a, b) => a.avgScore - b.avgScore).slice(0, 10);
+  }).sort((a, b) => a.avgScore - b.avgScore);
 
   const labels = chapters.map(c => chapterLabelText(c.chapter));
   const data = chapters.map(c => Math.round(c.avgScore));
