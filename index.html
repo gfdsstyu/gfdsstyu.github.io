@@ -164,34 +164,43 @@
       #report-save-snapshot-btn,
       #report-load-snapshot-btn,
       #report-print-btn,
-      #pdf-options-modal {
+      #pdf-options-modal,
+      .border-b.border-gray-200 {
         display: none !important;
       }
 
-      /* 2-1. 리포트 헤더 최적화 */
+      /* 탭 네비게이션 숨기기 */
+      #report-modal .border-b.border-gray-200.dark\\:border-gray-700.px-6,
+      #report-modal nav[role="tablist"] {
+        display: none !important;
+      }
+
+      /* 2-1. 리포트 헤더 최적화 (최소화) */
       #report-modal .sticky {
         position: static !important;
-        padding: 0.5rem 0 !important;
-        margin-bottom: 0.5rem !important;
-        border-bottom: 1px solid #e5e7eb !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
       }
 
       #report-title {
-        font-size: 1.125rem !important;
-        margin-bottom: 0.25rem !important;
+        font-size: 0.75rem !important;
+        margin: 0 0 0.125rem 0 !important;
+        padding: 0 !important;
+        line-height: 1 !important;
+        font-weight: 600 !important;
       }
 
-      #report-modal .flex.flex-col.lg\\:flex-row {
-        flex-direction: row !important;
-        flex-wrap: wrap !important;
-        gap: 0.5rem !important;
-        font-size: 0.75rem !important;
+      /* 헤더 내부 모든 컨테이너 압축 */
+      #report-modal .sticky * {
+        margin: 0 !important;
+        padding: 0 !important;
       }
 
-      #report-modal label,
-      #report-modal select {
-        font-size: 0.75rem !important;
-        padding: 0.125rem 0.25rem !important;
+      /* 데이터 범위/분석 대상 영역 완전 숨기기 */
+      #report-modal .sticky .flex.flex-col,
+      #report-modal .sticky .flex.items-center {
+        display: none !important;
       }
 
       /* 3. 리포트 모달만 표시 */
