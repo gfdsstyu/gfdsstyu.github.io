@@ -73,15 +73,29 @@ export async function signInWithGoogle() {
     return { success: true, user };
   } catch (error) {
     console.error('❌ Google 로그인 실패:', error);
+    console.error('   - 에러 코드:', error.code);
+    console.error('   - 에러 메시지:', error.message);
 
     let message = '로그인에 실패했습니다.';
+
     if (error.code === 'auth/popup-closed-by-user') {
       message = '로그인 창이 닫혔습니다.';
     } else if (error.code === 'auth/popup-blocked') {
       message = '팝업이 차단되었습니다. 브라우저 설정을 확인해주세요.';
+    } else if (error.code === 'auth/unauthorized-domain') {
+      message = '⚠️ Firebase Console에서 이 도메인을 승인된 도메인에 추가해주세요.\n\n' +
+                '1. Firebase Console → Authentication → Settings\n' +
+                '2. Authorized domains에 현재 도메인 추가';
+    } else if (error.code === 'auth/operation-not-allowed') {
+      message = '⚠️ Firebase Console에서 Google 로그인을 활성화해주세요.\n\n' +
+                '1. Firebase Console → Authentication → Sign-in method\n' +
+                '2. Google 제공업체 활성화';
+    } else {
+      // 알 수 없는 에러 - 개발자에게 전체 정보 표시
+      message = `로그인 실패: ${error.code || 'UNKNOWN'}\n${error.message}\n\n콘솔을 확인하세요.`;
     }
 
-    return { success: false, error: message };
+    return { success: false, error: message, errorCode: error.code };
   }
 }
 
