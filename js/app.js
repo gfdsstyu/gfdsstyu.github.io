@@ -471,6 +471,16 @@ window.PART_VALUE = Config.PART_VALUE;
 window.isPartValue = Config.isPartValue;
 window.parsePartValue = Config.parsePartValue;
 
+// ============================================
+// 2. [신규] Firebase Auth 모듈 임포트
+// ============================================
+import * as AuthCore from './features/auth/authCore.js';
+import * as AuthUI from './features/auth/authUI.js';
+
+// 전역 노출 (디버깅 및 콘솔 접근용)
+window.AuthCore = AuthCore;
+window.AuthUI = AuthUI;
+
 // ========================================
 // 앱 초기화
 // ========================================
@@ -481,18 +491,24 @@ document.addEventListener('DOMContentLoaded', () => {
   // 1. StateManager 초기화 (localStorage에서 데이터 로드)
   StateManager.initializeState();
 
-  // 2. DOM 엘리먼트 초기화
+  // 2. Firebase 인증 초기화
+  console.log('🔐 Firebase 인증 초기화 시작...');
+  AuthCore.initAuthStateObserver(); // 인증 상태 관찰 시작
+  AuthUI.initAuthUI(); // 인증 UI 초기화
+  console.log('✅ Firebase 인증 초기화 완료');
+
+  // 3. DOM 엘리먼트 초기화
   const elements = initElements();
   setElements(elements);
 
-  // 3. 전역으로 el 객체 노출 (index.html의 기존 코드에서 사용)
+  // 4. 전역으로 el 객체 노출 (index.html의 기존 코드에서 사용)
   window.el = elements;
   StateManager.setElements(elements);
 
-  // 4. 헤더 스크롤 제어 초기화
+  // 5. 헤더 스크롤 제어 초기화
   HeaderScroll.initHeaderScroll();
 
-  // 5. FSRS 난이도 추적 시스템 초기화
+  // 6. FSRS 난이도 추적 시스템 초기화
   DifficultyTracker.initDifficultySystem();
 
   console.log('✅ DOM 엘리먼트 초기화 완료');
