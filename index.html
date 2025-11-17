@@ -929,7 +929,10 @@
             <div class="border rounded-lg p-6">
               <div id="daily-record-nav" class="flex items-center justify-between mb-4 pb-4 border-b">
                 <button id="daily-prev-btn" class="text-xl px-3 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="이전 날짜">◀</button>
-                <h3 id="daily-record-date" class="text-lg font-bold text-gray-900 dark:text-white"></h3>
+                <div class="relative">
+                  <h3 id="daily-record-date" class="text-lg font-bold text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition" title="날짜를 클릭하여 선택"></h3>
+                  <input type="date" id="daily-date-picker" class="absolute opacity-0 pointer-events-none" aria-label="날짜 선택">
+                </div>
                 <button id="daily-next-btn" class="text-xl px-3 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="다음 날짜">▶</button>
               </div>
               <div id="daily-problem-list" class="space-y-3">

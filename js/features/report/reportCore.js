@@ -611,6 +611,26 @@ export function initReportListeners() {
   el.dailyPrevBtn?.addEventListener('click', () => handleDateNavigation(-1));
   el.dailyNextBtn?.addEventListener('click', () => handleDateNavigation(1));
 
+  // 날짜 클릭 시 date picker 열기
+  el.dailyRecordDate?.addEventListener('click', () => {
+    if (el.dailyDatePicker) {
+      // 현재 날짜를 YYYY-MM-DD 형식으로 설정
+      const currentDate = new Date(dailyRecordDate);
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const day = String(currentDate.getDate()).padStart(2, '0');
+      el.dailyDatePicker.value = `${year}-${month}-${day}`;
+      el.dailyDatePicker.showPicker();
+    }
+  });
+
+  // date picker에서 날짜 선택 시
+  el.dailyDatePicker?.addEventListener('change', (e) => {
+    const selectedDate = new Date(e.target.value);
+    dailyRecordDate = selectedDate.getTime();
+    renderDailyProblemList(dailyRecordDate);
+  });
+
   // 일일 학습 기록 버튼 이벤트 리스너 (이벤트 위임)
   const dailyProblemList = el.dailyProblemList;
   if (dailyProblemList) {
