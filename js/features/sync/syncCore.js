@@ -135,13 +135,16 @@ export function achievementsToLocalStorageFormat(firestoreAchievements) {
 export function settingsToFirestoreFormat() {
   const settings = {};
 
+  console.log('📦 [SyncCore] settingsToFirestoreFormat 시작...');
   Object.entries(SETTINGS_KEYS).forEach(([key, lsKey]) => {
     const value = localStorage.getItem(lsKey);
+    console.log(`   - ${key} (${lsKey}): ${value === null ? 'null' : `"${value}"`}`);
     if (value !== null) {
       settings[key] = value;
     }
   });
 
+  console.log(`✅ [SyncCore] 변환 완료: ${Object.keys(settings).length}개 설정`);
   return settings;
 }
 
@@ -253,7 +256,13 @@ export async function syncOnLogin(userId) {
     const cloudSettings = userData.settings || {};
 
     console.log(`   - Cloud settings: ${Object.keys(cloudSettings).length}개 항목`);
+    if (Object.keys(cloudSettings).length > 0) {
+      console.log(`   - Cloud settings 내용:`, cloudSettings);
+    }
     console.log(`   - Local settings: ${Object.keys(localSettings).length}개 항목`);
+    if (Object.keys(localSettings).length > 0) {
+      console.log(`   - Local settings 내용:`, localSettings);
+    }
 
     // 2. 동기화 전략 결정
     let syncMessage = '';
@@ -480,6 +489,7 @@ export async function syncSettingsToFirestore(userId) {
     const settingsCount = Object.keys(localSettings).length;
 
     console.log(`   - Local 설정 수: ${settingsCount}개`);
+    console.log(`   - 업로드할 데이터:`, localSettings);
 
     const userDocRef = doc(db, 'users', userId);
 
@@ -492,6 +502,8 @@ export async function syncSettingsToFirestore(userId) {
     return { success: true, message: `${settingsCount}개 설정 동기화` };
   } catch (error) {
     console.error('❌ [SyncCore] Settings 동기화 실패:', error);
+    console.error('   - Error code:', error.code);
+    console.error('   - Error message:', error.message);
     return { success: false, message: `동기화 실패: ${error.message}` };
   }
 }
