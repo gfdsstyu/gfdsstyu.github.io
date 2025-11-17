@@ -702,7 +702,7 @@ function openPdfOptionsModal() {
   const modal = document.getElementById('pdf-options-modal');
   if (!modal) return;
 
-  // 체크박스 초기화 (Tab 1-3은 체크, Tab 4는 체크 해제)
+  // 체크박스 초기화 (모든 탭 기본 체크)
   const checkAll = document.getElementById('pdf-check-all');
   const tab1 = document.getElementById('pdf-check-tab1');
   const tab2 = document.getElementById('pdf-check-tab2');
@@ -712,9 +712,9 @@ function openPdfOptionsModal() {
   if (tab1) tab1.checked = true;
   if (tab2) tab2.checked = true;
   if (tab3) tab3.checked = true;
-  if (tab4) tab4.checked = false; // Tab 4는 기본 체크 해제
+  if (tab4) tab4.checked = true; // Tab 4도 기본 체크
 
-  if (checkAll) checkAll.checked = false; // 전체 선택도 해제
+  if (checkAll) checkAll.checked = true; // 전체 선택도 체크
 
   // 확실하게 최상위에 오도록 body 맨 끝으로 이동 & z-index 명시적 설정
   document.body.appendChild(modal);
