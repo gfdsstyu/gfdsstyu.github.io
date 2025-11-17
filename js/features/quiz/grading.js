@@ -465,7 +465,15 @@ export async function handleMemoryTip(q, forceRegenerate = false) {
 
   } catch (e) {
     console.error('암기 팁 생성 오류:', e);
-    showToast(`암기 팁 생성 실패: ${e.message}`, 'error');
+
+    // 503 Service Unavailable 에러는 조용히 실패 (서버 과부하)
+    if (e.message && e.message.includes('503')) {
+      console.warn('⚠️ Gemini API 서버 과부하 (503) - 암기 팁 생성 스킵');
+      // 토스트 표시 안 함
+    } else {
+      // 다른 에러는 사용자에게 알림
+      showToast(`암기 팁 생성 실패: ${e.message}`, 'error');
+    }
   } finally {
     setGradeLoading(false);
   }
