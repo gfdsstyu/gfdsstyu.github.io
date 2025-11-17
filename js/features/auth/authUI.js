@@ -1,0 +1,317 @@
+// ============================================
+// Firebase 인증 UI 관리
+// ============================================
+
+import {
+  signInWithGoogle,
+  signInWithEmail,
+  signUpWithEmail,
+  logout,
+  getCurrentUser,
+  addAuthStateListener
+} from './authCore.js';
+
+import { showToast } from '../../ui/domUtils.js';
+
+// ============================================
+// DOM 요소
+// ============================================
+
+let loginBtn = null;
+let userMenuBtn = null;
+let loginModal = null;
+let loginTabBtns = null;
+let loginTabPanels = null;
+
+// ============================================
+// UI 초기화
+// ============================================
+
+/**
+ * 인증 UI 초기화
+ */
+export function initAuthUI() {
+  console.log('🔐 인증 UI 초기화 시작...');
+
+  // DOM 요소 가져오기
+  loginBtn = document.getElementById('login-btn');
+  userMenuBtn = document.getElementById('user-menu-btn');
+  loginModal = document.getElementById('login-modal');
+
+  if (!loginBtn || !userMenuBtn || !loginModal) {
+    console.error('❌ 인증 UI 요소를 찾을 수 없습니다.');
+    return;
+  }
+
+  // 이벤트 리스너 설정
+  setupEventListeners();
+
+  // 인증 상태 변경 리스너 등록
+  addAuthStateListener(updateUIForAuthState);
+
+  // 초기 UI 상태 설정
+  updateUIForAuthState(getCurrentUser());
+
+  console.log('✅ 인증 UI 초기화 완료');
+}
+
+// ============================================
+// 이벤트 리스너 설정
+// ============================================
+
+function setupEventListeners() {
+  // 로그인 버튼 클릭
+  loginBtn.addEventListener('click', openLoginModal);
+
+  // 사용자 메뉴 버튼 클릭
+  userMenuBtn.addEventListener('click', toggleUserMenu);
+
+  // 로그인 모달 닫기
+  const closeModalBtn = document.getElementById('login-modal-close');
+  const modalBackdrop = document.getElementById('login-modal-backdrop');
+
+  if (closeModalBtn) {
+    closeModalBtn.addEventListener('click', closeLoginModal);
+  }
+
+  if (modalBackdrop) {
+    modalBackdrop.addEventListener('click', closeLoginModal);
+  }
+
+  // ESC 키로 모달 닫기
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && loginModal && !loginModal.classList.contains('hidden')) {
+      closeLoginModal();
+    }
+  });
+
+  // 탭 전환
+  const loginTab = document.getElementById('login-tab');
+  const signupTab = document.getElementById('signup-tab');
+
+  if (loginTab && signupTab) {
+    loginTab.addEventListener('click', () => switchTab('login'));
+    signupTab.addEventListener('click', () => switchTab('signup'));
+  }
+
+  // Google 로그인 버튼
+  const googleLoginBtn = document.getElementById('google-login-btn');
+  if (googleLoginBtn) {
+    googleLoginBtn.addEventListener('click', handleGoogleLogin);
+  }
+
+  // Google 회원가입 버튼 (동일한 핸들러 사용)
+  const googleSignupBtn = document.getElementById('google-signup-btn');
+  if (googleSignupBtn) {
+    googleSignupBtn.addEventListener('click', handleGoogleLogin);
+  }
+
+  // 이메일 로그인 폼
+  const loginForm = document.getElementById('email-login-form');
+  if (loginForm) {
+    loginForm.addEventListener('submit', handleEmailLogin);
+  }
+
+  // 이메일 회원가입 폼
+  const signupForm = document.getElementById('email-signup-form');
+  if (signupForm) {
+    signupForm.addEventListener('submit', handleEmailSignup);
+  }
+
+  // 로그아웃 버튼
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', handleLogout);
+  }
+}
+
+// ============================================
+// 모달 관리
+// ============================================
+
+function openLoginModal() {
+  if (loginModal) {
+    loginModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeLoginModal() {
+  if (loginModal) {
+    loginModal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+}
+
+// ============================================
+// 탭 전환
+// ============================================
+
+function switchTab(tab) {
+  const loginTab = document.getElementById('login-tab');
+  const signupTab = document.getElementById('signup-tab');
+  const loginPanel = document.getElementById('login-panel');
+  const signupPanel = document.getElementById('signup-panel');
+
+  if (!loginTab || !signupTab || !loginPanel || !signupPanel) return;
+
+  if (tab === 'login') {
+    // 로그인 탭 활성화
+    loginTab.classList.add('border-blue-600', 'text-blue-600');
+    loginTab.classList.remove('border-transparent', 'text-gray-500');
+    signupTab.classList.remove('border-blue-600', 'text-blue-600');
+    signupTab.classList.add('border-transparent', 'text-gray-500');
+
+    loginPanel.classList.remove('hidden');
+    signupPanel.classList.add('hidden');
+  } else {
+    // 회원가입 탭 활성화
+    signupTab.classList.add('border-blue-600', 'text-blue-600');
+    signupTab.classList.remove('border-transparent', 'text-gray-500');
+    loginTab.classList.remove('border-blue-600', 'text-blue-600');
+    loginTab.classList.add('border-transparent', 'text-gray-500');
+
+    signupPanel.classList.remove('hidden');
+    loginPanel.classList.add('hidden');
+  }
+}
+
+// ============================================
+// 로그인/회원가입 핸들러
+// ============================================
+
+async function handleGoogleLogin() {
+  const result = await signInWithGoogle();
+
+  if (result.success) {
+    showToast('✅ 로그인 성공!', 'success');
+    closeLoginModal();
+  } else {
+    showToast(`❌ ${result.error}`, 'error');
+  }
+}
+
+async function handleEmailLogin(e) {
+  e.preventDefault();
+
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  if (!email || !password) {
+    showToast('❌ 이메일과 비밀번호를 입력해주세요.', 'error');
+    return;
+  }
+
+  const result = await signInWithEmail(email, password);
+
+  if (result.success) {
+    showToast('✅ 로그인 성공!', 'success');
+    closeLoginModal();
+  } else {
+    showToast(`❌ ${result.error}`, 'error');
+  }
+}
+
+async function handleEmailSignup(e) {
+  e.preventDefault();
+
+  const displayName = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const password = document.getElementById('signup-password').value;
+  const passwordConfirm = document.getElementById('signup-password-confirm').value;
+
+  if (!displayName || !email || !password || !passwordConfirm) {
+    showToast('❌ 모든 필드를 입력해주세요.', 'error');
+    return;
+  }
+
+  if (password !== passwordConfirm) {
+    showToast('❌ 비밀번호가 일치하지 않습니다.', 'error');
+    return;
+  }
+
+  if (password.length < 6) {
+    showToast('❌ 비밀번호는 최소 6자 이상이어야 합니다.', 'error');
+    return;
+  }
+
+  const result = await signUpWithEmail(email, password, displayName);
+
+  if (result.success) {
+    showToast('✅ 회원가입 성공!', 'success');
+    closeLoginModal();
+  } else {
+    showToast(`❌ ${result.error}`, 'error');
+  }
+}
+
+async function handleLogout() {
+  const confirmed = confirm('로그아웃 하시겠습니까?');
+  if (!confirmed) return;
+
+  const result = await logout();
+
+  if (result.success) {
+    showToast('✅ 로그아웃 되었습니다.', 'info');
+    closeUserMenu();
+  } else {
+    showToast(`❌ ${result.error}`, 'error');
+  }
+}
+
+// ============================================
+// 사용자 메뉴
+// ============================================
+
+function toggleUserMenu() {
+  const userMenu = document.getElementById('user-menu');
+  if (userMenu) {
+    userMenu.classList.toggle('hidden');
+  }
+}
+
+function closeUserMenu() {
+  const userMenu = document.getElementById('user-menu');
+  if (userMenu) {
+    userMenu.classList.add('hidden');
+  }
+}
+
+// 사용자 메뉴 외부 클릭 시 닫기
+document.addEventListener('click', (e) => {
+  const userMenuBtn = document.getElementById('user-menu-btn');
+  const userMenu = document.getElementById('user-menu');
+
+  if (userMenuBtn && userMenu && !userMenu.classList.contains('hidden')) {
+    if (!userMenuBtn.contains(e.target) && !userMenu.contains(e.target)) {
+      closeUserMenu();
+    }
+  }
+});
+
+// ============================================
+// UI 상태 업데이트
+// ============================================
+
+/**
+ * 인증 상태에 따라 UI 업데이트
+ */
+function updateUIForAuthState(user) {
+  if (user) {
+    // 로그인 상태
+    if (loginBtn) loginBtn.classList.add('hidden');
+    if (userMenuBtn) {
+      userMenuBtn.classList.remove('hidden');
+
+      // 사용자 이름 표시
+      const userNameSpan = userMenuBtn.querySelector('span');
+      if (userNameSpan) {
+        userNameSpan.textContent = user.displayName || user.email.split('@')[0];
+      }
+    }
+  } else {
+    // 로그아웃 상태
+    if (loginBtn) loginBtn.classList.remove('hidden');
+    if (userMenuBtn) userMenuBtn.classList.add('hidden');
+  }
+}
