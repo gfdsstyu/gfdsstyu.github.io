@@ -168,6 +168,32 @@
         display: none !important;
       }
 
+      /* 2-1. 리포트 헤더 최적화 */
+      #report-modal .sticky {
+        position: static !important;
+        padding: 0.5rem 0 !important;
+        margin-bottom: 0.5rem !important;
+        border-bottom: 1px solid #e5e7eb !important;
+      }
+
+      #report-title {
+        font-size: 1.125rem !important;
+        margin-bottom: 0.25rem !important;
+      }
+
+      #report-modal .flex.flex-col.lg\\:flex-row {
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 0.5rem !important;
+        font-size: 0.75rem !important;
+      }
+
+      #report-modal label,
+      #report-modal select {
+        font-size: 0.75rem !important;
+        padding: 0.125rem 0.25rem !important;
+      }
+
       /* 3. 리포트 모달만 표시 */
       #report-modal {
         display: block !important;
@@ -208,7 +234,7 @@
       canvas {
         display: block !important;
         max-width: 100% !important;
-        max-height: 400px !important;
+        max-height: 280px !important;
         height: auto !important;
         page-break-inside: avoid;
         -webkit-print-color-adjust: exact !important;
