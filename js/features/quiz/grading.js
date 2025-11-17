@@ -7,6 +7,8 @@ import { clamp, normId } from '../../utils/helpers.js';
 import { callGeminiAPI, callGeminiHintAPI, callGeminiTextAPI } from '../../services/geminiApi.js';
 import { showToast } from '../../ui/domUtils.js';
 import { createMemoryTipPrompt } from '../../config/config.js';
+import { getCurrentUser } from '../auth/authCore.js';
+import { syncToFirestore } from '../sync/syncCore.js';
 import {
   getElements,
   getCurrentQuizData,
@@ -259,6 +261,15 @@ export async function handleGrade() {
       saveQuestionScores();
     } catch {
       showToast('localStorage 저장 실패(용량)', 'error');
+    }
+
+    // Firestore 동기화 (Phase 2)
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      syncToFirestore(currentUser.uid).catch(err => {
+        console.error('❌ Firestore 동기화 실패:', err);
+        // 실패해도 사용자에게 알리지 않음 (로컬 저장은 이미 완료됨)
+      });
     }
 
     // 회독 등록

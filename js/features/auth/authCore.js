@@ -19,6 +19,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 import { auth, db } from '../../app.js';
+import { syncOnLogin } from '../sync/syncCore.js';
+import { showToast } from '../../ui/domUtils.js';
 
 // ============================================
 // 상태 관리
@@ -70,6 +72,17 @@ export async function signInWithGoogle() {
     // Firestore에 사용자 프로필 생성/업데이트
     await ensureUserProfile(user);
 
+    // 학습 데이터 동기화 (Phase 2)
+    console.log('🔄 학습 데이터 동기화 시작...');
+    const syncResult = await syncOnLogin(user.uid);
+    if (syncResult.success) {
+      console.log('✅ 학습 데이터 동기화 완료:', syncResult.message);
+      showToast(`✅ ${syncResult.message}`, 'success');
+    } else {
+      console.error('❌ 학습 데이터 동기화 실패:', syncResult.message);
+      showToast(`⚠️ ${syncResult.message}`, 'warning');
+    }
+
     return { success: true, user };
   } catch (error) {
     console.error('❌ Google 로그인 실패:', error);
@@ -115,6 +128,17 @@ export async function signInWithEmail(email, password) {
 
     await ensureUserProfile(user);
 
+    // 학습 데이터 동기화 (Phase 2)
+    console.log('🔄 학습 데이터 동기화 시작...');
+    const syncResult = await syncOnLogin(user.uid);
+    if (syncResult.success) {
+      console.log('✅ 학습 데이터 동기화 완료:', syncResult.message);
+      showToast(`✅ ${syncResult.message}`, 'success');
+    } else {
+      console.error('❌ 학습 데이터 동기화 실패:', syncResult.message);
+      showToast(`⚠️ ${syncResult.message}`, 'warning');
+    }
+
     return { success: true, user };
   } catch (error) {
     console.error('❌ 이메일 로그인 실패:', error);
@@ -146,6 +170,17 @@ export async function signUpWithEmail(email, password, displayName) {
 
     // 프로필 생성 시 displayName 포함
     await ensureUserProfile(user, displayName);
+
+    // 학습 데이터 동기화 (Phase 2)
+    console.log('🔄 학습 데이터 동기화 시작...');
+    const syncResult = await syncOnLogin(user.uid);
+    if (syncResult.success) {
+      console.log('✅ 학습 데이터 동기화 완료:', syncResult.message);
+      showToast(`✅ ${syncResult.message}`, 'success');
+    } else {
+      console.error('❌ 학습 데이터 동기화 실패:', syncResult.message);
+      showToast(`⚠️ ${syncResult.message}`, 'warning');
+    }
 
     return { success: true, user };
   } catch (error) {
