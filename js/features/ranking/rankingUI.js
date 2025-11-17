@@ -128,66 +128,58 @@ async function loadRankings() {
 }
 
 /**
- * Firestore에서 랭킹 데이터 가져오기
+ * Phase 3.4: rankings 컬렉션에서 랭킹 데이터 가져오기
  * @param {string} period - 'daily', 'weekly', 'monthly'
  * @param {string} criteria - 'totalScore', 'problems', 'avgScore'
  * @returns {Promise<Array>} 랭킹 배열
  */
 async function fetchRankings(period, criteria) {
-  const usersRef = collection(db, 'users');
-
-  // 기간별 필드 경로
-  const periodField = period === 'daily' ? 'daily' :
-                      period === 'weekly' ? 'weekly' :
-                      'monthly';
+  const rankingsRef = collection(db, 'rankings');
 
   // 현재 기간 키 (예: '2025-01-17', '2025-W03', '2025-01')
   const periodKey = getPeriodKeyForQuery();
 
-  // 정렬 기준 필드
-  const criteriaField = criteria === 'totalScore' ? 'totalScore' :
-                        criteria === 'problems' ? 'problems' :
-                        'avgScore';
+  console.log(`📊 [Ranking] 랭킹 조회 시작 - period: ${period}, criteria: ${criteria}, periodKey: ${periodKey}`);
 
-  // Firestore 쿼리
-  const rankingQuery = query(
-    usersRef,
-    orderBy(`stats.${periodField}.${periodKey}.${criteriaField}`, 'desc'),
-    limit(100) // 상위 100명
-  );
-
-  const snapshot = await getDocs(rankingQuery);
+  // rankings 컬렉션에서 모든 사용자 가져오기
+  const snapshot = await getDocs(rankingsRef);
 
   let rankings = [];
   snapshot.forEach(doc => {
-    const userData = doc.data();
-    const stats = userData.stats?.[periodField]?.[periodKey];
+    const rankingData = doc.data();
 
-    if (!stats) return;
+    // 기간별 데이터 추출
+    const periodData = period === 'daily' ? rankingData.daily?.[periodKey] :
+                       period === 'weekly' ? rankingData.weekly?.[periodKey] :
+                       rankingData.monthly?.[periodKey];
+
+    if (!periodData) return; // 해당 기간 데이터 없으면 제외
 
     // ✅ 평균점수 기준일 때: 최소 문제 수 필터링
     if (criteria === 'avgScore') {
       const minProblems = MIN_PROBLEMS_FOR_AVG[period];
-      if (stats.problems < minProblems) {
+      if (periodData.problems < minProblems) {
         return; // 제외
       }
     }
 
     rankings.push({
-      userId: doc.id,
-      nickname: userData.profile?.nickname || '익명',
-      totalScore: stats.totalScore || 0,
-      problems: stats.problems || 0,
-      avgScore: stats.avgScore || 0
+      userId: rankingData.userId || doc.id,
+      nickname: rankingData.nickname || '익명',
+      totalScore: periodData.totalScore || 0,
+      problems: periodData.problems || 0,
+      avgScore: periodData.avgScore || 0
     });
   });
 
-  // 클라이언트 측에서 재정렬 (Firestore에서 이미 정렬되어 오지만 안전하게)
+  // 기준에 따라 정렬
   rankings.sort((a, b) => {
     const aValue = a[criteria];
     const bValue = b[criteria];
     return bValue - aValue;
   });
+
+  console.log(`✅ [Ranking] ${rankings.length}명의 랭킹 데이터 로드 완료`);
 
   return rankings;
 }

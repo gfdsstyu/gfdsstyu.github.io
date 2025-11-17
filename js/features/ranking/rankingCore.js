@@ -17,7 +17,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 import { db } from '../../app.js';
-import { getCurrentUser } from '../auth/authCore.js';
+import { getCurrentUser, getNickname } from '../auth/authCore.js';
 
 // ============================================
 // Helper Functions
@@ -114,7 +114,7 @@ export async function updateUserStats(userId, score) {
     monthlyStats.totalScore += score;
     monthlyStats.avgScore = monthlyStats.totalScore / monthlyStats.problems;
 
-    // Firestore 업데이트
+    // 1. users 컬렉션 업데이트
     await updateDoc(userDocRef, {
       'stats.totalProblems': newTotalProblems,
       'stats.totalScore': newTotalScore,
@@ -124,6 +124,26 @@ export async function updateUserStats(userId, score) {
       [`stats.weekly.${weeklyKey}`]: weeklyStats,
       [`stats.monthly.${monthlyKey}`]: monthlyStats
     });
+
+    // 2. Phase 3.4: rankings 컬렉션 업데이트 (성능 최적화용)
+    try {
+      const nickname = await getNickname();
+      const rankingDocRef = doc(db, 'rankings', userId);
+
+      await setDoc(rankingDocRef, {
+        userId: userId,
+        nickname: nickname || '익명',
+        [`daily.${dailyKey}`]: dailyStats,
+        [`weekly.${weeklyKey}`]: weeklyStats,
+        [`monthly.${monthlyKey}`]: monthlyStats,
+        lastUpdatedAt: serverTimestamp()
+      }, { merge: true }); // merge: true로 기존 데이터 유지
+
+      console.log(`✅ [Ranking] rankings 컬렉션 업데이트 완료`);
+    } catch (rankingError) {
+      console.warn('⚠️ [Ranking] rankings 컬렉션 업데이트 실패:', rankingError);
+      // rankings 실패해도 users는 업데이트되었으므로 계속 진행
+    }
 
     console.log(`✅ [Ranking] 사용자 통계 업데이트 완료`);
     console.log(`   - 총 문제: ${newTotalProblems}개`);
