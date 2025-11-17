@@ -19,6 +19,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 import { auth, db } from '../../app.js';
+import { syncOnLogin } from '../sync/syncCore.js';
+import { showToast } from '../../ui/domUtils.js';
 
 // ============================================
 // 상태 관리
@@ -70,18 +72,43 @@ export async function signInWithGoogle() {
     // Firestore에 사용자 프로필 생성/업데이트
     await ensureUserProfile(user);
 
+    // 학습 데이터 동기화 (Phase 2)
+    console.log('🔄 학습 데이터 동기화 시작...');
+    const syncResult = await syncOnLogin(user.uid);
+    if (syncResult.success) {
+      console.log('✅ 학습 데이터 동기화 완료:', syncResult.message);
+      showToast(`✅ ${syncResult.message}`, 'success');
+    } else {
+      console.error('❌ 학습 데이터 동기화 실패:', syncResult.message);
+      showToast(`⚠️ ${syncResult.message}`, 'warning');
+    }
+
     return { success: true, user };
   } catch (error) {
     console.error('❌ Google 로그인 실패:', error);
+    console.error('   - 에러 코드:', error.code);
+    console.error('   - 에러 메시지:', error.message);
 
     let message = '로그인에 실패했습니다.';
+
     if (error.code === 'auth/popup-closed-by-user') {
       message = '로그인 창이 닫혔습니다.';
     } else if (error.code === 'auth/popup-blocked') {
       message = '팝업이 차단되었습니다. 브라우저 설정을 확인해주세요.';
+    } else if (error.code === 'auth/unauthorized-domain') {
+      message = '⚠️ Firebase Console에서 이 도메인을 승인된 도메인에 추가해주세요.\n\n' +
+                '1. Firebase Console → Authentication → Settings\n' +
+                '2. Authorized domains에 현재 도메인 추가';
+    } else if (error.code === 'auth/operation-not-allowed') {
+      message = '⚠️ Firebase Console에서 Google 로그인을 활성화해주세요.\n\n' +
+                '1. Firebase Console → Authentication → Sign-in method\n' +
+                '2. Google 제공업체 활성화';
+    } else {
+      // 알 수 없는 에러 - 개발자에게 전체 정보 표시
+      message = `로그인 실패: ${error.code || 'UNKNOWN'}\n${error.message}\n\n콘솔을 확인하세요.`;
     }
 
-    return { success: false, error: message };
+    return { success: false, error: message, errorCode: error.code };
   }
 }
 
@@ -100,6 +127,17 @@ export async function signInWithEmail(email, password) {
     console.log('✅ 이메일 로그인 성공:', user.email);
 
     await ensureUserProfile(user);
+
+    // 학습 데이터 동기화 (Phase 2)
+    console.log('🔄 학습 데이터 동기화 시작...');
+    const syncResult = await syncOnLogin(user.uid);
+    if (syncResult.success) {
+      console.log('✅ 학습 데이터 동기화 완료:', syncResult.message);
+      showToast(`✅ ${syncResult.message}`, 'success');
+    } else {
+      console.error('❌ 학습 데이터 동기화 실패:', syncResult.message);
+      showToast(`⚠️ ${syncResult.message}`, 'warning');
+    }
 
     return { success: true, user };
   } catch (error) {
@@ -132,6 +170,17 @@ export async function signUpWithEmail(email, password, displayName) {
 
     // 프로필 생성 시 displayName 포함
     await ensureUserProfile(user, displayName);
+
+    // 학습 데이터 동기화 (Phase 2)
+    console.log('🔄 학습 데이터 동기화 시작...');
+    const syncResult = await syncOnLogin(user.uid);
+    if (syncResult.success) {
+      console.log('✅ 학습 데이터 동기화 완료:', syncResult.message);
+      showToast(`✅ ${syncResult.message}`, 'success');
+    } else {
+      console.error('❌ 학습 데이터 동기화 실패:', syncResult.message);
+      showToast(`⚠️ ${syncResult.message}`, 'warning');
+    }
 
     return { success: true, user };
   } catch (error) {

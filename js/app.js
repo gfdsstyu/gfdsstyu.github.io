@@ -477,9 +477,15 @@ window.parsePartValue = Config.parsePartValue;
 import * as AuthCore from './features/auth/authCore.js';
 import * as AuthUI from './features/auth/authUI.js';
 
+// ============================================
+// 3. [신규] Firebase Sync 모듈 임포트 (Phase 2)
+// ============================================
+import * as SyncCore from './features/sync/syncCore.js';
+
 // 전역 노출 (디버깅 및 콘솔 접근용)
 window.AuthCore = AuthCore;
 window.AuthUI = AuthUI;
+window.SyncCore = SyncCore;
 
 // ========================================
 // 앱 초기화
