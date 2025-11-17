@@ -72,16 +72,7 @@ export async function signInWithGoogle() {
     // Firestore에 사용자 프로필 생성/업데이트
     await ensureUserProfile(user);
 
-    // 학습 데이터 동기화 (Phase 2)
-    console.log('🔄 학습 데이터 동기화 시작...');
-    const syncResult = await syncOnLogin(user.uid);
-    if (syncResult.success) {
-      console.log('✅ 학습 데이터 동기화 완료:', syncResult.message);
-      showToast(`✅ ${syncResult.message}`, 'success');
-    } else {
-      console.error('❌ 학습 데이터 동기화 실패:', syncResult.message);
-      showToast(`⚠️ ${syncResult.message}`, 'warning');
-    }
+    // Note: 학습 데이터 동기화는 initAuthStateObserver()에서 자동 처리됨
 
     return { success: true, user };
   } catch (error) {
@@ -128,16 +119,7 @@ export async function signInWithEmail(email, password) {
 
     await ensureUserProfile(user);
 
-    // 학습 데이터 동기화 (Phase 2)
-    console.log('🔄 학습 데이터 동기화 시작...');
-    const syncResult = await syncOnLogin(user.uid);
-    if (syncResult.success) {
-      console.log('✅ 학습 데이터 동기화 완료:', syncResult.message);
-      showToast(`✅ ${syncResult.message}`, 'success');
-    } else {
-      console.error('❌ 학습 데이터 동기화 실패:', syncResult.message);
-      showToast(`⚠️ ${syncResult.message}`, 'warning');
-    }
+    // Note: 학습 데이터 동기화는 initAuthStateObserver()에서 자동 처리됨
 
     return { success: true, user };
   } catch (error) {
@@ -273,13 +255,27 @@ async function ensureUserProfile(user, customDisplayName = null) {
  * Firebase 인증 상태 관찰 시작
  */
 export function initAuthStateObserver() {
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     currentUser = user;
 
     if (user) {
       console.log('🔐 사용자 로그인됨:', user.email);
       console.log('   - UID:', user.uid);
       console.log('   - displayName:', user.displayName);
+
+      // Phase 2: 학습 데이터 동기화
+      console.log('🔄 학습 데이터 동기화 시작...');
+      try {
+        const syncResult = await syncOnLogin(user.uid);
+        if (syncResult.success) {
+          console.log('✅ 학습 데이터 동기화 완료:', syncResult.message);
+          showToast(`✅ ${syncResult.message}`, 'success');
+        } else {
+          console.warn('⚠️ 학습 데이터 동기화 실패:', syncResult.message);
+        }
+      } catch (error) {
+        console.error('❌ 학습 데이터 동기화 에러:', error);
+      }
     } else {
       console.log('🔓 사용자 로그아웃됨');
     }
