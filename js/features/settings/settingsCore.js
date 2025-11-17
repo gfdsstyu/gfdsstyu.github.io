@@ -22,7 +22,7 @@ import { showToast, applyDarkMode } from '../../ui/domUtils.js';
 import { loadExamDate, saveExamDate, updateDDayDisplay } from '../../core/storageManager.js';
 import { closeReportModal } from '../report/reportCore.js';
 import { updateSummary } from '../summary/summaryCore.js';
-import { getCurrentUser } from '../auth/authCore.js';
+import { getCurrentUser, updateNickname, getNickname } from '../auth/authCore.js';
 import { syncSettingsToFirestore } from '../sync/syncCore.js';
 
 // ============================================
@@ -94,11 +94,25 @@ export function ensureApiKeyGate() {
 /**
  * 설정 모달 열기
  */
-export function openSettingsModal() {
+export async function openSettingsModal() {
   const el = getElements();
 
   el.settingsModal.classList.remove('hidden');
   el.settingsModal.classList.add('flex');
+
+  // Phase 3.1: 닉네임 로드
+  const nicknameInput = document.getElementById('nickname-input');
+  if (nicknameInput) {
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      const nickname = await getNickname();
+      nicknameInput.value = nickname || '';
+    } else {
+      nicknameInput.value = '';
+      nicknameInput.disabled = true;
+      nicknameInput.placeholder = '로그인 후 사용 가능';
+    }
+  }
 
   if (el.aiModelSelect) {
     el.aiModelSelect.value = getSelectedAiModel();
@@ -192,6 +206,39 @@ export function initSettingsModalListeners() {
   el.settingsBtn.addEventListener('click', openSettingsModal);
   el.settingsCloseBtn.addEventListener('click', closeSettingsModal);
   el.settingsCloseBtnBottom.addEventListener('click', closeSettingsModal);
+
+  // Phase 3.1: 닉네임 저장 이벤트
+  const nicknameForm = document.getElementById('nickname-form');
+  nicknameForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const nicknameInput = document.getElementById('nickname-input');
+    const saveBtn = document.getElementById('save-nickname-btn');
+    const nickname = nicknameInput.value.trim();
+
+    if (!nickname) {
+      showToast('닉네임을 입력해주세요.', 'warning');
+      return;
+    }
+
+    // 버튼 비활성화
+    saveBtn.disabled = true;
+    saveBtn.textContent = '저장 중...';
+
+    const result = await updateNickname(nickname);
+
+    if (result.success) {
+      showToast(result.message, 'success');
+      console.log('✅ 닉네임 저장 성공:', nickname);
+    } else {
+      showToast(result.message, 'error');
+      console.error('❌ 닉네임 저장 실패:', result.message);
+    }
+
+    // 버튼 활성화
+    saveBtn.disabled = false;
+    saveBtn.textContent = '닉네임 저장';
+  });
 
   // API 키 모달 열기 (설정에서)
   el.openApiKeyModalBtn?.addEventListener('click', () => {

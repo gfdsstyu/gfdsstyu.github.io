@@ -204,6 +204,97 @@ export async function logout() {
 // ============================================
 
 /**
+ * 닉네임 업데이트 (Phase 3.1)
+ * @param {string} nickname - 새 닉네임
+ * @returns {Promise<{success: boolean, message: string, nextChangeDate?: string}>}
+ */
+export async function updateNickname(nickname) {
+  if (!currentUser) {
+    return { success: false, message: '로그인이 필요합니다.' };
+  }
+
+  // 닉네임 유효성 검사
+  const trimmedNickname = nickname.trim();
+  if (trimmedNickname.length < 2 || trimmedNickname.length > 20) {
+    return { success: false, message: '닉네임은 2-20자여야 합니다.' };
+  }
+
+  // 금지어 필터링
+  const forbiddenWords = ['관리자', 'admin', '운영자', 'moderator', 'owner'];
+  if (forbiddenWords.some(word => trimmedNickname.toLowerCase().includes(word))) {
+    return { success: false, message: '사용할 수 없는 닉네임입니다.' };
+  }
+
+  try {
+    console.log('👤 닉네임 업데이트 시작:', trimmedNickname);
+
+    const userDocRef = doc(db, 'users', currentUser.uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (userDocSnap.exists()) {
+      const profile = userDocSnap.data().profile;
+      const lastUpdatedAt = profile?.nicknameLastUpdatedAt;
+
+      // 쿨다운 체크 (7일 = 604,800,000 ms)
+      const COOLDOWN_PERIOD = 7 * 24 * 60 * 60 * 1000; // 7일
+
+      if (lastUpdatedAt) {
+        const lastUpdatedTime = lastUpdatedAt.toMillis();
+        const now = Date.now();
+        const timeSinceUpdate = now - lastUpdatedTime;
+
+        if (timeSinceUpdate < COOLDOWN_PERIOD) {
+          const remainingTime = COOLDOWN_PERIOD - timeSinceUpdate;
+          const daysRemaining = Math.ceil(remainingTime / (24 * 60 * 60 * 1000));
+          const nextChangeDate = new Date(lastUpdatedTime + COOLDOWN_PERIOD);
+          const nextChangeDateStr = nextChangeDate.toLocaleDateString('ko-KR');
+
+          return {
+            success: false,
+            message: `닉네임은 7일마다 한 번만 변경할 수 있습니다.\n다음 변경 가능 날짜: ${nextChangeDateStr} (${daysRemaining}일 후)`,
+            nextChangeDate: nextChangeDateStr
+          };
+        }
+      }
+    }
+
+    // 닉네임 업데이트
+    await updateDoc(userDocRef, {
+      'profile.nickname': trimmedNickname,
+      'profile.nicknameLastUpdatedAt': serverTimestamp()
+    });
+
+    console.log('✅ 닉네임 업데이트 완료');
+    return { success: true, message: '닉네임이 저장되었습니다.\n7일 후 다시 변경할 수 있습니다.' };
+  } catch (error) {
+    console.error('❌ 닉네임 업데이트 실패:', error);
+    return { success: false, message: `닉네임 저장 실패: ${error.message}` };
+  }
+}
+
+/**
+ * 현재 사용자의 닉네임 조회
+ * @returns {Promise<string|null>}
+ */
+export async function getNickname() {
+  if (!currentUser) return null;
+
+  try {
+    const userDocRef = doc(db, 'users', currentUser.uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (userDocSnap.exists()) {
+      return userDocSnap.data().profile?.nickname || null;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('❌ 닉네임 조회 실패:', error);
+    return null;
+  }
+}
+
+/**
  * Firestore에 사용자 프로필 생성/업데이트
  * @param {Object} user - Firebase Auth 사용자 객체
  * @param {string} customDisplayName - 커스텀 표시 이름 (회원가입 시)
@@ -222,6 +313,7 @@ async function ensureUserProfile(user, customDisplayName = null) {
       await setDoc(userDocRef, {
         profile: {
           displayName: displayName,
+          nickname: null, // Phase 3.1: 닉네임 (사용자가 직접 설정)
           email: user.email,
           photoURL: user.photoURL || null,
           createdAt: serverTimestamp(),

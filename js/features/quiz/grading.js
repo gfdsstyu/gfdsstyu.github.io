@@ -9,6 +9,7 @@ import { showToast } from '../../ui/domUtils.js';
 import { createMemoryTipPrompt } from '../../config/config.js';
 import { getCurrentUser } from '../auth/authCore.js';
 import { syncToFirestore } from '../sync/syncCore.js';
+import { updateUserStats } from '../ranking/rankingCore.js';
 import {
   getElements,
   getCurrentQuizData,
@@ -283,6 +284,22 @@ export async function handleGrade() {
         });
     } else {
       console.log('   - ⏭️ 로그아웃 상태 - Firestore 동기화 스킵');
+    }
+
+    // Phase 3.2: 랭킹 통계 업데이트
+    if (currentUser) {
+      console.log('📊 [Grading] 랭킹 통계 업데이트 시작...');
+      updateUserStats(currentUser.uid, finalScore)
+        .then(result => {
+          if (result.success) {
+            console.log('   - ✅ 랭킹 통계 업데이트 성공');
+          } else {
+            console.warn('   - ⚠️ 랭킹 통계 업데이트 실패:', result.message);
+          }
+        })
+        .catch(err => {
+          console.error('   - ❌ 랭킹 통계 업데이트 에러:', err);
+        });
     }
 
     // 회독 등록

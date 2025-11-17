@@ -726,6 +726,36 @@
         <button id="open-api-key-modal-btn" class="w-full bg-blue-50 border border-blue-300 text-blue-700 font-medium py-2 px-4 rounded-lg hover:bg-blue-100 transition">API 키 변경/설정</button>
       </div>
 
+      <!-- Phase 3.1: 프로필 설정 (닉네임) -->
+      <div class="mb-6 pb-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">👤 프로필 설정</h3>
+        <form id="nickname-form" class="space-y-3">
+          <div>
+            <label for="nickname-input" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">닉네임</label>
+            <input
+              type="text"
+              id="nickname-input"
+              name="nickname"
+              class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+              placeholder="닉네임을 입력하세요 (2-20자)"
+              maxlength="20"
+              minlength="2"
+              aria-label="닉네임"
+            />
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              💡 닉네임은 랭킹, 스터디 그룹 등에서 표시됩니다.
+            </p>
+          </div>
+          <button
+            type="submit"
+            id="save-nickname-btn"
+            class="w-full bg-purple-50 border border-purple-300 text-purple-700 font-medium py-2 px-4 rounded-lg hover:bg-purple-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            닉네임 저장
+          </button>
+        </form>
+      </div>
+
       <div class="mb-6 pb-6 border-b">
         <button id="dday-settings-toggle" class="w-full flex items-center justify-between mb-3 hover:opacity-70 transition text-left">
           <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">📅 시험 날짜 (D-DAY)</h3>
