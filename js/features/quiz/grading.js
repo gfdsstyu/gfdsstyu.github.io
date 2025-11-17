@@ -9,7 +9,8 @@ import { showToast } from '../../ui/domUtils.js';
 import { createMemoryTipPrompt } from '../../config/config.js';
 import { getCurrentUser } from '../auth/authCore.js';
 import { syncToFirestore } from '../sync/syncCore.js';
-import { updateUserStats } from '../ranking/rankingCore.js';
+import { updateUserStats, updateGroupStats } from '../ranking/rankingCore.js';
+import { getMyGroups } from '../group/groupCore.js';
 import {
   getElements,
   getCurrentQuizData,
@@ -299,6 +300,34 @@ export async function handleGrade() {
         })
         .catch(err => {
           console.error('   - ❌ 랭킹 통계 업데이트 에러:', err);
+        });
+
+      // Phase 3.5.3: 그룹 랭킹 통계 업데이트
+      console.log('📊 [Grading] 그룹 랭킹 통계 업데이트 시작...');
+      getMyGroups()
+        .then(groups => {
+          if (groups && groups.length > 0) {
+            console.log(`   - 📋 ${groups.length}개 그룹 발견`);
+            // 모든 그룹에 대해 통계 업데이트
+            groups.forEach(group => {
+              updateGroupStats(group.groupId, currentUser.uid, finalScore)
+                .then(result => {
+                  if (result.success) {
+                    console.log(`   - ✅ 그룹 "${group.name}" 통계 업데이트 성공`);
+                  } else {
+                    console.warn(`   - ⚠️ 그룹 "${group.name}" 통계 업데이트 실패:`, result.message);
+                  }
+                })
+                .catch(err => {
+                  console.error(`   - ❌ 그룹 "${group.name}" 통계 업데이트 에러:`, err);
+                });
+            });
+          } else {
+            console.log('   - ℹ️ 가입한 그룹이 없습니다.');
+          }
+        })
+        .catch(err => {
+          console.error('   - ❌ 그룹 목록 조회 에러:', err);
         });
     }
 
