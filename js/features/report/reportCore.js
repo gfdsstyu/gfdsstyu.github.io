@@ -290,9 +290,9 @@ function renderDailyProblemList(date) {
 
         <div class="daily-coaching-tip hidden mt-3 p-4 bg-blue-50 rounded">
           <div class="flex justify-between items-start mb-2">
-            <p class="text-sm font-bold text-blue-900">💡 암기 팁</p>
+            <p class="text-sm font-bold text-gray-900">💡 암기 팁</p>
             <div class="flex gap-2">
-              <button class="coaching-regen-btn text-xs px-2 py-1 rounded bg-orange-100 text-orange-700 hover:bg-orange-200 transition" type="button" data-qid="${rec.qid}">
+              <button class="coaching-regen-btn text-xs px-2 py-1 rounded bg-orange-100 text-gray-900 hover:bg-orange-200 transition" type="button" data-qid="${rec.qid}">
                 🔄 새로 생성
               </button>
               <button class="coaching-copy-btn text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition" type="button">
@@ -622,7 +622,8 @@ export function initReportListeners() {
         const detail = container?.querySelector('.daily-answer-detail');
         if (detail) {
           detail.classList.toggle('hidden');
-          // 버튼 텍스트는 항상 "답안 보기"로 유지
+          showAnswerBtn.textContent = detail.classList.contains('hidden') ?
+            '📖 답안 보기' : '🙈 답안 숨기기';
         }
         return;
       }

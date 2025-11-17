@@ -471,8 +471,7 @@ export async function handleCoachingRequest(qid, btn, forceRegenerate = false) {
   // DOM에 이미 표시된 팁이 있고 forceRegenerate가 아니면 토글만
   if (coachingContent.textContent.trim() && !forceRegenerate) {
     coachingTip.classList.toggle('hidden');
-    btn.textContent = coachingTip.classList.contains('hidden') ?
-      '💡 암기팁 보기' : '🙈 암기 팁 숨기기';
+    // 버튼 텍스트는 변경하지 않음
     return;
   }
 
@@ -485,7 +484,7 @@ export async function handleCoachingRequest(qid, btn, forceRegenerate = false) {
     if (savedTip) {
       coachingContent.textContent = savedTip;
       coachingTip.classList.remove('hidden');
-      btn.textContent = '🙈 암기 팁 숨기기';
+      // 버튼 텍스트는 변경하지 않음
       showToast('저장된 암기 팁을 불러왔습니다! 💡');
       return;
     }
@@ -535,16 +534,16 @@ export async function handleCoachingRequest(qid, btn, forceRegenerate = false) {
     // 결과를 카드 내 암기 팁 영역에 표시
     coachingContent.textContent = response;
     coachingTip.classList.remove('hidden');
-    btn.textContent = '🙈 암기 팁 숨기기';
+    // 버튼 텍스트는 원래대로 복원
 
     showToast(forceRegenerate ? '암기 팁을 새로 생성했습니다! 💡' : '암기 팁이 생성되었습니다! 💡');
 
   } catch (err) {
     console.error('암기 코치 오류:', err);
     showToast('암기 팁 생성 실패: ' + err.message, 'error');
-    btn.textContent = originalText;
   } finally {
-    // 버튼 활성화
+    // 버튼 텍스트 복원 및 활성화
+    btn.textContent = originalText;
     btn.disabled = false;
   }
 }
