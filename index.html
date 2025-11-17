@@ -230,9 +230,10 @@
       /* 5. 모든 탭 컨텐츠를 순차적으로 표시 */
       .report-content:not(.print-hidden) {
         display: block !important;
-        page-break-after: always;
+        page-break-after: auto;
         page-break-inside: avoid;
-        margin-bottom: 20px;
+        margin-bottom: 8px;
+        padding: 0.5rem !important;
       }
 
       .report-content:last-child {
@@ -243,7 +244,7 @@
       canvas {
         display: block !important;
         max-width: 100% !important;
-        max-height: 280px !important;
+        max-height: 200px !important;
         height: auto !important;
         page-break-inside: avoid;
         -webkit-print-color-adjust: exact !important;
@@ -252,7 +253,7 @@
 
       /* 7. 페이지 헤더/푸터 */
       @page {
-        margin: 1.5cm;
+        margin: 1cm;
         size: A4;
       }
 
@@ -260,9 +261,28 @@
       h1, h2, h3 {
         page-break-after: avoid;
         color: black !important;
+        margin-top: 0.25rem !important;
+        margin-bottom: 0.25rem !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
       }
 
-      /* 9. 다크모드 비활성화 */
+      /* 9. 리포트 내부 요소 여백 최소화 */
+      .report-content div,
+      .report-content section,
+      .report-content p {
+        margin-top: 0.125rem !important;
+        margin-bottom: 0.125rem !important;
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+      }
+
+      .report-content table {
+        margin-top: 0.25rem !important;
+        margin-bottom: 0.25rem !important;
+      }
+
+      /* 10. 다크모드 비활성화 */
       .dark {
         color: black !important;
       }
