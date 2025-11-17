@@ -2,7 +2,42 @@
 // 감린이 - 회계감사 학습 도우미 v4.0
 // 메인 애플리케이션 엔트리 포인트
 // ============================================
+// ============================================
+// 1. [신규] Firebase 연동 (로드맵 1단계)
+// ============================================
 
+// Firebase SDK 임포트 (NPM 방식이 아닌, 브라우저 CDN URL 방식입니다)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-analytics.js";
+
+// 사장님이 제공해주신 Firebase 설정 객체
+const firebaseConfig = {
+  apiKey: "AIzaSyDS_tGZbWF3bUN3qKhg1ASPhYmiPZPQ8Bo",
+  authDomain: "gamrini-24b1f.firebaseapp.com",
+  projectId: "gamrini-24b1f",
+  storageBucket: "gamrini-24b1f.firebasestorage.app",
+  messagingSenderId: "789315789234",
+  appId: "1:789315789234:web:745213c65219149d0b04ab",
+  measurementId: "G-RX2G5VW9Y1"
+};
+
+// Firebase 초기화
+const app = initializeApp(firebaseConfig);
+
+// 다른 모듈(랭킹, 인증)에서 사용할 수 있도록 주요 서비스 export
+export const auth = getAuth(app); // 인증 기능
+export const db = getFirestore(app); // Firestore DB 기능
+export const analytics = getAnalytics(app); // 애널리틱스
+
+console.log('🔥 Firebase Initialized (v10+ SDK)');
+
+
+// ============================================
+// (기존) 감린이 - 회계감사 학습 도우미 v4.0
+// 메인 애플리케이션 엔트리 포인트
+// ============================================
 console.log('🚀 감린이 v4.0 Refactored App Loading...');
 
 // ========================================
