@@ -265,11 +265,24 @@ export async function handleGrade() {
 
     // Firestore 동기화 (Phase 2)
     const currentUser = getCurrentUser();
+    console.log('🔄 [Grading] Firestore 동기화 시도...');
+    console.log('   - 로그인 상태:', currentUser ? `✅ ${currentUser.email}` : '❌ 로그아웃');
+
     if (currentUser) {
-      syncToFirestore(currentUser.uid).catch(err => {
-        console.error('❌ Firestore 동기화 실패:', err);
-        // 실패해도 사용자에게 알리지 않음 (로컬 저장은 이미 완료됨)
-      });
+      console.log('   - 동기화 시작:', currentUser.uid);
+      syncToFirestore(currentUser.uid)
+        .then(result => {
+          if (result.success) {
+            console.log('   - ✅ Firestore 동기화 성공:', result.message);
+          } else {
+            console.error('   - ❌ Firestore 동기화 실패:', result.message);
+          }
+        })
+        .catch(err => {
+          console.error('   - ❌ Firestore 동기화 에러:', err);
+        });
+    } else {
+      console.log('   - ⏭️ 로그아웃 상태 - Firestore 동기화 스킵');
     }
 
     // 회독 등록

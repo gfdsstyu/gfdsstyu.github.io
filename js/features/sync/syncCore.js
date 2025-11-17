@@ -181,26 +181,44 @@ export async function syncOnLogin(userId) {
  */
 export async function syncToFirestore(userId) {
   if (!userId) {
-    console.warn('⚠️ 로그인되지 않음 - Firestore 동기화 스킵');
+    console.warn('⚠️ [SyncCore] 로그인되지 않음 - Firestore 동기화 스킵');
     return { success: false, message: '로그인되지 않음' };
   }
 
   try {
+    console.log(`📤 [SyncCore] Firestore 업로드 시작... (userId: ${userId})`);
+
     const localScores = getQuestionScores();
+    const localCount = Object.keys(localScores).length;
+    console.log(`   - Local 문제 수: ${localCount}개`);
+
     const convertedScores = toFirestoreFormat(localScores);
+    const convertedCount = Object.keys(convertedScores).length;
+    console.log(`   - 변환 후 문제 수: ${convertedCount}개`);
 
     const userDocRef = doc(db, 'users', userId);
+    console.log(`   - Firestore 경로: users/${userId}`);
+
     await updateDoc(userDocRef, {
       userScores: convertedScores,
       'profile.lastSyncAt': serverTimestamp()
     });
 
-    const count = Object.keys(convertedScores).length;
-    console.log(`✅ Firestore 동기화 완료: ${count}개 문제`);
-    return { success: true, message: `${count}개 문제 동기화` };
+    console.log(`✅ [SyncCore] Firestore 동기화 완료: ${convertedCount}개 문제`);
+    return { success: true, message: `${convertedCount}개 문제 동기화` };
   } catch (error) {
-    console.error('❌ Firestore 동기화 실패:', error);
-    return { success: false, message: `동기화 실패: ${error.message}` };
+    console.error('❌ [SyncCore] Firestore 동기화 실패:', error);
+    console.error('   - 에러 코드:', error.code);
+    console.error('   - 에러 메시지:', error.message);
+
+    let message = `동기화 실패: ${error.message}`;
+    if (error.code === 'permission-denied') {
+      message = '⚠️ Firestore 쓰기 권한 없음. 보안 규칙을 확인하세요.';
+    } else if (error.code === 'not-found') {
+      message = '⚠️ 사용자 문서를 찾을 수 없습니다.';
+    }
+
+    return { success: false, message };
   }
 }
 
