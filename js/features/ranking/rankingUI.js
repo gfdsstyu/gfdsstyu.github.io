@@ -144,21 +144,31 @@ async function fetchRankings(period, criteria) {
   // rankings 컬렉션에서 모든 사용자 가져오기
   const snapshot = await getDocs(rankingsRef);
 
+  console.log(`🔍 [Ranking DEBUG] 총 ${snapshot.size}개의 ranking 문서 발견`);
+
   let rankings = [];
   snapshot.forEach(doc => {
     const rankingData = doc.data();
+    console.log(`🔍 [Ranking DEBUG] 문서 ${doc.id}:`, rankingData);
 
     // 기간별 데이터 추출
     const periodData = period === 'daily' ? rankingData.daily?.[periodKey] :
                        period === 'weekly' ? rankingData.weekly?.[periodKey] :
                        rankingData.monthly?.[periodKey];
 
-    if (!periodData) return; // 해당 기간 데이터 없으면 제외
+    console.log(`🔍 [Ranking DEBUG] ${doc.id}의 ${period}[${periodKey}] 데이터:`, periodData);
+
+    if (!periodData) {
+      console.log(`🔍 [Ranking DEBUG] ${doc.id} - ${period}[${periodKey}] 데이터 없음, 제외`);
+      return; // 해당 기간 데이터 없으면 제외
+    }
 
     // ✅ 평균점수 기준일 때: 최소 문제 수 필터링
     if (criteria === 'avgScore') {
       const minProblems = MIN_PROBLEMS_FOR_AVG[period];
+      console.log(`🔍 [Ranking DEBUG] ${doc.id} - avgScore 필터링: problems=${periodData.problems}, 최소=${minProblems}`);
       if (periodData.problems < minProblems) {
+        console.log(`🔍 [Ranking DEBUG] ${doc.id} - 최소 문제 수 미달로 제외`);
         return; // 제외
       }
     }
