@@ -217,7 +217,14 @@ export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemin
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     return raw.trim();
   } catch (err) {
-    if (retries > 0 && (String(err.message).includes('429') || /^서버 오류/.test(String(err.message)))) {
+    // 재시도 조건: 429(할당량) 또는 서버 오류(단, 503 제외)
+    // 503 Service Unavailable은 서버 과부하이므로 재시도해도 실패 가능성 높음
+    const shouldRetry = retries > 0 && (
+      String(err.message).includes('429') ||
+      (/^서버 오류/.test(String(err.message)) && !String(err.message).includes('503'))
+    );
+
+    if (shouldRetry) {
       await new Promise((r) => setTimeout(r, delay));
       return callGeminiTextAPI(prompt, apiKey, selectedAiModel, retries - 1, delay * 1.6);
     }
