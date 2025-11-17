@@ -99,11 +99,11 @@ function switchMainTab(tab) {
   // 탭 버튼 활성화 상태 업데이트
   document.querySelectorAll('.ranking-main-tab').forEach(btn => {
     if (btn.dataset.tab === tab) {
-      btn.classList.remove('bg-gray-200', 'dark:bg-gray-700');
-      btn.classList.add('bg-gradient-to-r', 'from-blue-500', 'to-indigo-500', 'text-white', 'shadow-lg');
+      btn.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-200');
+      btn.classList.add('bg-blue-600', 'dark:bg-blue-500', 'text-white');
     } else {
-      btn.classList.remove('bg-gradient-to-r', 'from-blue-500', 'to-indigo-500', 'text-white', 'shadow-lg');
-      btn.classList.add('bg-gray-200', 'dark:bg-gray-700');
+      btn.classList.remove('bg-blue-600', 'dark:bg-blue-500', 'text-white');
+      btn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-200');
     }
   });
 
@@ -186,11 +186,11 @@ function switchGroupSubtab(subtab) {
   // 서브 탭 버튼 활성화 상태 업데이트
   document.querySelectorAll('.ranking-group-subtab').forEach(btn => {
     if (btn.dataset.subtab === subtab) {
-      btn.classList.remove('bg-gray-200', 'dark:bg-gray-700');
-      btn.classList.add('bg-gradient-to-r', 'from-green-500', 'to-emerald-500', 'text-white', 'shadow-md');
+      btn.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-200');
+      btn.classList.add('bg-green-600', 'dark:bg-green-500', 'text-white');
     } else {
-      btn.classList.remove('bg-gradient-to-r', 'from-green-500', 'to-emerald-500', 'text-white', 'shadow-md');
-      btn.classList.add('bg-gray-200', 'dark:bg-gray-700');
+      btn.classList.remove('bg-green-600', 'dark:bg-green-500', 'text-white');
+      btn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-200');
     }
   });
 }
@@ -214,11 +214,11 @@ function switchClassSubtab(subtab) {
   // 서브 탭 버튼 활성화 상태 업데이트
   document.querySelectorAll('.ranking-class-subtab').forEach(btn => {
     if (btn.dataset.subtab === subtab) {
-      btn.classList.remove('bg-gray-200', 'dark:bg-gray-700');
-      btn.classList.add('bg-gradient-to-r', 'from-purple-500', 'to-pink-500', 'text-white', 'shadow-md');
+      btn.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-200');
+      btn.classList.add('bg-purple-600', 'dark:bg-purple-500', 'text-white');
     } else {
-      btn.classList.remove('bg-gradient-to-r', 'from-purple-500', 'to-pink-500', 'text-white', 'shadow-md');
-      btn.classList.add('bg-gray-200', 'dark:bg-gray-700');
+      btn.classList.remove('bg-purple-600', 'dark:bg-purple-500', 'text-white');
+      btn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-200');
     }
   });
 }
@@ -398,7 +398,7 @@ function getPeriodKeyForQuery() {
 }
 
 /**
- * 랭킹 리스트 렌더링
+ * 랭킹 리스트 렌더링 (UI 개선 버전)
  * @param {Array} rankings - 랭킹 배열
  */
 function renderRankingList(rankings) {
@@ -411,82 +411,86 @@ function renderRankingList(rankings) {
     const rank = index + 1;
     const isMe = currentUser && user.userId === currentUser.uid;
 
-    // 순위 표시 (메달 + 배경)
+    // 순위 표시
     let rankDisplay = '';
-    let rankBadgeClass = '';
 
     if (rank === 1) {
-      rankDisplay = '<span class="text-3xl">🥇</span>';
-      rankBadgeClass = 'bg-yellow-100 dark:bg-yellow-900/30';
+      rankDisplay = '<div class="text-4xl">🥇</div>';
     } else if (rank === 2) {
-      rankDisplay = '<span class="text-3xl">🥈</span>';
-      rankBadgeClass = 'bg-gray-100 dark:bg-gray-700';
+      rankDisplay = '<div class="text-4xl">🥈</div>';
     } else if (rank === 3) {
-      rankDisplay = '<span class="text-3xl">🥉</span>';
-      rankBadgeClass = 'bg-orange-100 dark:bg-orange-900/30';
+      rankDisplay = '<div class="text-4xl">🥉</div>';
     } else if (rank <= 10) {
-      rankDisplay = `<div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg">${rank}</div>`;
+      rankDisplay = `<div class="w-12 h-12 rounded-full bg-purple-600 dark:bg-purple-500 flex items-center justify-center text-white font-bold text-lg">${rank}</div>`;
     } else {
-      rankDisplay = `<div class="text-gray-400 dark:text-gray-500 font-semibold text-lg">${rank}</div>`;
+      rankDisplay = `<div class="text-gray-500 dark:text-gray-400 font-bold text-xl">${rank}</div>`;
     }
 
-    // 내 순위 강조 (매우 명확하게!)
+    // 내 순위 강조
     let cardClass = '';
-    let meIndicator = '';
+    let myBadge = '';
 
     if (isMe) {
-      cardClass = 'bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/40 dark:to-indigo-900/40 border-3 border-blue-500 shadow-lg shadow-blue-200 dark:shadow-blue-900/50';
-      meIndicator = `
-        <div class="absolute -left-2 top-1/2 -translate-y-1/2">
-          <div class="bg-blue-500 text-white px-2 py-1 rounded-r-lg font-bold text-sm shadow-lg">
-            ⭐ 내 순위
-          </div>
+      cardClass = 'bg-blue-100 dark:bg-blue-900/50 border-2 border-blue-600 dark:border-blue-400 shadow-lg';
+      myBadge = `
+        <div class="absolute top-2 right-2 bg-blue-600 dark:bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+          ⭐ 내 순위
         </div>
       `;
     } else {
-      cardClass = `bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 ${rankBadgeClass}`;
+      cardClass = 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700';
     }
 
-    // 현재 선택된 기준 값 강조
-    const criteriaValue = currentCriteria === 'totalScore' ? user.totalScore :
-                          currentCriteria === 'problems' ? user.problems :
-                          user.avgScore;
-
-    const highlightCriteria = (criteria, value) => {
+    // 통계 렌더링
+    const renderStat = (label, value, criteria) => {
       const isHighlight = currentCriteria === criteria;
-      const valueClass = isHighlight ? 'text-blue-600 dark:text-blue-400 font-extrabold text-xl' : 'font-bold text-gray-900 dark:text-gray-100 text-lg';
-      const labelClass = isHighlight ? 'text-blue-600 dark:text-blue-400 font-semibold' : 'text-gray-500 dark:text-gray-400';
+
+      // 하이라이트 시 더 크고 강조
+      const containerClass = isHighlight
+        ? 'bg-blue-100 dark:bg-blue-900/40 border-2 border-blue-500 dark:border-blue-400 rounded-lg px-3 py-2'
+        : 'bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2';
+
+      const labelClass = isHighlight
+        ? 'text-blue-700 dark:text-blue-300 font-bold text-xs'
+        : 'text-gray-600 dark:text-gray-400 font-medium text-xs';
+
+      const valueClass = isHighlight
+        ? 'text-blue-900 dark:text-blue-100 font-extrabold text-2xl'
+        : 'text-gray-900 dark:text-gray-100 font-bold text-lg';
+
+      const displayValue = typeof value === 'number' && value % 1 !== 0
+        ? value.toFixed(1)
+        : value.toLocaleString();
 
       return `
-        <div class="text-center ${isHighlight ? 'transform scale-110' : ''}">
-          <div class="${labelClass} text-xs mb-1">${criteria === 'totalScore' ? '총점수' : criteria === 'problems' ? '문풀횟수' : '평균점수'}</div>
-          <div class="${valueClass}">${typeof value === 'number' && value % 1 !== 0 ? value.toFixed(1) : value.toLocaleString()}</div>
+        <div class="${containerClass}">
+          <div class="${labelClass} mb-1 whitespace-nowrap">${label}</div>
+          <div class="${valueClass}">${displayValue}</div>
         </div>
       `;
     };
 
     html += `
-      <div class="${cardClass} rounded-xl p-5 mb-4 transition-all hover:shadow-xl hover:scale-[1.02] relative overflow-visible">
-        ${meIndicator}
-        <div class="flex items-center justify-between gap-6">
-          <!-- 순위 -->
-          <div class="flex items-center justify-center w-16">
+      <div class="${cardClass} rounded-xl p-4 mb-3 transition-all hover:shadow-lg relative">
+        ${myBadge}
+
+        <!-- 상단: 순위 + 닉네임 -->
+        <div class="flex items-center gap-4 mb-3">
+          <div class="flex items-center justify-center w-16 flex-shrink-0">
             ${rankDisplay}
           </div>
-
-          <!-- 닉네임 -->
-          <div class="flex-1">
-            <div class="${isMe ? 'text-blue-900 dark:text-blue-100 font-bold text-lg' : 'font-semibold text-gray-900 dark:text-gray-100'}">
+          <div class="flex-1 min-w-0">
+            <div class="${isMe ? 'text-blue-900 dark:text-blue-100' : 'text-gray-900 dark:text-gray-100'} font-bold text-lg truncate">
               ${user.nickname}
             </div>
           </div>
+        </div>
 
-          <!-- 통계 (순서: 총점수, 문풀횟수, 평균점수) -->
-          <div class="flex gap-8">
-            ${highlightCriteria('totalScore', user.totalScore)}
-            ${highlightCriteria('problems', user.problems)}
-            ${highlightCriteria('avgScore', user.avgScore)}
-          </div>
+        <!-- 하단: 통계 (순서: 총점수, 문풀횟수, 평균점수) -->
+        <div class="grid grid-cols-3 gap-2">
+          ${renderStat('📊 총점수', user.totalScore, 'totalScore')}
+          ${renderStat('✍️ 문풀', user.problems, 'problems')}
+          ${renderStat('⭐ 평균', user.avgScore, 'avgScore')}
         </div>
       </div>
     `;
@@ -496,9 +500,9 @@ function renderRankingList(rankings) {
   if (currentCriteria === 'avgScore') {
     const minProblems = MIN_PROBLEMS_FOR_AVG[currentPeriod];
     html = `
-      <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mb-4">
-        <p class="text-sm text-yellow-800 dark:text-yellow-200">
-          💡 평균점수 랭킹은 최소 <strong>${minProblems}문제</strong> 이상 푼 사용자만 표시됩니다.
+      <div class="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-300 dark:border-yellow-700 rounded-xl p-4 mb-4">
+        <p class="text-sm text-yellow-900 dark:text-yellow-100 font-medium">
+          💡 평균점수 랭킹은 최소 <strong class="text-yellow-700 dark:text-yellow-300">${minProblems}문제</strong> 이상 푼 사용자만 표시됩니다.
         </p>
       </div>
     ` + html;
