@@ -233,8 +233,7 @@ export async function joinGroup(groupId, password) {
       lastUpdatedAt: serverTimestamp()
     });
 
-    // 사용자 문서에 그룹 멤버십 추가
-    const userDocRef = doc(db, 'users', currentUser.uid);
+    // 사용자 문서에 그룹 멤버십 추가 (이미 위에서 선언된 userDocRef 사용)
     await setDoc(userDocRef, {
       groups: {
         [groupId]: {
