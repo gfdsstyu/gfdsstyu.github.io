@@ -244,14 +244,19 @@ service cloud.firestore {
 
 **SMTP 설정 (Gmail 예시):**
 - **SMTP connection URI**: `smtps://YOUR_EMAIL@gmail.com:YOUR_APP_PASSWORD@smtp.gmail.com:465`
+  - 예시: `smtps://myemail@gmail.com:abcd efgh ijkl mnop@smtp.gmail.com:465`
+  - ⚠️ 앱 비밀번호의 공백은 그대로 입력하거나 제거해도 됩니다
 - **Email documents collection**: `mail` (기본값)
 - **Default FROM address**: `your-email@gmail.com`
 
 **Gmail App Password 생성 방법:**
 1. Google 계정 → 보안 → 2단계 인증 활성화
-2. 앱 비밀번호 생성 ([https://myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords))
-3. "메일" 앱 선택 → 생성
-4. 생성된 16자리 비밀번호 복사
+2. 앱 비밀번호 생성 페이지 접속: [https://myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+3. "앱 비밀번호" 페이지에서 앱 이름 입력 (예: "Firebase Email")
+4. **생성** 버튼 클릭
+5. 표시되는 16자리 비밀번호 복사 (예: `abcd efgh ijkl mnop`)
+   - ⚠️ 최신 버전에서는 앱/기기 선택 없이 바로 비밀번호가 생성됩니다
+   - 이 비밀번호는 다시 확인할 수 없으므로 안전하게 보관하세요
 
 ### 3. 다른 이메일 제공자 SMTP 설정
 
@@ -283,6 +288,86 @@ Extensions 설치 후:
 - SMTP 인증 정보는 안전하게 보관하세요
 - Gmail의 경우 2단계 인증 + 앱 비밀번호 필수
 - 일일 발송 한도 확인 (Gmail 무료: 500통/일)
+
+## 🐛 이메일 발송 안 될 때 디버깅
+
+인증 메일이 발송되지 않는 경우 다음 사항들을 확인하세요:
+
+### 1. Firebase Extensions 상태 확인
+
+1. Firebase Console → Extensions 메뉴
+2. "Trigger Email from Firestore" 상태 확인
+   - ✅ **Active** (활성화)로 표시되어야 함
+   - ❌ **Error** 또는 **Paused**인 경우: Extensions 재설정 필요
+
+### 2. SMTP 설정 확인
+
+1. Extensions → "Trigger Email from Firestore" → **관리** 클릭
+2. **재구성(Reconfigure)** 클릭
+3. SMTP connection URI 확인:
+   ```
+   smtps://your-email@gmail.com:your-app-password@smtp.gmail.com:465
+   ```
+   - ⚠️ 이메일 주소 정확한지 확인
+   - ⚠️ 앱 비밀번호 정확한지 확인 (공백 제거 또는 유지)
+   - ⚠️ `@smtp.gmail.com:465` 누락되지 않았는지 확인
+
+### 3. Firestore mail 컬렉션 확인
+
+1. Firebase Console → Firestore Database
+2. `mail` 컬렉션 확인
+   - ✅ 문서가 생성되었는가?
+     - **YES**: Extensions는 작동 중, SMTP 설정 문제
+     - **NO**: 앱 코드 또는 보안 규칙 문제
+3. 문서 내부 확인:
+   ```json
+   {
+     "to": "student@university.ac.kr",
+     "message": { ... },
+     "delivery": {
+       "state": "SUCCESS" 또는 "ERROR",
+       "error": "오류 메시지 (있는 경우)"
+     }
+   }
+   ```
+   - `delivery.state: "ERROR"`인 경우: `delivery.error` 메시지 확인
+
+### 4. Extensions 로그 확인
+
+1. Firebase Console → Extensions
+2. "Trigger Email from Firestore" → **관리**
+3. **함수 로그 보기(View logs)** 클릭
+4. 최근 로그에서 오류 확인:
+   - `SMTP connection failed`: SMTP URI 또는 앱 비밀번호 오류
+   - `Authentication failed`: 이메일/비밀번호 불일치
+   - `Permission denied`: Firestore 보안 규칙 문제
+
+### 5. 브라우저 콘솔 확인
+
+1. 웹사이트에서 F12 → Console 탭
+2. 인증 메일 발송 시도
+3. 다음 메시지 확인:
+   - ✅ `📧 [University] 인증 코드 생성: XXXXXX`
+   - ✅ `✅ [University] 인증 메일 발송 완료`
+   - ❌ `❌ [University] 이메일 발송 실패` → 오류 메시지 확인
+
+### 6. 일반적인 문제 해결
+
+**문제: SMTP Authentication failed**
+- 해결: Gmail 앱 비밀번호 재생성
+- 2단계 인증이 활성화되어 있는지 확인
+
+**문제: mail 컬렉션에 문서가 생성되지 않음**
+- 해결: Firestore 보안 규칙 확인
+- `allow create: if isAuthenticated();` 규칙이 있는지 확인
+
+**문제: delivery.state: "ERROR", "Invalid login"**
+- 해결: SMTP URI에서 이메일 주소와 앱 비밀번호 확인
+- 공백 제거 시도: `abcdefghijklmnop` (공백 없이)
+
+**문제: Extensions가 "Error" 상태**
+- 해결: Extensions 삭제 후 재설치
+- Cloud Functions API 활성화 확인
 
 ## 📚 참고 자료
 
