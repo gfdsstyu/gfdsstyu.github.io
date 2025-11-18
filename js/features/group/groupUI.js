@@ -214,6 +214,7 @@ function renderGroupList(groups) {
             }"
             data-group-id="${group.groupId}"
             data-group-name="${group.name}"
+            data-has-password="${group.password && group.password.trim().length > 0 ? 'true' : 'false'}"
             ${isFull ? 'disabled' : ''}
           >
             ${isFull ? '만원' : '가입하기'}
@@ -230,18 +231,29 @@ function renderGroupList(groups) {
     btn.addEventListener('click', () => {
       const groupId = btn.dataset.groupId;
       const groupName = btn.dataset.groupName;
-      promptJoinGroup(groupId, groupName);
+      const hasPassword = btn.dataset.hasPassword === 'true';
+      promptJoinGroup(groupId, groupName, hasPassword);
     });
   });
 }
 
 /**
  * 그룹 가입 비밀번호 입력 프롬프트
+ * @param {string} groupId - 그룹 ID
+ * @param {string} groupName - 그룹 이름
+ * @param {boolean} hasPassword - 비밀번호 설정 여부
  */
-function promptJoinGroup(groupId, groupName) {
+function promptJoinGroup(groupId, groupName, hasPassword) {
+  // 비밀번호가 설정되어 있지 않으면 바로 가입
+  if (!hasPassword) {
+    handleJoinGroup(groupId, '');
+    return;
+  }
+
+  // 비밀번호 입력 프롬프트
   const password = prompt(`"${groupName}" 그룹의 비밀번호를 입력하세요:`);
 
-  if (!password) {
+  if (password === null) {
     return; // 취소
   }
 

@@ -14,7 +14,7 @@ import {
 import { db } from '../../app.js';
 import { getCurrentUser, getNickname } from '../auth/authCore.js';
 import { getMyRanking, getGroupRankings, getIntraGroupRankings } from './rankingCore.js';
-import { getMyGroups, updateGroupDescription, getGroupMembers, kickMember } from '../group/groupCore.js';
+import { getMyGroups, updateGroupDescription, getGroupMembers, kickMember, deleteGroup } from '../group/groupCore.js';
 import { handleLeaveGroup } from '../group/groupUI.js';
 import { getMyUniversity, getUniversityRankings, getIntraUniversityRankings } from '../university/universityCore.js';
 import { showToast } from '../../ui/domUtils.js';
@@ -385,6 +385,19 @@ async function loadGroupManagementUI(groupId) {
     html += `
           </div>
         </div>
+
+        <!-- 그룹 삭제 -->
+        <div class="pt-4 border-t border-gray-300 dark:border-gray-600">
+          <button
+            onclick="window.RankingUI?.handleDeleteGroup('${groupId}', '${group.name.replace(/'/g, "\\'")}')"
+            class="w-full px-4 py-3 bg-red-600 dark:bg-red-500 text-white font-bold rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition"
+          >
+            🗑️ 그룹 삭제
+          </button>
+          <p class="text-xs text-red-600 dark:text-red-400 mt-2 text-center">
+            ⚠️ 그룹을 삭제하면 모든 데이터가 영구적으로 삭제됩니다.
+          </p>
+        </div>
       </div>
     `;
 
@@ -449,6 +462,32 @@ async function handleKickMember(groupId, userId, nickname) {
   } catch (error) {
     console.error('❌ [RankingUI] 그룹원 강퇴 오류:', error);
     showToast('강퇴 중 오류가 발생했습니다.', 'error');
+  }
+}
+
+/**
+ * 그룹 삭제 처리
+ * @param {string} groupId - 그룹 ID
+ * @param {string} groupName - 그룹 이름
+ */
+async function handleDeleteGroup(groupId, groupName) {
+  const confirmed = confirm(`정말 "${groupName}" 그룹을 삭제하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없으며, 모든 데이터가 영구적으로 삭제됩니다.`);
+
+  if (!confirmed) return;
+
+  try {
+    const result = await deleteGroup(groupId);
+
+    if (result.success) {
+      showToast(result.message, 'success');
+      // 랭킹 모달 닫기
+      closeRankingModal();
+    } else {
+      showToast(result.message, 'error');
+    }
+  } catch (error) {
+    console.error('❌ [RankingUI] 그룹 삭제 오류:', error);
+    showToast('그룹 삭제 중 오류가 발생했습니다.', 'error');
   }
 }
 
@@ -853,12 +892,12 @@ function renderRankingList(rankings) {
           </div>
           <!-- 닉네임 -->
           <div class="flex-1 min-w-0">
-            <div class="${isMe ? 'text-blue-900 dark:text-blue-100' : 'text-gray-900 dark:text-gray-100'} font-bold text-base truncate flex items-center">
+            <div class="${isMe ? 'text-gray-900 dark:text-gray-900' : 'text-gray-900 dark:text-gray-100'} font-bold text-base truncate flex items-center">
               ${user.nickname}${myBadge}
             </div>
           </div>
           <!-- 통계 (한 줄) -->
-          <div class="text-sm ${isMe ? 'text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-400'} flex-shrink-0">
+          <div class="text-sm ${isMe ? 'text-gray-800 dark:text-gray-800' : 'text-gray-600 dark:text-gray-400'} flex-shrink-0">
             <span class="${currentCriteria === 'totalScore' ? 'font-bold text-blue-600 dark:text-blue-400' : ''}">📊 ${totalScoreStr}</span>
             <span class="mx-1">•</span>
             <span class="${currentCriteria === 'problems' ? 'font-bold text-blue-600 dark:text-blue-400' : ''}">✍️ ${problemsStr}</span>
@@ -1246,12 +1285,12 @@ function renderIntraGroupRankings(rankings) {
           </div>
           <!-- 닉네임 -->
           <div class="flex-1 min-w-0">
-            <div class="${isMe ? 'text-green-900 dark:text-green-100' : 'text-gray-900 dark:text-gray-100'} font-bold text-base truncate flex items-center">
+            <div class="${isMe ? 'text-gray-900 dark:text-gray-900' : 'text-gray-900 dark:text-gray-100'} font-bold text-base truncate flex items-center">
               ${user.nickname}${myBadge}
             </div>
           </div>
           <!-- 통계 (한 줄) -->
-          <div class="text-sm ${isMe ? 'text-green-700 dark:text-green-300' : 'text-gray-600 dark:text-gray-400'} flex-shrink-0">
+          <div class="text-sm ${isMe ? 'text-gray-800 dark:text-gray-800' : 'text-gray-600 dark:text-gray-400'} flex-shrink-0">
             <span class="${currentCriteria === 'totalScore' ? 'font-bold text-green-600 dark:text-green-400' : ''}">📊 ${totalScoreStr}</span>
             <span class="mx-1">•</span>
             <span class="${currentCriteria === 'problems' ? 'font-bold text-green-600 dark:text-green-400' : ''}">✍️ ${problemsStr}</span>
@@ -1464,12 +1503,12 @@ function renderIntraUniversityRankings(rankings) {
           </div>
           <!-- 닉네임 -->
           <div class="flex-1 min-w-0">
-            <div class="${isMe ? 'text-purple-900 dark:text-purple-100' : 'text-gray-900 dark:text-gray-100'} font-bold text-base truncate flex items-center">
+            <div class="${isMe ? 'text-gray-900 dark:text-gray-900' : 'text-gray-900 dark:text-gray-100'} font-bold text-base truncate flex items-center">
               ${user.nickname}${myBadge}
             </div>
           </div>
           <!-- 통계 (한 줄) -->
-          <div class="text-sm ${isMe ? 'text-purple-700 dark:text-purple-300' : 'text-gray-600 dark:text-gray-400'} flex-shrink-0">
+          <div class="text-sm ${isMe ? 'text-gray-800 dark:text-gray-800' : 'text-gray-600 dark:text-gray-400'} flex-shrink-0">
             <span class="${currentCriteria === 'totalScore' ? 'font-bold text-purple-600 dark:text-purple-400' : ''}">📊 ${totalScoreStr}</span>
             <span class="mx-1">•</span>
             <span class="${currentCriteria === 'problems' ? 'font-bold text-purple-600 dark:text-purple-400' : ''}">✍️ ${problemsStr}</span>
@@ -1544,6 +1583,7 @@ if (typeof window !== 'undefined') {
     closeRankingModal,
     openGroupManagement,
     handleUpdateDescription,
-    handleKickMember
+    handleKickMember,
+    handleDeleteGroup
   };
 }
