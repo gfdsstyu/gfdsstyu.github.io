@@ -78,6 +78,14 @@ const UNIVERSITY_DOMAINS = {
 // ============================================
 
 /**
+ * 6자리 랜덤 인증 코드 생성
+ * @returns {string}
+ */
+function generateVerificationCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+/**
  * 이메일 도메인에서 대학교 이름 추출
  * @param {string} email - 이메일 주소
  * @returns {string|null} - 대학교 이름 또는 null
@@ -112,11 +120,11 @@ function getUniversityFromEmail(email) {
 }
 
 /**
- * 대학교 이메일 인증 (간소화 버전)
+ * 대학교 이메일로 인증 코드 발송
  * @param {string} email - 대학교 이메일
  * @returns {Promise<Object>}
  */
-export async function verifyUniversityEmail(email) {
+export async function sendVerificationEmail(email) {
   const currentUser = getCurrentUser();
   if (!currentUser) {
     return { success: false, message: '로그인이 필요합니다.' };
@@ -140,22 +148,142 @@ export async function verifyUniversityEmail(email) {
       };
     }
 
-    // 3. 사용자 문서에 대학교 정보 저장
-    await setDoc(userDocRef, {
+    // 3. 인증 코드 생성
+    const verificationCode = generateVerificationCode();
+
+    // 4. Firestore에 인증 코드 저장 (10분 유효)
+    const verificationDocRef = doc(db, 'universityVerifications', currentUser.uid);
+    await setDoc(verificationDocRef, {
+      email: email,
       university: university,
-      universityEmail: email,
+      code: verificationCode,
+      createdAt: serverTimestamp(),
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10분 후 만료
+    });
+
+    console.log(`📧 [University] 인증 코드 생성: ${verificationCode} (${email})`);
+
+    // 5. EmailJS로 이메일 발송
+    try {
+      await sendEmailViaEmailJS(email, verificationCode, university);
+      console.log(`✅ [University] 인증 메일 발송 완료: ${email}`);
+
+      return {
+        success: true,
+        message: `${email}로 인증 코드가 발송되었습니다. (유효시간: 10분)`,
+        university: university
+      };
+    } catch (emailError) {
+      console.error('❌ [University] 이메일 발송 실패:', emailError);
+      return {
+        success: false,
+        message: `이메일 발송 실패: ${emailError.message}. EmailJS 설정을 확인하세요.`
+      };
+    }
+
+  } catch (error) {
+    console.error('❌ [University] 인증 코드 생성 실패:', error);
+    return {
+      success: false,
+      message: `인증 실패: ${error.message}`
+    };
+  }
+}
+
+/**
+ * EmailJS로 이메일 발송
+ * @param {string} toEmail - 수신자 이메일
+ * @param {string} code - 인증 코드
+ * @param {string} university - 대학교 이름
+ * @returns {Promise<void>}
+ */
+async function sendEmailViaEmailJS(toEmail, code, university) {
+  // EmailJS 설정 가져오기
+  const emailjsConfig = localStorage.getItem('emailjs-config');
+  if (!emailjsConfig) {
+    throw new Error('EmailJS 설정이 없습니다. 설정 메뉴에서 EmailJS를 설정하세요.');
+  }
+
+  const { serviceId, templateId, publicKey } = JSON.parse(emailjsConfig);
+
+  if (!serviceId || !templateId || !publicKey) {
+    throw new Error('EmailJS 설정이 불완전합니다. Service ID, Template ID, Public Key를 모두 설정하세요.');
+  }
+
+  // EmailJS 초기화
+  if (typeof emailjs === 'undefined') {
+    throw new Error('EmailJS 라이브러리가 로드되지 않았습니다.');
+  }
+
+  emailjs.init(publicKey);
+
+  // 이메일 발송
+  const templateParams = {
+    to_email: toEmail,
+    university: university,
+    verification_code: code,
+    expire_minutes: '10'
+  };
+
+  await emailjs.send(serviceId, templateId, templateParams);
+}
+
+/**
+ * 인증 코드 검증 및 대학교 정보 저장
+ * @param {string} code - 사용자가 입력한 인증 코드
+ * @returns {Promise<Object>}
+ */
+export async function verifyCode(code) {
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    return { success: false, message: '로그인이 필요합니다.' };
+  }
+
+  try {
+    // 1. Firestore에서 인증 코드 조회
+    const verificationDocRef = doc(db, 'universityVerifications', currentUser.uid);
+    const verificationDocSnap = await getDoc(verificationDocRef);
+
+    if (!verificationDocSnap.exists()) {
+      return { success: false, message: '인증 요청을 찾을 수 없습니다. 먼저 인증 메일을 발송하세요.' };
+    }
+
+    const verificationData = verificationDocSnap.data();
+
+    // 2. 만료 시간 확인
+    const expiresAt = verificationData.expiresAt.toDate();
+    if (new Date() > expiresAt) {
+      return { success: false, message: '인증 코드가 만료되었습니다. 다시 발송해주세요.' };
+    }
+
+    // 3. 코드 일치 확인
+    if (verificationData.code !== code) {
+      return { success: false, message: '인증 코드가 일치하지 않습니다.' };
+    }
+
+    // 4. 사용자 문서에 대학교 정보 저장
+    const userDocRef = doc(db, 'users', currentUser.uid);
+    await setDoc(userDocRef, {
+      university: verificationData.university,
+      universityEmail: verificationData.email,
       universityVerifiedAt: serverTimestamp()
     }, { merge: true });
 
-    console.log(`✅ [University] 대학교 인증 완료: ${university}`);
+    // 5. 인증 코드 문서 삭제 (재사용 방지)
+    await setDoc(verificationDocRef, {
+      verified: true,
+      verifiedAt: serverTimestamp()
+    }, { merge: true });
+
+    console.log(`✅ [University] 대학교 인증 완료: ${verificationData.university}`);
     return {
       success: true,
-      message: `${university} 인증이 완료되었습니다!`,
-      university: university
+      message: `${verificationData.university} 인증이 완료되었습니다!`,
+      university: verificationData.university
     };
 
   } catch (error) {
-    console.error('❌ [University] 인증 실패:', error);
+    console.error('❌ [University] 인증 코드 검증 실패:', error);
     return {
       success: false,
       message: `인증 실패: ${error.message}`
@@ -388,7 +516,8 @@ export async function getIntraUniversityRankings(university, period, criteria) {
 
 if (typeof window !== 'undefined') {
   window.UniversityCore = {
-    verifyUniversityEmail,
+    sendVerificationEmail,
+    verifyCode,
     getMyUniversity,
     updateUniversityStats,
     getUniversityRankings,
