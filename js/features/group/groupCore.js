@@ -82,6 +82,7 @@ export async function createGroup(groupData) {
       password: password?.trim() || '', // 비밀번호 선택사항 (빈 문자열 = 비밀번호 없음)
       ownerId: currentUser.uid,
       createdAt: serverTimestamp(),
+      lastUpdatedAt: serverTimestamp(),
       memberCount: 1,
       maxMembers: maxMembers || 50,
       isPublic: isPublic !== false, // 기본값 true
@@ -228,7 +229,8 @@ export async function joinGroup(groupId, password) {
 
     // 그룹 멤버 수 증가
     await updateDoc(groupDocRef, {
-      memberCount: increment(1)
+      memberCount: increment(1),
+      lastUpdatedAt: serverTimestamp()
     });
 
     // 사용자 문서에 그룹 멤버십 추가
@@ -303,7 +305,8 @@ export async function leaveGroup(groupId) {
 
     // 그룹 멤버 수 감소
     await updateDoc(groupDocRef, {
-      memberCount: increment(-1)
+      memberCount: increment(-1),
+      lastUpdatedAt: serverTimestamp()
     });
 
     // 사용자 문서에서 그룹 멤버십 삭제
@@ -654,7 +657,8 @@ export async function kickMember(groupId, targetUserId) {
 
     // 그룹 멤버 수 감소
     await updateDoc(groupDocRef, {
-      memberCount: increment(-1)
+      memberCount: increment(-1),
+      lastUpdatedAt: serverTimestamp()
     });
 
     // 사용자 문서에서 그룹 멤버십 삭제 및 강퇴 기록 저장
