@@ -33,7 +33,6 @@ export function openCreateGroupModal() {
   document.getElementById('create-group-description').value = '';
   document.getElementById('create-group-password').value = '';
   document.getElementById('create-group-max-members').value = '50';
-  document.getElementById('create-group-is-public').checked = true;
 
   modal.classList.remove('hidden');
   modal.classList.add('flex');

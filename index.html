@@ -794,14 +794,30 @@
 
           <!-- 그룹 가입 시 표시될 콘텐츠 -->
           <div id="groups-content" class="hidden">
-            <!-- 서브 탭 (그룹별 / 그룹내) -->
-            <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-              <button class="ranking-group-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-green-600 dark:bg-green-500 text-white" data-subtab="group-level">
-                🏆 그룹별 랭킹
-              </button>
-              <button class="ranking-group-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-subtab="intra-group">
-                👤 그룹 내 랭킹
-              </button>
+            <!-- 서브 탭 + 정렬 기준 필터 -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+              <!-- 서브 탭 버튼 -->
+              <div class="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+                <button class="ranking-group-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-green-600 dark:bg-green-500 text-white" data-subtab="group-level">
+                  🏆 그룹별 랭킹
+                </button>
+                <button class="ranking-group-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-subtab="intra-group">
+                  👤 그룹 내 랭킹
+                </button>
+              </div>
+
+              <!-- 정렬 기준 필터 -->
+              <div class="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+                <button class="ranking-criteria-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-blue-500 text-white" data-criteria="totalScore">
+                  📊 총점수
+                </button>
+                <button class="ranking-criteria-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-criteria="problems">
+                  ✍️ 문풀횟수
+                </button>
+                <button class="ranking-criteria-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-criteria="avgScore">
+                  ⭐ 평균점수
+                </button>
+              </div>
             </div>
 
             <!-- 그룹별 랭킹 콘텐츠 -->
@@ -856,14 +872,30 @@
 
           <!-- 고시반 콘텐츠 (인증 완료 후) -->
           <div id="classes-content" class="hidden">
-            <!-- 서브 탭 (반별 / 반내) -->
-            <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-              <button class="ranking-class-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-purple-600 dark:bg-purple-500 text-white" data-subtab="class-level">
-                🏆 반별 랭킹
-              </button>
-              <button class="ranking-class-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-subtab="intra-class">
-                👤 반 내 랭킹
-              </button>
+            <!-- 서브 탭 + 정렬 기준 필터 -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+              <!-- 서브 탭 버튼 -->
+              <div class="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+                <button class="ranking-class-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-purple-600 dark:bg-purple-500 text-white" data-subtab="class-level">
+                  🏆 반별 랭킹
+                </button>
+                <button class="ranking-class-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-subtab="intra-class">
+                  👤 반 내 랭킹
+                </button>
+              </div>
+
+              <!-- 정렬 기준 필터 -->
+              <div class="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+                <button class="ranking-criteria-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-blue-500 text-white" data-criteria="totalScore">
+                  📊 총점수
+                </button>
+                <button class="ranking-criteria-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-criteria="problems">
+                  ✍️ 문풀횟수
+                </button>
+                <button class="ranking-criteria-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-criteria="avgScore">
+                  ⭐ 평균점수
+                </button>
+              </div>
             </div>
 
             <!-- 반별 랭킹 콘텐츠 (대학교별) -->
