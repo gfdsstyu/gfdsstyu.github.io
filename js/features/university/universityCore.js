@@ -105,6 +105,44 @@ const UNIVERSITY_DOMAINS = {
   'baewha.ac.kr': '배화여자대학교'
 };
 
+const UNIVERSITY_NAME_CORRECTIONS = {
+  'uos대학교': '서울시립대학교',
+  'uos대학': '서울시립대학교'
+};
+
+/**
+ * 대학교 이름 정규화 (legacy 데이터 보정용)
+ * @param {string} universityName
+ * @returns {string|undefined}
+ */
+function normalizeUniversityName(universityName) {
+  if (!universityName || typeof universityName !== 'string') {
+    return universityName;
+  }
+
+  let normalized = universityName.trim();
+  if (!normalized) {
+    return normalized;
+  }
+
+  const simplifiedKey = normalized.toLowerCase().replace(/\s+/g, '');
+
+  if (UNIVERSITY_NAME_CORRECTIONS[simplifiedKey]) {
+    const correctedName = UNIVERSITY_NAME_CORRECTIONS[simplifiedKey];
+    if (correctedName !== normalized) {
+      console.log(`🔄 [University] 이름 보정: ${normalized} -> ${correctedName}`);
+    }
+    return correctedName;
+  }
+
+  if (simplifiedKey.endsWith('대학') && !simplifiedKey.endsWith('대학교')) {
+    normalized = `${normalized}교`;
+  }
+
+  return normalized;
+}
+
+
 // ============================================
 // 대학교 인증
 // ============================================
@@ -130,14 +168,14 @@ function getUniversityFromEmail(email) {
   // 1. 정확한 도메인 매칭 (최우선)
   if (UNIVERSITY_DOMAINS[domain]) {
     console.log(`✅ [University] 정확한 도메인 매칭: ${domain} -> ${UNIVERSITY_DOMAINS[domain]}`);
-    return UNIVERSITY_DOMAINS[domain];
+    return normalizeUniversityName(UNIVERSITY_DOMAINS[domain]);
   }
 
   // 2. 서브도메인 매칭 (예: student.yonsei.ac.kr)
   for (const [key, value] of Object.entries(UNIVERSITY_DOMAINS)) {
     if (domain.endsWith(key)) {
       console.log(`✅ [University] 서브도메인 매칭: ${domain} -> ${value}`);
-      return value;
+      return normalizeUniversityName(value);
     }
   }
 
@@ -147,7 +185,7 @@ function getUniversityFromEmail(email) {
     if (parts.length >= 2) {
       const universityName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1) + '대학교';
       console.log(`⚠️ [University] Fallback 매칭: ${domain} -> ${universityName}`);
-      return universityName;
+      return normalizeUniversityName(universityName);
     }
   }
 
@@ -343,8 +381,16 @@ export async function getMyUniversity() {
     }
 
     const userData = userDocSnap.data();
-    let university = userData.university;
+    const originalUniversity = userData.university;
+    let university = normalizeUniversityName(originalUniversity) || originalUniversity;
     const universityEmail = userData.universityEmail;
+
+    if (university && university !== originalUniversity) {
+      console.log(`🔄 [University] 대학교 이름 보정: ${originalUniversity} -> ${university}`);
+      await setDoc(userDocRef, {
+        university: university
+      }, { merge: true });
+    }
 
     // 저장된 대학교 이름이 이메일 도메인 매핑과 다른 경우 자동 업데이트
     // (이전 fallback으로 저장된 데이터를 올바른 매핑으로 수정)
@@ -399,7 +445,18 @@ export async function updateUniversityStats(userId, score) {
       return { success: true, message: '대학교 미인증 사용자' };
     }
 
-    const university = userDocSnap.data().university;
+    const originalUniversity = userDocSnap.data().university;
+    const university = normalizeUniversityName(originalUniversity) || originalUniversity;
+
+    if (!university) {
+      return { success: true, message: '대학교 미인증 사용자' };
+    }
+
+    if (university !== originalUniversity) {
+      await setDoc(userDocRef, {
+        university: university
+      }, { merge: true });
+    }
 
     console.log(`📊 [UniversityRanking] 대학교 통계 업데이트 시작... (university: ${university}, userId: ${userId}, score: ${score})`);
 
@@ -469,23 +526,42 @@ export async function getUniversityRankings(period, criteria) {
 
     console.log(`📊 [UniversityRanking] 대학교 랭킹 조회 - period: ${period}, criteria: ${criteria}, periodKey: ${periodKey}`);
 
-    let rankings = [];
+    const aggregatedRankings = new Map();
 
-    snapshot.forEach(doc => {
-      const universityRankingData = doc.data();
+    snapshot.forEach(docSnap => {
+      const universityRankingData = docSnap.data();
       const periodData = universityRankingData[fieldName];
 
       if (!periodData) {
         return; // 해당 기간 데이터 없으면 제외
       }
 
-      rankings.push({
-        university: universityRankingData.university || doc.id,
-        totalScore: periodData.totalScore || 0,
-        problems: periodData.problems || 0,
-        avgScore: periodData.avgScore || 0
-      });
+      const rawName = universityRankingData.university || docSnap.id;
+      const normalizedName = normalizeUniversityName(rawName) || rawName;
+
+      if (!normalizedName) {
+        return;
+      }
+
+      if (!aggregatedRankings.has(normalizedName)) {
+        aggregatedRankings.set(normalizedName, {
+          university: normalizedName,
+          totalScore: 0,
+          problems: 0
+        });
+      }
+
+      const entry = aggregatedRankings.get(normalizedName);
+      entry.totalScore += periodData.totalScore || 0;
+      entry.problems += periodData.problems || 0;
     });
+
+    const rankings = Array.from(aggregatedRankings.values()).map(entry => ({
+      university: entry.university,
+      totalScore: entry.totalScore,
+      problems: entry.problems,
+      avgScore: entry.problems > 0 ? entry.totalScore / entry.problems : 0
+    }));
 
     // 기준에 따라 정렬
     rankings.sort((a, b) => {
@@ -531,7 +607,12 @@ export async function getIntraUniversityRankings(university, period, criteria) {
       const userDocRef = doc(db, 'users', userId);
       const userDocSnap = await getDoc(userDocRef);
 
-      if (!userDocSnap.exists() || userDocSnap.data().university !== university) {
+      if (!userDocSnap.exists()) {
+        continue;
+      }
+
+      const userUniversity = normalizeUniversityName(userDocSnap.data().university) || userDocSnap.data().university;
+      if (userUniversity !== university) {
         continue; // 해당 대학 아니면 제외
       }
 
