@@ -348,12 +348,21 @@ async function loadGroupManagementUI(groupId) {
             rows="2"
             placeholder="그룹 설명을 입력하세요"
           >${group.description || ''}</textarea>
-          <button
-            onclick="window.RankingUI?.handleUpdateDescription('${groupId}');"
-            class="mt-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white font-bold text-sm rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition"
-          >
-            💾 저장
-          </button>
+          <div class="mt-2 flex items-center justify-between">
+            <button
+              onclick="window.RankingUI?.handleUpdateDescription('${groupId}');"
+              class="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white font-bold text-sm rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition"
+            >
+              💾 저장
+            </button>
+            <button
+              onclick="window.RankingUI?.handleDeleteGroup('${groupId}', '${group.name.replace(/'/g, "\\'")}')"
+              class="text-red-600 dark:text-red-400 text-xs hover:text-red-800 dark:hover:text-red-300 hover:underline transition"
+              title="그룹을 삭제하면 모든 데이터가 영구적으로 삭제됩니다."
+            >
+              🗑️ 그룹 삭제
+            </button>
+          </div>
         </div>
 
         <!-- 그룹원 관리 -->
@@ -384,19 +393,6 @@ async function loadGroupManagementUI(groupId) {
 
     html += `
           </div>
-        </div>
-
-        <!-- 그룹 삭제 -->
-        <div class="pt-4 border-t border-gray-300 dark:border-gray-600">
-          <button
-            onclick="window.RankingUI?.handleDeleteGroup('${groupId}', '${group.name.replace(/'/g, "\\'")}')"
-            class="w-full px-4 py-3 bg-red-600 dark:bg-red-500 text-white font-bold rounded-lg hover:bg-red-700 dark:hover:bg-red-600 transition"
-          >
-            🗑️ 그룹 삭제
-          </button>
-          <p class="text-xs text-red-600 dark:text-red-400 mt-2 text-center">
-            ⚠️ 그룹을 삭제하면 모든 데이터가 영구적으로 삭제됩니다.
-          </p>
         </div>
       </div>
     `;

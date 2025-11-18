@@ -342,10 +342,30 @@ export async function getMyUniversity() {
       return null;
     }
 
+    const userData = userDocSnap.data();
+    let university = userData.university;
+    const universityEmail = userData.universityEmail;
+
+    // 저장된 대학교 이름이 이메일 도메인 매핑과 다른 경우 자동 업데이트
+    // (이전 fallback으로 저장된 데이터를 올바른 매핑으로 수정)
+    if (universityEmail) {
+      const correctUniversity = getUniversityFromEmail(universityEmail);
+      if (correctUniversity && correctUniversity !== university) {
+        console.log(`🔄 [University] 대학교 이름 업데이트: ${university} -> ${correctUniversity}`);
+
+        // Firestore 업데이트
+        await setDoc(userDocRef, {
+          university: correctUniversity
+        }, { merge: true });
+
+        university = correctUniversity;
+      }
+    }
+
     return {
-      university: userDocSnap.data().university,
-      universityEmail: userDocSnap.data().universityEmail,
-      verifiedAt: userDocSnap.data().universityVerifiedAt
+      university: university,
+      universityEmail: universityEmail,
+      verifiedAt: userData.universityVerifiedAt
     };
 
   } catch (error) {

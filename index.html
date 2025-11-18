@@ -1015,17 +1015,11 @@
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">2-100명</p>
         </div>
 
-        <!-- 공개 여부 -->
-        <div class="flex items-center gap-3">
-          <input
-            type="checkbox"
-            id="create-group-is-public"
-            checked
-            class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-          />
-          <label for="create-group-is-public" class="text-sm font-medium text-gray-700 dark:text-gray-200">
-            🌍 공개 그룹 (검색 가능)
-          </label>
+        <!-- 공개 여부 (자동 결정: 비밀번호 없으면 공개, 있으면 비공개) -->
+        <div class="text-sm text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+          💡 <strong>공개/비공개는 자동 결정됩니다:</strong><br>
+          • 비밀번호 입력 안 함 → 🌍 공개 그룹 (검색 가능)<br>
+          • 비밀번호 입력함 → 🔒 비공개 그룹 (비밀번호 필요)
         </div>
 
         <!-- 제출 버튼 -->
