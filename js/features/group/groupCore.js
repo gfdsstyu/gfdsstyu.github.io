@@ -10,6 +10,7 @@ import {
   getDocs,
   updateDoc,
   deleteDoc,
+  deleteField,
   query,
   where,
   orderBy,
@@ -282,7 +283,7 @@ export async function leaveGroup(groupId) {
     // 사용자 문서에서 그룹 멤버십 삭제
     const userDocRef = doc(db, 'users', currentUser.uid);
     await updateDoc(userDocRef, {
-      [`groups.${groupId}`]: deleteDoc()
+      [`groups.${groupId}`]: deleteField()
     });
 
     console.log('✅ [Group] 그룹 탈퇴 완료:', groupId);
