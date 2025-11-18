@@ -338,23 +338,34 @@ export async function getGroupRankings(period, criteria) {
 
     let rankings = [];
 
-    snapshot.forEach(doc => {
-      const groupRankingData = doc.data();
+    // 삭제된 그룹 필터링을 위해 존재 여부 확인
+    for (const docSnapshot of snapshot.docs) {
+      const groupRankingData = docSnapshot.data();
       const periodData = groupRankingData[fieldName];
 
       if (!periodData) {
-        return; // 해당 기간 데이터 없으면 제외
+        continue; // 해당 기간 데이터 없으면 제외
+      }
+
+      // 그룹이 실제로 존재하는지 확인 (삭제된 그룹 제외)
+      const groupId = groupRankingData.groupId || docSnapshot.id;
+      const groupDocRef = doc(db, 'groups', groupId);
+      const groupDocSnap = await getDoc(groupDocRef);
+
+      if (!groupDocSnap.exists()) {
+        console.log(`⚠️ [GroupRanking] 삭제된 그룹 제외: ${groupRankingData.groupName} (${groupId})`);
+        continue; // 삭제된 그룹은 랭킹에서 제외
       }
 
       rankings.push({
-        groupId: groupRankingData.groupId || doc.id,
+        groupId: groupId,
         groupName: groupRankingData.groupName || '이름 없음',
         memberCount: groupRankingData.memberCount || 0,
         totalScore: periodData.totalScore || 0,
         problems: periodData.problems || 0,
         avgScore: periodData.avgScore || 0
       });
-    });
+    }
 
     // 기준에 따라 정렬
     rankings.sort((a, b) => {
