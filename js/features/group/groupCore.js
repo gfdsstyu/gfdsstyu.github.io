@@ -209,12 +209,14 @@ export async function joinGroup(groupId, password) {
 
     // 사용자 문서에 그룹 멤버십 추가
     const userDocRef = doc(db, 'users', currentUser.uid);
-    await updateDoc(userDocRef, {
-      [`groups.${groupId}`]: {
-        role: 'member',
-        joinedAt: serverTimestamp()
+    await setDoc(userDocRef, {
+      groups: {
+        [groupId]: {
+          role: 'member',
+          joinedAt: serverTimestamp()
+        }
       }
-    });
+    }, { merge: true });
 
     console.log('✅ [Group] 그룹 가입 완료:', groupId);
     return {

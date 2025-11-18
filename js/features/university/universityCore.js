@@ -22,10 +22,12 @@ import { getPeriodKey } from '../ranking/rankingCore.js';
 // ============================================
 
 const UNIVERSITY_DOMAINS = {
-  // 서울
+  // 서울 - SKY
   'snu.ac.kr': '서울대학교',
   'yonsei.ac.kr': '연세대학교',
   'korea.ac.kr': '고려대학교',
+
+  // 서울 - 주요 사립
   'sogang.ac.kr': '서강대학교',
   'skku.edu': '성균관대학교',
   'hanyang.ac.kr': '한양대학교',
@@ -36,41 +38,71 @@ const UNIVERSITY_DOMAINS = {
   'dongguk.edu': '동국대학교',
   'kookmin.ac.kr': '국민대학교',
   'dankook.ac.kr': '단국대학교',
+  'dku.ac.kr': '단국대학교',
   'sejong.ac.kr': '세종대학교',
+  'sju.ac.kr': '세종대학교',
+  'hongik.ac.kr': '홍익대학교',
+  'kw.ac.kr': '광운대학교',
+
+  // 서울 - 여대
   'sungshin.ac.kr': '성신여자대학교',
   'sookmyung.ac.kr': '숙명여자대학교',
   'ewha.ac.kr': '이화여자대학교',
+  'dongduk.ac.kr': '동덕여자대학교',
+
+  // 서울 - 국공립
+  'uos.ac.kr': '서울시립대학교',
+  'seoultech.ac.kr': '서울과학기술대학교',
 
   // 인천/경기
   'inha.ac.kr': '인하대학교',
+  'inu.ac.kr': '인천대학교',
   'ajou.ac.kr': '아주대학교',
   'kgu.ac.kr': '경기대학교',
+  'gachon.ac.kr': '가천대학교',
 
   // 대전/충청
   'kaist.ac.kr': 'KAIST',
   'cnu.ac.kr': '충남대학교',
+  'chungnam.ac.kr': '충남대학교',
   'cbu.ac.kr': '충북대학교',
+  'chungbuk.ac.kr': '충북대학교',
+  'dju.ac.kr': '대전대학교',
+  'konyang.ac.kr': '건양대학교',
+  'eulji.ac.kr': '을지대학교',
 
   // 광주/전라
   'gist.ac.kr': 'GIST',
   'jnu.ac.kr': '전남대학교',
   'jbnu.ac.kr': '전북대학교',
+  'mokpo.ac.kr': '목포대학교',
 
   // 대구/경북
   'dgist.ac.kr': 'DGIST',
   'knu.ac.kr': '경북대학교',
   'kmu.ac.kr': '계명대학교',
   'yu.ac.kr': '영남대학교',
+  'cu.ac.kr': '대구가톨릭대학교',
+  'kju.ac.kr': '경주대학교',
 
   // 부산/경남
   'pusan.ac.kr': '부산대학교',
   'unist.ac.kr': 'UNIST',
   'inje.ac.kr': '인제대학교',
   'kyungnam.ac.kr': '경남대학교',
+  'donga.ac.kr': '동아대학교',
+  'gntech.ac.kr': '경남과학기술대학교',
+
+  // 강원
+  'kangwon.ac.kr': '강원대학교',
 
   // 기타
   'postech.ac.kr': 'POSTECH',
-  'ulsan.ac.kr': '울산대학교'
+  'ulsan.ac.kr': '울산대학교',
+  'uway.kr': '한국방송통신대학교',
+  'csj.ac.kr': '가톨릭상지대학교',
+  'mjc.ac.kr': '명지전문대학',
+  'baewha.ac.kr': '배화여자대학교'
 };
 
 // ============================================
