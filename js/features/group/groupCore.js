@@ -22,6 +22,7 @@ import {
 import { db } from '../../app.js';
 import { getCurrentUser } from '../auth/authCore.js';
 import { showToast } from '../../ui/domUtils.js';
+import { getPeriodKey } from '../ranking/rankingCore.js';
 
 // ============================================
 // 그룹 생성
@@ -122,6 +123,22 @@ export async function createGroup(groupData) {
         }
       }
     }, { merge: true });
+
+    // groupRankings 컬렉션에 초기 문서 생성 (랭킹 조회를 위해)
+    const groupRankingDocRef = doc(db, 'groupRankings', groupId);
+    const dailyKey = getPeriodKey('daily');
+    const weeklyKey = getPeriodKey('weekly');
+    const monthlyKey = getPeriodKey('monthly');
+
+    await setDoc(groupRankingDocRef, {
+      groupId: groupId,
+      groupName: name.trim(),
+      memberCount: 1,
+      [`daily.${dailyKey}`]: { problems: 0, totalScore: 0, avgScore: 0 },
+      [`weekly.${weeklyKey}`]: { problems: 0, totalScore: 0, avgScore: 0 },
+      [`monthly.${monthlyKey}`]: { problems: 0, totalScore: 0, avgScore: 0 },
+      lastUpdatedAt: serverTimestamp()
+    });
 
     console.log('✅ [Group] 그룹 생성 완료:', groupId);
     return {
@@ -233,6 +250,12 @@ export async function joinGroup(groupId, password) {
       lastUpdatedAt: serverTimestamp()
     });
 
+    // groupRankings에서도 멤버 수 증가
+    const groupRankingDocRef = doc(db, 'groupRankings', groupId);
+    await updateDoc(groupRankingDocRef, {
+      memberCount: increment(1)
+    }).catch(err => console.error('❌ groupRankings memberCount 업데이트 실패:', err));
+
     // 사용자 문서에 그룹 멤버십 추가 (이미 위에서 선언된 userDocRef 사용)
     await setDoc(userDocRef, {
       groups: {
@@ -314,6 +337,12 @@ export async function leaveGroup(groupId) {
       lastUpdatedAt: serverTimestamp()
     });
 
+    // groupRankings에서도 멤버 수 감소
+    const groupRankingDocRef = doc(db, 'groupRankings', groupId);
+    await updateDoc(groupRankingDocRef, {
+      memberCount: increment(-1)
+    }).catch(err => console.error('❌ groupRankings memberCount 업데이트 실패:', err));
+
     // 사용자 문서에서 그룹 멤버십 삭제
     const userDocRef = doc(db, 'users', currentUser.uid);
     await updateDoc(userDocRef, {
@@ -388,6 +417,12 @@ export async function deleteGroup(groupId) {
 
     // 그룹 문서 삭제
     await deleteDoc(groupDocRef);
+
+    // groupRankings 문서 삭제
+    const groupRankingDocRef = doc(db, 'groupRankings', groupId);
+    await deleteDoc(groupRankingDocRef).catch(err =>
+      console.error(`❌ groupRankings 삭제 실패:`, err)
+    );
 
     console.log('✅ [Group] 그룹 삭제 완료:', groupId);
     return {
@@ -665,6 +700,12 @@ export async function kickMember(groupId, targetUserId) {
       memberCount: increment(-1),
       lastUpdatedAt: serverTimestamp()
     });
+
+    // groupRankings에서도 멤버 수 감소
+    const groupRankingDocRef = doc(db, 'groupRankings', groupId);
+    await updateDoc(groupRankingDocRef, {
+      memberCount: increment(-1)
+    }).catch(err => console.error('❌ groupRankings memberCount 업데이트 실패:', err));
 
     // 사용자 문서에서 그룹 멤버십 삭제 및 강퇴 기록 저장
     const userDocRef = doc(db, 'users', targetUserId);

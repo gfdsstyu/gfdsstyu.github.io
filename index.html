@@ -36,8 +36,7 @@
   <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
-  <!-- Phase 3.6: EmailJS for University Email Verification -->
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <!-- Phase 3.6: Firebase Extensions를 사용하여 이메일 발송 (EmailJS 제거됨) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -1207,49 +1206,9 @@
         <button id="open-api-key-modal-btn" class="w-full bg-blue-50 border border-blue-300 text-blue-700 font-medium py-2 px-4 rounded-lg hover:bg-blue-100 transition">API 키 변경/설정</button>
       </div>
 
-      <!-- Phase 3.6: EmailJS 설정 (대학교 이메일 인증용) -->
-      <div class="mb-6 pb-6 border-b">
-        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">📧 EmailJS 설정 (대학교 인증용)</h3>
-        <div class="space-y-3">
-          <div>
-            <label for="emailjs-service-id" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Service ID</label>
-            <input
-              type="text"
-              id="emailjs-service-id"
-              class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
-              placeholder="service_xxxxxxx"
-            />
-          </div>
-          <div>
-            <label for="emailjs-template-id" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Template ID</label>
-            <input
-              type="text"
-              id="emailjs-template-id"
-              class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
-              placeholder="template_xxxxxxx"
-            />
-          </div>
-          <div>
-            <label for="emailjs-public-key" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Public Key</label>
-            <input
-              type="password"
-              id="emailjs-public-key"
-              class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
-              placeholder="Public Key"
-              autocomplete="off"
-            />
-          </div>
-          <button
-            id="save-emailjs-btn"
-            class="w-full bg-purple-50 border border-purple-300 text-purple-700 font-medium py-2 px-4 rounded-lg hover:bg-purple-100 transition"
-          >
-            EmailJS 설정 저장
-          </button>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            💡 EmailJS 계정이 필요합니다. <a href="https://www.emailjs.com/" target="_blank" class="text-blue-600 hover:underline">EmailJS 가입하기</a>
-          </p>
-        </div>
-      </div>
+      <!-- Phase 3.6: Firebase Extensions를 통한 이메일 발송 (EmailJS 설정 제거됨) -->
+      <!-- 대학교 이메일 인증은 Firebase Console에서 Extensions 설정 필요 -->
+      <!-- 자세한 내용은 FIRESTORE_RULES.md 참고 -->
 
       <!-- Phase 3.1: 프로필 설정 (닉네임) -->
       <div class="mb-6 pb-6 border-b">
