@@ -13,7 +13,7 @@ import {
 
 import { db } from '../../app.js';
 import { getCurrentUser, getNickname } from '../auth/authCore.js';
-import { getMyRanking, getGroupRankings } from './rankingCore.js';
+import { getMyRanking, getGroupRankings, getIntraGroupRankings } from './rankingCore.js';
 import { getMyGroups } from '../group/groupCore.js';
 import { showToast } from '../../ui/domUtils.js';
 
@@ -28,6 +28,9 @@ let currentCriteria = 'totalScore';
 let currentMainTab = 'global'; // 'global', 'groups', 'classes'
 let currentGroupSubtab = 'group-level'; // 'group-level', 'intra-group'
 let currentClassSubtab = 'class-level'; // 'class-level', 'intra-class'
+
+// Phase 3.5.4: 그룹 내 랭킹용 선택된 그룹
+let selectedGroupId = null;
 
 // 평균점수 랭킹 최소 문제 수 기준 (기간별)
 const MIN_PROBLEMS_FOR_AVG = {
@@ -150,8 +153,7 @@ async function updateGroupsTabUI(currentUser) {
       if (currentGroupSubtab === 'group-level') {
         await loadGroupLevelRankings();
       } else if (currentGroupSubtab === 'intra-group') {
-        // TODO: Phase 3.5.4에서 구현
-        console.log('그룹 내 랭킹은 Phase 3.5.4에서 구현됩니다.');
+        await loadIntraGroupRankings(myGroups);
       }
     } else {
       // 그룹에 가입하지 않음 - 빈 상태 표시
@@ -221,8 +223,8 @@ async function switchGroupSubtab(subtab) {
   if (subtab === 'group-level') {
     await loadGroupLevelRankings();
   } else if (subtab === 'intra-group') {
-    // TODO: Phase 3.5.4에서 구현
-    console.log('그룹 내 랭킹은 Phase 3.5.4에서 구현됩니다.');
+    const myGroups = await getMyGroups();
+    await loadIntraGroupRankings(myGroups);
   }
 }
 
@@ -714,6 +716,202 @@ function renderGroupRankings(groupRankings) {
   });
 
   groupLevelList.innerHTML = html;
+}
+
+// ============================================
+// Phase 3.5.4: 그룹 내 랭킹
+// ============================================
+
+/**
+ * 그룹 내 랭킹 로드 및 표시
+ * @param {Array} myGroups - 내가 가입한 그룹 목록
+ */
+async function loadIntraGroupRankings(myGroups) {
+  const intraGroupContainer = document.getElementById('intra-group-content');
+  if (!intraGroupContainer) return;
+
+  // 그룹 선택 드롭다운 + 랭킹 리스트
+  if (!myGroups || myGroups.length === 0) {
+    intraGroupContainer.innerHTML = `
+      <div class="text-center py-12 text-gray-500 dark:text-gray-400">
+        <p class="text-lg">가입한 그룹이 없습니다.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // 첫 번째 그룹 자동 선택
+  if (!selectedGroupId) {
+    selectedGroupId = myGroups[0].groupId;
+  }
+
+  // 그룹 선택 드롭다운 렌더링
+  let groupSelectHtml = `
+    <div class="mb-4">
+      <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">📋 그룹 선택</label>
+      <select id="intra-group-select" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500">
+  `;
+
+  myGroups.forEach(group => {
+    const selected = group.groupId === selectedGroupId ? 'selected' : '';
+    groupSelectHtml += `<option value="${group.groupId}" ${selected}>${group.name} (${group.memberCount}명)</option>`;
+  });
+
+  groupSelectHtml += `
+      </select>
+    </div>
+    <div id="intra-group-list">
+      <div class="text-center py-8 text-gray-500 dark:text-gray-400">로딩 중...</div>
+    </div>
+  `;
+
+  intraGroupContainer.innerHTML = groupSelectHtml;
+
+  // 드롭다운 이벤트 리스너
+  const selectElement = document.getElementById('intra-group-select');
+  selectElement?.addEventListener('change', (e) => {
+    selectedGroupId = e.target.value;
+    loadIntraGroupRankingData(selectedGroupId);
+  });
+
+  // 선택된 그룹의 랭킹 로드
+  await loadIntraGroupRankingData(selectedGroupId);
+}
+
+/**
+ * 선택된 그룹의 멤버 랭킹 데이터 로드
+ * @param {string} groupId - 그룹 ID
+ */
+async function loadIntraGroupRankingData(groupId) {
+  const intraGroupList = document.getElementById('intra-group-list');
+  if (!intraGroupList) return;
+
+  intraGroupList.innerHTML = '<div class="text-center py-8 text-gray-500 dark:text-gray-400">로딩 중...</div>';
+
+  try {
+    const rankings = await getIntraGroupRankings(groupId, currentPeriod, currentCriteria);
+
+    if (rankings.length === 0) {
+      intraGroupList.innerHTML = `
+        <div class="text-center py-12 text-gray-500 dark:text-gray-400">
+          <p class="text-lg mb-2">📭 아직 랭킹 데이터가 없습니다.</p>
+          <p class="text-sm">그룹원들이 문제를 풀면 랭킹이 집계됩니다!</p>
+        </div>
+      `;
+      return;
+    }
+
+    renderIntraGroupRankings(rankings);
+  } catch (error) {
+    console.error('❌ [RankingUI] 그룹 내 랭킹 로드 실패:', error);
+    intraGroupList.innerHTML = `
+      <div class="text-center py-8 text-red-500 dark:text-red-400">
+        <p>그룹 내 랭킹을 불러오는데 실패했습니다.</p>
+        <p class="text-sm mt-2">${error.message}</p>
+      </div>
+    `;
+  }
+}
+
+/**
+ * 그룹 내 멤버 랭킹 리스트 렌더링
+ * @param {Array} rankings - 그룹 멤버 랭킹 배열
+ */
+function renderIntraGroupRankings(rankings) {
+  const intraGroupList = document.getElementById('intra-group-list');
+  if (!intraGroupList) return;
+
+  const currentUser = getCurrentUser();
+  let html = '';
+
+  rankings.forEach((user, index) => {
+    const rank = index + 1;
+    const isMe = currentUser && user.userId === currentUser.uid;
+
+    // 순위 표시
+    let rankDisplay = '';
+    if (rank === 1) {
+      rankDisplay = '<div class="text-4xl">🥇</div>';
+    } else if (rank === 2) {
+      rankDisplay = '<div class="text-4xl">🥈</div>';
+    } else if (rank === 3) {
+      rankDisplay = '<div class="text-4xl">🥉</div>';
+    } else if (rank <= 10) {
+      rankDisplay = `<div class="w-12 h-12 rounded-full bg-green-600 dark:bg-green-500 flex items-center justify-center text-white font-bold text-lg">${rank}</div>`;
+    } else {
+      rankDisplay = `<div class="text-gray-500 dark:text-gray-400 font-bold text-xl">${rank}</div>`;
+    }
+
+    // 내 순위 강조
+    let cardClass = '';
+    let myBadge = '';
+
+    if (isMe) {
+      cardClass = 'bg-green-100 dark:bg-green-900/50 border-2 border-green-600 dark:border-green-400 shadow-lg';
+      myBadge = `
+        <div class="absolute top-2 right-2 bg-green-600 dark:bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+          ⭐ 내 순위
+        </div>
+      `;
+    } else {
+      cardClass = 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700';
+    }
+
+    // 통계 렌더링
+    const renderStat = (label, value, criteria) => {
+      const isHighlight = currentCriteria === criteria;
+
+      const containerClass = isHighlight
+        ? 'bg-green-100 dark:bg-green-900/40 border-2 border-green-500 dark:border-green-400 rounded-lg px-3 py-2'
+        : 'bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2';
+
+      const labelClass = isHighlight
+        ? 'text-green-700 dark:text-green-300 font-bold text-xs'
+        : 'text-gray-600 dark:text-gray-400 font-medium text-xs';
+
+      const valueClass = isHighlight
+        ? 'text-green-900 dark:text-green-100 font-extrabold text-2xl'
+        : 'text-gray-900 dark:text-gray-100 font-bold text-lg';
+
+      const displayValue = typeof value === 'number' && value % 1 !== 0
+        ? value.toFixed(1)
+        : value.toLocaleString();
+
+      return `
+        <div class="${containerClass}">
+          <div class="${labelClass} mb-1 whitespace-nowrap">${label}</div>
+          <div class="${valueClass}">${displayValue}</div>
+        </div>
+      `;
+    };
+
+    html += `
+      <div class="${cardClass} rounded-xl p-4 mb-3 transition-all hover:shadow-lg relative">
+        ${myBadge}
+
+        <!-- 상단: 순위 + 닉네임 -->
+        <div class="flex items-center gap-4 mb-3">
+          <div class="flex items-center justify-center w-16 flex-shrink-0">
+            ${rankDisplay}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="${isMe ? 'text-green-900 dark:text-green-100' : 'text-gray-900 dark:text-gray-100'} font-bold text-lg truncate">
+              ${user.nickname}
+            </div>
+          </div>
+        </div>
+
+        <!-- 하단: 통계 (순서: 총점수, 문풀횟수, 평균점수) -->
+        <div class="grid grid-cols-3 gap-2">
+          ${renderStat('📊 총점수', user.totalScore, 'totalScore')}
+          ${renderStat('✍️ 문풀', user.problems, 'problems')}
+          ${renderStat('⭐ 평균', user.avgScore, 'avgScore')}
+        </div>
+      </div>
+    `;
+  });
+
+  intraGroupList.innerHTML = html;
 }
 
 // ============================================
