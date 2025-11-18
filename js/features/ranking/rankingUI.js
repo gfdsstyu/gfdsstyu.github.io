@@ -503,27 +503,33 @@ function renderRankingList(rankings) {
       `;
     };
 
-    html += `
-      <div class="${cardClass} rounded-xl p-4 mb-3 transition-all hover:shadow-lg relative">
-        ${myBadge}
+    // 통계를 한 줄로 간략히
+    const totalScoreStr = typeof user.totalScore === 'number' ? user.totalScore.toLocaleString() : user.totalScore;
+    const problemsStr = typeof user.problems === 'number' ? user.problems.toLocaleString() : user.problems;
+    const avgScoreStr = typeof user.avgScore === 'number' && user.avgScore % 1 !== 0 ? user.avgScore.toFixed(1) : user.avgScore;
 
-        <!-- 상단: 순위 + 닉네임 -->
-        <div class="flex items-center gap-4 mb-3">
-          <div class="flex items-center justify-center w-16 flex-shrink-0">
-            ${rankDisplay}
+    html += `
+      <div class="${cardClass} rounded-xl p-3 mb-2 transition-all hover:shadow-lg relative">
+        ${myBadge}
+        <div class="flex items-center gap-3">
+          <!-- 순위 -->
+          <div class="flex items-center justify-center w-12 flex-shrink-0">
+            ${rankDisplay.replace('text-4xl', 'text-3xl').replace('w-12 h-12', 'w-10 h-10').replace('text-lg', 'text-base').replace('text-xl', 'text-lg')}
           </div>
+          <!-- 닉네임 -->
           <div class="flex-1 min-w-0">
-            <div class="${isMe ? 'text-blue-900 dark:text-blue-100' : 'text-gray-900 dark:text-gray-100'} font-bold text-lg truncate">
+            <div class="${isMe ? 'text-blue-900 dark:text-blue-100' : 'text-gray-900 dark:text-gray-100'} font-bold text-base truncate">
               ${user.nickname}
             </div>
           </div>
-        </div>
-
-        <!-- 하단: 통계 (순서: 총점수, 문풀횟수, 평균점수) -->
-        <div class="grid grid-cols-3 gap-2">
-          ${renderStat('📊 총점수', user.totalScore, 'totalScore')}
-          ${renderStat('✍️ 문풀', user.problems, 'problems')}
-          ${renderStat('⭐ 평균', user.avgScore, 'avgScore')}
+          <!-- 통계 (한 줄) -->
+          <div class="text-sm ${isMe ? 'text-blue-700 dark:text-blue-300' : 'text-gray-600 dark:text-gray-400'} flex-shrink-0">
+            <span class="${currentCriteria === 'totalScore' ? 'font-bold text-blue-600 dark:text-blue-400' : ''}">📊 ${totalScoreStr}</span>
+            <span class="mx-1">•</span>
+            <span class="${currentCriteria === 'problems' ? 'font-bold text-blue-600 dark:text-blue-400' : ''}">✍️ ${problemsStr}</span>
+            <span class="mx-1">•</span>
+            <span class="${currentCriteria === 'avgScore' ? 'font-bold text-blue-600 dark:text-blue-400' : ''}">⭐ ${avgScoreStr}</span>
+          </div>
         </div>
       </div>
     `;
@@ -688,28 +694,35 @@ function renderGroupRankings(groupRankings) {
       `;
     };
 
+    // 통계를 한 줄로 간략히
+    const totalScoreStr = typeof group.totalScore === 'number' ? group.totalScore.toLocaleString() : group.totalScore;
+    const problemsStr = typeof group.problems === 'number' ? group.problems.toLocaleString() : group.problems;
+    const avgScoreStr = typeof group.avgScore === 'number' && group.avgScore % 1 !== 0 ? group.avgScore.toFixed(1) : group.avgScore;
+
     html += `
-      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-3 transition-all hover:shadow-lg">
-        <!-- 상단: 순위 + 그룹명 + 인원 -->
-        <div class="flex items-center gap-4 mb-3">
-          <div class="flex items-center justify-center w-16 flex-shrink-0">
-            ${rankDisplay}
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 mb-2 transition-all hover:shadow-lg">
+        <div class="flex items-center gap-3">
+          <!-- 순위 -->
+          <div class="flex items-center justify-center w-12 flex-shrink-0">
+            ${rankDisplay.replace('text-4xl', 'text-3xl').replace('w-12 h-12', 'w-10 h-10').replace('text-lg', 'text-base').replace('text-xl', 'text-lg')}
           </div>
+          <!-- 그룹명 + 인원 -->
           <div class="flex-1 min-w-0">
-            <div class="text-gray-900 dark:text-gray-100 font-bold text-lg truncate">
+            <div class="text-gray-900 dark:text-gray-100 font-bold text-base truncate">
               ${group.groupName}
             </div>
-            <div class="text-gray-600 dark:text-gray-400 text-sm mt-1">
+            <div class="text-gray-600 dark:text-gray-400 text-xs">
               👥 ${group.memberCount}명
             </div>
           </div>
-        </div>
-
-        <!-- 하단: 통계 (순서: 총점수, 문풀횟수, 평균점수) -->
-        <div class="grid grid-cols-3 gap-2">
-          ${renderStat('📊 총점수', group.totalScore, 'totalScore')}
-          ${renderStat('✍️ 문풀', group.problems, 'problems')}
-          ${renderStat('⭐ 평균', group.avgScore, 'avgScore')}
+          <!-- 통계 (한 줄) -->
+          <div class="text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">
+            <span class="${currentCriteria === 'totalScore' ? 'font-bold text-green-600 dark:text-green-400' : ''}">📊 ${totalScoreStr}</span>
+            <span class="mx-1">•</span>
+            <span class="${currentCriteria === 'problems' ? 'font-bold text-green-600 dark:text-green-400' : ''}">✍️ ${problemsStr}</span>
+            <span class="mx-1">•</span>
+            <span class="${currentCriteria === 'avgScore' ? 'font-bold text-green-600 dark:text-green-400' : ''}">⭐ ${avgScoreStr}</span>
+          </div>
         </div>
       </div>
     `;
@@ -885,27 +898,33 @@ function renderIntraGroupRankings(rankings) {
       `;
     };
 
-    html += `
-      <div class="${cardClass} rounded-xl p-4 mb-3 transition-all hover:shadow-lg relative">
-        ${myBadge}
+    // 통계를 한 줄로 간략히
+    const totalScoreStr = typeof user.totalScore === 'number' ? user.totalScore.toLocaleString() : user.totalScore;
+    const problemsStr = typeof user.problems === 'number' ? user.problems.toLocaleString() : user.problems;
+    const avgScoreStr = typeof user.avgScore === 'number' && user.avgScore % 1 !== 0 ? user.avgScore.toFixed(1) : user.avgScore;
 
-        <!-- 상단: 순위 + 닉네임 -->
-        <div class="flex items-center gap-4 mb-3">
-          <div class="flex items-center justify-center w-16 flex-shrink-0">
-            ${rankDisplay}
+    html += `
+      <div class="${cardClass} rounded-xl p-3 mb-2 transition-all hover:shadow-lg relative">
+        ${myBadge}
+        <div class="flex items-center gap-3">
+          <!-- 순위 -->
+          <div class="flex items-center justify-center w-12 flex-shrink-0">
+            ${rankDisplay.replace('text-4xl', 'text-3xl').replace('w-12 h-12', 'w-10 h-10').replace('text-lg', 'text-base').replace('text-xl', 'text-lg')}
           </div>
+          <!-- 닉네임 -->
           <div class="flex-1 min-w-0">
-            <div class="${isMe ? 'text-green-900 dark:text-green-100' : 'text-gray-900 dark:text-gray-100'} font-bold text-lg truncate">
+            <div class="${isMe ? 'text-green-900 dark:text-green-100' : 'text-gray-900 dark:text-gray-100'} font-bold text-base truncate">
               ${user.nickname}
             </div>
           </div>
-        </div>
-
-        <!-- 하단: 통계 (순서: 총점수, 문풀횟수, 평균점수) -->
-        <div class="grid grid-cols-3 gap-2">
-          ${renderStat('📊 총점수', user.totalScore, 'totalScore')}
-          ${renderStat('✍️ 문풀', user.problems, 'problems')}
-          ${renderStat('⭐ 평균', user.avgScore, 'avgScore')}
+          <!-- 통계 (한 줄) -->
+          <div class="text-sm ${isMe ? 'text-green-700 dark:text-green-300' : 'text-gray-600 dark:text-gray-400'} flex-shrink-0">
+            <span class="${currentCriteria === 'totalScore' ? 'font-bold text-green-600 dark:text-green-400' : ''}">📊 ${totalScoreStr}</span>
+            <span class="mx-1">•</span>
+            <span class="${currentCriteria === 'problems' ? 'font-bold text-green-600 dark:text-green-400' : ''}">✍️ ${problemsStr}</span>
+            <span class="mx-1">•</span>
+            <span class="${currentCriteria === 'avgScore' ? 'font-bold text-green-600 dark:text-green-400' : ''}">⭐ ${avgScoreStr}</span>
+          </div>
         </div>
       </div>
     `;
