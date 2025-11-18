@@ -649,8 +649,110 @@ service cloud.firestore {
     }
   }
 }
-```
+```수정(최신 버전)
+rules_version = '2';
 
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
+    }
+
+    // Rankings Collection
+    match /rankings/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+
+    // Groups Collection
+    match /groups/{groupId} {
+      allow read: if isAuthenticated();
+      
+      allow create: if isAuthenticated()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.memberCount == 1;
+      
+      allow update: if isAuthenticated()
+        && (resource.data.ownerId == request.auth.uid
+            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount', 'lastUpdatedAt']));
+      
+      allow delete: if isAuthenticated()
+        && resource.data.ownerId == request.auth.uid;
+
+      // Members Subcollection
+      match /members/{userId} {
+        
+        // 🛑 [수정된 부분] 🛑
+        // 기존: 같은 그룹 멤버만 읽기 허용 (exists(...))
+        // 수정: 본인(isOwner)이거나 또는 같은 그룹 멤버이면 읽기 허용
+        allow read: if isAuthenticated()
+          && (isOwner(userId) // <-- 이 조건 추가: 본인 문서는 항상 읽기 허용
+              || exists(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid)));
+        
+        // 생성: 본인 또는 그룹장 (기존과 동일)
+        allow create: if isAuthenticated()
+          && (request.auth.uid == userId
+              || get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid);
+        
+        // 업데이트: 본인 또는 그룹장 (기존과 동일)
+        allow update: if isAuthenticated()
+          && (request.auth.uid == userId
+              || get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid);
+        
+        // 삭제: 본인 또는 그룹장 (기존과 동일)
+        allow delete: if isAuthenticated()
+          && (request.auth.uid == userId
+              || get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid);
+      }
+    }
+
+    // Group Rankings Collection
+    match /groupRankings/{groupId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+        && exists(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid));
+    }
+
+    // University Verifications Collection (Phase 3.6)
+    match /universityVerifications/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
+    }
+
+    // University Rankings Collection (Phase 3.6)
+    match /universityRankings/{university} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+// ============================================
+    // Mail Collection (Firebase Extensions - Trigger Email)
+    // ============================================
+
+    match /mail/{mailId} {
+      // 생성: 인증된 사용자만 (이메일 발송)
+      allow create: if isAuthenticated();
+
+      // 읽기/업데이트/삭제: Firebase Extensions만 가능 (관리자 권한)
+      allow read, update, delete: if false;
+    }
+    // Default Deny All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
 ---
 
 ## 참고사항
