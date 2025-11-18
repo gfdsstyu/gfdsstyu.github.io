@@ -544,6 +544,47 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('🎓 University UI 초기화 시작...');
   initUniversityUI();
 
+  // 10. EmailJS 설정 저장 이벤트 리스너 (Phase 3.6)
+  const saveEmailJSBtn = document.getElementById('save-emailjs-btn');
+  if (saveEmailJSBtn) {
+    saveEmailJSBtn.addEventListener('click', () => {
+      const serviceId = document.getElementById('emailjs-service-id')?.value.trim();
+      const templateId = document.getElementById('emailjs-template-id')?.value.trim();
+      const publicKey = document.getElementById('emailjs-public-key')?.value.trim();
+
+      if (!serviceId || !templateId || !publicKey) {
+        import('./ui/domUtils.js').then(({ showToast }) => {
+          showToast('모든 EmailJS 설정을 입력하세요.', 'error');
+        });
+        return;
+      }
+
+      // localStorage에 저장
+      const config = { serviceId, templateId, publicKey };
+      localStorage.setItem('emailjs-config', JSON.stringify(config));
+
+      import('./ui/domUtils.js').then(({ showToast }) => {
+        showToast('EmailJS 설정이 저장되었습니다.', 'success');
+      });
+
+      console.log('✅ [EmailJS] 설정 저장 완료');
+    });
+
+    // 페이지 로드 시 기존 설정 불러오기
+    const savedConfig = localStorage.getItem('emailjs-config');
+    if (savedConfig) {
+      try {
+        const { serviceId, templateId, publicKey } = JSON.parse(savedConfig);
+        if (serviceId) document.getElementById('emailjs-service-id').value = serviceId;
+        if (templateId) document.getElementById('emailjs-template-id').value = templateId;
+        if (publicKey) document.getElementById('emailjs-public-key').value = publicKey;
+        console.log('✅ [EmailJS] 저장된 설정 불러오기 완료');
+      } catch (e) {
+        console.error('❌ [EmailJS] 설정 불러오기 실패:', e);
+      }
+    }
+  }
+
   console.log('✅ DOM 엘리먼트 초기화 완료');
   console.log('✅ 임시 브릿지 설정 완료 - index.html 기존 코드와 연동됨');
 
