@@ -893,12 +893,12 @@ function renderRankingList(rankings) {
             </div>
           </div>
           <!-- 통계 (한 줄) -->
-          <div class="text-sm ${isMe ? 'text-gray-800 dark:text-gray-800' : 'text-gray-600 dark:text-gray-400'} flex-shrink-0">
-            <span class="${currentCriteria === 'totalScore' ? 'font-bold text-blue-600 dark:text-blue-400' : ''}">📊 ${totalScoreStr}</span>
+          <div class="text-sm text-blue-600 dark:text-blue-400 flex-shrink-0">
+            <span class="${currentCriteria === 'totalScore' ? 'font-bold' : ''}">📊 ${totalScoreStr}</span>
             <span class="mx-1">•</span>
-            <span class="${currentCriteria === 'problems' ? 'font-bold text-blue-600 dark:text-blue-400' : ''}">✍️ ${problemsStr}</span>
+            <span class="${currentCriteria === 'problems' ? 'font-bold' : ''}">✍️ ${problemsStr}</span>
             <span class="mx-1">•</span>
-            <span class="${currentCriteria === 'avgScore' ? 'font-bold text-blue-600 dark:text-blue-400' : ''}">⭐ ${avgScoreStr}</span>
+            <span class="${currentCriteria === 'avgScore' ? 'font-bold' : ''}">⭐ ${avgScoreStr}</span>
           </div>
         </div>
       </div>
@@ -1085,12 +1085,12 @@ function renderGroupRankings(groupRankings) {
             </div>
           </div>
           <!-- 통계 (한 줄) -->
-          <div class="text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">
-            <span class="${currentCriteria === 'totalScore' ? 'font-bold text-green-600 dark:text-green-400' : ''}">📊 ${totalScoreStr}</span>
+          <div class="text-sm text-green-600 dark:text-green-400 flex-shrink-0">
+            <span class="${currentCriteria === 'totalScore' ? 'font-bold' : ''}">📊 ${totalScoreStr}</span>
             <span class="mx-1">•</span>
-            <span class="${currentCriteria === 'problems' ? 'font-bold text-green-600 dark:text-green-400' : ''}">✍️ ${problemsStr}</span>
+            <span class="${currentCriteria === 'problems' ? 'font-bold' : ''}">✍️ ${problemsStr}</span>
             <span class="mx-1">•</span>
-            <span class="${currentCriteria === 'avgScore' ? 'font-bold text-green-600 dark:text-green-400' : ''}">⭐ ${avgScoreStr}</span>
+            <span class="${currentCriteria === 'avgScore' ? 'font-bold' : ''}">⭐ ${avgScoreStr}</span>
           </div>
         </div>
       </div>
@@ -1286,12 +1286,12 @@ function renderIntraGroupRankings(rankings) {
             </div>
           </div>
           <!-- 통계 (한 줄) -->
-          <div class="text-sm ${isMe ? 'text-gray-800 dark:text-gray-800' : 'text-gray-600 dark:text-gray-400'} flex-shrink-0">
-            <span class="${currentCriteria === 'totalScore' ? 'font-bold text-green-600 dark:text-green-400' : ''}">📊 ${totalScoreStr}</span>
+          <div class="text-sm text-green-600 dark:text-green-400 flex-shrink-0">
+            <span class="${currentCriteria === 'totalScore' ? 'font-bold' : ''}">📊 ${totalScoreStr}</span>
             <span class="mx-1">•</span>
-            <span class="${currentCriteria === 'problems' ? 'font-bold text-green-600 dark:text-green-400' : ''}">✍️ ${problemsStr}</span>
+            <span class="${currentCriteria === 'problems' ? 'font-bold' : ''}">✍️ ${problemsStr}</span>
             <span class="mx-1">•</span>
-            <span class="${currentCriteria === 'avgScore' ? 'font-bold text-green-600 dark:text-green-400' : ''}">⭐ ${avgScoreStr}</span>
+            <span class="${currentCriteria === 'avgScore' ? 'font-bold' : ''}">⭐ ${avgScoreStr}</span>
           </div>
         </div>
       </div>
@@ -1387,12 +1387,12 @@ function renderUniversityRankings(universityRankings) {
             </div>
           </div>
           <!-- 통계 (한 줄) -->
-          <div class="text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">
-            <span class="${currentCriteria === 'totalScore' ? 'font-bold text-purple-600 dark:text-purple-400' : ''}">📊 ${totalScoreStr}</span>
+          <div class="text-sm text-purple-600 dark:text-purple-400 flex-shrink-0">
+            <span class="${currentCriteria === 'totalScore' ? 'font-bold' : ''}">📊 ${totalScoreStr}</span>
             <span class="mx-1">•</span>
-            <span class="${currentCriteria === 'problems' ? 'font-bold text-purple-600 dark:text-purple-400' : ''}">✍️ ${problemsStr}</span>
+            <span class="${currentCriteria === 'problems' ? 'font-bold' : ''}">✍️ ${problemsStr}</span>
             <span class="mx-1">•</span>
-            <span class="${currentCriteria === 'avgScore' ? 'font-bold text-purple-600 dark:text-purple-400' : ''}">⭐ ${avgScoreStr}</span>
+            <span class="${currentCriteria === 'avgScore' ? 'font-bold' : ''}">⭐ ${avgScoreStr}</span>
           </div>
         </div>
       </div>
@@ -1504,12 +1504,12 @@ function renderIntraUniversityRankings(rankings) {
             </div>
           </div>
           <!-- 통계 (한 줄) -->
-          <div class="text-sm ${isMe ? 'text-gray-800 dark:text-gray-800' : 'text-gray-600 dark:text-gray-400'} flex-shrink-0">
-            <span class="${currentCriteria === 'totalScore' ? 'font-bold text-purple-600 dark:text-purple-400' : ''}">📊 ${totalScoreStr}</span>
+          <div class="text-sm text-purple-600 dark:text-purple-400 flex-shrink-0">
+            <span class="${currentCriteria === 'totalScore' ? 'font-bold' : ''}">📊 ${totalScoreStr}</span>
             <span class="mx-1">•</span>
-            <span class="${currentCriteria === 'problems' ? 'font-bold text-purple-600 dark:text-purple-400' : ''}">✍️ ${problemsStr}</span>
+            <span class="${currentCriteria === 'problems' ? 'font-bold' : ''}">✍️ ${problemsStr}</span>
             <span class="mx-1">•</span>
-            <span class="${currentCriteria === 'avgScore' ? 'font-bold text-purple-600 dark:text-purple-400' : ''}">⭐ ${avgScoreStr}</span>
+            <span class="${currentCriteria === 'avgScore' ? 'font-bold' : ''}">⭐ ${avgScoreStr}</span>
           </div>
         </div>
       </div>
