@@ -89,10 +89,17 @@ export async function callGeminiAPI(userAnswer, correctAnswer, apiKey, selectedA
       feedback: String(parsed.feedback || '피드백 없음').trim()
     };
   } catch (err) {
-    // 429 또는 서버 오류 시 재시도
-    if (retries > 0 && (String(err.message).includes('429') || /^서버 오류/.test(String(err.message)))) {
-      await new Promise((r) => setTimeout(r, delay));
-      return callGeminiAPI(userAnswer, correctAnswer, apiKey, selectedAiModel, retries - 1, delay * 1.6);
+    // 429 또는 서버 오류 시 재시도 (503 포함)
+    const is503 = String(err.message).includes('503');
+    const shouldRetry = retries > 0 && (
+      String(err.message).includes('429') ||
+      /^서버 오류/.test(String(err.message))
+    );
+
+    if (shouldRetry) {
+      const retryDelay = is503 ? delay * 2.5 : delay;
+      await new Promise((r) => setTimeout(r, retryDelay));
+      return callGeminiAPI(userAnswer, correctAnswer, apiKey, selectedAiModel, retries - 1, delay * 1.8);
     }
     throw err;
   }
@@ -167,9 +174,16 @@ export async function callGeminiHintAPI(userAnswer, correctAnswer, questionText,
 
     return String(parsed.hint || '').trim();
   } catch (err) {
-    if (retries > 0 && (String(err.message).includes('429') || /^서버 오류/.test(String(err.message)))) {
-      await new Promise((r) => setTimeout(r, delay));
-      return callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, selectedAiModel, retries - 1, delay * 1.6);
+    const is503 = String(err.message).includes('503');
+    const shouldRetry = retries > 0 && (
+      String(err.message).includes('429') ||
+      /^서버 오류/.test(String(err.message))
+    );
+
+    if (shouldRetry) {
+      const retryDelay = is503 ? delay * 2.5 : delay;
+      await new Promise((r) => setTimeout(r, retryDelay));
+      return callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, selectedAiModel, retries - 1, delay * 1.8);
     }
     throw err;
   }
@@ -179,7 +193,7 @@ export async function callGeminiHintAPI(userAnswer, correctAnswer, questionText,
  * Gemini API를 사용하여 범용 텍스트 생성 (리포트 AI 분석 등)
  * @returns {Promise<string>} 생성된 텍스트
  */
-export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemini-2.5-flash', retries = 2, delay = 800) {
+export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemini-2.5-flash', retries = 3, delay = 1500) {
   const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
@@ -217,16 +231,19 @@ export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemin
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     return raw.trim();
   } catch (err) {
-    // 재시도 조건: 429(할당량) 또는 서버 오류(단, 503 제외)
-    // 503 Service Unavailable은 서버 과부하이므로 재시도해도 실패 가능성 높음
+    // 재시도 조건: 429(할당량) 또는 서버 오류(503 포함)
+    // 503 Service Unavailable은 일시적 서비스 과부하이므로 재시도 권장
+    const is503 = String(err.message).includes('503');
     const shouldRetry = retries > 0 && (
       String(err.message).includes('429') ||
-      (/^서버 오류/.test(String(err.message)) && !String(err.message).includes('503'))
+      /^서버 오류/.test(String(err.message))
     );
 
     if (shouldRetry) {
-      await new Promise((r) => setTimeout(r, delay));
-      return callGeminiTextAPI(prompt, apiKey, selectedAiModel, retries - 1, delay * 1.6);
+      // 503의 경우 더 긴 delay 사용 (서버 부하 감소 대기)
+      const retryDelay = is503 ? delay * 2.5 : delay;
+      await new Promise((r) => setTimeout(r, retryDelay));
+      return callGeminiTextAPI(prompt, apiKey, selectedAiModel, retries - 1, delay * 1.8);
     }
     throw err;
   }
