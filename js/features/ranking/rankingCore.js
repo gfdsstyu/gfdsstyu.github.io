@@ -28,7 +28,7 @@ import { getCurrentUser, getNickname } from '../auth/authCore.js';
  * @param {string} period - 'daily', 'weekly', 'monthly'
  * @returns {string} 기간 키 (예: '2025-01-17', '2025-W03', '2025-01')
  */
-function getPeriodKey(period = 'daily') {
+export function getPeriodKey(period = 'daily') {
   const now = new Date();
 
   if (period === 'daily') {
