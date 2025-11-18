@@ -373,6 +373,83 @@ export async function getGroupRankings(period, criteria) {
 }
 
 // ============================================
+// Phase 3.5.4: 그룹 내 랭킹 (Intra-Group Rankings)
+// ============================================
+
+/**
+ * 그룹 내 개인 랭킹 조회
+ * @param {string} groupId - 그룹 ID
+ * @param {string} period - 'daily', 'weekly', 'monthly'
+ * @param {string} criteria - 'totalScore', 'problems', 'avgScore'
+ * @returns {Promise<Array>} 그룹 멤버 랭킹 배열
+ */
+export async function getIntraGroupRankings(groupId, period, criteria) {
+  try {
+    console.log(`📊 [IntraGroupRanking] 그룹 내 랭킹 조회 - groupId: ${groupId}, period: ${period}, criteria: ${criteria}`);
+
+    // 1. 그룹 멤버 목록 조회
+    const membersRef = collection(db, 'groups', groupId, 'members');
+    const membersSnapshot = await getDocs(membersRef);
+
+    if (membersSnapshot.empty) {
+      console.log('❌ [IntraGroupRanking] 그룹 멤버가 없습니다.');
+      return [];
+    }
+
+    const memberUserIds = [];
+    membersSnapshot.forEach(doc => {
+      memberUserIds.push(doc.id); // userId
+    });
+
+    console.log(`📋 [IntraGroupRanking] ${memberUserIds.length}명의 멤버 발견`);
+
+    // 2. rankings 컬렉션에서 각 멤버의 개인 랭킹 데이터 조회
+    const periodKey = getPeriodKey(period);
+    const fieldName = `${period}.${periodKey}`;
+
+    const rankings = [];
+
+    for (const userId of memberUserIds) {
+      const rankingDocRef = doc(db, 'rankings', userId);
+      const rankingDocSnap = await getDoc(rankingDocRef);
+
+      if (!rankingDocSnap.exists()) {
+        continue; // 랭킹 데이터 없으면 제외
+      }
+
+      const rankingData = rankingDocSnap.data();
+      const periodData = rankingData[fieldName];
+
+      if (!periodData) {
+        continue; // 해당 기간 데이터 없으면 제외
+      }
+
+      rankings.push({
+        userId: rankingData.userId || userId,
+        nickname: rankingData.nickname || '익명',
+        totalScore: periodData.totalScore || 0,
+        problems: periodData.problems || 0,
+        avgScore: periodData.avgScore || 0
+      });
+    }
+
+    // 기준에 따라 정렬
+    rankings.sort((a, b) => {
+      const aValue = a[criteria];
+      const bValue = b[criteria];
+      return bValue - aValue;
+    });
+
+    console.log(`✅ [IntraGroupRanking] ${rankings.length}명의 그룹 내 랭킹 데이터 로드 완료`);
+    return rankings;
+
+  } catch (error) {
+    console.error('❌ [IntraGroupRanking] 그룹 내 랭킹 조회 실패:', error);
+    return [];
+  }
+}
+
+// ============================================
 // 전역 노출 (디버깅용)
 // ============================================
 
@@ -383,6 +460,7 @@ if (typeof window !== 'undefined') {
     getMyRanking,
     getPeriodKey,
     updateGroupStats,
-    getGroupRankings
+    getGroupRankings,
+    getIntraGroupRankings
   };
 }
