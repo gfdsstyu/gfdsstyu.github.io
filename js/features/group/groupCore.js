@@ -377,11 +377,12 @@ export async function getGroupInfo(groupId) {
 export async function searchPublicGroups(searchTerm) {
   try {
     const groupsRef = collection(db, 'groups');
+
+    // 복합 인덱스 불필요하도록 단순 쿼리 사용
     const q = query(
       groupsRef,
       where('isPublic', '==', true),
-      orderBy('createdAt', 'desc'),
-      limit(20)
+      limit(50)  // 클라이언트 측에서 정렬하므로 더 많이 가져오기
     );
 
     const snapshot = await getDocs(q);
@@ -403,11 +404,188 @@ export async function searchPublicGroups(searchTerm) {
       );
     }
 
+    // 클라이언트 측 정렬 (최신순)
+    groups.sort((a, b) => {
+      const aTime = a.createdAt?.toMillis?.() || 0;
+      const bTime = b.createdAt?.toMillis?.() || 0;
+      return bTime - aTime;
+    });
+
+    // 최대 20개로 제한
+    groups = groups.slice(0, 20);
+
     console.log(`✅ [Group] 공개 그룹 ${groups.length}개 검색 완료`);
     return groups;
   } catch (error) {
     console.error('❌ [Group] 공개 그룹 검색 실패:', error);
     return [];
+  }
+}
+
+// ============================================
+// Phase 3.5.5: 그룹 관리 기능
+// ============================================
+
+/**
+ * 그룹 설명 수정 (그룹장만 가능)
+ * @param {string} groupId - 그룹 ID
+ * @param {string} newDescription - 새 설명
+ * @returns {Promise<Object>}
+ */
+export async function updateGroupDescription(groupId, newDescription) {
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    return { success: false, message: '로그인이 필요합니다.' };
+  }
+
+  try {
+    const groupDocRef = doc(db, 'groups', groupId);
+    const groupDocSnap = await getDoc(groupDocRef);
+
+    if (!groupDocSnap.exists()) {
+      return { success: false, message: '존재하지 않는 그룹입니다.' };
+    }
+
+    const groupData = groupDocSnap.data();
+
+    // 그룹장 확인
+    if (groupData.ownerId !== currentUser.uid) {
+      return { success: false, message: '그룹장만 수정할 수 있습니다.' };
+    }
+
+    // 설명 업데이트
+    await updateDoc(groupDocRef, {
+      description: newDescription.trim(),
+      lastUpdatedAt: serverTimestamp()
+    });
+
+    console.log('✅ [Group] 그룹 설명 업데이트 완료:', groupId);
+    return {
+      success: true,
+      message: '그룹 설명이 수정되었습니다.'
+    };
+  } catch (error) {
+    console.error('❌ [Group] 그룹 설명 업데이트 실패:', error);
+    return {
+      success: false,
+      message: `설명 수정 실패: ${error.message}`
+    };
+  }
+}
+
+/**
+ * 그룹 멤버 목록 조회
+ * @param {string} groupId - 그룹 ID
+ * @returns {Promise<Array>}
+ */
+export async function getGroupMembers(groupId) {
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    return [];
+  }
+
+  try {
+    const membersRef = collection(db, 'groups', groupId, 'members');
+    const snapshot = await getDocs(membersRef);
+
+    const members = [];
+    for (const memberDoc of snapshot.docs) {
+      const memberData = memberDoc.data();
+
+      // rankings 컬렉션에서 닉네임 가져오기
+      const rankingDocRef = doc(db, 'rankings', memberDoc.id);
+      const rankingDocSnap = await getDoc(rankingDocRef);
+      const nickname = rankingDocSnap.exists() ? rankingDocSnap.data().nickname : '익명';
+
+      members.push({
+        userId: memberDoc.id,
+        nickname: nickname,
+        role: memberData.role,
+        joinedAt: memberData.joinedAt
+      });
+    }
+
+    console.log(`✅ [Group] 그룹 멤버 ${members.length}명 조회 완료`);
+    return members;
+  } catch (error) {
+    console.error('❌ [Group] 그룹 멤버 조회 실패:', error);
+    return [];
+  }
+}
+
+/**
+ * 그룹원 강퇴 (그룹장만 가능)
+ * @param {string} groupId - 그룹 ID
+ * @param {string} targetUserId - 강퇴할 사용자 ID
+ * @returns {Promise<Object>}
+ */
+export async function kickMember(groupId, targetUserId) {
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    return { success: false, message: '로그인이 필요합니다.' };
+  }
+
+  try {
+    const groupDocRef = doc(db, 'groups', groupId);
+    const groupDocSnap = await getDoc(groupDocRef);
+
+    if (!groupDocSnap.exists()) {
+      return { success: false, message: '존재하지 않는 그룹입니다.' };
+    }
+
+    const groupData = groupDocSnap.data();
+
+    // 그룹장 확인
+    if (groupData.ownerId !== currentUser.uid) {
+      return { success: false, message: '그룹장만 강퇴할 수 있습니다.' };
+    }
+
+    // 본인 강퇴 불가
+    if (targetUserId === currentUser.uid) {
+      return { success: false, message: '본인은 강퇴할 수 없습니다.' };
+    }
+
+    // 멤버 확인
+    const memberDocRef = doc(db, 'groups', groupId, 'members', targetUserId);
+    const memberDocSnap = await getDoc(memberDocRef);
+
+    if (!memberDocSnap.exists()) {
+      return { success: false, message: '해당 사용자가 그룹에 없습니다.' };
+    }
+
+    // 멤버 삭제
+    await deleteDoc(memberDocRef);
+
+    // 그룹 멤버 수 감소
+    await updateDoc(groupDocRef, {
+      memberCount: increment(-1)
+    });
+
+    // 사용자 문서에서 그룹 멤버십 삭제
+    const userDocRef = doc(db, 'users', targetUserId);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (userDocSnap.exists()) {
+      const userData = userDocSnap.data();
+      const updatedGroups = { ...userData.groups };
+      delete updatedGroups[groupId];
+
+      await updateDoc(userDocRef, {
+        groups: updatedGroups
+      });
+    }
+
+    console.log('✅ [Group] 그룹원 강퇴 완료:', targetUserId);
+    return {
+      success: true,
+      message: '그룹원을 강퇴했습니다.'
+    };
+  } catch (error) {
+    console.error('❌ [Group] 그룹원 강퇴 실패:', error);
+    return {
+      success: false,
+      message: `강퇴 실패: ${error.message}`
+    };
   }
 }
 
@@ -422,6 +600,9 @@ if (typeof window !== 'undefined') {
     leaveGroup,
     getMyGroups,
     getGroupInfo,
-    searchPublicGroups
+    searchPublicGroups,
+    updateGroupDescription,
+    getGroupMembers,
+    kickMember
   };
 }

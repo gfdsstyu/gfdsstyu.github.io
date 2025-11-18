@@ -731,14 +731,20 @@
       <!-- 메인 탭 -->
       <div class="sticky top-[73px] bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-3 z-10">
         <div class="flex gap-2 overflow-x-auto pb-1">
-          <button class="ranking-main-tab px-6 py-3 rounded-lg text-sm font-bold whitespace-nowrap bg-blue-600 dark:bg-blue-500 text-white" data-tab="global">
+          <button class="ranking-main-tab px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap bg-blue-600 dark:bg-blue-500 text-white" data-tab="global">
             🌍 전체
           </button>
-          <button class="ranking-main-tab px-6 py-3 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-tab="groups">
+          <button class="ranking-main-tab px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-tab="all-groups">
+            📊 전체 그룹
+          </button>
+          <button class="ranking-main-tab px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-tab="all-classes">
+            📚 전체 고시반
+          </button>
+          <button class="ranking-main-tab px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-tab="my-groups">
             👥 내 그룹
           </button>
-          <button class="ranking-main-tab px-6 py-3 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-tab="classes">
-            🎓 내 고시반
+          <button class="ranking-main-tab px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-tab="my-classes">
+            🏛️ 내 고시반
           </button>
         </div>
       </div>
@@ -796,9 +802,9 @@
         </div>
 
         <!-- ======================================== -->
-        <!-- 👥 내 그룹 탭 콘텐츠 -->
+        <!-- 📊 전체 그룹 탭 콘텐츠 -->
         <!-- ======================================== -->
-        <div id="ranking-tab-groups" class="ranking-tab-content hidden">
+        <div id="ranking-tab-all-groups" class="ranking-tab-content hidden">
           <!-- 로그인 필요 안내 -->
           <div id="groups-login-required" class="text-center py-12 text-gray-500 dark:text-gray-400">
             <p class="text-lg mb-2">🔒 로그인이 필요합니다</p>
@@ -848,9 +854,9 @@
         </div>
 
         <!-- ======================================== -->
-        <!-- 🎓 내 고시반 탭 콘텐츠 -->
+        <!-- 📚 전체 고시반 탭 콘텐츠 -->
         <!-- ======================================== -->
-        <div id="ranking-tab-classes" class="ranking-tab-content hidden">
+        <div id="ranking-tab-all-classes" class="ranking-tab-content hidden">
           <!-- 로그인 필요 안내 -->
           <div id="classes-login-required" class="text-center py-12 text-gray-500 dark:text-gray-400">
             <p class="text-lg mb-2">🔒 로그인이 필요합니다</p>
@@ -893,6 +899,63 @@
                 🔍 고시반 찾기
               </button>
             </div>
+          </div>
+        </div>
+
+        <!-- ======================================== -->
+        <!-- 👥 내 그룹 탭 콘텐츠 (그룹 관리) -->
+        <!-- ======================================== -->
+        <div id="ranking-tab-my-groups" class="ranking-tab-content hidden">
+          <!-- 로그인 필요 안내 -->
+          <div id="my-groups-login-required" class="text-center py-12 text-gray-500 dark:text-gray-400">
+            <p class="text-lg mb-2">🔒 로그인이 필요합니다</p>
+            <p class="text-sm">로그인하여 그룹을 관리하세요!</p>
+          </div>
+
+          <!-- 내 그룹 관리 콘텐츠 -->
+          <div id="my-groups-content" class="hidden">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">📋 내가 가입한 그룹 <span id="my-groups-count" class="text-sm font-normal text-gray-500 dark:text-gray-400">(0/3)</span></h3>
+              <div class="flex gap-2">
+                <button onclick="window.GroupUI?.openCreateGroupModal()" class="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white font-bold text-sm rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition">
+                  ➕ 그룹 만들기
+                </button>
+                <button onclick="window.GroupUI?.openSearchGroupModal()" class="px-4 py-2 bg-green-600 dark:bg-green-500 text-white font-bold text-sm rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition">
+                  🔍 그룹 찾기
+                </button>
+              </div>
+            </div>
+
+            <!-- 내 그룹 리스트 -->
+            <div id="my-groups-list" class="space-y-3">
+              <p class="text-center py-8 text-gray-500">로딩 중...</p>
+            </div>
+          </div>
+
+          <!-- 빈 상태 (그룹 미가입) -->
+          <div id="my-groups-empty-state" class="hidden text-center py-16">
+            <div class="text-6xl mb-4">📭</div>
+            <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">가입한 그룹이 없습니다</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">스터디 그룹에 가입하여 함께 공부하세요!</p>
+            <div class="flex gap-3 justify-center">
+              <button onclick="window.GroupUI?.openCreateGroupModal()" class="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+                ➕ 그룹 만들기
+              </button>
+              <button onclick="window.GroupUI?.openSearchGroupModal()" class="px-6 py-3 bg-green-600 dark:bg-green-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+                🔍 그룹 찾기
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================================== -->
+        <!-- 🏛️ 내 고시반 탭 콘텐츠 (고시반 관리) -->
+        <!-- ======================================== -->
+        <div id="ranking-tab-my-classes" class="ranking-tab-content hidden">
+          <div class="text-center py-16">
+            <div class="text-6xl mb-4">🏛️</div>
+            <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">내 고시반 관리</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">준비 중입니다...</p>
           </div>
         </div>
       </div>
