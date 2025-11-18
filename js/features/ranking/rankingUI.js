@@ -374,7 +374,9 @@ async function loadGroupManagementUI(groupId) {
     managementSection.innerHTML = html;
 
     // 그룹원 타일 렌더링 (그룹장 모드)
+    console.log('🔍 [RankingUI] 그룹원 타일 렌더링 시작 - groupId:', groupId, 'groupName:', group.name);
     await renderGroupMembersTiles(groupId, group.name, `group-members-tiles-${groupId}`, true);
+    console.log('✅ [RankingUI] 그룹원 타일 렌더링 완료');
   } catch (error) {
     console.error('❌ [RankingUI] 그룹 관리 UI 로드 실패:', error);
     const managementSection = document.getElementById(`group-management-${groupId}`);
@@ -439,10 +441,13 @@ async function loadGroupMembersViewUI(groupId, groupName) {
  * @param {boolean} isOwner - 그룹장 여부 (강퇴 버튼 표시용)
  */
 async function renderGroupMembersTiles(groupId, groupName, containerId, isOwner) {
+  console.log('🎨 [renderGroupMembersTiles] 호출됨 - groupId:', groupId, 'containerId:', containerId, 'isOwner:', isOwner);
+
   try {
     // 1. 그룹 멤버 기본 정보 로드
     const members = await getGroupMembers(groupId);
     const currentUser = getCurrentUser();
+    console.log('📋 [renderGroupMembersTiles] 멤버 수:', members?.length);
 
     if (!members || members.length === 0) {
       const container = document.getElementById(containerId);
