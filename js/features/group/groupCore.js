@@ -53,7 +53,8 @@ export async function createGroup(groupData) {
     return { success: false, message: '그룹 이름은 최대 30자까지 가능합니다.' };
   }
 
-  if (!password || password.length < 4) {
+  // 비밀번호가 제공된 경우에만 검증
+  if (password && password.trim().length > 0 && password.trim().length < 4) {
     return { success: false, message: '비밀번호는 최소 4자 이상이어야 합니다.' };
   }
 
@@ -71,7 +72,7 @@ export async function createGroup(groupData) {
       groupId: groupId,
       name: name.trim(),
       description: description?.trim() || '',
-      password: password, // TODO: 해싱 필요 (bcrypt 등)
+      password: password?.trim() || '', // 비밀번호 선택사항 (빈 문자열 = 비밀번호 없음)
       ownerId: currentUser.uid,
       createdAt: serverTimestamp(),
       memberCount: 1,
@@ -154,9 +155,11 @@ export async function joinGroup(groupId, password) {
 
     const groupData = groupDocSnap.data();
 
-    // 비밀번호 확인
-    if (groupData.password !== password) {
-      return { success: false, message: '비밀번호가 일치하지 않습니다.' };
+    // 비밀번호 확인 (비밀번호가 설정된 그룹만)
+    if (groupData.password && groupData.password.trim().length > 0) {
+      if (groupData.password !== password) {
+        return { success: false, message: '비밀번호가 일치하지 않습니다.' };
+      }
     }
 
     // 인원 확인
