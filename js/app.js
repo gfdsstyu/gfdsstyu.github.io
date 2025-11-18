@@ -492,6 +492,11 @@ import { initRankingUI } from './features/ranking/rankingUI.js';
 // ============================================
 import { initGroupUI } from './features/group/groupUI.js';
 
+// ============================================
+// 6. [신규] University 모듈 임포트 (Phase 3.6)
+// ============================================
+import { initUniversityUI } from './features/university/universityUI.js';
+
 // 전역 노출 (디버깅 및 콘솔 접근용)
 window.AuthCore = AuthCore;
 window.AuthUI = AuthUI;
@@ -534,6 +539,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // 8. Group UI 초기화 (Phase 3.5)
   console.log('👥 Group UI 초기화 시작...');
   initGroupUI();
+
+  // 9. University UI 초기화 (Phase 3.6)
+  console.log('🎓 University UI 초기화 시작...');
+  initUniversityUI();
 
   console.log('✅ DOM 엘리먼트 초기화 완료');
   console.log('✅ 임시 브릿지 설정 완료 - index.html 기존 코드와 연동됨');

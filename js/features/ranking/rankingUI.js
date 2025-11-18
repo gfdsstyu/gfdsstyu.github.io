@@ -16,6 +16,7 @@ import { getCurrentUser, getNickname } from '../auth/authCore.js';
 import { getMyRanking, getGroupRankings, getIntraGroupRankings } from './rankingCore.js';
 import { getMyGroups, updateGroupDescription, getGroupMembers, kickMember } from '../group/groupCore.js';
 import { handleLeaveGroup } from '../group/groupUI.js';
+import { getMyUniversity, getUniversityRankings, getIntraUniversityRankings } from '../university/universityCore.js';
 import { showToast } from '../../ui/domUtils.js';
 
 // ============================================
@@ -175,26 +176,42 @@ async function updateGroupsTabUI(currentUser) {
 /**
  * 고시반 탭 UI 업데이트
  */
-function updateClassesTabUI(currentUser) {
+async function updateClassesTabUI(currentUser) {
   const loginRequired = document.getElementById('classes-login-required');
+  const verifyRequired = document.getElementById('classes-verify-required');
   const classesContent = document.getElementById('classes-content');
-  const emptyState = document.getElementById('classes-empty-state');
 
   if (!currentUser) {
     // 로그인 안 됨
     loginRequired?.classList.remove('hidden');
+    verifyRequired?.classList.add('hidden');
     classesContent?.classList.add('hidden');
-    emptyState?.classList.add('hidden');
     return;
   }
 
   // 로그인 됨
   loginRequired?.classList.add('hidden');
 
-  // TODO: Phase 3.6에서 실제 고시반 가입 여부 확인
-  // 현재는 빈 상태만 표시
-  classesContent?.classList.add('hidden');
-  emptyState?.classList.remove('hidden');
+  // Phase 3.6: 대학교 인증 여부 확인
+  const universityInfo = await getMyUniversity();
+
+  if (!universityInfo) {
+    // 대학교 미인증
+    verifyRequired?.classList.remove('hidden');
+    classesContent?.classList.add('hidden');
+    return;
+  }
+
+  // 대학교 인증 완료
+  verifyRequired?.classList.add('hidden');
+  classesContent?.classList.remove('hidden');
+
+  // 현재 서브탭에 따라 데이터 로드
+  if (currentClassSubtab === 'class-level') {
+    await loadUniversityLevelRankings();
+  } else if (currentClassSubtab === 'intra-class') {
+    await loadIntraUniversityRankings(universityInfo.university);
+  }
 }
 
 /**
@@ -544,7 +561,7 @@ async function switchGroupSubtab(subtab) {
  * 고시반 서브 탭 전환
  * @param {string} subtab - 'class-level', 'intra-class'
  */
-function switchClassSubtab(subtab) {
+async function switchClassSubtab(subtab) {
   currentClassSubtab = subtab;
 
   // 모든 서브 탭 콘텐츠 숨기기
@@ -566,6 +583,16 @@ function switchClassSubtab(subtab) {
       btn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-200');
     }
   });
+
+  // 데이터 로드
+  if (subtab === 'class-level') {
+    await loadUniversityLevelRankings();
+  } else if (subtab === 'intra-class') {
+    const universityInfo = await getMyUniversity();
+    if (universityInfo) {
+      await loadIntraUniversityRankingsData(universityInfo.university);
+    }
+  }
 }
 
 // ============================================
@@ -1243,6 +1270,225 @@ function renderIntraGroupRankings(rankings) {
   });
 
   intraGroupList.innerHTML = html;
+}
+
+// ============================================
+// Phase 3.6: 대학교별 랭킹
+// ============================================
+
+/**
+ * 대학교별 랭킹 로드 및 표시
+ */
+async function loadUniversityLevelRankings() {
+  const universityLevelList = document.getElementById('university-level-list');
+  if (!universityLevelList) return;
+
+  universityLevelList.innerHTML = '<div class="text-center py-8 text-gray-500">로딩 중...</div>';
+
+  try {
+    const universityRankings = await getUniversityRankings(currentPeriod, currentCriteria);
+
+    if (universityRankings.length === 0) {
+      universityLevelList.innerHTML = `
+        <div class="text-center py-12 text-gray-500 dark:text-gray-400">
+          <p class="text-lg mb-2">📭 아직 대학교 랭킹 데이터가 없습니다.</p>
+          <p class="text-sm">대학교 인증 후 문제를 풀면 랭킹이 집계됩니다!</p>
+        </div>
+      `;
+      return;
+    }
+
+    renderUniversityRankings(universityRankings);
+  } catch (error) {
+    console.error('❌ [RankingUI] 대학교별 랭킹 로드 실패:', error);
+    universityLevelList.innerHTML = `
+      <div class="text-center py-8 text-red-500">
+        <p>대학교 랭킹을 불러오는데 실패했습니다.</p>
+        <p class="text-sm mt-2">${error.message}</p>
+      </div>
+    `;
+  }
+}
+
+/**
+ * 대학교별 랭킹 리스트 렌더링
+ * @param {Array} universityRankings - 대학교 랭킹 배열
+ */
+function renderUniversityRankings(universityRankings) {
+  const universityLevelList = document.getElementById('university-level-list');
+  if (!universityLevelList) return;
+
+  const currentUser = getCurrentUser();
+
+  let html = '';
+
+  universityRankings.forEach((university, index) => {
+    const rank = index + 1;
+
+    // 순위 표시
+    let rankDisplay = '';
+    if (rank === 1) {
+      rankDisplay = '<div class="text-4xl">🥇</div>';
+    } else if (rank === 2) {
+      rankDisplay = '<div class="text-4xl">🥈</div>';
+    } else if (rank === 3) {
+      rankDisplay = '<div class="text-4xl">🥉</div>';
+    } else if (rank <= 10) {
+      rankDisplay = `<div class="w-12 h-12 rounded-full bg-purple-600 dark:bg-purple-500 flex items-center justify-center text-white font-bold text-lg">${rank}</div>`;
+    } else {
+      rankDisplay = `<div class="text-gray-500 dark:text-gray-400 font-bold text-xl">${rank}</div>`;
+    }
+
+    // 통계를 한 줄로 간략히
+    const totalScoreStr = typeof university.totalScore === 'number' ? university.totalScore.toLocaleString() : university.totalScore;
+    const problemsStr = typeof university.problems === 'number' ? university.problems.toLocaleString() : university.problems;
+    const avgScoreStr = typeof university.avgScore === 'number' && university.avgScore % 1 !== 0 ? university.avgScore.toFixed(1) : university.avgScore;
+
+    html += `
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 mb-2 transition-all hover:shadow-lg">
+        <div class="flex items-center gap-3">
+          <!-- 순위 -->
+          <div class="flex items-center justify-center w-12 flex-shrink-0">
+            ${rankDisplay.replace('text-4xl', 'text-3xl').replace('w-12 h-12', 'w-10 h-10').replace('text-lg', 'text-base').replace('text-xl', 'text-lg')}
+          </div>
+          <!-- 대학교명 -->
+          <div class="flex-1 min-w-0">
+            <div class="text-gray-900 dark:text-gray-100 font-bold text-base truncate">
+              🎓 ${university.university}
+            </div>
+          </div>
+          <!-- 통계 (한 줄) -->
+          <div class="text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">
+            <span class="${currentCriteria === 'totalScore' ? 'font-bold text-purple-600 dark:text-purple-400' : ''}">📊 ${totalScoreStr}</span>
+            <span class="mx-1">•</span>
+            <span class="${currentCriteria === 'problems' ? 'font-bold text-purple-600 dark:text-purple-400' : ''}">✍️ ${problemsStr}</span>
+            <span class="mx-1">•</span>
+            <span class="${currentCriteria === 'avgScore' ? 'font-bold text-purple-600 dark:text-purple-400' : ''}">⭐ ${avgScoreStr}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  universityLevelList.innerHTML = html;
+}
+
+// ============================================
+// Phase 3.6: 대학 내 랭킹
+// ============================================
+
+/**
+ * 대학 내 랭킹 데이터 로드
+ * @param {string} university - 대학교 이름
+ */
+async function loadIntraUniversityRankingsData(university) {
+  const intraUniversityList = document.getElementById('intra-university-list');
+  if (!intraUniversityList) return;
+
+  intraUniversityList.innerHTML = '<div class="text-center py-8 text-gray-500 dark:text-gray-400">로딩 중...</div>';
+
+  try {
+    const rankings = await getIntraUniversityRankings(university, currentPeriod, currentCriteria);
+
+    if (rankings.length === 0) {
+      intraUniversityList.innerHTML = `
+        <div class="text-center py-12 text-gray-500 dark:text-gray-400">
+          <p class="text-lg mb-2">📭 아직 랭킹 데이터가 없습니다.</p>
+          <p class="text-sm">같은 대학 사용자들이 문제를 풀면 랭킹이 집계됩니다!</p>
+        </div>
+      `;
+      return;
+    }
+
+    renderIntraUniversityRankings(rankings);
+  } catch (error) {
+    console.error('❌ [RankingUI] 대학 내 랭킹 로드 실패:', error);
+    intraUniversityList.innerHTML = `
+      <div class="text-center py-8 text-red-500 dark:text-red-400">
+        <p>대학 내 랭킹을 불러오는데 실패했습니다.</p>
+        <p class="text-sm mt-2">${error.message}</p>
+      </div>
+    `;
+  }
+}
+
+/**
+ * 대학 내 멤버 랭킹 리스트 렌더링
+ * @param {Array} rankings - 대학 멤버 랭킹 배열
+ */
+function renderIntraUniversityRankings(rankings) {
+  const intraUniversityList = document.getElementById('intra-university-list');
+  if (!intraUniversityList) return;
+
+  const currentUser = getCurrentUser();
+  let html = '';
+
+  rankings.forEach((user, index) => {
+    const rank = index + 1;
+    const isMe = currentUser && user.userId === currentUser.uid;
+
+    // 순위 표시
+    let rankDisplay = '';
+    if (rank === 1) {
+      rankDisplay = '<div class="text-4xl">🥇</div>';
+    } else if (rank === 2) {
+      rankDisplay = '<div class="text-4xl">🥈</div>';
+    } else if (rank === 3) {
+      rankDisplay = '<div class="text-4xl">🥉</div>';
+    } else if (rank <= 10) {
+      rankDisplay = `<div class="w-12 h-12 rounded-full bg-purple-600 dark:bg-purple-500 flex items-center justify-center text-white font-bold text-lg">${rank}</div>`;
+    } else {
+      rankDisplay = `<div class="text-gray-500 dark:text-gray-400 font-bold text-xl">${rank}</div>`;
+    }
+
+    // 내 순위 강조
+    let cardClass = '';
+    let myBadge = '';
+
+    if (isMe) {
+      cardClass = 'bg-purple-100 dark:bg-purple-900/50 border-2 border-purple-600 dark:border-purple-400 shadow-lg';
+      myBadge = `
+        <div class="absolute top-2 right-2 bg-purple-600 dark:bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+          ⭐ 내 순위
+        </div>
+      `;
+    } else {
+      cardClass = 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700';
+    }
+
+    // 통계를 한 줄로 간략히
+    const totalScoreStr = typeof user.totalScore === 'number' ? user.totalScore.toLocaleString() : user.totalScore;
+    const problemsStr = typeof user.problems === 'number' ? user.problems.toLocaleString() : user.problems;
+    const avgScoreStr = typeof user.avgScore === 'number' && user.avgScore % 1 !== 0 ? user.avgScore.toFixed(1) : user.avgScore;
+
+    html += `
+      <div class="${cardClass} rounded-xl p-3 mb-2 transition-all hover:shadow-lg relative">
+        ${myBadge}
+        <div class="flex items-center gap-3">
+          <!-- 순위 -->
+          <div class="flex items-center justify-center w-12 flex-shrink-0">
+            ${rankDisplay.replace('text-4xl', 'text-3xl').replace('w-12 h-12', 'w-10 h-10').replace('text-lg', 'text-base').replace('text-xl', 'text-lg')}
+          </div>
+          <!-- 닉네임 -->
+          <div class="flex-1 min-w-0">
+            <div class="${isMe ? 'text-purple-900 dark:text-purple-100' : 'text-gray-900 dark:text-gray-100'} font-bold text-base truncate">
+              ${user.nickname}
+            </div>
+          </div>
+          <!-- 통계 (한 줄) -->
+          <div class="text-sm ${isMe ? 'text-purple-700 dark:text-purple-300' : 'text-gray-600 dark:text-gray-400'} flex-shrink-0">
+            <span class="${currentCriteria === 'totalScore' ? 'font-bold text-purple-600 dark:text-purple-400' : ''}">📊 ${totalScoreStr}</span>
+            <span class="mx-1">•</span>
+            <span class="${currentCriteria === 'problems' ? 'font-bold text-purple-600 dark:text-purple-400' : ''}">✍️ ${problemsStr}</span>
+            <span class="mx-1">•</span>
+            <span class="${currentCriteria === 'avgScore' ? 'font-bold text-purple-600 dark:text-purple-400' : ''}">⭐ ${avgScoreStr}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  intraUniversityList.innerHTML = html;
 }
 
 // ============================================

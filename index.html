@@ -806,7 +806,7 @@
         <!-- ======================================== -->
         <div id="ranking-tab-all-groups" class="ranking-tab-content hidden">
           <!-- 로그인 필요 안내 -->
-          <div id="groups-login-required" class="text-center py-12 text-gray-500 dark:text-gray-400">
+          <div id="groups-login-required" class="hidden text-center py-12 text-gray-500 dark:text-gray-400">
             <p class="text-lg mb-2">🔒 로그인이 필요합니다</p>
             <p class="text-sm">로그인하여 그룹 기능을 이용하세요!</p>
           </div>
@@ -858,12 +858,22 @@
         <!-- ======================================== -->
         <div id="ranking-tab-all-classes" class="ranking-tab-content hidden">
           <!-- 로그인 필요 안내 -->
-          <div id="classes-login-required" class="text-center py-12 text-gray-500 dark:text-gray-400">
+          <div id="classes-login-required" class="hidden text-center py-12 text-gray-500 dark:text-gray-400">
             <p class="text-lg mb-2">🔒 로그인이 필요합니다</p>
             <p class="text-sm">로그인하여 고시반 기능을 이용하세요!</p>
           </div>
 
-          <!-- 고시반 가입 시 표시될 콘텐츠 -->
+          <!-- 대학 이메일 인증 필요 안내 -->
+          <div id="classes-verify-required" class="hidden text-center py-12">
+            <div class="text-6xl mb-4">🎓</div>
+            <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">대학교 이메일 인증이 필요합니다</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">대학교 이메일을 인증하여 고시반 랭킹에 참여하세요!</p>
+            <button onclick="window.UniversityUI?.openVerifyModal()" class="px-6 py-3 bg-purple-600 dark:bg-purple-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+              ✉️ 이메일 인증하기
+            </button>
+          </div>
+
+          <!-- 고시반 콘텐츠 (인증 완료 후) -->
           <div id="classes-content" class="hidden">
             <!-- 서브 탭 (반별 / 반내) -->
             <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
@@ -875,14 +885,18 @@
               </button>
             </div>
 
-            <!-- 반별 랭킹 콘텐츠 -->
+            <!-- 반별 랭킹 콘텐츠 (대학교별) -->
             <div id="class-level-content" class="ranking-class-subtab-content">
-              <p class="text-center text-gray-500 dark:text-gray-400 py-8">반별 랭킹 (구현 예정)</p>
+              <div id="university-level-list" class="mt-4">
+                <p class="text-center text-gray-500 dark:text-gray-400 py-8">로딩 중...</p>
+              </div>
             </div>
 
-            <!-- 반 내 랭킹 콘텐츠 -->
+            <!-- 반 내 랭킹 콘텐츠 (대학 내 개인) -->
             <div id="intra-class-content" class="ranking-class-subtab-content hidden">
-              <p class="text-center text-gray-500 dark:text-gray-400 py-8">반 내 랭킹 (구현 예정)</p>
+              <div id="intra-university-list" class="mt-4">
+                <p class="text-center text-gray-500 dark:text-gray-400 py-8">로딩 중...</p>
+              </div>
             </div>
           </div>
 
@@ -907,7 +921,7 @@
         <!-- ======================================== -->
         <div id="ranking-tab-my-groups" class="ranking-tab-content hidden">
           <!-- 로그인 필요 안내 -->
-          <div id="my-groups-login-required" class="text-center py-12 text-gray-500 dark:text-gray-400">
+          <div id="my-groups-login-required" class="hidden text-center py-12 text-gray-500 dark:text-gray-400">
             <p class="text-lg mb-2">🔒 로그인이 필요합니다</p>
             <p class="text-sm">로그인하여 그룹을 관리하세요!</p>
           </div>
@@ -1101,6 +1115,89 @@
         <!-- 그룹 리스트 -->
         <div id="search-group-list" class="space-y-3">
           <div class="text-center py-8 text-gray-500">로딩 중...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================== -->
+  <!-- Phase 3.6: 대학교 이메일 인증 모달 -->
+  <!-- ======================================== -->
+  <div id="university-verify-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1004] p-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="university-verify-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+      <!-- 헤더 -->
+      <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <h2 id="university-verify-title" class="text-2xl font-bold">🎓 대학교 이메일 인증</h2>
+        <button id="university-verify-close-btn" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl leading-none" aria-label="닫기">×</button>
+      </div>
+
+      <!-- 콘텐츠 -->
+      <div class="p-6">
+        <!-- 인증 안내 -->
+        <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+          <p class="text-sm text-blue-900 dark:text-blue-100 font-medium mb-2">📌 인증 안내</p>
+          <ul class="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
+            <li>대학교 이메일(@ac.kr 등)로 인증합니다</li>
+            <li>인증은 한 번만 가능하며 변경 불가합니다</li>
+            <li>인증 후 고시반 랭킹에 참여할 수 있습니다</li>
+          </ul>
+        </div>
+
+        <!-- 인증 폼 -->
+        <form id="university-verify-form" class="space-y-4">
+          <div>
+            <label for="university-email" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">대학교 이메일</label>
+            <input
+              type="email"
+              id="university-email"
+              class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="example@university.ac.kr"
+              required
+            />
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">학교 이메일 주소를 입력하세요</p>
+          </div>
+
+          <div class="flex gap-3">
+            <button
+              type="submit"
+              id="university-verify-submit-btn"
+              class="flex-1 px-6 py-3 bg-purple-600 dark:bg-purple-500 text-white font-bold rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition"
+            >
+              ✉️ 인증 메일 발송
+            </button>
+            <button
+              type="button"
+              onclick="window.UniversityUI?.closeVerifyModal();"
+              class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+            >
+              취소
+            </button>
+          </div>
+        </form>
+
+        <!-- 인증 코드 입력 (메일 발송 후 표시) -->
+        <div id="verification-code-section" class="hidden mt-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
+          <p class="text-sm text-green-900 dark:text-green-100 font-medium mb-4">✅ 인증 메일이 발송되었습니다!</p>
+          <form id="verification-code-form" class="space-y-3">
+            <div>
+              <label for="verification-code" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">인증 코드</label>
+              <input
+                type="text"
+                id="verification-code"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="6자리 인증 코드 입력"
+                maxlength="6"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              id="verification-code-submit-btn"
+              class="w-full px-6 py-3 bg-green-600 dark:bg-green-500 text-white font-bold rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition"
+            >
+              인증 완료
+            </button>
+          </form>
         </div>
       </div>
     </div>
