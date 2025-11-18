@@ -142,6 +142,18 @@ service cloud.firestore {
     }
 
     // ============================================
+    // Mail Collection (Firebase Extensions - Trigger Email)
+    // ============================================
+
+    match /mail/{mailId} {
+      // 생성: 인증된 사용자만 (이메일 발송)
+      allow create: if isAuthenticated();
+
+      // 읽기/업데이트/삭제: Firebase Extensions만 가능 (관리자 권한)
+      allow read, update, delete: if false;
+    }
+
+    // ============================================
     // Default Deny All
     // ============================================
 
@@ -185,6 +197,11 @@ service cloud.firestore {
 - **읽기**: 모든 인증된 사용자 (랭킹 조회용)
 - **쓰기**: 모든 인증된 사용자 (대학교별 통계 업데이트)
 
+### 8. Mail Collection (Firebase Extensions)
+- **생성**: 인증된 사용자만 가능 (이메일 발송 요청)
+- **읽기/업데이트/삭제**: 차단 (Firebase Extensions만 접근)
+- Firebase Extensions "Trigger Email from Firestore" 사용
+
 ## ⚡ 적용 후 테스트
 
 규칙 적용 후 다음 기능들이 정상 작동하는지 확인하세요:
@@ -208,7 +225,67 @@ service cloud.firestore {
 - **데이터 검증**: 클라이언트 측 검증만 있으므로, 중요한 로직은 Cloud Functions 사용 권장
 - **속도 제한**: Firebase App Check 사용 권장
 
+## 📧 Firebase Extensions 설정 (이메일 발송)
+
+대학교 이메일 인증 기능을 사용하려면 **Firebase Extensions "Trigger Email from Firestore"**를 설치해야 합니다.
+
+### 1. Firebase Extensions 설치
+
+1. [Firebase Console](https://console.firebase.google.com/) 접속
+2. 프로젝트 선택
+3. 좌측 메뉴 → **Extensions** (확장 프로그램) 클릭
+4. **"Browse extensions"** 또는 **"확장 프로그램 탐색"** 클릭
+5. **"Trigger Email from Firestore"** 검색
+6. **설치(Install)** 클릭
+
+### 2. Extensions 설정
+
+설치 과정에서 다음 정보를 입력합니다:
+
+**SMTP 설정 (Gmail 예시):**
+- **SMTP connection URI**: `smtps://YOUR_EMAIL@gmail.com:YOUR_APP_PASSWORD@smtp.gmail.com:465`
+- **Email documents collection**: `mail` (기본값)
+- **Default FROM address**: `your-email@gmail.com`
+
+**Gmail App Password 생성 방법:**
+1. Google 계정 → 보안 → 2단계 인증 활성화
+2. 앱 비밀번호 생성 ([https://myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords))
+3. "메일" 앱 선택 → 생성
+4. 생성된 16자리 비밀번호 복사
+
+### 3. 다른 이메일 제공자 SMTP 설정
+
+**SendGrid:**
+```
+smtps://apikey:YOUR_API_KEY@smtp.sendgrid.net:465
+```
+
+**Outlook/Hotmail:**
+```
+smtps://YOUR_EMAIL@outlook.com:YOUR_PASSWORD@smtp.office365.com:587
+```
+
+**Custom SMTP:**
+```
+smtps://username:password@smtp.yourdomain.com:465
+```
+
+### 4. 설치 후 테스트
+
+Extensions 설치 후:
+1. Firestore → `mail` 컬렉션 확인
+2. 대학교 이메일 인증 기능 테스트
+3. `mail` 컬렉션에 문서가 생성되고 `delivery.state: "SUCCESS"` 확인
+
+### ⚠️ 중요 사항
+
+- Extensions 설치 없이는 이메일 발송이 작동하지 않습니다
+- SMTP 인증 정보는 안전하게 보관하세요
+- Gmail의 경우 2단계 인증 + 앱 비밀번호 필수
+- 일일 발송 한도 확인 (Gmail 무료: 500통/일)
+
 ## 📚 참고 자료
 
 - [Firestore 보안 규칙 공식 문서](https://firebase.google.com/docs/firestore/security/get-started)
 - [보안 규칙 테스트 도구](https://firebase.google.com/docs/rules/emulator-setup)
+- [Firebase Extensions - Trigger Email](https://firebase.google.com/products/extensions/firestore-send-email)

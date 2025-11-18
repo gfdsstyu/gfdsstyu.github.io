@@ -124,6 +124,18 @@ service cloud.firestore {
     }
 
     // ============================================
+    // Mail Collection (Firebase Extensions - Trigger Email)
+    // ============================================
+
+    match /mail/{mailId} {
+      // 생성: 인증된 사용자만 (이메일 발송)
+      allow create: if isAuthenticated();
+
+      // 읽기/업데이트/삭제: Firebase Extensions만 가능 (관리자 권한)
+      allow read, update, delete: if false;
+    }
+
+    // ============================================
     // Default Deny All
     // ============================================
 

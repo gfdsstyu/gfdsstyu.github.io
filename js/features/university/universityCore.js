@@ -236,9 +236,9 @@ export async function sendVerificationEmail(email) {
 
     console.log(`📧 [University] 인증 코드 생성: ${verificationCode} (${email})`);
 
-    // 5. EmailJS로 이메일 발송
+    // 5. Firebase를 통한 이메일 발송
     try {
-      await sendEmailViaEmailJS(email, verificationCode, university);
+      await sendEmailViaFirebase(email, verificationCode, university);
       console.log(`✅ [University] 인증 메일 발송 완료: ${email}`);
 
       return {
@@ -250,7 +250,7 @@ export async function sendVerificationEmail(email) {
       console.error('❌ [University] 이메일 발송 실패:', emailError);
       return {
         success: false,
-        message: `이메일 발송 실패: ${emailError.message}. EmailJS 설정을 확인하세요.`
+        message: `이메일 발송 실패: ${emailError.message}. Firebase Extensions 설정을 확인하세요.`
       };
     }
 
@@ -264,41 +264,87 @@ export async function sendVerificationEmail(email) {
 }
 
 /**
- * EmailJS로 이메일 발송
+ * Firebase를 통한 이메일 발송
+ * (Firebase Extensions "Trigger Email from Firestore" 사용)
  * @param {string} toEmail - 수신자 이메일
  * @param {string} code - 인증 코드
  * @param {string} university - 대학교 이름
  * @returns {Promise<void>}
  */
-async function sendEmailViaEmailJS(toEmail, code, university) {
-  // EmailJS 설정 가져오기
-  const emailjsConfig = localStorage.getItem('emailjs-config');
-  if (!emailjsConfig) {
-    throw new Error('EmailJS 설정이 없습니다. 설정 메뉴에서 EmailJS를 설정하세요.');
-  }
+async function sendEmailViaFirebase(toEmail, code, university) {
+  // Firebase Extensions의 'mail' 컬렉션에 문서 추가
+  // Extensions가 자동으로 이메일 발송
+  const mailRef = collection(db, 'mail');
 
-  const { serviceId, templateId, publicKey } = JSON.parse(emailjsConfig);
+  await setDoc(doc(mailRef), {
+    to: toEmail,
+    message: {
+      subject: `[코테공부] ${university} 이메일 인증 코드`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: 'Malgun Gothic', sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: white; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
+            .code-box { background: #f5f5f5; border: 2px dashed #667eea; padding: 20px; margin: 20px 0; text-align: center; border-radius: 8px; }
+            .code { font-size: 32px; font-weight: bold; color: #667eea; letter-spacing: 5px; font-family: 'Courier New', monospace; }
+            .footer { background: #f9f9f9; padding: 20px; text-align: center; font-size: 12px; color: #666; border-radius: 0 0 10px 10px; }
+            .warning { color: #e74c3c; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🎓 대학교 이메일 인증</h1>
+            </div>
+            <div class="content">
+              <p>안녕하세요!</p>
+              <p><strong>${university}</strong> 이메일 인증을 요청하셨습니다.</p>
+              <p>아래 인증 코드를 입력하여 인증을 완료해주세요:</p>
 
-  if (!serviceId || !templateId || !publicKey) {
-    throw new Error('EmailJS 설정이 불완전합니다. Service ID, Template ID, Public Key를 모두 설정하세요.');
-  }
+              <div class="code-box">
+                <div class="code">${code}</div>
+              </div>
 
-  // EmailJS 초기화
-  if (typeof emailjs === 'undefined') {
-    throw new Error('EmailJS 라이브러리가 로드되지 않았습니다.');
-  }
+              <p class="warning">⚠️ 이 인증 코드는 10분간 유효합니다.</p>
+              <p style="color: #666; font-size: 14px;">
+                본인이 요청하지 않은 경우, 이 이메일을 무시하셔도 됩니다.
+              </p>
+            </div>
+            <div class="footer">
+              <p>이 메일은 발신 전용입니다.</p>
+              <p>© 2025 코테공부. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+[코테공부] ${university} 이메일 인증
 
-  emailjs.init(publicKey);
+안녕하세요!
 
-  // 이메일 발송
-  const templateParams = {
-    to_email: toEmail,
-    university: university,
-    verification_code: code,
-    expire_minutes: '10'
-  };
+${university} 이메일 인증을 요청하셨습니다.
+아래 인증 코드를 입력하여 인증을 완료해주세요:
 
-  await emailjs.send(serviceId, templateId, templateParams);
+인증 코드: ${code}
+
+⚠️ 이 인증 코드는 10분간 유효합니다.
+
+본인이 요청하지 않은 경우, 이 이메일을 무시하셔도 됩니다.
+
+---
+이 메일은 발신 전용입니다.
+© 2025 코테공부. All rights reserved.
+      `
+    }
+  });
+
+  console.log(`✅ [University] Firebase mail 컬렉션에 이메일 문서 추가 완료`);
 }
 
 /**
