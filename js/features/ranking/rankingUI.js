@@ -66,9 +66,6 @@ export async function openRankingModal() {
   currentClassSubtab = 'class-level';
   switchMainTab('global');
 
-  // 내 통계 업데이트 (전체 탭 전용)
-  await updateMyStatsDisplay();
-
   // 랭킹 리스트 로드 (전체 탭 전용)
   await loadRankings();
 }
@@ -805,9 +802,9 @@ function renderRankingList(rankings) {
     if (isMe) {
       cardClass = 'bg-blue-100 dark:bg-blue-900/50 border-2 border-blue-600 dark:border-blue-400 shadow-lg';
       myBadge = `
-        <div class="absolute top-2 right-2 bg-blue-600 dark:bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+        <span class="ml-2 bg-blue-600 dark:bg-blue-500 text-white px-2 py-0.5 rounded-full text-xs font-bold">
           ⭐ 내 순위
-        </div>
+        </span>
       `;
     } else {
       cardClass = 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700';
@@ -848,8 +845,7 @@ function renderRankingList(rankings) {
     const avgScoreStr = typeof user.avgScore === 'number' && user.avgScore % 1 !== 0 ? user.avgScore.toFixed(1) : user.avgScore;
 
     html += `
-      <div class="${cardClass} rounded-xl p-3 mb-2 transition-all hover:shadow-lg relative">
-        ${myBadge}
+      <div class="${cardClass} rounded-xl p-3 mb-2 transition-all hover:shadow-lg">
         <div class="flex items-center gap-3">
           <!-- 순위 -->
           <div class="flex items-center justify-center w-12 flex-shrink-0">
@@ -857,8 +853,8 @@ function renderRankingList(rankings) {
           </div>
           <!-- 닉네임 -->
           <div class="flex-1 min-w-0">
-            <div class="${isMe ? 'text-blue-900 dark:text-blue-100' : 'text-gray-900 dark:text-gray-100'} font-bold text-base truncate">
-              ${user.nickname}
+            <div class="${isMe ? 'text-blue-900 dark:text-blue-100' : 'text-gray-900 dark:text-gray-100'} font-bold text-base truncate flex items-center">
+              ${user.nickname}${myBadge}
             </div>
           </div>
           <!-- 통계 (한 줄) -->
@@ -912,7 +908,6 @@ async function changePeriod(period) {
   });
 
   // 데이터 다시 로드
-  await updateMyStatsDisplay();
   await loadRankings();
 }
 
@@ -1201,9 +1196,9 @@ function renderIntraGroupRankings(rankings) {
     if (isMe) {
       cardClass = 'bg-green-100 dark:bg-green-900/50 border-2 border-green-600 dark:border-green-400 shadow-lg';
       myBadge = `
-        <div class="absolute top-2 right-2 bg-green-600 dark:bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+        <span class="ml-2 bg-green-600 dark:bg-green-500 text-white px-2 py-0.5 rounded-full text-xs font-bold">
           ⭐ 내 순위
-        </div>
+        </span>
       `;
     } else {
       cardClass = 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700';
@@ -1243,8 +1238,7 @@ function renderIntraGroupRankings(rankings) {
     const avgScoreStr = typeof user.avgScore === 'number' && user.avgScore % 1 !== 0 ? user.avgScore.toFixed(1) : user.avgScore;
 
     html += `
-      <div class="${cardClass} rounded-xl p-3 mb-2 transition-all hover:shadow-lg relative">
-        ${myBadge}
+      <div class="${cardClass} rounded-xl p-3 mb-2 transition-all hover:shadow-lg">
         <div class="flex items-center gap-3">
           <!-- 순위 -->
           <div class="flex items-center justify-center w-12 flex-shrink-0">
@@ -1252,8 +1246,8 @@ function renderIntraGroupRankings(rankings) {
           </div>
           <!-- 닉네임 -->
           <div class="flex-1 min-w-0">
-            <div class="${isMe ? 'text-green-900 dark:text-green-100' : 'text-gray-900 dark:text-gray-100'} font-bold text-base truncate">
-              ${user.nickname}
+            <div class="${isMe ? 'text-green-900 dark:text-green-100' : 'text-gray-900 dark:text-gray-100'} font-bold text-base truncate flex items-center">
+              ${user.nickname}${myBadge}
             </div>
           </div>
           <!-- 통계 (한 줄) -->
@@ -1448,9 +1442,9 @@ function renderIntraUniversityRankings(rankings) {
     if (isMe) {
       cardClass = 'bg-purple-100 dark:bg-purple-900/50 border-2 border-purple-600 dark:border-purple-400 shadow-lg';
       myBadge = `
-        <div class="absolute top-2 right-2 bg-purple-600 dark:bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+        <span class="ml-2 bg-purple-600 dark:bg-purple-500 text-white px-2 py-0.5 rounded-full text-xs font-bold">
           ⭐ 내 순위
-        </div>
+        </span>
       `;
     } else {
       cardClass = 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700';
@@ -1462,8 +1456,7 @@ function renderIntraUniversityRankings(rankings) {
     const avgScoreStr = typeof user.avgScore === 'number' && user.avgScore % 1 !== 0 ? user.avgScore.toFixed(1) : user.avgScore;
 
     html += `
-      <div class="${cardClass} rounded-xl p-3 mb-2 transition-all hover:shadow-lg relative">
-        ${myBadge}
+      <div class="${cardClass} rounded-xl p-3 mb-2 transition-all hover:shadow-lg">
         <div class="flex items-center gap-3">
           <!-- 순위 -->
           <div class="flex items-center justify-center w-12 flex-shrink-0">
@@ -1471,8 +1464,8 @@ function renderIntraUniversityRankings(rankings) {
           </div>
           <!-- 닉네임 -->
           <div class="flex-1 min-w-0">
-            <div class="${isMe ? 'text-purple-900 dark:text-purple-100' : 'text-gray-900 dark:text-gray-100'} font-bold text-base truncate">
-              ${user.nickname}
+            <div class="${isMe ? 'text-purple-900 dark:text-purple-100' : 'text-gray-900 dark:text-gray-100'} font-bold text-base truncate flex items-center">
+              ${user.nickname}${myBadge}
             </div>
           </div>
           <!-- 통계 (한 줄) -->
