@@ -509,7 +509,7 @@ export async function getGroupInfo(groupId) {
 }
 
 /**
- * 공개 그룹 검색
+ * 그룹 검색 (공개 + 비공개 모두)
  * @param {string} searchTerm - 검색어
  * @returns {Promise<Array>}
  */
@@ -517,10 +517,9 @@ export async function searchPublicGroups(searchTerm) {
   try {
     const groupsRef = collection(db, 'groups');
 
-    // 복합 인덱스 불필요하도록 단순 쿼리 사용
+    // 모든 그룹 조회 (비밀번호 설정된 그룹도 포함)
     const q = query(
       groupsRef,
-      where('isPublic', '==', true),
       limit(50)  // 클라이언트 측에서 정렬하므로 더 많이 가져오기
     );
 
@@ -553,10 +552,10 @@ export async function searchPublicGroups(searchTerm) {
     // 최대 20개로 제한
     groups = groups.slice(0, 20);
 
-    console.log(`✅ [Group] 공개 그룹 ${groups.length}개 검색 완료`);
+    console.log(`✅ [Group] 그룹 ${groups.length}개 검색 완료 (공개 + 비공개)`);
     return groups;
   } catch (error) {
-    console.error('❌ [Group] 공개 그룹 검색 실패:', error);
+    console.error('❌ [Group] 그룹 검색 실패:', error);
     return [];
   }
 }
