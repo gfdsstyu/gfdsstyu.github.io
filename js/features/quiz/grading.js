@@ -11,6 +11,7 @@ import { getCurrentUser } from '../auth/authCore.js';
 import { syncToFirestore } from '../sync/syncCore.js';
 import { updateUserStats, updateGroupStats } from '../ranking/rankingCore.js';
 import { getMyGroups } from '../group/groupCore.js';
+import { updateUniversityStats } from '../university/universityCore.js';
 import {
   getElements,
   getCurrentQuizData,
@@ -328,6 +329,20 @@ export async function handleGrade() {
         })
         .catch(err => {
           console.error('   - ❌ 그룹 목록 조회 에러:', err);
+        });
+
+      // Phase 3.6: 대학교 랭킹 통계 업데이트
+      console.log('🎓 [Grading] 대학교 랭킹 통계 업데이트 시작...');
+      updateUniversityStats(currentUser.uid, finalScore)
+        .then(result => {
+          if (result.success) {
+            console.log('   - ✅ 대학교 통계 업데이트 성공');
+          } else {
+            console.log(`   - ℹ️ 대학교 통계 업데이트: ${result.message}`);
+          }
+        })
+        .catch(err => {
+          console.error('   - ❌ 대학교 통계 업데이트 에러:', err);
         });
     }
 
