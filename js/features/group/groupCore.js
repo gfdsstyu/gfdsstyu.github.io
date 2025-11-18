@@ -250,9 +250,15 @@ export async function joinGroup(groupId, password) {
     };
   } catch (error) {
     console.error('❌ [Group] 그룹 가입 실패:', error);
+
+    let errorMessage = `그룹 가입 실패: ${error.message}`;
+    if (error?.code === 'permission-denied' || error?.message?.includes('Missing or insufficient permissions')) {
+      errorMessage = '그룹 가입 권한이 없습니다. Firebase 콘솔에서 Firestore 보안 규칙을 최신 상태로 업데이트했는지 확인하세요. (프로젝트의 FIRESTORE_RULES.md 참고)';
+    }
+
     return {
       success: false,
-      message: `그룹 가입 실패: ${error.message}`
+      message: errorMessage
     };
   }
 }
