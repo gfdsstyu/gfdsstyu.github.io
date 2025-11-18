@@ -429,13 +429,29 @@ async function renderGroupMembersManagement(groupId, isOwner) {
         const dailyKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         const weekKey = getWeekKey(today);
 
-        if (rankingData.daily && rankingData.daily[dailyKey]) {
-          dailyProblems = rankingData.daily[dailyKey].problems || 0;
-          dailyScore = rankingData.daily[dailyKey].totalScore || 0;
+        // Flat field structure 접근 (예: rankingData['daily.2025-01-18'])
+        const dailyFieldName = `daily.${dailyKey}`;
+        const weeklyFieldName = `weekly.${weekKey}`;
+
+        const dailyData = rankingData[dailyFieldName];
+        const weeklyData = rankingData[weeklyFieldName];
+
+        console.log(`🔍 [GroupMembers] ${member.nickname} (${member.userId}):`, {
+          dailyKey,
+          weekKey,
+          dailyFieldName,
+          weeklyFieldName,
+          dailyData,
+          weeklyData
+        });
+
+        if (dailyData) {
+          dailyProblems = dailyData.problems || 0;
+          dailyScore = dailyData.totalScore || 0;
         }
-        if (rankingData.weekly && rankingData.weekly[weekKey]) {
-          weeklyProblems = rankingData.weekly[weekKey].problems || 0;
-          weeklyScore = rankingData.weekly[weekKey].totalScore || 0;
+        if (weeklyData) {
+          weeklyProblems = weeklyData.problems || 0;
+          weeklyScore = weeklyData.totalScore || 0;
         }
       }
 
