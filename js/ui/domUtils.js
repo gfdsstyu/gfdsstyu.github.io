@@ -146,8 +146,9 @@ export function closeDrawer() {
  * @param {string} contentId - 컨텐츠 영역 ID
  * @param {string} iconId - 아이콘 ID
  * @param {string} storageKey - localStorage 키
+ * @param {Function} onExpand - 펼칠 때 실행할 콜백 함수 (선택사항)
  */
-function toggleSection(contentId, iconId, storageKey) {
+function toggleSection(contentId, iconId, storageKey, onExpand) {
   const content = document.getElementById(contentId);
   const icon = document.getElementById(iconId);
 
@@ -160,6 +161,11 @@ function toggleSection(contentId, iconId, storageKey) {
     content.classList.remove('hidden');
     icon.style.transform = 'rotate(0deg)';
     localStorage.setItem(storageKey, 'false');
+
+    // 펼칠 때 콜백 실행 (최적화: 지연 로딩)
+    if (onExpand && typeof onExpand === 'function') {
+      onExpand();
+    }
   } else {
     // 접기
     content.classList.add('hidden');
@@ -182,9 +188,15 @@ export function initCollapsibleSections() {
   const chapterNavContent = document.getElementById('explorer-chapters');
   const chapterNavIcon = document.getElementById('chapter-nav-icon');
 
+  // 오늘의 통계
+  const statsOverviewToggle = document.getElementById('stats-overview-toggle');
+  const statsOverviewContent = document.getElementById('stats-overview');
+  const statsOverviewIcon = document.getElementById('stats-overview-icon');
+
   // 초기 상태 복원 (localStorage에서)
   const sourceFilterCollapsed = localStorage.getItem('sourceFilterCollapsed') === 'true';
   const chapterNavCollapsed = localStorage.getItem('chapterNavCollapsed') === 'true';
+  const statsOverviewCollapsed = localStorage.getItem('statsOverviewCollapsed') === 'true';
 
   if (sourceFilterCollapsed && sourceFilterContent && sourceFilterIcon) {
     sourceFilterContent.classList.add('hidden');
@@ -196,6 +208,11 @@ export function initCollapsibleSections() {
     chapterNavIcon.style.transform = 'rotate(-90deg)';
   }
 
+  if (statsOverviewCollapsed && statsOverviewContent && statsOverviewIcon) {
+    statsOverviewContent.classList.add('hidden');
+    statsOverviewIcon.style.transform = 'rotate(-90deg)';
+  }
+
   // 이벤트 리스너 등록
   sourceFilterToggle?.addEventListener('click', () => {
     toggleSection('source-filter-side', 'source-filter-icon', 'sourceFilterCollapsed');
@@ -203,6 +220,15 @@ export function initCollapsibleSections() {
 
   chapterNavToggle?.addEventListener('click', () => {
     toggleSection('explorer-chapters', 'chapter-nav-icon', 'chapterNavCollapsed');
+  });
+
+  statsOverviewToggle?.addEventListener('click', () => {
+    toggleSection('stats-overview', 'stats-overview-icon', 'statsOverviewCollapsed', () => {
+      // 최적화: 토글을 펼칠 때만 통계 렌더링 (지연 로딩)
+      if (window.renderStats) {
+        window.renderStats();
+      }
+    });
   });
 }
 
