@@ -127,24 +127,27 @@ function getUniversityFromEmail(email) {
 
   const domain = email.split('@')[1].toLowerCase();
 
-  // 정확한 도메인 매칭
+  // 1. 정확한 도메인 매칭 (최우선)
   if (UNIVERSITY_DOMAINS[domain]) {
+    console.log(`✅ [University] 정확한 도메인 매칭: ${domain} -> ${UNIVERSITY_DOMAINS[domain]}`);
     return UNIVERSITY_DOMAINS[domain];
   }
 
-  // 서브도메인 매칭 (예: student.yonsei.ac.kr)
+  // 2. 서브도메인 매칭 (예: student.yonsei.ac.kr)
   for (const [key, value] of Object.entries(UNIVERSITY_DOMAINS)) {
     if (domain.endsWith(key)) {
+      console.log(`✅ [University] 서브도메인 매칭: ${domain} -> ${value}`);
       return value;
     }
   }
 
-  // ac.kr로 끝나는 경우 일반 대학으로 처리
+  // 3. .ac.kr로 끝나는 경우만 fallback (등록되지 않은 대학)
   if (domain.endsWith('.ac.kr')) {
-    // 도메인에서 대학 이름 추출 시도
     const parts = domain.split('.');
     if (parts.length >= 2) {
-      return parts[0].charAt(0).toUpperCase() + parts[0].slice(1) + '대학교';
+      const universityName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1) + '대학교';
+      console.log(`⚠️ [University] Fallback 매칭: ${domain} -> ${universityName}`);
+      return universityName;
     }
   }
 

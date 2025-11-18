@@ -113,12 +113,14 @@ export async function createGroup(groupData) {
 
     // 사용자 문서에 그룹 멤버십 추가
     const userDocRef = doc(db, 'users', currentUser.uid);
-    await updateDoc(userDocRef, {
-      [`groups.${groupId}`]: {
-        role: 'owner',
-        joinedAt: serverTimestamp()
+    await setDoc(userDocRef, {
+      groups: {
+        [groupId]: {
+          role: 'owner',
+          joinedAt: serverTimestamp()
+        }
       }
-    });
+    }, { merge: true });
 
     console.log('✅ [Group] 그룹 생성 완료:', groupId);
     return {
@@ -298,6 +300,75 @@ export async function leaveGroup(groupId) {
     return {
       success: false,
       message: `그룹 탈퇴 실패: ${error.message}`
+    };
+  }
+}
+
+// ============================================
+// 그룹 삭제
+// ============================================
+
+/**
+ * 그룹 삭제 (그룹장만 가능)
+ * @param {string} groupId - 그룹 ID
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export async function deleteGroup(groupId) {
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    return { success: false, message: '로그인이 필요합니다.' };
+  }
+
+  try {
+    // 그룹 존재 확인
+    const groupDocRef = doc(db, 'groups', groupId);
+    const groupDocSnap = await getDoc(groupDocRef);
+
+    if (!groupDocSnap.exists()) {
+      return { success: false, message: '존재하지 않는 그룹입니다.' };
+    }
+
+    const groupData = groupDocSnap.data();
+
+    // 그룹장 확인
+    if (groupData.ownerId !== currentUser.uid) {
+      return { success: false, message: '그룹장만 그룹을 삭제할 수 있습니다.' };
+    }
+
+    // 모든 멤버 조회
+    const membersRef = collection(db, 'groups', groupId, 'members');
+    const membersSnapshot = await getDocs(membersRef);
+
+    // 모든 멤버의 users 문서에서 그룹 정보 삭제
+    const deletePromises = [];
+    membersSnapshot.forEach(memberDoc => {
+      const userId = memberDoc.id;
+      const userDocRef = doc(db, 'users', userId);
+      deletePromises.push(
+        updateDoc(userDocRef, {
+          [`groups.${groupId}`]: deleteField()
+        }).catch(err => console.error(`❌ 사용자 ${userId}의 그룹 정보 삭제 실패:`, err))
+      );
+
+      // 멤버 문서 삭제
+      deletePromises.push(deleteDoc(memberDoc.ref));
+    });
+
+    await Promise.all(deletePromises);
+
+    // 그룹 문서 삭제
+    await deleteDoc(groupDocRef);
+
+    console.log('✅ [Group] 그룹 삭제 완료:', groupId);
+    return {
+      success: true,
+      message: `"${groupData.name}" 그룹이 삭제되었습니다.`
+    };
+  } catch (error) {
+    console.error('❌ [Group] 그룹 삭제 실패:', error);
+    return {
+      success: false,
+      message: `그룹 삭제 실패: ${error.message}`
     };
   }
 }
