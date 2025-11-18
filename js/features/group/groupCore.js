@@ -62,6 +62,12 @@ export async function createGroup(groupData) {
     return { success: false, message: '최대 인원은 2~100명 사이여야 합니다.' };
   }
 
+  // 그룹 가입 제한 체크 (최대 3개)
+  const myGroups = await getMyGroups();
+  if (myGroups.length >= 3) {
+    return { success: false, message: '최대 3개 그룹까지만 가입할 수 있습니다.' };
+  }
+
   try {
     // 그룹 ID 생성
     const groupId = `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -173,6 +179,12 @@ export async function joinGroup(groupId, password) {
 
     if (memberDocSnap.exists()) {
       return { success: false, message: '이미 가입한 그룹입니다.' };
+    }
+
+    // 그룹 가입 제한 체크 (최대 3개)
+    const myGroups = await getMyGroups();
+    if (myGroups.length >= 3) {
+      return { success: false, message: '최대 3개 그룹까지만 가입할 수 있습니다.' };
     }
 
     // 멤버 추가
