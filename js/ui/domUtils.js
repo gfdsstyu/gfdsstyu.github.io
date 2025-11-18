@@ -182,9 +182,15 @@ export function initCollapsibleSections() {
   const chapterNavContent = document.getElementById('explorer-chapters');
   const chapterNavIcon = document.getElementById('chapter-nav-icon');
 
+  // 오늘의 통계
+  const statsOverviewToggle = document.getElementById('stats-overview-toggle');
+  const statsOverviewContent = document.getElementById('stats-overview');
+  const statsOverviewIcon = document.getElementById('stats-overview-icon');
+
   // 초기 상태 복원 (localStorage에서)
   const sourceFilterCollapsed = localStorage.getItem('sourceFilterCollapsed') === 'true';
   const chapterNavCollapsed = localStorage.getItem('chapterNavCollapsed') === 'true';
+  const statsOverviewCollapsed = localStorage.getItem('statsOverviewCollapsed') === 'true';
 
   if (sourceFilterCollapsed && sourceFilterContent && sourceFilterIcon) {
     sourceFilterContent.classList.add('hidden');
@@ -196,6 +202,11 @@ export function initCollapsibleSections() {
     chapterNavIcon.style.transform = 'rotate(-90deg)';
   }
 
+  if (statsOverviewCollapsed && statsOverviewContent && statsOverviewIcon) {
+    statsOverviewContent.classList.add('hidden');
+    statsOverviewIcon.style.transform = 'rotate(-90deg)';
+  }
+
   // 이벤트 리스너 등록
   sourceFilterToggle?.addEventListener('click', () => {
     toggleSection('source-filter-side', 'source-filter-icon', 'sourceFilterCollapsed');
@@ -203,6 +214,10 @@ export function initCollapsibleSections() {
 
   chapterNavToggle?.addEventListener('click', () => {
     toggleSection('explorer-chapters', 'chapter-nav-icon', 'chapterNavCollapsed');
+  });
+
+  statsOverviewToggle?.addEventListener('click', () => {
+    toggleSection('stats-overview', 'stats-overview-icon', 'statsOverviewCollapsed');
   });
 }
 

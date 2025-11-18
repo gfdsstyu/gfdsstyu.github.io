@@ -8,7 +8,9 @@ import {
   where,
   orderBy,
   limit,
-  getDocs
+  getDocs,
+  doc,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 import { db } from '../../app.js';
@@ -327,19 +329,64 @@ async function loadGroupManagementUI(groupId) {
 
   try {
     // 그룹 정보와 멤버 로드
+    const currentUser = getCurrentUser();
     const myGroups = await getMyGroups();
     const group = myGroups.find(g => g.groupId === groupId);
     const members = await getGroupMembers(groupId);
 
-    if (!group) return;
+    if (!group || !currentUser) return;
+
+    // 현재 사용자가 그룹장인지 확인
+    const isOwner = group.ownerId === currentUser.uid;
+
+    // 각 멤버의 랭킹 데이터 로드
+    const membersWithStats = await Promise.all(members.map(async (member) => {
+      const rankingDocRef = doc(db, 'rankings', member.userId);
+      const rankingDocSnap = await getDoc(rankingDocRef);
+
+      let dailyProblems = 0;
+      let weeklyProblems = 0;
+      let dailyScore = 0;
+      let weeklyScore = 0;
+
+      if (rankingDocSnap.exists()) {
+        const rankingData = rankingDocSnap.data();
+        const today = new Date();
+        const dailyKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const weekKey = getWeekKey(today);
+
+        if (rankingData.daily && rankingData.daily[dailyKey]) {
+          dailyProblems = rankingData.daily[dailyKey].problems || 0;
+          dailyScore = rankingData.daily[dailyKey].totalScore || 0;
+        }
+        if (rankingData.weekly && rankingData.weekly[weekKey]) {
+          weeklyProblems = rankingData.weekly[weekKey].problems || 0;
+          weeklyScore = rankingData.weekly[weekKey].totalScore || 0;
+        }
+      }
+
+      return {
+        ...member,
+        dailyProblems,
+        weeklyProblems,
+        dailyScore,
+        weeklyScore
+      };
+    }));
+
+    // 일별 문제 수로 내림차순 정렬
+    membersWithStats.sort((a, b) => b.dailyProblems - a.dailyProblems);
 
     const managementSection = document.getElementById(`group-management-${groupId}`);
     if (!managementSection) return;
 
     // 관리 UI 렌더링
-    let html = `
-      <div class="space-y-4">
-        <!-- 그룹 설명 수정 -->
+    let html = `<div class="space-y-4">`;
+
+    // 그룹장만 설명 수정/삭제 가능
+    if (isOwner) {
+      html += `
+        <!-- 그룹 설명 수정 (그룹장만) -->
         <div>
           <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">📝 그룹 설명 수정</label>
           <textarea
@@ -364,37 +411,63 @@ async function loadGroupManagementUI(groupId) {
             </button>
           </div>
         </div>
+      `;
+    }
 
-        <!-- 그룹원 관리 -->
-        <div>
-          <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">👥 그룹원 관리 (${members.length}명)</label>
-          <div class="space-y-2 max-h-60 overflow-y-auto">
+    // 그룹원 타일 (모든 멤버 볼 수 있음)
+    html += `
+      <div>
+        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">👥 그룹원 (${members.length}명)</label>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
     `;
 
-    members.forEach(member => {
-      const isOwner = member.role === 'owner';
+    membersWithStats.forEach(member => {
+      const memberIsOwner = member.role === 'owner';
+      const tileColor = getMemberTileColor(member.dailyProblems);
+
       html += `
-        <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-medium text-gray-900 dark:text-gray-100">${member.nickname}</span>
-            ${isOwner ? '<span class="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-xs font-bold rounded-full">👑</span>' : ''}
+        <div class="relative group">
+          <div class="p-3 rounded-lg ${tileColor} transition-transform hover:scale-105 cursor-pointer">
+            <div class="flex flex-col items-center text-center">
+              <div class="text-2xl mb-1">${member.dailyProblems}</div>
+              <div class="text-xs font-medium truncate w-full">${member.nickname}</div>
+              ${memberIsOwner ? '<div class="text-xs mt-1">👑</div>' : ''}
+            </div>
+
+            <!-- 호버 시 상세 정보 툴팁 -->
+            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-10">
+              <div class="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg p-3 shadow-xl whitespace-nowrap">
+                <div class="font-bold mb-2">${member.nickname} ${memberIsOwner ? '👑' : ''}</div>
+                <div class="space-y-1">
+                  <div>📅 일: ${member.dailyScore}점 (${member.dailyProblems}문제)</div>
+                  <div>📊 주: ${member.weeklyScore}점 (${member.weeklyProblems}문제)</div>
+                </div>
+                <!-- 화살표 -->
+                <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                  <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-100"></div>
+                </div>
+              </div>
+            </div>
           </div>
-          ${isOwner ? '' : `
+
+          ${isOwner && !memberIsOwner ? `
+            <!-- 그룹장만 강퇴 버튼 표시 -->
             <button
-              onclick="window.RankingUI?.handleKickMember('${groupId}', '${member.userId}', '${member.nickname.replace(/'/g, "\\'")}');"
-              class="px-3 py-1 bg-red-600 dark:bg-red-500 text-white font-bold text-xs rounded hover:bg-red-700 dark:hover:bg-red-600 transition"
+              onclick="if(confirm('정말로 ${member.nickname} 님을 강퇴하시겠습니까?\\n\\n이 작업은 되돌릴 수 없습니다.')) { window.RankingUI?.handleKickMember('${groupId}', '${member.userId}', '${member.nickname.replace(/'/g, "\\'")}'); }"
+              class="absolute top-1 right-1 w-6 h-6 bg-red-600 hover:bg-red-700 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+              title="강퇴"
             >
-              강퇴
+              ✕
             </button>
-          `}
+          ` : ''}
         </div>
       `;
     });
 
     html += `
-          </div>
         </div>
       </div>
+    </div>
     `;
 
     managementSection.innerHTML = html;
@@ -404,6 +477,34 @@ async function loadGroupManagementUI(groupId) {
     if (managementSection) {
       managementSection.innerHTML = '<p class="text-center text-red-500 dark:text-red-400">관리 정보를 불러오는데 실패했습니다.</p>';
     }
+  }
+}
+
+/**
+ * 주차 키 생성 (YYYY-WW 형식)
+ */
+function getWeekKey(date) {
+  const year = date.getFullYear();
+  const firstDayOfYear = new Date(year, 0, 1);
+  const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+  const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+  return `${year}-${String(weekNumber).padStart(2, '0')}`;
+}
+
+/**
+ * 멤버 타일 색상 결정 (일별 문제 수 기반)
+ * @param {number} dailyProblems - 일별 문제 수
+ * @returns {string} Tailwind CSS 클래스
+ */
+function getMemberTileColor(dailyProblems) {
+  if (dailyProblems >= 10) {
+    return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
+  } else if (dailyProblems >= 5) {
+    return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
+  } else if (dailyProblems >= 1) {
+    return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300';
+  } else {
+    return 'bg-gray-100 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400';
   }
 }
 
