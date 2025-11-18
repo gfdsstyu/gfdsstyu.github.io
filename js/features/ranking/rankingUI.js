@@ -492,31 +492,13 @@ async function renderGroupMembersManagement(groupId, isOwner) {
           <label class="text-sm font-bold text-gray-700 dark:text-gray-300">👥 그룹원 (${members.length}명)</label>
           ${isOwner ? `
             <button
-              id="kick-mode-btn-${groupId}"
-              onclick="window.RankingUI?.toggleKickMode('${groupId}');"
+              id="kick-btn-${groupId}"
+              onclick="window.RankingUI?.handleKickButton('${groupId}');"
               class="px-3 py-1.5 bg-red-600 dark:bg-red-500 text-white font-bold text-xs rounded hover:bg-red-700 dark:hover:bg-red-600 transition"
             >
-              강퇴 모드
+              강퇴
             </button>
           ` : ''}
-        </div>
-
-        <div id="kick-controls-${groupId}" class="hidden mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p class="text-xs text-red-700 dark:text-red-300 mb-2">강퇴할 멤버를 선택하세요</p>
-          <div class="flex gap-2">
-            <button
-              onclick="window.RankingUI?.executeKick('${groupId}');"
-              class="px-3 py-1.5 bg-red-600 dark:bg-red-500 text-white font-bold text-xs rounded hover:bg-red-700 dark:hover:bg-red-600 transition"
-            >
-              선택 멤버 강퇴
-            </button>
-            <button
-              onclick="window.RankingUI?.cancelKickMode('${groupId}');"
-              class="px-3 py-1.5 bg-gray-600 dark:bg-gray-500 text-white font-bold text-xs rounded hover:bg-gray-700 dark:hover:bg-gray-600 transition"
-            >
-              취소
-            </button>
-          </div>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -540,7 +522,7 @@ async function renderGroupMembersManagement(groupId, isOwner) {
             ` : ''}
 
             <div class="flex flex-col items-center text-center">
-              <div class="text-2xl font-bold mb-1">${member.dailyProblems}</div>
+              <div class="text-lg font-bold mb-1">${member.dailyScore}<span class="text-xs">점</span></div>
               <div class="text-xs font-medium truncate w-full">${member.nickname}</div>
               ${memberIsOwner ? '<div class="text-xs mt-1">👑</div>' : ''}
             </div>
@@ -582,40 +564,40 @@ async function renderGroupMembersManagement(groupId, isOwner) {
 }
 
 /**
- * 강퇴 모드 토글
+ * 강퇴 버튼 핸들러 (통합)
  */
-function toggleKickMode(groupId) {
-  const controls = document.getElementById(`kick-controls-${groupId}`);
+function handleKickButton(groupId) {
   const checkboxes = document.querySelectorAll(`.kick-checkbox[data-group-id="${groupId}"]`);
-  const button = document.getElementById(`kick-mode-btn-${groupId}`);
+  const button = document.getElementById(`kick-btn-${groupId}`);
 
-  const isActive = !controls.classList.contains('hidden');
+  // 현재 체크박스가 보이는지 확인
+  const isKickMode = !checkboxes[0]?.classList.contains('hidden');
 
-  if (isActive) {
-    // 강퇴 모드 비활성화
-    controls.classList.add('hidden');
-    checkboxes.forEach(cb => {
-      cb.classList.add('hidden');
-      cb.checked = false;
-    });
-    button.textContent = '강퇴 모드';
-    button.classList.remove('bg-gray-600', 'dark:bg-gray-500');
-    button.classList.add('bg-red-600', 'dark:bg-red-500');
-  } else {
-    // 강퇴 모드 활성화
-    controls.classList.remove('hidden');
+  if (!isKickMode) {
+    // 1단계: 체크박스 활성화
     checkboxes.forEach(cb => cb.classList.remove('hidden'));
-    button.textContent = '강퇴 모드 종료';
-    button.classList.remove('bg-red-600', 'dark:bg-red-500');
-    button.classList.add('bg-gray-600', 'dark:bg-gray-500');
+    button.textContent = '강퇴 실행';
+    button.classList.remove('bg-red-600', 'dark:bg-red-500', 'hover:bg-red-700', 'dark:hover:bg-red-600');
+    button.classList.add('bg-orange-600', 'dark:bg-orange-500', 'hover:bg-orange-700', 'dark:hover:bg-orange-600');
+  } else {
+    // 2단계: 강퇴 실행
+    executeKick(groupId);
   }
 }
 
 /**
- * 강퇴 모드 취소
+ * 강퇴 모드 토글 (제거됨 - handleKickButton으로 통합)
+ */
+function toggleKickMode(groupId) {
+  // 하위 호환성을 위해 유지
+  handleKickButton(groupId);
+}
+
+/**
+ * 강퇴 모드 취소 (제거됨)
  */
 function cancelKickMode(groupId) {
-  toggleKickMode(groupId);
+  // 더 이상 필요 없음
 }
 
 /**
@@ -638,7 +620,19 @@ async function executeKick(groupId) {
     `이 작업은 되돌릴 수 없습니다.`
   );
 
-  if (!confirmed) return;
+  if (!confirmed) {
+    // 취소 시 체크박스 숨기고 버튼 원상복구
+    const button = document.getElementById(`kick-btn-${groupId}`);
+    const allCheckboxes = document.querySelectorAll(`.kick-checkbox[data-group-id="${groupId}"]`);
+    allCheckboxes.forEach(cb => {
+      cb.classList.add('hidden');
+      cb.checked = false;
+    });
+    button.textContent = '강퇴';
+    button.classList.remove('bg-orange-600', 'dark:bg-orange-500', 'hover:bg-orange-700', 'dark:hover:bg-orange-600');
+    button.classList.add('bg-red-600', 'dark:bg-red-500', 'hover:bg-red-700', 'dark:hover:bg-red-600');
+    return;
+  }
 
   // 각 멤버 강퇴
   let successCount = 0;
@@ -1814,9 +1808,7 @@ if (typeof window !== 'undefined') {
     closeRankingModal,
     openGroupManagement,
     openGroupMembersView,
-    toggleKickMode,
-    cancelKickMode,
-    executeKick,
+    handleKickButton,
     handleUpdateDescription,
     handleDeleteGroup
   };
