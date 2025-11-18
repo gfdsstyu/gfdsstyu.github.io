@@ -146,9 +146,8 @@ export function closeDrawer() {
  * @param {string} contentId - 컨텐츠 영역 ID
  * @param {string} iconId - 아이콘 ID
  * @param {string} storageKey - localStorage 키
- * @param {Function} onExpand - 펼칠 때 실행할 콜백 함수 (선택사항)
  */
-function toggleSection(contentId, iconId, storageKey, onExpand) {
+function toggleSection(contentId, iconId, storageKey) {
   const content = document.getElementById(contentId);
   const icon = document.getElementById(iconId);
 
@@ -161,11 +160,6 @@ function toggleSection(contentId, iconId, storageKey, onExpand) {
     content.classList.remove('hidden');
     icon.style.transform = 'rotate(0deg)';
     localStorage.setItem(storageKey, 'false');
-
-    // 펼칠 때 콜백 실행 (최적화: 지연 로딩)
-    if (onExpand && typeof onExpand === 'function') {
-      onExpand();
-    }
   } else {
     // 접기
     content.classList.add('hidden');
@@ -223,12 +217,7 @@ export function initCollapsibleSections() {
   });
 
   statsOverviewToggle?.addEventListener('click', () => {
-    toggleSection('stats-overview', 'stats-overview-icon', 'statsOverviewCollapsed', () => {
-      // 최적화: 토글을 펼칠 때만 통계 렌더링 (지연 로딩)
-      if (window.renderStats) {
-        window.renderStats();
-      }
-    });
+    toggleSection('stats-overview', 'stats-overview-icon', 'statsOverviewCollapsed');
   });
 }
 

@@ -13,7 +13,7 @@ import {
 
 import { db } from '../../app.js';
 import { getCurrentUser, getNickname } from '../auth/authCore.js';
-import { getMyRanking, getGroupRankings, getIntraGroupRankings } from './rankingCore.js';
+import { getMyRanking, getGroupRankings, getIntraGroupRankings, getPeriodKey } from './rankingCore.js';
 import { getMyGroups, updateGroupDescription, getGroupMembers, kickMember, deleteGroup } from '../group/groupCore.js';
 import { handleLeaveGroup } from '../group/groupUI.js';
 import { getMyUniversity, getUniversityRankings, getIntraUniversityRankings } from '../university/universityCore.js';
@@ -326,17 +326,16 @@ async function loadGroupManagementUI(groupId) {
   groupCard.insertAdjacentHTML('beforeend', loadingHtml);
 
   try {
-    // 그룹 정보와 멤버 로드
+    // 그룹 정보 로드
     const myGroups = await getMyGroups();
     const group = myGroups.find(g => g.groupId === groupId);
-    const members = await getGroupMembers(groupId);
 
     if (!group) return;
 
     const managementSection = document.getElementById(`group-management-${groupId}`);
     if (!managementSection) return;
 
-    // 관리 UI 렌더링
+    // 그룹 설명 수정 UI
     let html = `
       <div class="space-y-4">
         <!-- 그룹 설명 수정 -->
@@ -365,39 +364,17 @@ async function loadGroupManagementUI(groupId) {
           </div>
         </div>
 
-        <!-- 그룹원 관리 -->
-        <div>
-          <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">👥 그룹원 관리 (${members.length}명)</label>
-          <div class="space-y-2 max-h-60 overflow-y-auto">
-    `;
-
-    members.forEach(member => {
-      const isOwner = member.role === 'owner';
-      html += `
-        <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-medium text-gray-900 dark:text-gray-100">${member.nickname}</span>
-            ${isOwner ? '<span class="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-xs font-bold rounded-full">👑</span>' : ''}
-          </div>
-          ${isOwner ? '' : `
-            <button
-              onclick="window.RankingUI?.handleKickMember('${groupId}', '${member.userId}', '${member.nickname.replace(/'/g, "\\'")}');"
-              class="px-3 py-1 bg-red-600 dark:bg-red-500 text-white font-bold text-xs rounded hover:bg-red-700 dark:hover:bg-red-600 transition"
-            >
-              강퇴
-            </button>
-          `}
-        </div>
-      `;
-    });
-
-    html += `
-          </div>
+        <!-- 그룹원 타일 컨테이너 (renderGroupMembersTiles로 렌더링) -->
+        <div id="group-members-tiles-${groupId}">
+          <p class="text-center text-gray-500 dark:text-gray-400">그룹원 정보를 로딩 중...</p>
         </div>
       </div>
     `;
 
     managementSection.innerHTML = html;
+
+    // 그룹원 타일 렌더링 (그룹장 모드)
+    await renderGroupMembersTiles(groupId, group.name, `group-members-tiles-${groupId}`, true);
   } catch (error) {
     console.error('❌ [RankingUI] 그룹 관리 UI 로드 실패:', error);
     const managementSection = document.getElementById(`group-management-${groupId}`);
@@ -435,7 +412,7 @@ async function openGroupMembersView(groupId, groupName) {
 }
 
 /**
- * 그룹원 보기 UI 로드 (타일 형식)
+ * 그룹원 보기 UI 로드 (타일 형식 - 일반 멤버용)
  * @param {string} groupId - 그룹 ID
  * @param {string} groupName - 그룹 이름
  */
@@ -451,31 +428,59 @@ async function loadGroupMembersViewUI(groupId, groupName) {
   `;
   groupCard.insertAdjacentHTML('beforeend', loadingHtml);
 
+  await renderGroupMembersTiles(groupId, groupName, `group-members-view-${groupId}`, false);
+}
+
+/**
+ * 그룹원 타일 렌더링 (공통 함수)
+ * @param {string} groupId - 그룹 ID
+ * @param {string} groupName - 그룹 이름
+ * @param {string} containerId - 컨테이너 엘리먼트 ID
+ * @param {boolean} isOwner - 그룹장 여부 (강퇴 버튼 표시용)
+ */
+async function renderGroupMembersTiles(groupId, groupName, containerId, isOwner) {
   try {
-    // 그룹 멤버 로드
+    // 1. 그룹 멤버 기본 정보 로드
     const members = await getGroupMembers(groupId);
     const currentUser = getCurrentUser();
 
     if (!members || members.length === 0) {
-      const membersSection = document.getElementById(`group-members-view-${groupId}`);
-      if (membersSection) {
-        membersSection.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">그룹원이 없습니다.</p>';
+      const container = document.getElementById(containerId);
+      if (container) {
+        container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">그룹원이 없습니다.</p>';
       }
       return;
     }
 
-    // 멤버를 풀이 문제 수에 따라 정렬 (나중에 구현)
-    // 현재는 그룹장을 먼저 표시하고, 나머지는 닉네임 순
-    const sortedMembers = members.sort((a, b) => {
-      if (a.role === 'owner' && b.role !== 'owner') return -1;
-      if (a.role !== 'owner' && b.role === 'owner') return 1;
-      return a.nickname.localeCompare(b.nickname);
+    // 2. 일간/주간 랭킹 데이터 로드
+    const dailyRankings = await getIntraGroupRankings(groupId, 'daily', 'problems');
+    const weeklyRankings = await getIntraGroupRankings(groupId, 'weekly', 'problems');
+
+    // 3. 랭킹 데이터를 맵으로 변환 (빠른 조회)
+    const dailyMap = new Map(dailyRankings.map(r => [r.userId, r]));
+    const weeklyMap = new Map(weeklyRankings.map(r => [r.userId, r]));
+
+    // 4. 멤버 데이터에 랭킹 정보 합성
+    const enrichedMembers = members.map(member => {
+      const dailyData = dailyMap.get(member.userId) || { problems: 0, totalScore: 0, avgScore: 0 };
+      const weeklyData = weeklyMap.get(member.userId) || { problems: 0, totalScore: 0, avgScore: 0 };
+
+      return {
+        ...member,
+        dailyProblems: dailyData.problems,
+        dailyScore: dailyData.totalScore,
+        weeklyProblems: weeklyData.problems,
+        weeklyScore: weeklyData.totalScore
+      };
     });
 
-    const membersSection = document.getElementById(`group-members-view-${groupId}`);
-    if (!membersSection) return;
+    // 5. 일간 문제 수 기준 내림차순 정렬
+    const sortedMembers = enrichedMembers.sort((a, b) => b.dailyProblems - a.dailyProblems);
 
-    // 타일 UI 렌더링
+    // 6. 타일 UI 렌더링
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
     let html = `
       <div class="space-y-4">
         <div class="flex items-center justify-between">
@@ -487,36 +492,41 @@ async function loadGroupMembersViewUI(groupId, groupName) {
     `;
 
     sortedMembers.forEach(member => {
-      const isOwner = member.role === 'owner';
+      const isMemberOwner = member.role === 'owner';
       const isCurrentUser = member.userId === currentUser?.uid;
-
-      // 일별 풀이 문제 수 (나중에 구현)
-      const dailySolveCount = 0;
 
       // 색상 그라데이션 (노랑 -> 초록 -> 파랑)
       let bgColor = 'bg-gray-100 dark:bg-gray-700';
-      if (dailySolveCount >= 20) {
+      if (member.dailyProblems >= 20) {
         bgColor = 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700';
-      } else if (dailySolveCount >= 10) {
+      } else if (member.dailyProblems >= 10) {
         bgColor = 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700';
-      } else if (dailySolveCount > 0) {
+      } else if (member.dailyProblems > 0) {
         bgColor = 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700';
       }
 
       html += `
         <div
-          class="relative group ${bgColor} border-2 border-transparent rounded-lg p-3 cursor-pointer transition-all hover:shadow-lg hover:scale-105"
+          class="relative group ${bgColor} border-2 border-transparent rounded-lg p-3 transition-all hover:shadow-lg hover:scale-105"
           data-member-id="${member.userId}"
-          title="클릭하여 상세 정보 보기"
         >
-          <div class="flex flex-col items-center text-center">
-            <div class="flex items-center gap-1 mb-1">
+          <div class="flex flex-col items-center text-center gap-2">
+            <div class="flex items-center gap-1">
               <span class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate max-w-[100px]">
                 ${member.nickname}
               </span>
-              ${isOwner ? '<span class="text-xs">👑</span>' : ''}
+              ${isMemberOwner ? '<span class="text-xs">👑</span>' : ''}
               ${isCurrentUser ? '<span class="text-xs">✨</span>' : ''}
             </div>
+
+            ${isOwner && !isMemberOwner ? `
+              <button
+                onclick="window.RankingUI?.handleKickMember('${groupId}', '${member.userId}', '${member.nickname.replace(/'/g, "\\'")}');"
+                class="w-full px-2 py-1 bg-red-600 dark:bg-red-500 text-white font-bold text-xs rounded hover:bg-red-700 dark:hover:bg-red-600 transition"
+              >
+                강퇴
+              </button>
+            ` : ''}
 
             <!-- 툴팁: 호버 시 상세 정보 표시 -->
             <div class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg p-3 shadow-xl z-10 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity min-w-[200px]">
@@ -524,10 +534,9 @@ async function loadGroupMembersViewUI(groupId, groupName) {
                 <div class="font-bold border-b border-gray-700 dark:border-gray-300 pb-1 mb-1">
                   ${member.nickname}
                 </div>
-                <div>일간: 0점 · 0문제</div>
-                <div>주간: 0점 · 0문제</div>
-                <div>업적: 0pt</div>
-                ${isOwner ? '<div class="text-yellow-300 dark:text-yellow-600 font-bold mt-1">👑 그룹장</div>' : ''}
+                <div>일간: ${member.dailyScore}점 · ${member.dailyProblems}문제</div>
+                <div>주간: ${member.weeklyScore}점 · ${member.weeklyProblems}문제</div>
+                ${isMemberOwner ? '<div class="text-yellow-300 dark:text-yellow-600 font-bold mt-1">👑 그룹장</div>' : ''}
               </div>
               <!-- 화살표 -->
               <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 border-8 border-transparent border-b-gray-900 dark:border-b-gray-100"></div>
@@ -542,12 +551,12 @@ async function loadGroupMembersViewUI(groupId, groupName) {
       </div>
     `;
 
-    membersSection.innerHTML = html;
+    container.innerHTML = html;
   } catch (error) {
-    console.error('❌ [RankingUI] 그룹원 보기 UI 로드 실패:', error);
-    const membersSection = document.getElementById(`group-members-view-${groupId}`);
-    if (membersSection) {
-      membersSection.innerHTML = '<p class="text-center text-red-500 dark:text-red-400">그룹원 정보를 불러오는데 실패했습니다.</p>';
+    console.error('❌ [RankingUI] 그룹원 타일 렌더링 실패:', error);
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.innerHTML = '<p class="text-center text-red-500 dark:text-red-400">그룹원 정보를 불러오는데 실패했습니다.</p>';
     }
   }
 }
@@ -600,9 +609,15 @@ async function handleKickMember(groupId, userId, nickname) {
 
     if (result.success) {
       showToast(result.message, 'success');
-      // 관리 UI 새로고침
-      document.getElementById(`group-management-${groupId}`)?.remove();
-      await loadGroupManagementUI(groupId);
+
+      // 그룹 정보를 먼저 가져와서 이름 확인
+      const myGroups = await getMyGroups();
+      const group = myGroups.find(g => g.groupId === groupId);
+
+      if (group) {
+        // 타일만 새로고침
+        await renderGroupMembersTiles(groupId, group.name, `group-members-tiles-${groupId}`, true);
+      }
     } else {
       showToast(result.message, 'error');
     }
