@@ -60,7 +60,9 @@ async function handleCreateGroupSubmit(e) {
   const description = document.getElementById('create-group-description').value;
   const password = document.getElementById('create-group-password').value;
   const maxMembers = parseInt(document.getElementById('create-group-max-members').value);
-  const isPublic = document.getElementById('create-group-is-public').checked;
+
+  // 비밀번호 입력 여부에 따라 자동 결정: 비밀번호 없으면 공개, 있으면 비공개
+  const isPublic = !password || password.trim().length === 0;
 
   // 로딩 표시
   const submitBtn = document.getElementById('create-group-submit-btn');

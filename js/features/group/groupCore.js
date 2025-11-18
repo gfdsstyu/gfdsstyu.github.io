@@ -184,6 +184,28 @@ export async function joinGroup(groupId, password) {
       return { success: false, message: '이미 가입한 그룹입니다.' };
     }
 
+    // 강퇴 기록 확인 (7일간 재가입 제한)
+    const userDocRef = doc(db, 'users', currentUser.uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (userDocSnap.exists()) {
+      const userData = userDocSnap.data();
+      const kickHistory = userData.kickHistory?.[groupId];
+
+      if (kickHistory?.kickedAt) {
+        const kickedAt = kickHistory.kickedAt.toDate();
+        const daysSinceKick = (Date.now() - kickedAt.getTime()) / (1000 * 60 * 60 * 24);
+
+        if (daysSinceKick < 7) {
+          const daysRemaining = Math.ceil(7 - daysSinceKick);
+          return {
+            success: false,
+            message: `이 그룹에서 강퇴당했습니다. ${daysRemaining}일 후에 재가입할 수 있습니다.`
+          };
+        }
+      }
+    }
+
     // 그룹 가입 제한 체크 (최대 3개)
     const myGroups = await getMyGroups();
     if (myGroups.length >= 3) {
@@ -635,7 +657,7 @@ export async function kickMember(groupId, targetUserId) {
       memberCount: increment(-1)
     });
 
-    // 사용자 문서에서 그룹 멤버십 삭제
+    // 사용자 문서에서 그룹 멤버십 삭제 및 강퇴 기록 저장
     const userDocRef = doc(db, 'users', targetUserId);
     const userDocSnap = await getDoc(userDocRef);
 
@@ -644,8 +666,17 @@ export async function kickMember(groupId, targetUserId) {
       const updatedGroups = { ...userData.groups };
       delete updatedGroups[groupId];
 
+      // 강퇴 기록 저장 (7일간 재가입 제한용)
+      const kickHistory = userData.kickHistory || {};
+      kickHistory[groupId] = {
+        kickedAt: serverTimestamp(),
+        kickedBy: currentUser.uid,
+        groupName: groupData.name
+      };
+
       await updateDoc(userDocRef, {
-        groups: updatedGroups
+        groups: updatedGroups,
+        kickHistory: kickHistory
       });
     }
 
