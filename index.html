@@ -816,7 +816,10 @@
 
             <!-- 그룹별 랭킹 콘텐츠 -->
             <div id="group-level-content" class="ranking-group-subtab-content">
-              <p class="text-center text-gray-500 dark:text-gray-400 py-8">그룹별 랭킹 (구현 예정)</p>
+              <!-- 기간/기준 필터 버튼은 전체 탭과 공유 -->
+              <div id="group-level-list" class="mt-4">
+                <p class="text-center text-gray-500 dark:text-gray-400 py-8">로딩 중...</p>
+              </div>
             </div>
 
             <!-- 그룹 내 랭킹 콘텐츠 -->
@@ -831,10 +834,10 @@
             <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">가입한 그룹이 없습니다</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">스터디 그룹에 가입하여 함께 공부하세요!</p>
             <div class="flex gap-3 justify-center">
-              <button class="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+              <button onclick="window.GroupUI?.openCreateGroupModal()" class="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
                 ➕ 그룹 만들기
               </button>
-              <button class="px-6 py-3 bg-green-600 dark:bg-green-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+              <button onclick="window.GroupUI?.openSearchGroupModal()" class="px-6 py-3 bg-green-600 dark:bg-green-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
                 🔍 그룹 찾기
               </button>
             </div>
@@ -888,6 +891,150 @@
               </button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 3.5.2: 그룹 생성 모달 -->
+  <div id="create-group-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1003] p-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="create-group-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+        <h2 id="create-group-title" class="text-2xl font-bold">➕ 그룹 만들기</h2>
+        <button id="create-group-close-btn" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl leading-none" aria-label="닫기">×</button>
+      </div>
+
+      <form id="create-group-form" class="p-6 space-y-4">
+        <!-- 그룹 이름 -->
+        <div>
+          <label for="create-group-name" class="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
+            그룹 이름 <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="create-group-name"
+            required
+            minlength="2"
+            maxlength="30"
+            class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+            placeholder="예: 2025 감사 1차 대비반"
+          />
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">2-30자</p>
+        </div>
+
+        <!-- 그룹 설명 -->
+        <div>
+          <label for="create-group-description" class="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
+            그룹 설명
+          </label>
+          <textarea
+            id="create-group-description"
+            rows="3"
+            maxlength="200"
+            class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+            placeholder="그룹에 대한 간단한 설명을 입력하세요"
+          ></textarea>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">최대 200자</p>
+        </div>
+
+        <!-- 비밀번호 -->
+        <div>
+          <label for="create-group-password" class="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
+            그룹 비밀번호 <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="password"
+            id="create-group-password"
+            required
+            minlength="4"
+            class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+            placeholder="최소 4자 이상"
+          />
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">가입 시 필요한 비밀번호</p>
+        </div>
+
+        <!-- 최대 인원 -->
+        <div>
+          <label for="create-group-max-members" class="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
+            최대 인원 <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="number"
+            id="create-group-max-members"
+            required
+            min="2"
+            max="100"
+            value="50"
+            class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+          />
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">2-100명</p>
+        </div>
+
+        <!-- 공개 여부 -->
+        <div class="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="create-group-is-public"
+            checked
+            class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+          />
+          <label for="create-group-is-public" class="text-sm font-medium text-gray-700 dark:text-gray-200">
+            🌍 공개 그룹 (검색 가능)
+          </label>
+        </div>
+
+        <!-- 제출 버튼 -->
+        <div class="flex gap-3 pt-4">
+          <button
+            type="button"
+            id="create-group-cancel-btn"
+            class="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+            onclick="document.getElementById('create-group-close-btn').click()"
+          >
+            취소
+          </button>
+          <button
+            type="submit"
+            id="create-group-submit-btn"
+            class="flex-1 px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600"
+          >
+            그룹 생성
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Phase 3.5.2: 그룹 검색/가입 모달 -->
+  <div id="search-group-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1003] p-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="search-group-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-3xl shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+        <h2 id="search-group-title" class="text-2xl font-bold">🔍 그룹 찾기</h2>
+        <button id="search-group-close-btn" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl leading-none" aria-label="닫기">×</button>
+      </div>
+
+      <div class="p-6">
+        <!-- 검색 폼 -->
+        <form id="search-group-form" class="mb-6">
+          <div class="flex gap-2">
+            <input
+              type="text"
+              id="search-group-input"
+              class="flex-1 p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+              placeholder="그룹 이름이나 설명 검색..."
+            />
+            <button
+              type="submit"
+              class="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600"
+            >
+              검색
+            </button>
+          </div>
+        </form>
+
+        <!-- 그룹 리스트 -->
+        <div id="search-group-list" class="space-y-3">
+          <div class="text-center py-8 text-gray-500">로딩 중...</div>
         </div>
       </div>
     </div>

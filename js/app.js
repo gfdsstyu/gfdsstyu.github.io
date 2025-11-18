@@ -482,6 +482,16 @@ import * as AuthUI from './features/auth/authUI.js';
 // ============================================
 import * as SyncCore from './features/sync/syncCore.js';
 
+// ============================================
+// 4. [신규] Firebase Ranking 모듈 임포트 (Phase 3)
+// ============================================
+import { initRankingUI } from './features/ranking/rankingUI.js';
+
+// ============================================
+// 5. [신규] Group 모듈 임포트 (Phase 3.5)
+// ============================================
+import { initGroupUI } from './features/group/groupUI.js';
+
 // 전역 노출 (디버깅 및 콘솔 접근용)
 window.AuthCore = AuthCore;
 window.AuthUI = AuthUI;
@@ -516,6 +526,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 6. FSRS 난이도 추적 시스템 초기화
   DifficultyTracker.initDifficultySystem();
+
+  // 7. Ranking UI 초기화 (Phase 3)
+  console.log('📊 Ranking UI 초기화 시작...');
+  initRankingUI();
+
+  // 8. Group UI 초기화 (Phase 3.5)
+  console.log('👥 Group UI 초기화 시작...');
+  initGroupUI();
 
   console.log('✅ DOM 엘리먼트 초기화 완료');
   console.log('✅ 임시 브릿지 설정 완료 - index.html 기존 코드와 연동됨');

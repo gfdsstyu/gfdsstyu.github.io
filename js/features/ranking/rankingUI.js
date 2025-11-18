@@ -13,7 +13,8 @@ import {
 
 import { db } from '../../app.js';
 import { getCurrentUser, getNickname } from '../auth/authCore.js';
-import { getMyRanking } from './rankingCore.js';
+import { getMyRanking, getGroupRankings } from './rankingCore.js';
+import { getMyGroups } from '../group/groupCore.js';
 import { showToast } from '../../ui/domUtils.js';
 
 // ============================================
@@ -120,7 +121,7 @@ function switchMainTab(tab) {
 /**
  * 그룹 탭 UI 업데이트
  */
-function updateGroupsTabUI(currentUser) {
+async function updateGroupsTabUI(currentUser) {
   const loginRequired = document.getElementById('groups-login-required');
   const groupsContent = document.getElementById('groups-content');
   const emptyState = document.getElementById('groups-empty-state');
@@ -136,10 +137,32 @@ function updateGroupsTabUI(currentUser) {
   // 로그인 됨
   loginRequired?.classList.add('hidden');
 
-  // TODO: Phase 3.5.2에서 실제 그룹 가입 여부 확인
-  // 현재는 빈 상태만 표시
-  groupsContent?.classList.add('hidden');
-  emptyState?.classList.remove('hidden');
+  // Phase 3.5.3: 실제 그룹 가입 여부 확인
+  try {
+    const myGroups = await getMyGroups();
+
+    if (myGroups && myGroups.length > 0) {
+      // 그룹에 가입되어 있음 - 콘텐츠 표시
+      groupsContent?.classList.remove('hidden');
+      emptyState?.classList.add('hidden');
+
+      // 현재 서브탭에 따라 데이터 로드
+      if (currentGroupSubtab === 'group-level') {
+        await loadGroupLevelRankings();
+      } else if (currentGroupSubtab === 'intra-group') {
+        // TODO: Phase 3.5.4에서 구현
+        console.log('그룹 내 랭킹은 Phase 3.5.4에서 구현됩니다.');
+      }
+    } else {
+      // 그룹에 가입하지 않음 - 빈 상태 표시
+      groupsContent?.classList.add('hidden');
+      emptyState?.classList.remove('hidden');
+    }
+  } catch (error) {
+    console.error('❌ [RankingUI] 그룹 목록 조회 실패:', error);
+    groupsContent?.classList.add('hidden');
+    emptyState?.classList.remove('hidden');
+  }
 }
 
 /**
@@ -171,7 +194,7 @@ function updateClassesTabUI(currentUser) {
  * 그룹 서브 탭 전환
  * @param {string} subtab - 'group-level', 'intra-group'
  */
-function switchGroupSubtab(subtab) {
+async function switchGroupSubtab(subtab) {
   currentGroupSubtab = subtab;
 
   // 모든 서브 탭 콘텐츠 숨기기
@@ -193,6 +216,14 @@ function switchGroupSubtab(subtab) {
       btn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-200');
     }
   });
+
+  // 데이터 로드
+  if (subtab === 'group-level') {
+    await loadGroupLevelRankings();
+  } else if (subtab === 'intra-group') {
+    // TODO: Phase 3.5.4에서 구현
+    console.log('그룹 내 랭킹은 Phase 3.5.4에서 구현됩니다.');
+  }
 }
 
 /**
@@ -558,6 +589,131 @@ async function changeCriteria(criteria) {
 
   // 데이터 다시 로드
   await loadRankings();
+}
+
+// ============================================
+// Phase 3.5.3: 그룹별 랭킹
+// ============================================
+
+/**
+ * 그룹별 랭킹 로드 및 표시
+ */
+async function loadGroupLevelRankings() {
+  const groupLevelList = document.getElementById('group-level-list');
+  if (!groupLevelList) return;
+
+  groupLevelList.innerHTML = '<div class="text-center py-8 text-gray-500">로딩 중...</div>';
+
+  try {
+    const groupRankings = await getGroupRankings(currentPeriod, currentCriteria);
+
+    if (groupRankings.length === 0) {
+      groupLevelList.innerHTML = `
+        <div class="text-center py-12 text-gray-500 dark:text-gray-400">
+          <p class="text-lg mb-2">📭 아직 그룹 랭킹 데이터가 없습니다.</p>
+          <p class="text-sm">그룹원들이 문제를 풀면 랭킹이 집계됩니다!</p>
+        </div>
+      `;
+      return;
+    }
+
+    renderGroupRankings(groupRankings);
+  } catch (error) {
+    console.error('❌ [RankingUI] 그룹별 랭킹 로드 실패:', error);
+    groupLevelList.innerHTML = `
+      <div class="text-center py-8 text-red-500">
+        <p>그룹 랭킹을 불러오는데 실패했습니다.</p>
+        <p class="text-sm mt-2">${error.message}</p>
+      </div>
+    `;
+  }
+}
+
+/**
+ * 그룹별 랭킹 리스트 렌더링
+ * @param {Array} groupRankings - 그룹 랭킹 배열
+ */
+function renderGroupRankings(groupRankings) {
+  const groupLevelList = document.getElementById('group-level-list');
+  if (!groupLevelList) return;
+
+  const currentUser = getCurrentUser();
+
+  let html = '';
+
+  groupRankings.forEach((group, index) => {
+    const rank = index + 1;
+
+    // 순위 표시
+    let rankDisplay = '';
+    if (rank === 1) {
+      rankDisplay = '<div class="text-4xl">🥇</div>';
+    } else if (rank === 2) {
+      rankDisplay = '<div class="text-4xl">🥈</div>';
+    } else if (rank === 3) {
+      rankDisplay = '<div class="text-4xl">🥉</div>';
+    } else if (rank <= 10) {
+      rankDisplay = `<div class="w-12 h-12 rounded-full bg-green-600 dark:bg-green-500 flex items-center justify-center text-white font-bold text-lg">${rank}</div>`;
+    } else {
+      rankDisplay = `<div class="text-gray-500 dark:text-gray-400 font-bold text-xl">${rank}</div>`;
+    }
+
+    // 통계 렌더링
+    const renderStat = (label, value, criteria) => {
+      const isHighlight = currentCriteria === criteria;
+
+      const containerClass = isHighlight
+        ? 'bg-green-100 dark:bg-green-900/40 border-2 border-green-500 dark:border-green-400 rounded-lg px-3 py-2'
+        : 'bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2';
+
+      const labelClass = isHighlight
+        ? 'text-green-700 dark:text-green-300 font-bold text-xs'
+        : 'text-gray-600 dark:text-gray-400 font-medium text-xs';
+
+      const valueClass = isHighlight
+        ? 'text-green-900 dark:text-green-100 font-extrabold text-2xl'
+        : 'text-gray-900 dark:text-gray-100 font-bold text-lg';
+
+      const displayValue = typeof value === 'number' && value % 1 !== 0
+        ? value.toFixed(1)
+        : value.toLocaleString();
+
+      return `
+        <div class="${containerClass}">
+          <div class="${labelClass} mb-1 whitespace-nowrap">${label}</div>
+          <div class="${valueClass}">${displayValue}</div>
+        </div>
+      `;
+    };
+
+    html += `
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-3 transition-all hover:shadow-lg">
+        <!-- 상단: 순위 + 그룹명 + 인원 -->
+        <div class="flex items-center gap-4 mb-3">
+          <div class="flex items-center justify-center w-16 flex-shrink-0">
+            ${rankDisplay}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-gray-900 dark:text-gray-100 font-bold text-lg truncate">
+              ${group.groupName}
+            </div>
+            <div class="text-gray-600 dark:text-gray-400 text-sm mt-1">
+              👥 ${group.memberCount}명
+            </div>
+          </div>
+        </div>
+
+        <!-- 하단: 통계 (순서: 총점수, 문풀횟수, 평균점수) -->
+        <div class="grid grid-cols-3 gap-2">
+          ${renderStat('📊 총점수', group.totalScore, 'totalScore')}
+          ${renderStat('✍️ 문풀', group.problems, 'problems')}
+          ${renderStat('⭐ 평균', group.avgScore, 'avgScore')}
+        </div>
+      </div>
+    `;
+  });
+
+  groupLevelList.innerHTML = html;
 }
 
 // ============================================
