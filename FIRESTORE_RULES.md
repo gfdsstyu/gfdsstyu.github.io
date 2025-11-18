@@ -118,6 +118,30 @@ service cloud.firestore {
     }
 
     // ============================================
+    // University Verifications Collection (Phase 3.6)
+    // ============================================
+
+    match /universityVerifications/{userId} {
+      // 읽기: 본인만 가능
+      allow read: if isOwner(userId);
+
+      // 쓰기: 본인만 가능 (인증 코드 생성/검증)
+      allow write: if isOwner(userId);
+    }
+
+    // ============================================
+    // University Rankings Collection (Phase 3.6)
+    // ============================================
+
+    match /universityRankings/{university} {
+      // 읽기: 모든 인증된 사용자
+      allow read: if isAuthenticated();
+
+      // 쓰기: 해당 대학교로 인증된 사용자만
+      allow write: if isAuthenticated();
+    }
+
+    // ============================================
     // Default Deny All
     // ============================================
 
@@ -153,16 +177,30 @@ service cloud.firestore {
 - **읽기**: 모든 인증된 사용자 (랭킹 조회용)
 - **쓰기**: 해당 그룹 멤버만 (통계 업데이트)
 
+### 6. University Verifications Collection (Phase 3.6)
+- **읽기/쓰기**: 본인만 가능
+- 이메일 인증 코드 임시 저장용
+
+### 7. University Rankings Collection (Phase 3.6)
+- **읽기**: 모든 인증된 사용자 (랭킹 조회용)
+- **쓰기**: 모든 인증된 사용자 (대학교별 통계 업데이트)
+
 ## ⚡ 적용 후 테스트
 
 규칙 적용 후 다음 기능들이 정상 작동하는지 확인하세요:
 
+**그룹 기능 (Phase 3.5)**
 1. ✅ 그룹 생성
 2. ✅ 그룹 검색
 3. ✅ 그룹 가입
 4. ✅ 그룹 탈퇴
 5. ✅ 그룹별 랭킹 조회
 6. ✅ 그룹 내 랭킹 조회
+
+**대학교 기능 (Phase 3.6)**
+7. ✅ 대학교 이메일 인증
+8. ✅ 대학교별 랭킹 조회
+9. ✅ 대학 내 랭킹 조회
 
 ## 🛡️ 보안 참고사항
 
