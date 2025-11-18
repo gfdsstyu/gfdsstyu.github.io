@@ -302,8 +302,8 @@
       <nav class="flex items-center gap-2">
         <a href="https://docs.google.com/spreadsheets/d/1PEZHUUHIveVD91eZma8MiW2j7_B197o597YjpTY1CRc/edit?usp=sharing" target="_blank" class="hidden sm:inline text-sm font-bold px-3 py-1.5 rounded-lg bg-blue-600 text-white shadow-md hover:bg-blue-700 transition" title="문제DB 구성을 위한 구글 스프레드시트">문제DB구성에 참여</a>
         <span id="dday-display" class="hidden sm:inline text-sm font-bold px-3 py-1.5 rounded-lg bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-md cursor-pointer hover:from-red-600 hover:to-pink-600 transition" title="시험날짜 설정은 설정 메뉴에서">D-DAY</span>
-        <button id="open-ranking-btn" class="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-md transition" title="랭킹">
-          <span class="hidden sm:inline">랭킹</span><span>📊</span>
+        <button id="open-ranking-btn" class="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-md transition" title="소셜">
+          <span class="hidden sm:inline">소셜</span><span>📊</span>
         </button>
         <a id="help-button" href="README.html" target="_blank" class="hidden sm:inline text-sm text-gray-700 hover:text-blue-700 dark:text-gray-300 dark:hover:text-white">도움말</a>
 
@@ -719,12 +719,12 @@
     </div>
   </div>
 
-  <!-- Phase 3.3: 랭킹 모달 -->
+  <!-- Phase 3.3: 소셜 모달 (랭킹 & 그룹) -->
   <div id="ranking-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1002] p-4 overflow-y-auto">
     <div role="dialog" aria-modal="true" aria-labelledby="ranking-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-5xl shadow-xl max-h-[90vh] overflow-y-auto">
       <!-- 헤더 -->
       <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
-        <h2 id="ranking-title" class="text-2xl font-bold">📊 랭킹</h2>
+        <h2 id="ranking-title" class="text-2xl font-bold">📊 소셜</h2>
         <button id="ranking-close-btn" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl leading-none" aria-label="닫기">×</button>
       </div>
 
@@ -789,7 +789,7 @@
             <!-- 로그인 필요 안내 -->
             <div id="ranking-login-required" class="text-center py-12 text-gray-500 dark:text-gray-400">
               <p class="text-lg mb-2">🔒 로그인이 필요합니다</p>
-              <p class="text-sm">로그인하여 랭킹을 확인하세요!</p>
+              <p class="text-sm">로그인하여 소셜 기능을 이용하세요!</p>
             </div>
             <!-- 랭킹 항목들이 여기에 동적으로 추가됨 -->
           </div>
@@ -1073,7 +1073,7 @@
               aria-label="닉네임"
             />
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              💡 닉네임은 랭킹, 스터디 그룹 등에서 표시됩니다.
+              💡 닉네임은 소셜 기능(랭킹, 스터디 그룹)에서 표시됩니다.
             </p>
           </div>
           <button
