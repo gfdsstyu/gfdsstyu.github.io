@@ -394,11 +394,17 @@ export async function deleteGroup(groupId) {
       return { success: false, message: '그룹장만 그룹을 삭제할 수 있습니다.' };
     }
 
-    // 모든 멤버 조회
+    // 1. groupRankings 문서 먼저 삭제 (멤버 권한이 있을 때)
+    const groupRankingDocRef = doc(db, 'groupRankings', groupId);
+    await deleteDoc(groupRankingDocRef).catch(err =>
+      console.error(`❌ groupRankings 삭제 실패:`, err)
+    );
+
+    // 2. 모든 멤버 조회
     const membersRef = collection(db, 'groups', groupId, 'members');
     const membersSnapshot = await getDocs(membersRef);
 
-    // 모든 멤버의 users 문서에서 그룹 정보 삭제
+    // 3. 모든 멤버의 users 문서에서 그룹 정보 삭제
     const deletePromises = [];
     membersSnapshot.forEach(memberDoc => {
       const userId = memberDoc.id;
@@ -415,14 +421,8 @@ export async function deleteGroup(groupId) {
 
     await Promise.all(deletePromises);
 
-    // 그룹 문서 삭제
+    // 4. 그룹 문서 삭제
     await deleteDoc(groupDocRef);
-
-    // groupRankings 문서 삭제
-    const groupRankingDocRef = doc(db, 'groupRankings', groupId);
-    await deleteDoc(groupRankingDocRef).catch(err =>
-      console.error(`❌ groupRankings 삭제 실패:`, err)
-    );
 
     console.log('✅ [Group] 그룹 삭제 완료:', groupId);
     return {
