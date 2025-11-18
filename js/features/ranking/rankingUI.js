@@ -408,6 +408,151 @@ async function loadGroupManagementUI(groupId) {
 }
 
 /**
+ * 그룹원 보기 UI 열기/닫기 토글 (일반 멤버용)
+ * @param {string} groupId - 그룹 ID
+ * @param {string} groupName - 그룹 이름
+ */
+async function openGroupMembersView(groupId, groupName) {
+  const membersSection = document.getElementById(`group-members-view-${groupId}`);
+
+  // 이미 열려있으면 닫기
+  if (membersSection && !membersSection.classList.contains('hidden')) {
+    membersSection.classList.add('hidden');
+    return;
+  }
+
+  // 다른 모든 그룹원 보기 섹션 닫기
+  document.querySelectorAll('[id^="group-members-view-"]').forEach(section => {
+    section.classList.add('hidden');
+  });
+
+  // 그룹원 보기 섹션이 없으면 생성
+  if (!membersSection) {
+    await loadGroupMembersViewUI(groupId, groupName);
+  } else {
+    membersSection.classList.remove('hidden');
+  }
+}
+
+/**
+ * 그룹원 보기 UI 로드 (타일 형식)
+ * @param {string} groupId - 그룹 ID
+ * @param {string} groupName - 그룹 이름
+ */
+async function loadGroupMembersViewUI(groupId, groupName) {
+  const groupCard = document.querySelector(`[data-group-id="${groupId}"]`);
+  if (!groupCard) return;
+
+  // 로딩 표시
+  const loadingHtml = `
+    <div id="group-members-view-${groupId}" class="mt-4 pt-4 border-t border-gray-300 dark:border-gray-600">
+      <p class="text-center text-gray-500 dark:text-gray-400">로딩 중...</p>
+    </div>
+  `;
+  groupCard.insertAdjacentHTML('beforeend', loadingHtml);
+
+  try {
+    // 그룹 멤버 로드
+    const members = await getGroupMembers(groupId);
+    const currentUser = getCurrentUser();
+
+    if (!members || members.length === 0) {
+      const membersSection = document.getElementById(`group-members-view-${groupId}`);
+      if (membersSection) {
+        membersSection.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">그룹원이 없습니다.</p>';
+      }
+      return;
+    }
+
+    // 멤버를 풀이 문제 수에 따라 정렬 (나중에 구현)
+    // 현재는 그룹장을 먼저 표시하고, 나머지는 닉네임 순
+    const sortedMembers = members.sort((a, b) => {
+      if (a.role === 'owner' && b.role !== 'owner') return -1;
+      if (a.role !== 'owner' && b.role === 'owner') return 1;
+      return a.nickname.localeCompare(b.nickname);
+    });
+
+    const membersSection = document.getElementById(`group-members-view-${groupId}`);
+    if (!membersSection) return;
+
+    // 타일 UI 렌더링
+    let html = `
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300">👥 ${groupName} 그룹원 (${members.length}명)</h4>
+        </div>
+
+        <!-- 그룹원 타일 그리드 -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+    `;
+
+    sortedMembers.forEach(member => {
+      const isOwner = member.role === 'owner';
+      const isCurrentUser = member.userId === currentUser?.uid;
+
+      // 일별 풀이 문제 수 (나중에 구현)
+      const dailySolveCount = 0;
+
+      // 색상 그라데이션 (노랑 -> 초록 -> 파랑)
+      let bgColor = 'bg-gray-100 dark:bg-gray-700';
+      if (dailySolveCount >= 20) {
+        bgColor = 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700';
+      } else if (dailySolveCount >= 10) {
+        bgColor = 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700';
+      } else if (dailySolveCount > 0) {
+        bgColor = 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700';
+      }
+
+      html += `
+        <div
+          class="relative group ${bgColor} border-2 border-transparent rounded-lg p-3 cursor-pointer transition-all hover:shadow-lg hover:scale-105"
+          data-member-id="${member.userId}"
+          title="클릭하여 상세 정보 보기"
+        >
+          <div class="flex flex-col items-center text-center">
+            <div class="flex items-center gap-1 mb-1">
+              <span class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate max-w-[100px]">
+                ${member.nickname}
+              </span>
+              ${isOwner ? '<span class="text-xs">👑</span>' : ''}
+              ${isCurrentUser ? '<span class="text-xs">✨</span>' : ''}
+            </div>
+
+            <!-- 툴팁: 호버 시 상세 정보 표시 -->
+            <div class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg p-3 shadow-xl z-10 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity min-w-[200px]">
+              <div class="space-y-1">
+                <div class="font-bold border-b border-gray-700 dark:border-gray-300 pb-1 mb-1">
+                  ${member.nickname}
+                </div>
+                <div>일간: 0점 · 0문제</div>
+                <div>주간: 0점 · 0문제</div>
+                <div>업적: 0pt</div>
+                ${isOwner ? '<div class="text-yellow-300 dark:text-yellow-600 font-bold mt-1">👑 그룹장</div>' : ''}
+              </div>
+              <!-- 화살표 -->
+              <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 border-8 border-transparent border-b-gray-900 dark:border-b-gray-100"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    html += `
+        </div>
+      </div>
+    `;
+
+    membersSection.innerHTML = html;
+  } catch (error) {
+    console.error('❌ [RankingUI] 그룹원 보기 UI 로드 실패:', error);
+    const membersSection = document.getElementById(`group-members-view-${groupId}`);
+    if (membersSection) {
+      membersSection.innerHTML = '<p class="text-center text-red-500 dark:text-red-400">그룹원 정보를 불러오는데 실패했습니다.</p>';
+    }
+  }
+}
+
+/**
  * 그룹 설명 업데이트 처리
  * @param {string} groupId - 그룹 ID
  */
@@ -440,7 +585,13 @@ async function handleUpdateDescription(groupId) {
  * @param {string} nickname - 닉네임
  */
 async function handleKickMember(groupId, userId, nickname) {
-  const confirmed = confirm(`"${nickname}" 님을 그룹에서 강퇴하시겠습니까?`);
+  // 포카요케: 명확한 경고 메시지와 재가입 제한 안내
+  const confirmed = confirm(
+    `⚠️ 그룹원 강퇴 확인\n\n` +
+    `"${nickname}" 님을 그룹에서 강퇴하시겠습니까?\n\n` +
+    `강퇴된 멤버는 7일 동안 이 그룹에 재가입할 수 없습니다.\n` +
+    `이 작업은 되돌릴 수 없습니다.`
+  );
 
   if (!confirmed) return;
 
@@ -530,21 +681,29 @@ function renderMyGroupsList(groups, currentUser) {
             ${group.isPublic ? '<span>🌍 공개</span>' : '<span>🔒 비공개</span>'}
           </div>
 
-          ${isOwner ? `
-            <button
-              onclick="window.RankingUI?.openGroupManagement('${group.groupId}');"
-              class="px-4 py-2 rounded-lg font-bold text-sm bg-purple-600 dark:bg-purple-500 text-white hover:bg-purple-700 dark:hover:bg-purple-600 transition"
-            >
-              ⚙️ 관리
-            </button>
-          ` : `
-            <button
-              onclick="window.GroupUI?.handleLeaveGroup('${group.groupId}', '${group.name.replace(/'/g, "\\'")}');"
-              class="px-4 py-2 rounded-lg font-bold text-sm bg-red-600 dark:bg-red-500 text-white hover:bg-red-700 dark:hover:bg-red-600 transition"
-            >
-              탈퇴하기
-            </button>
-          `}
+          <div class="flex gap-2">
+            ${isOwner ? `
+              <button
+                onclick="window.RankingUI?.openGroupManagement('${group.groupId}');"
+                class="px-4 py-2 rounded-lg font-bold text-sm bg-purple-600 dark:bg-purple-500 text-white hover:bg-purple-700 dark:hover:bg-purple-600 transition"
+              >
+                ⚙️ 관리
+              </button>
+            ` : `
+              <button
+                onclick="window.RankingUI?.openGroupMembersView('${group.groupId}', '${group.name.replace(/'/g, "\\'")}');"
+                class="px-4 py-2 rounded-lg font-bold text-sm bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition"
+              >
+                👥 그룹원 보기
+              </button>
+              <button
+                onclick="window.GroupUI?.handleLeaveGroup('${group.groupId}', '${group.name.replace(/'/g, "\\'")}');"
+                class="px-4 py-2 rounded-lg font-bold text-sm bg-red-600 dark:bg-red-500 text-white hover:bg-red-700 dark:hover:bg-red-600 transition"
+              >
+                탈퇴하기
+              </button>
+            `}
+          </div>
         </div>
       </div>
     `;
@@ -1578,6 +1737,7 @@ if (typeof window !== 'undefined') {
     openRankingModal,
     closeRankingModal,
     openGroupManagement,
+    openGroupMembersView,
     handleUpdateDescription,
     handleKickMember,
     handleDeleteGroup

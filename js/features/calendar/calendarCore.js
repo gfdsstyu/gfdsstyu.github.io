@@ -198,6 +198,10 @@ export function renderStats() {
   const el = getElements();
   if (!el.statsOverview) return;
 
+  // 최적화: 토글이 접혀있으면 렌더링 건너뛰기
+  const isCollapsed = el.statsOverview.classList.contains('hidden');
+  if (isCollapsed) return;
+
   renderStatsDateNav();
 
   const startOfDay = d => { const t = new Date(d); t.setHours(0, 0, 0, 0); return t; };
