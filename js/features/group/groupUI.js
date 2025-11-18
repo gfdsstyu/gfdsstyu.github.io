@@ -25,6 +25,9 @@ export function openCreateGroupModal() {
     return;
   }
 
+  // 다른 그룹 모달이 열려있으면 닫기
+  closeSearchGroupModal();
+
   // 폼 초기화
   document.getElementById('create-group-name').value = '';
   document.getElementById('create-group-description').value = '';
@@ -105,6 +108,9 @@ export async function openSearchGroupModal() {
     console.error('❌ [GroupUI] 그룹 검색 모달을 찾을 수 없습니다.');
     return;
   }
+
+  // 다른 그룹 모달이 열려있으면 닫기
+  closeCreateGroupModal();
 
   modal.classList.remove('hidden');
   modal.classList.add('flex');
