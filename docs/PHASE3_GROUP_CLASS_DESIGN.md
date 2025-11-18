@@ -600,55 +600,6 @@
 ## Firestore Security Rules (추가 필요)
 
 ```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    // 그룹 기본 정보: 로그인 사용자 읽기 가능, 그룹장만 수정
-    match /groups/{groupId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null &&
-        get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid;
-      allow delete: if request.auth != null &&
-        resource.data.ownerId == request.auth.uid;
-    }
-
-    // 그룹 멤버: 그룹 멤버만 읽기, 본인 데이터만 수정
-    match /groups/{groupId}/members/{userId} {
-      allow read: if request.auth != null &&
-        exists(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid));
-      allow write: if request.auth != null && userId == request.auth.uid;
-    }
-
-    // 그룹 랭킹: 로그인 사용자 읽기 가능
-    match /groupRankings/{groupId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
-    }
-
-    // 고시반도 동일한 구조
-    match /classes/{classId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null &&
-        get(/databases/$(database)/documents/classes/$(classId)).data.ownerId == request.auth.uid;
-      allow delete: if request.auth != null &&
-        resource.data.ownerId == request.auth.uid;
-    }
-
-    match /classes/{classId}/members/{userId} {
-      allow read: if request.auth != null &&
-        exists(/databases/$(database)/documents/classes/$(classId)/members/$(request.auth.uid));
-      allow write: if request.auth != null && userId == request.auth.uid;
-    }
-
-    match /classRankings/{classId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
-    }
-  }
-}
 ```수정(최신 버전)
 rules_version = '2';
 
