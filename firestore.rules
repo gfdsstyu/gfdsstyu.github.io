@@ -1,0 +1,135 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================
+    // Helper Functions
+    // ============================================
+
+    // 인증된 사용자인지 확인
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // 본인 문서인지 확인
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ============================================
+    // Users Collection
+    // ============================================
+
+    match /users/{userId} {
+      // 읽기: 본인만 가능
+      allow read: if isOwner(userId);
+
+      // 쓰기: 본인만 가능
+      allow write: if isOwner(userId);
+    }
+
+    // ============================================
+    // Rankings Collection (Phase 3)
+    // ============================================
+
+    match /rankings/{userId} {
+      // 읽기: 모든 인증된 사용자
+      allow read: if isAuthenticated();
+
+      // 쓰기: 본인만 가능
+      allow write: if isOwner(userId);
+    }
+
+    // ============================================
+    // Groups Collection (Phase 3.5)
+    // ============================================
+
+    match /groups/{groupId} {
+      // 읽기: 공개 그룹은 모든 인증된 사용자, 비공개는 멤버만
+      allow read: if isAuthenticated();
+
+      // 생성: 모든 인증된 사용자
+      allow create: if isAuthenticated()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.memberCount == 1;
+
+      // 업데이트: 그룹장만 가능 (memberCount 제외)
+      allow update: if isAuthenticated()
+        && (resource.data.ownerId == request.auth.uid
+            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount', 'lastUpdatedAt']));
+
+      // 삭제: 그룹장만 가능
+      allow delete: if isAuthenticated()
+        && resource.data.ownerId == request.auth.uid;
+
+      // 멤버 서브컬렉션
+      match /members/{userId} {
+        // 읽기: 같은 그룹 멤버만
+        allow read: if isAuthenticated()
+          && exists(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid));
+
+        // 생성: 본인 또는 그룹장
+        allow create: if isAuthenticated()
+          && (request.auth.uid == userId
+              || get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid);
+
+        // 업데이트: 본인 또는 그룹장
+        allow update: if isAuthenticated()
+          && (request.auth.uid == userId
+              || get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid);
+
+        // 삭제: 본인 또는 그룹장
+        allow delete: if isAuthenticated()
+          && (request.auth.uid == userId
+              || get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid);
+      }
+    }
+
+    // ============================================
+    // Group Rankings Collection (Phase 3.5.3)
+    // ============================================
+
+    match /groupRankings/{groupId} {
+      // 읽기: 모든 인증된 사용자
+      allow read: if isAuthenticated();
+
+      // 쓰기: 해당 그룹 멤버만
+      allow write: if isAuthenticated()
+        && exists(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid));
+    }
+
+    // ============================================
+    // University Verifications Collection (Phase 3.6)
+    // ============================================
+
+    match /universityVerifications/{userId} {
+      // 읽기: 본인만 가능
+      allow read: if isOwner(userId);
+
+      // 쓰기: 본인만 가능 (인증 코드 생성/검증)
+      allow write: if isOwner(userId);
+    }
+
+    // ============================================
+    // University Rankings Collection (Phase 3.6)
+    // ============================================
+
+    match /universityRankings/{university} {
+      // 읽기: 모든 인증된 사용자
+      allow read: if isAuthenticated();
+
+      // 쓰기: 해당 대학교로 인증된 사용자만
+      allow write: if isAuthenticated();
+    }
+
+    // ============================================
+    // Default Deny All
+    // ============================================
+
+    // 명시되지 않은 모든 경로는 차단
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
