@@ -8,12 +8,14 @@ import {
   where,
   orderBy,
   limit,
-  getDocs
+  getDocs,
+  doc,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 import { db } from '../../app.js';
 import { getCurrentUser, getNickname } from '../auth/authCore.js';
-import { getMyRanking, getGroupRankings, getIntraGroupRankings, getPeriodKey } from './rankingCore.js';
+import { getMyRanking, getGroupRankings, getIntraGroupRankings } from './rankingCore.js';
 import { getMyGroups, updateGroupDescription, getGroupMembers, kickMember, deleteGroup } from '../group/groupCore.js';
 import { handleLeaveGroup } from '../group/groupUI.js';
 import { getMyUniversity, getUniversityRankings, getIntraUniversityRankings } from '../university/universityCore.js';
@@ -325,20 +327,137 @@ async function loadGroupManagementUI(groupId) {
   `;
   groupCard.insertAdjacentHTML('beforeend', loadingHtml);
 
+  await renderGroupMembersManagement(groupId, true);
+}
+
+/**
+ * 그룹원 보기 UI 열기/닫기 토글 (일반 멤버용)
+ * @param {string} groupId - 그룹 ID
+ * @param {string} groupName - 그룹 이름
+ */
+async function openGroupMembersView(groupId, groupName) {
+  const membersSection = document.getElementById(`group-members-view-${groupId}`);
+
+  // 이미 열려있으면 닫기
+  if (membersSection && !membersSection.classList.contains('hidden')) {
+    membersSection.classList.add('hidden');
+    return;
+  }
+
+  // 다른 모든 그룹원 보기 섹션 닫기
+  document.querySelectorAll('[id^="group-members-view-"]').forEach(section => {
+    section.classList.add('hidden');
+  });
+
+  // 그룹원 보기 섹션이 없으면 생성
+  if (!membersSection) {
+    const groupCard = document.querySelector(`[data-group-id="${groupId}"]`);
+    if (!groupCard) return;
+
+    const loadingHtml = `
+      <div id="group-members-view-${groupId}" class="mt-4 pt-4 border-t border-gray-300 dark:border-gray-600">
+        <p class="text-center text-gray-500 dark:text-gray-400">로딩 중...</p>
+      </div>
+    `;
+    groupCard.insertAdjacentHTML('beforeend', loadingHtml);
+
+    await renderGroupMembersManagement(groupId, false);
+  } else {
+    membersSection.classList.remove('hidden');
+  }
+}
+
+/**
+ * 주차 키 생성 (YYYY-WW 형식)
+ */
+function getWeekKey(date) {
+  const year = date.getFullYear();
+  const firstDayOfYear = new Date(year, 0, 1);
+  const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+  const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+  return `${year}-${String(weekNumber).padStart(2, '0')}`;
+}
+
+/**
+ * 멤버 타일 색상 결정 (일별 문제 수 기반)
+ * @param {number} dailyProblems - 일별 문제 수
+ * @returns {string} Tailwind CSS 클래스
+ */
+function getMemberTileColor(dailyProblems) {
+  if (dailyProblems >= 10) {
+    return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
+  } else if (dailyProblems >= 5) {
+    return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
+  } else if (dailyProblems >= 1) {
+    return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300';
+  } else {
+    return 'bg-gray-100 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400';
+  }
+}
+
+/**
+ * 그룹원 관리/보기 UI 렌더링 (통합 함수)
+ * @param {string} groupId - 그룹 ID
+ * @param {boolean} isOwner - 그룹장 여부
+ */
+async function renderGroupMembersManagement(groupId, isOwner) {
   try {
-    // 그룹 정보 로드
+    const currentUser = getCurrentUser();
     const myGroups = await getMyGroups();
     const group = myGroups.find(g => g.groupId === groupId);
+    const members = await getGroupMembers(groupId);
 
-    if (!group) return;
+    if (!group || !currentUser) return;
 
-    const managementSection = document.getElementById(`group-management-${groupId}`);
-    if (!managementSection) return;
+    const containerId = isOwner ? `group-management-${groupId}` : `group-members-view-${groupId}`;
+    const container = document.getElementById(containerId);
+    if (!container) return;
 
-    // 그룹 설명 수정 UI
-    let html = `
-      <div class="space-y-4">
-        <!-- 그룹 설명 수정 -->
+    // 1. 각 멤버의 rankings 데이터 로드
+    const membersWithStats = await Promise.all(members.map(async (member) => {
+      const rankingDocRef = doc(db, 'rankings', member.userId);
+      const rankingDocSnap = await getDoc(rankingDocRef);
+
+      let dailyProblems = 0;
+      let weeklyProblems = 0;
+      let dailyScore = 0;
+      let weeklyScore = 0;
+
+      if (rankingDocSnap.exists()) {
+        const rankingData = rankingDocSnap.data();
+        const today = new Date();
+        const dailyKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const weekKey = getWeekKey(today);
+
+        if (rankingData.daily && rankingData.daily[dailyKey]) {
+          dailyProblems = rankingData.daily[dailyKey].problems || 0;
+          dailyScore = rankingData.daily[dailyKey].totalScore || 0;
+        }
+        if (rankingData.weekly && rankingData.weekly[weekKey]) {
+          weeklyProblems = rankingData.weekly[weekKey].problems || 0;
+          weeklyScore = rankingData.weekly[weekKey].totalScore || 0;
+        }
+      }
+
+      return {
+        ...member,
+        dailyProblems,
+        weeklyProblems,
+        dailyScore,
+        weeklyScore
+      };
+    }));
+
+    // 2. 일별 문제 수로 내림차순 정렬
+    membersWithStats.sort((a, b) => b.dailyProblems - a.dailyProblems);
+
+    // 3. UI 렌더링
+    let html = `<div class="space-y-4">`;
+
+    // 그룹장만 설명 수정/삭제 가능
+    if (isOwner) {
+      html += `
+        <!-- 그룹 설명 수정 (그룹장만) -->
         <div>
           <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">📝 그룹 설명 수정</label>
           <textarea
@@ -363,188 +482,82 @@ async function loadGroupManagementUI(groupId) {
             </button>
           </div>
         </div>
-
-        <!-- 그룹원 타일 컨테이너 (renderGroupMembersTiles로 렌더링) -->
-        <div id="group-members-tiles-${groupId}">
-          <p class="text-center text-gray-500 dark:text-gray-400">그룹원 정보를 로딩 중...</p>
-        </div>
-      </div>
-    `;
-
-    managementSection.innerHTML = html;
-
-    // 그룹원 타일 렌더링 (그룹장 모드)
-    console.log('🔍 [RankingUI] 그룹원 타일 렌더링 시작 - groupId:', groupId, 'groupName:', group.name);
-    await renderGroupMembersTiles(groupId, group.name, `group-members-tiles-${groupId}`, true);
-    console.log('✅ [RankingUI] 그룹원 타일 렌더링 완료');
-  } catch (error) {
-    console.error('❌ [RankingUI] 그룹 관리 UI 로드 실패:', error);
-    const managementSection = document.getElementById(`group-management-${groupId}`);
-    if (managementSection) {
-      managementSection.innerHTML = '<p class="text-center text-red-500 dark:text-red-400">관리 정보를 불러오는데 실패했습니다.</p>';
-    }
-  }
-}
-
-/**
- * 그룹원 보기 UI 열기/닫기 토글 (일반 멤버용)
- * @param {string} groupId - 그룹 ID
- * @param {string} groupName - 그룹 이름
- */
-async function openGroupMembersView(groupId, groupName) {
-  const membersSection = document.getElementById(`group-members-view-${groupId}`);
-
-  // 이미 열려있으면 닫기
-  if (membersSection && !membersSection.classList.contains('hidden')) {
-    membersSection.classList.add('hidden');
-    return;
-  }
-
-  // 다른 모든 그룹원 보기 섹션 닫기
-  document.querySelectorAll('[id^="group-members-view-"]').forEach(section => {
-    section.classList.add('hidden');
-  });
-
-  // 그룹원 보기 섹션이 없으면 생성
-  if (!membersSection) {
-    await loadGroupMembersViewUI(groupId, groupName);
-  } else {
-    membersSection.classList.remove('hidden');
-  }
-}
-
-/**
- * 그룹원 보기 UI 로드 (타일 형식 - 일반 멤버용)
- * @param {string} groupId - 그룹 ID
- * @param {string} groupName - 그룹 이름
- */
-async function loadGroupMembersViewUI(groupId, groupName) {
-  const groupCard = document.querySelector(`[data-group-id="${groupId}"]`);
-  if (!groupCard) return;
-
-  // 로딩 표시
-  const loadingHtml = `
-    <div id="group-members-view-${groupId}" class="mt-4 pt-4 border-t border-gray-300 dark:border-gray-600">
-      <p class="text-center text-gray-500 dark:text-gray-400">로딩 중...</p>
-    </div>
-  `;
-  groupCard.insertAdjacentHTML('beforeend', loadingHtml);
-
-  await renderGroupMembersTiles(groupId, groupName, `group-members-view-${groupId}`, false);
-}
-
-/**
- * 그룹원 타일 렌더링 (공통 함수)
- * @param {string} groupId - 그룹 ID
- * @param {string} groupName - 그룹 이름
- * @param {string} containerId - 컨테이너 엘리먼트 ID
- * @param {boolean} isOwner - 그룹장 여부 (강퇴 버튼 표시용)
- */
-async function renderGroupMembersTiles(groupId, groupName, containerId, isOwner) {
-  console.log('🎨 [renderGroupMembersTiles] 호출됨 - groupId:', groupId, 'containerId:', containerId, 'isOwner:', isOwner);
-
-  try {
-    // 1. 그룹 멤버 기본 정보 로드
-    const members = await getGroupMembers(groupId);
-    const currentUser = getCurrentUser();
-    console.log('📋 [renderGroupMembersTiles] 멤버 수:', members?.length);
-
-    if (!members || members.length === 0) {
-      const container = document.getElementById(containerId);
-      if (container) {
-        container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">그룹원이 없습니다.</p>';
-      }
-      return;
+      `;
     }
 
-    // 2. 일간/주간 랭킹 데이터 로드
-    const dailyRankings = await getIntraGroupRankings(groupId, 'daily', 'problems');
-    const weeklyRankings = await getIntraGroupRankings(groupId, 'weekly', 'problems');
-
-    // 3. 랭킹 데이터를 맵으로 변환 (빠른 조회)
-    const dailyMap = new Map(dailyRankings.map(r => [r.userId, r]));
-    const weeklyMap = new Map(weeklyRankings.map(r => [r.userId, r]));
-
-    // 4. 멤버 데이터에 랭킹 정보 합성
-    const enrichedMembers = members.map(member => {
-      const dailyData = dailyMap.get(member.userId) || { problems: 0, totalScore: 0, avgScore: 0 };
-      const weeklyData = weeklyMap.get(member.userId) || { problems: 0, totalScore: 0, avgScore: 0 };
-
-      return {
-        ...member,
-        dailyProblems: dailyData.problems,
-        dailyScore: dailyData.totalScore,
-        weeklyProblems: weeklyData.problems,
-        weeklyScore: weeklyData.totalScore
-      };
-    });
-
-    // 5. 일간 문제 수 기준 내림차순 정렬
-    const sortedMembers = enrichedMembers.sort((a, b) => b.dailyProblems - a.dailyProblems);
-
-    // 6. 타일 UI 렌더링
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
-    let html = `
-      <div class="space-y-4">
-        <div class="flex items-center justify-between">
-          <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300">👥 ${groupName} 그룹원 (${members.length}명)</h4>
+    // 그룹원 타일
+    html += `
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <label class="text-sm font-bold text-gray-700 dark:text-gray-300">👥 그룹원 (${members.length}명)</label>
+          ${isOwner ? `
+            <button
+              id="kick-mode-btn-${groupId}"
+              onclick="window.RankingUI?.toggleKickMode('${groupId}');"
+              class="px-3 py-1.5 bg-red-600 dark:bg-red-500 text-white font-bold text-xs rounded hover:bg-red-700 dark:hover:bg-red-600 transition"
+            >
+              강퇴 모드
+            </button>
+          ` : ''}
         </div>
 
-        <!-- 그룹원 타일 그리드 -->
+        <div id="kick-controls-${groupId}" class="hidden mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p class="text-xs text-red-700 dark:text-red-300 mb-2">강퇴할 멤버를 선택하세요</p>
+          <div class="flex gap-2">
+            <button
+              onclick="window.RankingUI?.executeKick('${groupId}');"
+              class="px-3 py-1.5 bg-red-600 dark:bg-red-500 text-white font-bold text-xs rounded hover:bg-red-700 dark:hover:bg-red-600 transition"
+            >
+              선택 멤버 강퇴
+            </button>
+            <button
+              onclick="window.RankingUI?.cancelKickMode('${groupId}');"
+              class="px-3 py-1.5 bg-gray-600 dark:bg-gray-500 text-white font-bold text-xs rounded hover:bg-gray-700 dark:hover:bg-gray-600 transition"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
     `;
 
-    sortedMembers.forEach(member => {
-      const isMemberOwner = member.role === 'owner';
-      const isCurrentUser = member.userId === currentUser?.uid;
-
-      // 색상 그라데이션 (노랑 -> 초록 -> 파랑)
-      let bgColor = 'bg-gray-100 dark:bg-gray-700';
-      if (member.dailyProblems >= 20) {
-        bgColor = 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700';
-      } else if (member.dailyProblems >= 10) {
-        bgColor = 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700';
-      } else if (member.dailyProblems > 0) {
-        bgColor = 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700';
-      }
+    membersWithStats.forEach(member => {
+      const memberIsOwner = member.role === 'owner';
+      const tileColor = getMemberTileColor(member.dailyProblems);
 
       html += `
-        <div
-          class="relative group ${bgColor} border-2 border-transparent rounded-lg p-3 transition-all hover:shadow-lg hover:scale-105"
-          data-member-id="${member.userId}"
-        >
-          <div class="flex flex-col items-center text-center gap-2">
-            <div class="flex items-center gap-1">
-              <span class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate max-w-[100px]">
-                ${member.nickname}
-              </span>
-              ${isMemberOwner ? '<span class="text-xs">👑</span>' : ''}
-              ${isCurrentUser ? '<span class="text-xs">✨</span>' : ''}
-            </div>
-
-            ${isOwner && !isMemberOwner ? `
-              <button
-                onclick="window.RankingUI?.handleKickMember('${groupId}', '${member.userId}', '${member.nickname.replace(/'/g, "\\'")}');"
-                class="w-full px-2 py-1 bg-red-600 dark:bg-red-500 text-white font-bold text-xs rounded hover:bg-red-700 dark:hover:bg-red-600 transition"
-              >
-                강퇴
-              </button>
+        <div class="relative group">
+          <div class="p-3 rounded-lg ${tileColor} transition-transform hover:scale-105 cursor-pointer">
+            ${isOwner && !memberIsOwner ? `
+              <input
+                type="checkbox"
+                class="kick-checkbox absolute top-2 left-2 w-4 h-4 hidden"
+                data-group-id="${groupId}"
+                data-user-id="${member.userId}"
+                data-nickname="${member.nickname.replace(/"/g, '&quot;')}"
+              />
             ` : ''}
 
-            <!-- 툴팁: 호버 시 상세 정보 표시 -->
-            <div class="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg p-3 shadow-xl z-10 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity min-w-[200px]">
-              <div class="space-y-1">
-                <div class="font-bold border-b border-gray-700 dark:border-gray-300 pb-1 mb-1">
-                  ${member.nickname}
+            <div class="flex flex-col items-center text-center">
+              <div class="text-2xl font-bold mb-1">${member.dailyProblems}</div>
+              <div class="text-xs font-medium truncate w-full">${member.nickname}</div>
+              ${memberIsOwner ? '<div class="text-xs mt-1">👑</div>' : ''}
+            </div>
+
+            <!-- 호버 시 상세 정보 툴팁 -->
+            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-10">
+              <div class="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg p-3 shadow-xl whitespace-nowrap">
+                <div class="font-bold mb-2">${member.nickname} ${memberIsOwner ? '👑' : ''}</div>
+                <div class="space-y-1">
+                  <div>📅 일: ${member.dailyScore}점 (${member.dailyProblems}문제)</div>
+                  <div>📊 주: ${member.weeklyScore}점 (${member.weeklyProblems}문제)</div>
                 </div>
-                <div>일간: ${member.dailyScore}점 · ${member.dailyProblems}문제</div>
-                <div>주간: ${member.weeklyScore}점 · ${member.weeklyProblems}문제</div>
-                ${isMemberOwner ? '<div class="text-yellow-300 dark:text-yellow-600 font-bold mt-1">👑 그룹장</div>' : ''}
+                <!-- 화살표 -->
+                <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                  <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-100"></div>
+                </div>
               </div>
-              <!-- 화살표 -->
-              <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 border-8 border-transparent border-b-gray-900 dark:border-b-gray-100"></div>
             </div>
           </div>
         </div>
@@ -554,15 +567,98 @@ async function renderGroupMembersTiles(groupId, groupName, containerId, isOwner)
     html += `
         </div>
       </div>
+    </div>
     `;
 
     container.innerHTML = html;
   } catch (error) {
-    console.error('❌ [RankingUI] 그룹원 타일 렌더링 실패:', error);
+    console.error('❌ [RankingUI] 그룹원 관리 UI 로드 실패:', error);
+    const containerId = isOwner ? `group-management-${groupId}` : `group-members-view-${groupId}`;
     const container = document.getElementById(containerId);
     if (container) {
       container.innerHTML = '<p class="text-center text-red-500 dark:text-red-400">그룹원 정보를 불러오는데 실패했습니다.</p>';
     }
+  }
+}
+
+/**
+ * 강퇴 모드 토글
+ */
+function toggleKickMode(groupId) {
+  const controls = document.getElementById(`kick-controls-${groupId}`);
+  const checkboxes = document.querySelectorAll(`.kick-checkbox[data-group-id="${groupId}"]`);
+  const button = document.getElementById(`kick-mode-btn-${groupId}`);
+
+  const isActive = !controls.classList.contains('hidden');
+
+  if (isActive) {
+    // 강퇴 모드 비활성화
+    controls.classList.add('hidden');
+    checkboxes.forEach(cb => {
+      cb.classList.add('hidden');
+      cb.checked = false;
+    });
+    button.textContent = '강퇴 모드';
+    button.classList.remove('bg-gray-600', 'dark:bg-gray-500');
+    button.classList.add('bg-red-600', 'dark:bg-red-500');
+  } else {
+    // 강퇴 모드 활성화
+    controls.classList.remove('hidden');
+    checkboxes.forEach(cb => cb.classList.remove('hidden'));
+    button.textContent = '강퇴 모드 종료';
+    button.classList.remove('bg-red-600', 'dark:bg-red-500');
+    button.classList.add('bg-gray-600', 'dark:bg-gray-500');
+  }
+}
+
+/**
+ * 강퇴 모드 취소
+ */
+function cancelKickMode(groupId) {
+  toggleKickMode(groupId);
+}
+
+/**
+ * 선택된 멤버 강퇴 실행
+ */
+async function executeKick(groupId) {
+  const checkboxes = document.querySelectorAll(`.kick-checkbox[data-group-id="${groupId}"]:checked`);
+
+  if (checkboxes.length === 0) {
+    showToast('강퇴할 멤버를 선택해주세요.', 'warning');
+    return;
+  }
+
+  const memberNames = Array.from(checkboxes).map(cb => cb.dataset.nickname).join(', ');
+  const confirmed = confirm(
+    `⚠️ 그룹원 강퇴 확인\n\n` +
+    `${memberNames}\n\n` +
+    `위 ${checkboxes.length}명의 멤버를 강퇴하시겠습니까?\n\n` +
+    `강퇴된 멤버는 7일 동안 이 그룹에 재가입할 수 없습니다.\n` +
+    `이 작업은 되돌릴 수 없습니다.`
+  );
+
+  if (!confirmed) return;
+
+  // 각 멤버 강퇴
+  let successCount = 0;
+  for (const cb of checkboxes) {
+    try {
+      const result = await kickMember(groupId, cb.dataset.userId);
+      if (result.success) {
+        successCount++;
+      }
+    } catch (error) {
+      console.error('강퇴 실패:', error);
+    }
+  }
+
+  if (successCount > 0) {
+    showToast(`${successCount}명의 멤버를 강퇴했습니다.`, 'success');
+    // UI 새로고침
+    await renderGroupMembersManagement(groupId, true);
+  } else {
+    showToast('강퇴에 실패했습니다.', 'error');
   }
 }
 
@@ -589,46 +685,6 @@ async function handleUpdateDescription(groupId) {
   } catch (error) {
     console.error('❌ [RankingUI] 그룹 설명 업데이트 오류:', error);
     showToast('설명 수정 중 오류가 발생했습니다.', 'error');
-  }
-}
-
-/**
- * 그룹원 강퇴 처리
- * @param {string} groupId - 그룹 ID
- * @param {string} userId - 사용자 ID
- * @param {string} nickname - 닉네임
- */
-async function handleKickMember(groupId, userId, nickname) {
-  // 포카요케: 명확한 경고 메시지와 재가입 제한 안내
-  const confirmed = confirm(
-    `⚠️ 그룹원 강퇴 확인\n\n` +
-    `"${nickname}" 님을 그룹에서 강퇴하시겠습니까?\n\n` +
-    `강퇴된 멤버는 7일 동안 이 그룹에 재가입할 수 없습니다.\n` +
-    `이 작업은 되돌릴 수 없습니다.`
-  );
-
-  if (!confirmed) return;
-
-  try {
-    const result = await kickMember(groupId, userId);
-
-    if (result.success) {
-      showToast(result.message, 'success');
-
-      // 그룹 정보를 먼저 가져와서 이름 확인
-      const myGroups = await getMyGroups();
-      const group = myGroups.find(g => g.groupId === groupId);
-
-      if (group) {
-        // 타일만 새로고침
-        await renderGroupMembersTiles(groupId, group.name, `group-members-tiles-${groupId}`, true);
-      }
-    } else {
-      showToast(result.message, 'error');
-    }
-  } catch (error) {
-    console.error('❌ [RankingUI] 그룹원 강퇴 오류:', error);
-    showToast('강퇴 중 오류가 발생했습니다.', 'error');
   }
 }
 
@@ -1758,8 +1814,10 @@ if (typeof window !== 'undefined') {
     closeRankingModal,
     openGroupManagement,
     openGroupMembersView,
+    toggleKickMode,
+    cancelKickMode,
+    executeKick,
     handleUpdateDescription,
-    handleKickMember,
     handleDeleteGroup
   };
 }
