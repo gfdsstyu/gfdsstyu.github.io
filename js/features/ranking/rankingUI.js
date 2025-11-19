@@ -380,17 +380,45 @@ function getWeekKey(date) {
 
 /**
  * 멤버 타일 색상 결정 (일별 문제 수 기반)
+ * GitHub 기여도 차트 스타일의 세밀한 그라데이션
  * @param {number} dailyProblems - 일별 문제 수
  * @returns {string} Tailwind CSS 클래스
  */
 function getMemberTileColor(dailyProblems) {
-  if (dailyProblems >= 10) {
-    return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
-  } else if (dailyProblems >= 5) {
-    return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
-  } else if (dailyProblems >= 1) {
-    return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300';
-  } else {
+  // 16+ 문제: 진한 보라 (최고 레벨)
+  if (dailyProblems >= 16) {
+    return 'bg-purple-200 dark:bg-purple-900/50 text-purple-900 dark:text-purple-200';
+  }
+  // 13-15 문제: 진한 파랑
+  else if (dailyProblems >= 13) {
+    return 'bg-blue-200 dark:bg-blue-900/50 text-blue-900 dark:text-blue-200';
+  }
+  // 11-12 문제: 중간 파랑
+  else if (dailyProblems >= 11) {
+    return 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300';
+  }
+  // 9-10 문제: 연한 파랑
+  else if (dailyProblems >= 9) {
+    return 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
+  }
+  // 7-8 문제: 진한 초록
+  else if (dailyProblems >= 7) {
+    return 'bg-green-200 dark:bg-green-900/50 text-green-900 dark:text-green-200';
+  }
+  // 5-6 문제: 중간 초록
+  else if (dailyProblems >= 5) {
+    return 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300';
+  }
+  // 3-4 문제: 연한 초록
+  else if (dailyProblems >= 3) {
+    return 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300';
+  }
+  // 1-2 문제: 연한 노랑
+  else if (dailyProblems >= 1) {
+    return 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300';
+  }
+  // 0 문제: 회색
+  else {
     return 'bg-gray-100 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400';
   }
 }
@@ -526,7 +554,7 @@ async function renderGroupMembersManagement(groupId, isOwner) {
 
       html += `
         <div class="relative group">
-          <div class="p-3 rounded-lg ${tileColor} transition-transform hover:scale-105 cursor-pointer">
+          <div class="p-3 rounded-lg ${tileColor} transition-transform hover:scale-105 cursor-pointer h-24 flex flex-col justify-center">
             ${isOwner && !memberIsOwner ? `
               <input
                 type="checkbox"
@@ -539,8 +567,9 @@ async function renderGroupMembersManagement(groupId, isOwner) {
 
             <div class="flex flex-col items-center text-center">
               <div class="text-lg font-bold mb-1">${member.dailyScore}<span class="text-xs">점</span></div>
-              <div class="text-xs font-medium truncate w-full">${member.nickname}</div>
-              ${memberIsOwner ? '<div class="text-xs mt-1">👑</div>' : ''}
+              <div class="text-xs font-medium truncate w-full">
+                ${memberIsOwner ? '👑' : ''}${member.nickname}
+              </div>
             </div>
 
             <!-- 호버 시 상세 정보 툴팁 -->
@@ -1187,8 +1216,26 @@ async function changePeriod(period) {
     }
   });
 
-  // 데이터 다시 로드
-  await loadRankings();
+  // 현재 탭에 따라 데이터 다시 로드
+  if (currentMainTab === 'global') {
+    await loadRankings();
+  } else if (currentMainTab === 'all-groups') {
+    if (currentGroupSubtab === 'group-level') {
+      await loadGroupLevelRankings();
+    } else if (currentGroupSubtab === 'intra-group') {
+      const myGroups = await getMyGroups();
+      await loadIntraGroupRankings(myGroups);
+    }
+  } else if (currentMainTab === 'all-classes') {
+    if (currentClassSubtab === 'class-level') {
+      await loadUniversityLevelRankings();
+    } else if (currentClassSubtab === 'intra-class') {
+      const universityInfo = await getMyUniversity();
+      if (universityInfo) {
+        await loadIntraUniversityRankingsData(universityInfo.university);
+      }
+    }
+  }
 }
 
 /**
@@ -1209,8 +1256,26 @@ async function changeCriteria(criteria) {
     }
   });
 
-  // 데이터 다시 로드
-  await loadRankings();
+  // 현재 탭에 따라 데이터 다시 로드
+  if (currentMainTab === 'global') {
+    await loadRankings();
+  } else if (currentMainTab === 'all-groups') {
+    if (currentGroupSubtab === 'group-level') {
+      await loadGroupLevelRankings();
+    } else if (currentGroupSubtab === 'intra-group') {
+      const myGroups = await getMyGroups();
+      await loadIntraGroupRankings(myGroups);
+    }
+  } else if (currentMainTab === 'all-classes') {
+    if (currentClassSubtab === 'class-level') {
+      await loadUniversityLevelRankings();
+    } else if (currentClassSubtab === 'intra-class') {
+      const universityInfo = await getMyUniversity();
+      if (universityInfo) {
+        await loadIntraUniversityRankingsData(universityInfo.university);
+      }
+    }
+  }
 }
 
 // ============================================
@@ -1809,6 +1874,12 @@ export function initRankingUI() {
     btn.addEventListener('click', () => {
       changeCriteria(btn.dataset.criteria);
     });
+  });
+
+  // 전체 랭킹 탭 기간 드롭다운
+  const globalPeriodSelect = document.getElementById('global-period-select');
+  globalPeriodSelect?.addEventListener('change', (e) => {
+    changePeriod(e.target.value);
   });
 
   console.log('✅ Ranking UI 모듈 초기화 완료 (Phase 3.5.1: 탭 구조 포함)');
