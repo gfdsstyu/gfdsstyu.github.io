@@ -201,14 +201,30 @@ export async function callGeminiHintAPI(userAnswer, correctAnswer, questionText,
 
 /**
  * Gemini API를 사용하여 범용 텍스트 생성 (리포트 AI 분석 등)
+ * @param {string} prompt - 생성할 텍스트에 대한 프롬프트
+ * @param {string} apiKey - Gemini API 키
+ * @param {string} selectedAiModel - 사용할 모델 ('gemini-2.5-flash' 또는 'gemini-2.5-flash-lite')
+ * @param {number} retries - 재시도 횟수
+ * @param {number} delay - 재시도 대기 시간 (ms)
+ * @param {object} generationConfigOverride - generationConfig 오버라이드 옵션
  * @returns {Promise<string>} 생성된 텍스트
  */
-export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemini-2.5-flash', retries = 3, delay = 1500) {
+export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemini-2.5-flash', retries = 3, delay = 1500, generationConfigOverride = null) {
   const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
+  // 기본 generationConfig: 출력 길이 제한으로 API 타임아웃 방지
+  const defaultGenerationConfig = {
+    maxOutputTokens: 1200,  // 과도한 결과 방지 (≈900단어)
+    temperature: 0.7,
+    topP: 0.85
+  };
+
+  const generationConfig = generationConfigOverride || defaultGenerationConfig;
+
   const payload = {
-    contents: [{ parts: [{ text: prompt }] }]
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig
   };
 
   try {
@@ -244,7 +260,7 @@ export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemin
     return raw.trim();
   } catch (err) {
     // 재시도 조건: 429(할당량) 또는 서버 오류(503 포함)
-    // 503 Service Unavailable은 일시적 서비스 과부하이므로 재시도 권장
+    // 503 Service Unavailable은 일시적 서비스 과부하 또는 프롬프트가 너무 큼
     const is503 = String(err.message).includes('503');
     const shouldRetry = retries > 0 && (
       String(err.message).includes('429') ||
@@ -259,7 +275,18 @@ export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemin
       console.warn(`⚠️ [Gemini API] ${err.message} - ${retryDelaySeconds}초 후 재시도 (남은 횟수: ${retries})`);
 
       await new Promise((r) => setTimeout(r, retryDelay));
-      return callGeminiTextAPI(prompt, apiKey, selectedAiModel, retries - 1, delay * 1.8);
+      return callGeminiTextAPI(prompt, apiKey, selectedAiModel, retries - 1, delay * 1.8, generationConfigOverride);
+    }
+
+    // 503 재시도 모두 실패 시, flash 모델이었다면 lite로 다운그레이드 시도
+    if (is503 && selectedAiModel === 'gemini-2.5-flash') {
+      console.warn(`⚠️ [Gemini API] 503 에러 지속 → gemini-2.5-flash-lite로 자동 전환 시도`);
+      try {
+        return await callGeminiTextAPI(prompt, apiKey, 'gemini-2.5-flash-lite', 2, 1500, generationConfigOverride);
+      } catch (liteErr) {
+        console.error(`❌ [Gemini API] lite 모델도 실패: ${liteErr.message}`);
+        throw new Error(`프롬프트가 너무 크거나 복잡합니다. 데이터 범위를 줄여주세요. (원본 에러: ${err.message})`);
+      }
     }
 
     console.error(`❌ [Gemini API] 최종 실패: ${err.message}`);
