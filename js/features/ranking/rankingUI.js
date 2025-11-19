@@ -1876,6 +1876,12 @@ export function initRankingUI() {
     });
   });
 
+  // 전체 랭킹 탭 기간 드롭다운
+  const globalPeriodSelect = document.getElementById('global-period-select');
+  globalPeriodSelect?.addEventListener('change', (e) => {
+    changePeriod(e.target.value);
+  });
+
   console.log('✅ Ranking UI 모듈 초기화 완료 (Phase 3.5.1: 탭 구조 포함)');
 }
 
