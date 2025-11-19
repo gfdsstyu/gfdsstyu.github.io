@@ -242,9 +242,15 @@ export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemin
     if (shouldRetry) {
       // 503의 경우 더 긴 delay 사용 (서버 부하 감소 대기)
       const retryDelay = is503 ? delay * 2.5 : delay;
+      const retryDelaySeconds = (retryDelay / 1000).toFixed(1);
+
+      console.warn(`⚠️ [Gemini API] ${err.message} - ${retryDelaySeconds}초 후 재시도 (남은 횟수: ${retries})`);
+
       await new Promise((r) => setTimeout(r, retryDelay));
       return callGeminiTextAPI(prompt, apiKey, selectedAiModel, retries - 1, delay * 1.8);
     }
+
+    console.error(`❌ [Gemini API] 최종 실패: ${err.message}`);
     throw err;
   }
 }
