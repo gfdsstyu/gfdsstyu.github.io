@@ -701,21 +701,34 @@
                     </div>
                 </div>
 
-                <div class="border border-gray-200 rounded-lg">
-                    <button class="toggle-button w-full flex justify-between items-center p-5 text-left font-medium focus:outline-none" aria-expanded="false" data-toggle-target="faq-5">
-                        <span>Q. PC/태블릿/모바일에서 연동해서 쓰고싶어요.</span>
-                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                    </button>
-                    <div id="faq-5" class="toggle-content px-5 pb-5 leading-relaxed">
-                        <p><strong>A. '감린이'는 별도 서버가 없는 앱으로, 모든 학습 기록은 현재 사용 중인 기기의 브라우저에만 저장됩니다.</strong> 데이터가 자동으로 연동되지 않으므로, 수동으로 '내보내기' 및 '가져오기'를 사용해야 합니다.</p>
-                        <ol class="list-decimal list-outside pl-6 mt-2 space-y-2">
-                            <li><strong>(기존 기기) 데이터 내보내기:</strong> [설정(⚙️)] > [데이터 관리] > <strong>[📥 데이터 내보내기]</strong> 버튼을 클릭하여 `gamlini_backup_...json` 파일을 저장합니다.</li>
-                            <li><strong>(새 기기) 데이터 가져오기 (덮어쓰기):</strong> 새 기기에서 [설정(⚙️)] > <strong>[📤 데이터 가져오기]</strong>를 눌러 1번의 백업 파일을 선택하면 기록이 덮어씌워집니다.</li>
-                            <li><strong>(권장) 데이터 병합:</strong> PC와 모바일에서 각각 학습한 경우, <strong>[🔀 데이터 병합 가져오기]</strong>를 사용하세요. 이 기능은 기존 기록을 지우지 않고, 두 기기의 풀이 이력을 합쳐줍니다. (예: PC 기록 내보내기 -> 모바일에서 병합)</li>
-                        </ol>
-                    </div>
-                </div>
-            </div>
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg">
+    <button class="toggle-button w-full flex justify-between items-center p-5 text-left font-medium focus:outline-none hover:bg-gray-50 dark:hover:bg-gray-800 transition" aria-expanded="false" data-toggle-target="faq-5">
+        <span>Q. PC/태블릿/모바일에서 연동해서 쓰고싶어요.</span>
+        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+    </button>
+    <div id="faq-5" class="toggle-content px-5 pb-5 leading-relaxed bg-gray-50 dark:bg-gray-800/50">
+        <p class="text-gray-700 dark:text-gray-300 mb-3">
+            <strong>A. v4.0부터는 클라우드 동기화를 지원합니다! 🎉</strong>
+        </p>
+        <p class="text-gray-700 dark:text-gray-300 mb-2">
+            가장 편리한 방법은 <strong>로그인</strong>을 하는 것입니다. 구글 계정으로 로그인하면 <strong>AI가 분석한 채점 피드백</strong>과 <strong>내가 이전에 입력했던 답안</strong>들이 모두 자동으로 서버에 저장됩니다.
+        </p>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+            덕분에 별도의 작업 없이도 PC, 태블릿, 모바일 등 <strong>다른 기기에서 내 답안과 피드백을 그대로 불러와</strong> 끊김 없이 학습을 이어갈 수 있습니다.
+        </p>
+        <div class="bg-white dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600 text-sm">
+            <p class="font-bold text-gray-800 dark:text-gray-200 mb-2">로그인을 하지 않는 경우 (수동 백업 필수):</p>
+            <p class="text-gray-600 dark:text-gray-400 mb-2">
+                로그인 없이 사용한다면, 소중한 <strong>답안과 AI 피드백을 잃어버리지 않기 위해</strong> 수동으로 백업해야 합니다.
+            </p>
+            <ul class="list-disc list-outside pl-5 space-y-1 text-gray-600 dark:text-gray-400">
+                <li><strong>(기존 기기) 데이터 내보내기:</strong> [설정(⚙️)] > [데이터 관리] > <strong>[📥 데이터 내보내기]</strong>로 백업 파일을 저장합니다.</li>
+                <li><strong>(새 기기) 데이터 가져오기:</strong> 새 기기에서 <strong>[📤 데이터 가져오기]</strong>를 하면 기록이 복원됩니다.</li>
+                <li><strong>(권장) 데이터 병합:</strong> 양쪽 기기의 기록을 합치려면 <strong>[🔀 데이터 병합 가져오기]</strong>를 사용하세요.</li>
+            </ul>
+        </div>
+    </div>
+</div>
         </section>
 
     </div>
@@ -749,6 +762,7 @@
     </script>
 </body>
 </html>
+
 
 
 
