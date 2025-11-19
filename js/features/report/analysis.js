@@ -13,6 +13,8 @@ import { calculateMovingAverage } from './charts.js';
 import { getGeminiApiKey, getQuestionScores, setQuestionScores, saveQuestionScores, getMemoryTipMode } from '../../core/stateManager.js';
 import { normId } from '../../utils/helpers.js';
 import { createMemoryTipPrompt } from '../../config/config.js';
+import { fetchDetailedRecords } from '../sync/syncCore.js';
+import { getCurrentUser } from '../auth/authCore.js';
 
 /**
  * 차트 해석 규칙 (축약판 - API 타임아웃 방지)
@@ -288,19 +290,43 @@ export async function startAIAnalysis() {
     // 차트 컨텍스트 추출
     const chartContext = extractChartContext(data);
 
-    // 약점 문제 데이터 준비 (8개로 축소, 각 250자 제한)
-    const weakProblemsSummary = data.weakProblems.slice(0, 8).map(wp => {
-      const scoreData = window.questionScores[wp.qid];
-      const solveHistory = scoreData?.solveHistory || [];
-      const latestSolve = solveHistory[solveHistory.length - 1];
+    // 약점 문제 선별 (최대 8개)
+    const targetProblems = data.weakProblems.slice(0, 8);
 
+    // 🆕 상세 데이터(답안/피드백)를 Firestore에서 가져오기
+    const currentUser = getCurrentUser();
+    let detailedMap = {};
+
+    if (currentUser) {
+      // 로그인 상태면 서버에서 상세 데이터 가져오기
+      const targetIds = targetProblems.map(wp => wp.qid);
+      console.log(`📥 [AI Analysis] 상세 데이터 조회 시작: ${targetIds.length}개 문제`);
+      try {
+        detailedMap = await fetchDetailedRecords(currentUser.uid, targetIds);
+        console.log(`✅ [AI Analysis] 상세 데이터 로드 완료: ${Object.keys(detailedMap).length}개`);
+      } catch (err) {
+        console.error('❌ [AI Analysis] 상세 데이터 로드 중 오류:', err);
+        showToast('상세 데이터 로드 실패, 로컬 데이터로 진행합니다.', 'warn');
+      }
+    } else {
+      console.log('⚠️ [AI Analysis] 로그아웃 상태 - 로컬 데이터 사용');
+    }
+
+    // 약점 문제 데이터 준비 (서버 데이터 우선, 로컬 데이터 백업)
+    const weakProblemsSummary = targetProblems.map(wp => {
+      const scoreData = window.questionScores[wp.qid]; // 로컬 데이터
+      const serverData = detailedMap[wp.qid];          // 서버 데이터
+
+      // 서버 데이터가 있으면 우선 사용, 없으면 로컬 데이터 사용
+      const 답안원본 = serverData?.user_answer || scoreData?.user_answer || '(답변 없음)';
+      const 피드백원본 = serverData?.feedback || scoreData?.feedback || '';
       const 정답원본 = wp.problem.정답 || '';
-      const 답안원본 = latestSolve?.user_answer || scoreData?.user_answer || '(답변 없음)';
 
       return {
         문제: (wp.problem.물음 || '').slice(0, 250) + ((wp.problem.물음 || '').length > 250 ? ' …' : ''),
         정답: 정답원본.slice(0, 250) + (정답원본.length > 250 ? ' …' : ''),
         내답안: 답안원본.slice(0, 250) + (답안원본.length > 250 ? ' …' : ''),
+        기존피드백: 피드백원본.slice(0, 200) + (피드백원본.length > 200 ? ' …' : ''),
         점수: wp.score
       };
     });
