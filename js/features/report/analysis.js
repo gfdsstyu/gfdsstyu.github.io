@@ -5,7 +5,7 @@
  */
 
 import { el, $ } from '../../ui/elements.js';
-import { callGeminiJsonAPI } from '../../services/geminiApi.js';
+import { callGeminiJsonAPI, callGeminiTipAPI } from '../../services/geminiApi.js';
 import { getReportData } from './reportCore.js';
 import { showToast } from '../../ui/domUtils.js';
 import { openApiModal } from '../settings/settingsCore.js';
@@ -211,8 +211,8 @@ ${JSON.stringify(problemsGroup)}
 2. 정답과 사용자 답안의 핵심 차이점
 3. 구체적인 개선 조언 (1줄)`;
 
-  // 복잡한 추론 필요 → gemini-exp-1206 (Pro급 모델)
-  return await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-exp-1206');
+  // 복잡한 추론 필요 → gemini-2.5-pro (Pro급 모델)
+  return await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-2.5-pro');
 }
 
 /**
@@ -522,7 +522,7 @@ export async function handleCoachingRequest(qid, btn, forceRegenerate = false) {
     // config.js의 통합 프롬프트 템플릿 사용 (사용자 설정 모드 반영)
     const mode = getMemoryTipMode();
     const prompt = createMemoryTipPrompt(problem.물음, problem.정답, mode);
-    const response = await callGeminiTextAPI(prompt, geminiApiKey);
+    const response = await callGeminiTipAPI(prompt, geminiApiKey);
 
     // questionScores에 저장
     const questionScores = getQuestionScores();
