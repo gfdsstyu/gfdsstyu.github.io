@@ -27,6 +27,11 @@ service cloud.firestore {
 
       // 쓰기: 본인만 가능
       allow write: if isOwner(userId);
+
+      // 상세 기록 서브컬렉션 (user_answer, feedback 등)
+      match /records/{recordId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
     // ============================================
