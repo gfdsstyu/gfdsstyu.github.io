@@ -211,8 +211,8 @@ ${JSON.stringify(problemsGroup)}
 2. 정답과 사용자 답안의 핵심 차이점
 3. 구체적인 개선 조언 (1줄)`;
 
-  // 복잡한 추론 필요 → gemini-exp-1206 (Pro급 모델)
-  return await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-exp-1206');
+  // 복잡한 추론 필요 → gemini-2.5-pro (Pro급 모델)
+  return await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-2.5-pro');
 }
 
 /**

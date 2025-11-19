@@ -13,7 +13,7 @@ const MODEL_MAP = {
   'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite',
   'gemini-2.0-flash-exp': 'gemini-2.0-flash-exp',
   'gemini-1.5-pro': 'gemini-1.5-pro',
-  'gemini-exp-1206': 'gemini-exp-1206'
+  'gemini-2.5-pro': 'gemini-2.5-pro'
 };
 
 /**
