@@ -5,7 +5,7 @@
  */
 
 import { el, $ } from '../../ui/elements.js';
-import { callGeminiJsonAPI } from '../../services/geminiApi.js';
+import { callGeminiJsonAPI, callGeminiTipAPI } from '../../services/geminiApi.js';
 import { getReportData } from './reportCore.js';
 import { showToast } from '../../ui/domUtils.js';
 import { openApiModal } from '../settings/settingsCore.js';
@@ -522,7 +522,7 @@ export async function handleCoachingRequest(qid, btn, forceRegenerate = false) {
     // config.js의 통합 프롬프트 템플릿 사용 (사용자 설정 모드 반영)
     const mode = getMemoryTipMode();
     const prompt = createMemoryTipPrompt(problem.물음, problem.정답, mode);
-    const response = await callGeminiTextAPI(prompt, geminiApiKey);
+    const response = await callGeminiTipAPI(prompt, geminiApiKey);
 
     // questionScores에 저장
     const questionScores = getQuestionScores();
