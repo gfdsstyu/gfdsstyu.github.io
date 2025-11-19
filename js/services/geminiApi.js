@@ -403,8 +403,8 @@ export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selected
  * @param {number} delay - 재시도 대기 시간 (ms)
  * @returns {Promise<string>} 생성된 암기팁 문자열
  */
-export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini-2.5-flash', retries = 2, delay = 800) {
-  const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash';
+export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini-2.5-flash-lite', retries = 2, delay = 800) {
+  const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash-lite';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
   // 핵심 변경: JSON 스키마를 제거하고 Plain Text로 요청
