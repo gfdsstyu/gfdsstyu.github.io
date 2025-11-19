@@ -36,18 +36,20 @@ service cloud.firestore {
     }
 
     // ============================================
-     // Users Collection
+    // Users Collection
+    // ============================================
+
     match /users/{userId} {
       // 1. 상위 문서(점수, 통계 등) 접근 허용
       allow read: if isOwner(userId);
       allow write: if isOwner(userId);
 
-      // 2. [누락된 부분] 하위 records 컬렉션(상세 답안, 암기팁 등) 접근 허용
+      // 2. [수정됨] 하위 records 컬렉션(상세 답안, 암기팁 등) 접근 허용
+      // 이 규칙이 없으면 fetchDetailedRecords 호출 시 권한 오류 발생
       match /records/{recordId} {
         allow read, write: if isOwner(userId);
       }
     }
-
 
     // ============================================
     // Rankings Collection (Phase 3)
@@ -56,7 +58,6 @@ service cloud.firestore {
     match /rankings/{userId} {
       // 읽기: 모든 인증된 사용자
       allow read: if isAuthenticated();
-
       // 쓰기: 본인만 가능
       allow write: if isOwner(userId);
     }
@@ -68,17 +69,14 @@ service cloud.firestore {
     match /groups/{groupId} {
       // 읽기: 공개 그룹은 모든 인증된 사용자, 비공개는 멤버만
       allow read: if isAuthenticated();
-
       // 생성: 모든 인증된 사용자
       allow create: if isAuthenticated()
         && request.resource.data.ownerId == request.auth.uid
         && request.resource.data.memberCount == 1;
-
       // 업데이트: 그룹장만 가능 (memberCount 제외)
       allow update: if isAuthenticated()
         && (resource.data.ownerId == request.auth.uid
             || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount', 'lastUpdatedAt']));
-
       // 삭제: 그룹장만 가능
       allow delete: if isAuthenticated()
         && resource.data.ownerId == request.auth.uid;
@@ -88,17 +86,14 @@ service cloud.firestore {
         // 읽기: 같은 그룹 멤버만
         allow read: if isAuthenticated()
           && exists(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid));
-
         // 생성: 본인 또는 그룹장
         allow create: if isAuthenticated()
           && (request.auth.uid == userId
               || get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid);
-
         // 업데이트: 본인 또는 그룹장
         allow update: if isAuthenticated()
           && (request.auth.uid == userId
               || get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid);
-
         // 삭제: 본인 또는 그룹장
         allow delete: if isAuthenticated()
           && (request.auth.uid == userId
@@ -113,7 +108,6 @@ service cloud.firestore {
     match /groupRankings/{groupId} {
       // 읽기: 모든 인증된 사용자
       allow read: if isAuthenticated();
-
       // 쓰기: 해당 그룹 멤버만
       allow write: if isAuthenticated()
         && exists(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid));
@@ -126,7 +120,6 @@ service cloud.firestore {
     match /universityVerifications/{userId} {
       // 읽기: 본인만 가능
       allow read: if isOwner(userId);
-
       // 쓰기: 본인만 가능 (인증 코드 생성/검증)
       allow write: if isOwner(userId);
     }
@@ -138,7 +131,6 @@ service cloud.firestore {
     match /universityRankings/{university} {
       // 읽기: 모든 인증된 사용자
       allow read: if isAuthenticated();
-
       // 쓰기: 해당 대학교로 인증된 사용자만
       allow write: if isAuthenticated();
     }
@@ -150,7 +142,6 @@ service cloud.firestore {
     match /mail/{mailId} {
       // 생성: 인증된 사용자만 (이메일 발송)
       allow create: if isAuthenticated();
-
       // 읽기/업데이트/삭제: Firebase Extensions만 가능 (관리자 권한)
       allow read, update, delete: if false;
     }
