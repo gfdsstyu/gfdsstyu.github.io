@@ -160,26 +160,26 @@ ${CHART_INTERPRETATION_RULES}
 }
 
 /**
- * 2단계: 약점 문제 그룹 분석 (난이도: 높음 → flash)
+ * 2단계: 약점 문제 그룹 분석 (난이도: 높음 → flash-lite 먼저 시도)
  */
 async function analyzeWeakProblemsGroup(problemsGroup, groupNumber, geminiApiKey) {
   if (!problemsGroup || problemsGroup.length === 0) return null;
 
-  const prompt = `당신은 CPA 2차 회계감사 채점위원입니다. 20년 경력의 회계사이자 실제 시험 채점위원의 시각으로 분석하세요.
+  const prompt = `당신은 CPA 2차 회계감사 채점위원입니다.
 
-[약점 문제 그룹 ${groupNumber}]
+[약점 문제 그룹 ${groupNumber} (${problemsGroup.length}개)]
 ${JSON.stringify(problemsGroup)}
 
 [요청]
-각 문제별로 오답 원인을 깊이 분석하세요:
-1. 어떤 기준서 개념을 오해했는지
-2. 정답과 사용자 답안의 핵심 차이점
-3. 개선을 위한 구체적 조언 (1줄)
+각 문제별로 오답 원인을 분석하세요:
+1. 오해한 개념
+2. 정답과 답안의 차이
+3. 개선 조언 (1줄)
 
-마크다운 형식으로 작성하세요 (문제당 3-4줄).`;
+마크다운으로 간결하게 (문제당 2-3줄).`;
 
-  // 깊은 추론 필요 → flash 사용 (더 정교한 분석)
-  return await callGeminiTextAPI(prompt, geminiApiKey, 'gemini-2.5-flash');
+  // API 부하 최소화 → flash-lite 사용 (flash는 503 빈발)
+  return await callGeminiTextAPI(prompt, geminiApiKey, 'gemini-2.5-flash-lite');
 }
 
 /**
@@ -237,8 +237,8 @@ export async function startAIAnalysis() {
     // 차트 컨텍스트 추출
     const chartContext = extractChartContext(data);
 
-    // 약점 문제 데이터 준비 (12개, 각 400자 제한)
-    const weakProblemsSummary = data.weakProblems.slice(0, 12).map(wp => {
+    // 약점 문제 데이터 준비 (8개로 축소, 각 250자 제한)
+    const weakProblemsSummary = data.weakProblems.slice(0, 8).map(wp => {
       const scoreData = window.questionScores[wp.qid];
       const solveHistory = scoreData?.solveHistory || [];
       const latestSolve = solveHistory[solveHistory.length - 1];
@@ -247,16 +247,16 @@ export async function startAIAnalysis() {
       const 답안원본 = latestSolve?.user_answer || scoreData?.user_answer || '(답변 없음)';
 
       return {
-        문제: (wp.problem.물음 || '').slice(0, 400) + ((wp.problem.물음 || '').length > 400 ? ' …' : ''),
-        정답: 정답원본.slice(0, 400) + (정답원본.length > 400 ? ' …' : ''),
-        내답안: 답안원본.slice(0, 400) + (답안원본.length > 400 ? ' …' : ''),
+        문제: (wp.problem.물음 || '').slice(0, 250) + ((wp.problem.물음 || '').length > 250 ? ' …' : ''),
+        정답: 정답원본.slice(0, 250) + (정답원본.length > 250 ? ' …' : ''),
+        내답안: 답안원본.slice(0, 250) + (답안원본.length > 250 ? ' …' : ''),
         점수: wp.score
       };
     });
 
     // 🔄 단계별 분석 시작
     const results = [];
-    const totalSteps = 1 + Math.ceil(weakProblemsSummary.length / 4) + 1; // 차트 + 약점그룹 + 종합
+    const totalSteps = 1 + Math.ceil(weakProblemsSummary.length / 2) + 1; // 차트 + 약점그룹(2개씩) + 종합
     let currentStep = 0;
 
     // 진행률 표시 함수
@@ -275,15 +275,32 @@ export async function startAIAnalysis() {
     const chartAnalysis = await analyzeChartTrend(chartContext, geminiApiKey);
     if (chartAnalysis) results.push(chartAnalysis);
 
-    // 2단계: 약점 문제 그룹별 분석 (4개씩 나눔)
+    // API 과부하 방지 딜레이
+    await new Promise(r => setTimeout(r, 1000));
+
+    // 2단계: 약점 문제 그룹별 분석 (2개씩 나눔, API 부하 최소화)
     const weaknessAnalyses = [];
-    for (let i = 0; i < weakProblemsSummary.length; i += 4) {
-      const group = weakProblemsSummary.slice(i, i + 4);
-      const groupNumber = Math.floor(i / 4) + 1;
+    for (let i = 0; i < weakProblemsSummary.length; i += 2) {
+      const group = weakProblemsSummary.slice(i, i + 2);
+      const groupNumber = Math.floor(i / 2) + 1;
       updateProgress(`🔍 약점 문제 분석 중 (그룹 ${groupNumber})`);
-      const analysis = await analyzeWeakProblemsGroup(group, groupNumber, geminiApiKey);
-      if (analysis) weaknessAnalyses.push(analysis);
+
+      try {
+        const analysis = await analyzeWeakProblemsGroup(group, groupNumber, geminiApiKey);
+        if (analysis) weaknessAnalyses.push(analysis);
+      } catch (err) {
+        console.warn(`⚠️ 그룹 ${groupNumber} 분석 실패 (건너뜀): ${err.message}`);
+        // 실패해도 계속 진행 (부분 결과라도 표시)
+      }
+
+      // 각 그룹 호출 사이 딜레이 (API 과부하 방지)
+      if (i + 2 < weakProblemsSummary.length) {
+        await new Promise(r => setTimeout(r, 1500));
+      }
     }
+
+    // API 과부하 방지 딜레이
+    await new Promise(r => setTimeout(r, 1000));
 
     // 3단계: 종합 평가
     updateProgress('📋 종합 평가 생성 중');
