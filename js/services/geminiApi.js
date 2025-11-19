@@ -64,6 +64,11 @@ export async function callGeminiAPI(userAnswer, correctAnswer, apiKey, selectedA
       if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) {
         throw new Error(`모델/버전 불일치: ${msg}`);
       }
+      if (res.status === 401 || res.status === 403) {
+        console.error(`❌ [Gemini API] 403/401 상세 오류:`, body);
+        const detailedMsg = msg || 'API 키 권한 부족';
+        throw new Error(`API 키 오류 (${res.status}): ${detailedMsg}\n\n가능한 원인:\n1. API 키에 Generative Language API 권한 미부여\n2. API 키 도메인 제한 설정 확인 필요\n3. API 키 만료 또는 비활성화\n4. 사용량 초과 (무료: 분당 15req, 일당 1500req)`);
+      }
       if (res.status === 429) {
         throw new Error(`API 할당량 초과 (429)`);
       }
@@ -152,6 +157,11 @@ export async function callGeminiHintAPI(userAnswer, correctAnswer, questionText,
       if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) {
         throw new Error(`모델/버전 불일치: ${msg}`);
       }
+      if (res.status === 401 || res.status === 403) {
+        console.error(`❌ [Gemini API] 403/401 상세 오류:`, body);
+        const detailedMsg = msg || 'API 키 권한 부족';
+        throw new Error(`API 키 오류 (${res.status}): ${detailedMsg}\n\n가능한 원인:\n1. API 키에 Generative Language API 권한 미부여\n2. API 키 도메인 제한 설정 확인 필요\n3. API 키 만료 또는 비활성화\n4. 사용량 초과 (무료: 분당 15req, 일당 1500req)`);
+      }
       if (res.status === 429) {
         throw new Error(`API 할당량 초과 (429)`);
       }
@@ -216,7 +226,9 @@ export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemin
         throw new Error(`모델/버전 불일치: ${msg}`);
       }
       if (res.status === 401 || res.status === 403) {
-        throw new Error(`API 키 오류 (${res.status}): API 키를 확인하세요`);
+        console.error(`❌ [Gemini API] 403/401 상세 오류:`, body);
+        const detailedMsg = msg || 'API 키 권한 부족';
+        throw new Error(`API 키 오류 (${res.status}): ${detailedMsg}\n\n가능한 원인:\n1. API 키에 Generative Language API 권한 미부여\n2. API 키 도메인 제한 설정 확인 필요\n3. API 키 만료 또는 비활성화\n4. 사용량 초과 (무료: 분당 15req, 일당 1500req)`);
       }
       if (res.status === 429) {
         throw new Error(`API 할당량 초과 (429)`);
