@@ -247,6 +247,10 @@ export function createMemoryTipPrompt(question, answer, mode = 'mild') {
   const s1 = mode === 'stimulating' ? ' 선정적이거나 자극적이어도 좋음.' : '';
   const s2 = mode === 'stimulating' ? ' 경선식 스타일처럼 익살스럽고 선정적이거나 자극적이어도 좋음.' : ' 익살스럽고 재미있으면 좋음.';
 
+  // API 타임아웃 방지: 문제/정답을 각 800자로 제한
+  const questionTruncated = (question || '').slice(0, 800) + ((question || '').length > 800 ? ' …' : '');
+  const answerTruncated = (answer || '').slice(0, 800) + ((answer || '').length > 800 ? ' …' : '');
+
   return `[역할]
 당신은 회계감사 2차 시험을 준비하는 학생의 암기 코치입니다.
 아래 문제와 정답을 보고, 학생이 쉽게 기억할 수 있도록 **유연한 암기 팁**을 제공하세요.
@@ -267,10 +271,10 @@ export function createMemoryTipPrompt(question, answer, mode = 'mild') {
 - **완전성**: 개념의 핵심을 왜곡하지 말고 모든 항목을 포함할것. 예를들어 번호 1~4까지 있다면 4항목을 모두 포함하시오.
 
 [문제]
-${question}
+${questionTruncated}
 
 [정답]
-${answer}
+${answerTruncated}
 
 [요청]
 위 정답을 외우기 쉽게 만드는 암기 팁을 2-4줄로 제공하세요.

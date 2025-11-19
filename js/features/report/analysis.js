@@ -15,52 +15,14 @@ import { normId } from '../../utils/helpers.js';
 import { createMemoryTipPrompt } from '../../config/config.js';
 
 /**
- * 차트 해석 규칙 (Task 4: trendhelp.html에서 핵심 내용 추출)
+ * 차트 해석 규칙 (축약판 - API 타임아웃 방지)
  */
 const CHART_INTERPRETATION_RULES = `
-# 학습 점수 추세 차트 해석 규칙
-
-## 1. 이동평균선 정의
-- **5일선 (단기 컨디션선):** 최근 5 학습일의 평균 점수. 단기 학습 성과를 반영.
-- **20일선 (중기 실력선) ⭐️:** 최근 20 학습일의 평균 점수. 진짜 실력 추세를 나타내는 핵심 지표.
-- **60일선 (장기 기반선):** 최근 60 학습일의 평균 점수. 기본 실력 수준.
-
-## 2. 주요 시그널
-
-### 골든 크로스 (Golden Cross) 🟢
-- **정의:** 5일선이 20일선을 하향→상향 돌파
-- **의미:** 단기 학습 성과가 중기 실력을 추월 → **긍정적 신호**
-- **해석:** "최근 학습법이 효과적으로 작용하고 있습니다. 현재 페이스를 유지하세요."
-- **조치:** 현재 학습 전략 유지 및 강화
-
-### 데드 크로스 (Dead Cross) 🔴
-- **정의:** 5일선이 20일선을 상향→하향 이탈
-- **의미:** 최근 컨디션 저하 → **경고 신호**
-- **해석:** "최근 학습 성과가 떨어지고 있습니다. 슬럼프이거나 학습 방법에 문제가 있을 수 있습니다."
-- **조치:** 학습 방법 점검, 휴식 또는 전략 변경 필요
-
-### 정배열 (Perfect Order) 🚀
-- **정의:** 5일선 > 20일선 > 60일선 (3개 선이 모두 상승 방향으로 정렬)
-- **의미:** 단기·중기·장기 모두 상승 추세 → **최상의 상태**
-- **해석:** "현재 학습이 매우 안정적으로 상승 중입니다. 합격 가능성이 높아지고 있습니다."
-- **조치:** 현재 페이스 유지
-
-### 역배열 (Reverse Order) ⚠️
-- **정의:** 5일선 < 20일선 < 60일선
-- **의미:** 장기 침체 상태
-- **해석:** "학습 방법 전반을 재점검해야 합니다. 개념 복습이 필요합니다."
-
-## 3. 중요 원칙
-- **단기 등락에 일희일비하지 말 것:** 5일선은 변동성이 크므로, 20일선(중기) 추세를 더 신뢰해야 합니다.
-- **난이도 일관성 전제:** 매일 유사한 난이도의 문제를 풀 때 차트가 유효합니다.
-- **진단 도구임을 인지:** 이 차트는 미래를 예측하는 도구가 아니라, 현재 상태를 진단하는 계기판입니다.
-
-## 4. AI 분석 시 활용 방법
-사용자의 차트 데이터를 받으면:
-1. 골든크로스/데드크로스 발생 여부를 확인하고, 발생 시점을 명시하세요.
-2. 정배열/역배열 상태를 진단하세요.
-3. 20일선의 방향(상승/하락/보합)을 분석하세요.
-4. 위 해석 규칙에 따라 구체적인 조치 사항을 제안하세요.
+**이동평균선:** 5일선(단기), 20일선(중기-핵심), 60일선(장기)
+**골든크로스 🟢:** 5일선이 20일선 상향돌파 → 긍정신호, 현재 페이스 유지
+**데드크로스 🔴:** 5일선이 20일선 하향이탈 → 경고신호, 학습법 점검
+**정배열 🚀:** 5일>20일>60일 → 최상 상태, 현재 페이스 유지
+**역배열 ⚠️:** 5일<20일<60일 → 침체, 학습법 재점검
 `;
 
 /**
@@ -205,15 +167,19 @@ export async function startAIAnalysis() {
     const chartContext = extractChartContext(data);
 
     // Prepare prompt with actual user answers from solve history
-    const weakProblemsSummary = data.weakProblems.slice(0, 20).map(wp => {
+    // 프롬프트 크기 제한: 약점 문제 12개로 제한, 정답/답안 각 400자로 제한
+    const weakProblemsSummary = data.weakProblems.slice(0, 12).map(wp => {
       const scoreData = window.questionScores[wp.qid];
       const solveHistory = scoreData?.solveHistory || [];
       const latestSolve = solveHistory[solveHistory.length - 1];
 
+      const 정답원본 = wp.problem.정답 || '';
+      const 답안원본 = latestSolve?.user_answer || scoreData?.user_answer || '(답변 없음)';
+
       return {
-        문제: wp.problem.물음,
-        정답: wp.problem.정답,
-        내답안: latestSolve?.user_answer || scoreData?.user_answer || '(답변 없음)',
+        문제: (wp.problem.물음 || '').slice(0, 400) + ((wp.problem.물음 || '').length > 400 ? ' …' : ''),
+        정답: 정답원본.slice(0, 400) + (정답원본.length > 400 ? ' …' : ''),
+        내답안: 답안원본.slice(0, 400) + (답안원본.length > 400 ? ' …' : ''),
         점수: wp.score
       };
     });
@@ -416,7 +382,7 @@ ${chartContext?.isPerfectOrder ? '또한 정배열 상태(5일 > 20일 > 60일)�
 - 차트 데이터가 없거나 부족하면 해당 섹션을 생략하세요.
 
 [오답 데이터]
-${JSON.stringify(weakProblemsSummary, null, 2)}
+${JSON.stringify(weakProblemsSummary)}
 
 마크다운 형식으로 답변하세요.`;
 
