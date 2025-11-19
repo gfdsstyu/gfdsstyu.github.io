@@ -36,16 +36,18 @@ service cloud.firestore {
     }
 
     // ============================================
-    // Users Collection
-    // ============================================
-
+     // Users Collection
     match /users/{userId} {
-      // 읽기: 본인만 가능
+      // 1. 상위 문서(점수, 통계 등) 접근 허용
       allow read: if isOwner(userId);
-
-      // 쓰기: 본인만 가능
       allow write: if isOwner(userId);
+
+      // 2. [누락된 부분] 하위 records 컬렉션(상세 답안, 암기팁 등) 접근 허용
+      match /records/{recordId} {
+        allow read, write: if isOwner(userId);
+      }
     }
+
 
     // ============================================
     // Rankings Collection (Phase 3)
