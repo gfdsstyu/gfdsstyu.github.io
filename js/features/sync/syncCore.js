@@ -509,6 +509,46 @@ export async function syncSettingsToFirestore(userId) {
 }
 
 // ============================================
+// 상세 기록 조회 (서브컬렉션 records)
+// ============================================
+
+/**
+ * 여러 문제의 상세 기록(답안/피드백)을 한 번에 조회
+ * @param {string} userId - 사용자 UID
+ * @param {Array<string>} questionIds - 조회할 문제 ID 배열
+ * @returns {Promise<Object>} { qid: { user_answer, feedback, ... } } 형태의 맵
+ */
+export async function fetchDetailedRecords(userId, questionIds) {
+  if (!userId || !questionIds || questionIds.length === 0) {
+    console.warn('⚠️ [SyncCore] fetchDetailedRecords: userId 또는 questionIds 없음');
+    return {};
+  }
+
+  console.log(`📥 [SyncCore] 상세 기록 조회 시작: ${questionIds.length}개 문제`);
+  const recordsMap = {};
+
+  const promises = questionIds.map(async (qid) => {
+    try {
+      const recordRef = doc(db, 'users', userId, 'records', qid);
+      const snapshot = await getDoc(recordRef);
+      if (snapshot.exists()) {
+        recordsMap[qid] = snapshot.data();
+        console.log(`   ✅ ${qid}: 데이터 로드 성공`);
+      } else {
+        console.log(`   ⚠️ ${qid}: 데이터 없음`);
+      }
+    } catch (e) {
+      console.error(`   ❌ ${qid}: 조회 실패:`, e.message);
+    }
+  });
+
+  await Promise.all(promises);
+
+  console.log(`✅ [SyncCore] 상세 기록 조회 완료: ${Object.keys(recordsMap).length}/${questionIds.length}개 성공`);
+  return recordsMap;
+}
+
+// ============================================
 // 디버깅 함수
 // ============================================
 
