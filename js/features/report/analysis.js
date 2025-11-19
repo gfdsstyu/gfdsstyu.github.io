@@ -349,7 +349,6 @@ export async function startAIAnalysis() {
     // 1단계: 차트 추세 분석
     updateProgress('📊 차트 추세 분석 중');
     const chartAnalysis = await analyzeChartTrend(chartContext, geminiApiKey);
-    if (chartAnalysis) results.push(chartAnalysis);
 
     // API 과부하 방지 딜레이
     await new Promise(r => setTimeout(r, 1000));
@@ -381,7 +380,6 @@ export async function startAIAnalysis() {
     // 3단계: 종합 평가
     updateProgress('📋 종합 평가 생성 중');
     const synthesis = await synthesizeAnalysis(chartAnalysis, weaknessAnalyses, geminiApiKey);
-    if (synthesis) results.push(synthesis);
 
     // JSON → 마크다운 변환
     let finalReport = `# 🎓 감린이 AI 채점위원 분석 리포트\n\n`;
