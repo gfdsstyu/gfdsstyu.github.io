@@ -174,7 +174,8 @@ ${CHART_INTERPRETATION_RULES}
 }
 
 /**
- * 2단계: 약점 문제 그룹 분석 (JSON 모드, Pro 사용 - 깊은 추론)
+ * 2단계: 약점 문제 그룹 분석 (JSON 모드, Pro 우선 - 깊은 추론)
+ * Pro RPM 제한(2)으로 실패 시 flash → flash-lite로 폴백
  */
 async function analyzeWeakProblemsGroup(problemsGroup, groupNumber, geminiApiKey) {
   if (!problemsGroup || problemsGroup.length === 0) return null;
@@ -211,8 +212,28 @@ ${JSON.stringify(problemsGroup)}
 2. 정답과 사용자 답안의 핵심 차이점
 3. 구체적인 개선 조언 (1줄)`;
 
-  // 복잡한 추론 필요 → gemini-2.5-pro (Pro급 모델)
-  return await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-2.5-pro');
+  // Pro → Flash → Flash-lite 순서로 폴백
+  const models = ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+
+  for (let i = 0; i < models.length; i++) {
+    const model = models[i];
+    try {
+      console.log(`🔍 [약점 분석 그룹 ${groupNumber}] ${model} 모델 시도 중...`);
+      const result = await callGeminiJsonAPI(prompt, schema, geminiApiKey, model);
+      console.log(`✅ [약점 분석 그룹 ${groupNumber}] ${model} 성공`);
+      return result;
+    } catch (err) {
+      const isLastModel = i === models.length - 1;
+      if (isLastModel) {
+        console.error(`❌ [약점 분석 그룹 ${groupNumber}] 모든 모델 실패: ${err.message}`);
+        throw err;
+      } else {
+        console.warn(`⚠️ [약점 분석 그룹 ${groupNumber}] ${model} 실패, ${models[i + 1]}로 재시도: ${err.message}`);
+        // 다음 모델로 폴백 전 짧은 대기
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
+  }
 }
 
 /**
