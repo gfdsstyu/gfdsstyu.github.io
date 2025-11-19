@@ -403,8 +403,8 @@ export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selected
  * @param {number} delay - 재시도 대기 시간 (ms)
  * @returns {Promise<string>} 생성된 암기팁 문자열
  */
-export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini-2.5-flash-lite', retries = 2, delay = 800) {
-  const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash-lite';
+export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini-2.5-flash', retries = 2, delay = 800) {
+  const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
   // 핵심 변경: JSON 스키마를 제거하고 Plain Text로 요청
@@ -434,7 +434,7 @@ export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini
       if ((res.status === 429 || res.status >= 500) && retries > 0) {
         console.warn(`⚠️ [Tip API] ${res.status} 오류 - 재시도...`);
         await new Promise(r => setTimeout(r, delay));
-        // 재시도 시에도 원래 선택한 모델(Flash) 유지
+        // 재시도 시에도 원래 선택한 모델 유지
         return callGeminiTipAPI(prompt, apiKey, selectedAiModel, retries - 1, delay * 1.5);
       }
 
@@ -462,6 +462,17 @@ export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini
     return text ? text.trim() : '암기팁을 생성하지 못했습니다.';
 
   } catch (err) {
+    // 503 에러이고 flash 모델이었다면 lite로 다운그레이드 시도
+    const is503 = String(err.message).includes('503') || String(err.message).includes('서버 오류');
+    if (is503 && selectedAiModel === 'gemini-2.5-flash' && retries === 0) {
+      console.warn(`⚠️ [Tip API] Flash 모델 503 에러 → lite 모델로 전환 시도`);
+      try {
+        return await callGeminiTipAPI(prompt, apiKey, 'gemini-2.5-flash-lite', 2, 800);
+      } catch (liteErr) {
+        console.error(`❌ [Tip API] lite 모델도 실패: ${liteErr.message}`);
+      }
+    }
+
     console.error('Tip API Error:', err);
     throw err;
   }
