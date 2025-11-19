@@ -1203,6 +1203,7 @@ function renderRankingList(rankings) {
  * @param {string} period - 'daily', 'weekly', 'monthly'
  */
 async function changePeriod(period) {
+  console.log(`🔄 [changePeriod] 호출됨 - period: ${period}, currentMainTab: ${currentMainTab}, currentGroupSubtab: ${currentGroupSubtab}, currentClassSubtab: ${currentClassSubtab}`);
   currentPeriod = period;
 
   // 버튼 활성화 상태 업데이트
@@ -1863,8 +1864,12 @@ export function initRankingUI() {
   });
 
   // 기간 필터 버튼들
-  document.querySelectorAll('[data-period]').forEach(btn => {
+  const periodButtons = document.querySelectorAll('[data-period]');
+  console.log(`🔧 [initRankingUI] 기간 필터 버튼 ${periodButtons.length}개 발견`);
+  periodButtons.forEach((btn, index) => {
+    console.log(`  - 버튼 ${index + 1}: data-period="${btn.dataset.period}"`);
     btn.addEventListener('click', () => {
+      console.log(`🖱️ [클릭] 기간 필터 버튼 클릭됨: ${btn.dataset.period}`);
       changePeriod(btn.dataset.period);
     });
   });
