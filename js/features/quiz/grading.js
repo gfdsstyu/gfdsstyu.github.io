@@ -4,7 +4,7 @@
 // ============================================
 
 import { clamp, normId } from '../../utils/helpers.js';
-import { callGeminiAPI, callGeminiHintAPI, callGeminiTextAPI } from '../../services/geminiApi.js';
+import { callGeminiAPI, callGeminiHintAPI, callGeminiTipAPI } from '../../services/geminiApi.js';
 import { showToast } from '../../ui/domUtils.js';
 import { createMemoryTipPrompt } from '../../config/config.js';
 import { getCurrentUser } from '../auth/authCore.js';
@@ -480,7 +480,7 @@ export async function handleMemoryTip(q, forceRegenerate = false) {
     // config.js의 통합 프롬프트 템플릿 사용 (사용자 설정 모드 반영)
     const mode = getMemoryTipMode();
     const prompt = createMemoryTipPrompt(q.물음, q.정답, mode);
-    const response = await callGeminiTextAPI(prompt, geminiApiKey);
+    const response = await callGeminiTipAPI(prompt, geminiApiKey);
 
     // questionScores에 저장
     const questionScores = getQuestionScores();

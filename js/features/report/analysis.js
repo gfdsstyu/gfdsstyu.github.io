@@ -5,7 +5,7 @@
  */
 
 import { el, $ } from '../../ui/elements.js';
-import { callGeminiTextAPI } from '../../services/geminiApi.js';
+import { callGeminiJsonAPI } from '../../services/geminiApi.js';
 import { getReportData } from './reportCore.js';
 import { showToast } from '../../ui/domUtils.js';
 import { openApiModal } from '../settings/settingsCore.js';
@@ -135,10 +135,22 @@ function markdownToHtml(md) {
 }
 
 /**
- * 1단계: 차트 추세 분석 (난이도: 낮음 → flash-lite)
+ * 1단계: 차트 추세 분석 (JSON 모드, lite 사용)
  */
 async function analyzeChartTrend(chartContext, geminiApiKey) {
   if (!chartContext) return null;
+
+  const schema = {
+    type: "OBJECT",
+    properties: {
+      trend_status: { type: "STRING", description: "현재 추세 상태 (정배열/역배열/중립)" },
+      golden_cross: { type: "STRING", description: "골든크로스 발생 여부 및 의미" },
+      dead_cross: { type: "STRING", description: "데드크로스 발생 여부 및 의미" },
+      weak_chapters: { type: "STRING", description: "취약 단원 요약" },
+      recommendation: { type: "STRING", description: "학습 전략 조언 (1-2문장)" }
+    },
+    required: ["trend_status", "recommendation"]
+  };
 
   const prompt = `당신은 CPA 2차 회계감사 학습 코치입니다.
 
@@ -149,60 +161,99 @@ ${CHART_INTERPRETATION_RULES}
 - 현재 이동평균: 5일선 ${chartContext.currentMA5?.toFixed(1)}, 20일선 ${chartContext.currentMA20?.toFixed(1)}, 60일선 ${chartContext.currentMA60?.toFixed(1)}
 - 골든크로스: ${chartContext.lastGoldenCross ? `${chartContext.lastGoldenCross.daysAgo}일 전 발생` : '최근 7일 내 없음'}
 - 데드크로스: ${chartContext.lastDeadCross ? `${chartContext.lastDeadCross.daysAgo}일 전 발생` : '최근 7일 내 없음'}
-- 정배열: ${chartContext.isPerfectOrder ? '예 🚀' : '아니오'}
+- 정배열: ${chartContext.isPerfectOrder ? '예' : '아니오'}
 - 취약 단원: ${chartContext.weakChapters.map((c, i) => `${i+1}. ${c.chapter} (${c.avgScore}점)`).join(', ')}
 
 [요청]
-위 차트 데이터를 분석하여 "📊 차트 추세 분석" 섹션을 마크다운으로 작성하세요 (3-5문장).`;
+위 데이터를 분석하여 JSON으로 출력하세요.`;
 
-  // 단순 데이터 해석 → flash-lite 사용 (빠르고 저렴)
-  return await callGeminiTextAPI(prompt, geminiApiKey, 'gemini-2.5-flash-lite');
+  // 단순 해석 → lite (빠르고 저렴)
+  return await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-2.5-flash-lite');
 }
 
 /**
- * 2단계: 약점 문제 그룹 분석 (난이도: 높음 → flash)
+ * 2단계: 약점 문제 그룹 분석 (JSON 모드, Pro 사용 - 깊은 추론)
  */
 async function analyzeWeakProblemsGroup(problemsGroup, groupNumber, geminiApiKey) {
   if (!problemsGroup || problemsGroup.length === 0) return null;
 
-  const prompt = `당신은 CPA 2차 회계감사 채점위원입니다. 20년 경력의 회계사이자 실제 시험 채점위원의 시각으로 분석하세요.
+  const schema = {
+    type: "OBJECT",
+    properties: {
+      problems: {
+        type: "ARRAY",
+        items: {
+          type: "OBJECT",
+          properties: {
+            problem_number: { type: "NUMBER", description: "문제 번호" },
+            misunderstood_concept: { type: "STRING", description: "오해한 기준서 개념" },
+            key_difference: { type: "STRING", description: "정답과 답안의 핵심 차이" },
+            advice: { type: "STRING", description: "개선 조언 (1줄)" }
+          },
+          required: ["problem_number", "misunderstood_concept", "key_difference", "advice"]
+        }
+      }
+    },
+    required: ["problems"]
+  };
+
+  const prompt = `당신은 CPA 2차 회계감사 채점위원입니다. 20년 경력의 회계사입니다.
 
 [약점 문제 그룹 ${groupNumber}]
 ${JSON.stringify(problemsGroup)}
 
 [요청]
-각 문제별로 오답 원인을 깊이 분석하세요:
+각 문제를 깊이 분석하여 JSON 배열로 출력하세요.
+각 문제마다:
 1. 어떤 기준서 개념을 오해했는지
 2. 정답과 사용자 답안의 핵심 차이점
-3. 개선을 위한 구체적 조언 (1줄)
+3. 구체적인 개선 조언 (1줄)`;
 
-마크다운 형식으로 작성하세요 (문제당 3-4줄).`;
-
-  // 깊은 추론 필요 → flash 사용 (더 정교한 분석)
-  return await callGeminiTextAPI(prompt, geminiApiKey, 'gemini-2.5-flash');
+  // 복잡한 추론 필요 → gemini-exp-1206 (Pro급 모델)
+  return await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-exp-1206');
 }
 
 /**
- * 3단계: 종합 평가 (난이도: 중간 → flash-lite)
+ * 3단계: 종합 평가 (JSON 모드, lite 사용)
  */
 async function synthesizeAnalysis(chartAnalysis, weaknessAnalyses, geminiApiKey) {
-  const prompt = `당신은 CPA 2차 회계감사 학습 코치입니다. 따뜻하면서도 분석적인 어조로 종합 평가를 제공하세요.
+  const schema = {
+    type: "OBJECT",
+    properties: {
+      current_status: { type: "STRING", description: "현재 학습 상태 종합 진단 (2-3문장)" },
+      action_items: {
+        type: "ARRAY",
+        items: { type: "STRING" },
+        description: "우선순위 학습 조치사항 (3-5개)"
+      },
+      encouragement: { type: "STRING", description: "마무리 격려 (1-2문장)" }
+    },
+    required: ["current_status", "action_items", "encouragement"]
+  };
 
-[차트 분석 결과]
-${chartAnalysis || '(차트 데이터 부족)'}
+  // 약점 분석을 텍스트로 요약
+  const weaknessSummary = weaknessAnalyses
+    .filter(a => a)
+    .map(w => w.problems?.map(p => `문제 ${p.problem_number}: ${p.misunderstood_concept}`).join(', '))
+    .join('; ');
+
+  const prompt = `당신은 CPA 2차 회계감사 학습 코치입니다.
+
+[차트 분석]
+추세: ${chartAnalysis?.trend_status || 'N/A'}
+조언: ${chartAnalysis?.recommendation || 'N/A'}
 
 [약점 분석 요약]
-${weaknessAnalyses.filter(a => a).join('\n\n')}
+${weaknessSummary || '약점 데이터 없음'}
 
 [요청]
-위 분석을 바탕으로 "📋 종합 평가 및 학습 조치사항" 섹션을 작성하세요:
-1. 현재 학습 상태 종합 진단 (2-3문장, 격려 + 현실적 평가)
-2. 우선순위 학습 조치사항 (3-5개 bullet, 구체적이고 실행 가능한 항목)
-3. 마무리 격려 (1-2문장)
-마크다운 형식으로 작성하세요.`;
+위 분석을 바탕으로 종합 평가를 JSON으로 출력하세요.
+- current_status: 따뜻하면서도 현실적인 진단 (2-3문장)
+- action_items: 구체적이고 실행 가능한 조치사항 (3-5개)
+- encouragement: 격려의 말 (1-2문장)`;
 
-  // 요약 및 조언 생성 → flash-lite 충분 (빠르고 효율적)
-  return await callGeminiTextAPI(prompt, geminiApiKey, 'gemini-2.5-flash-lite');
+  // 요약 및 조언 → lite 충분
+  return await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-2.5-flash-lite');
 }
 
 /**
@@ -237,8 +288,8 @@ export async function startAIAnalysis() {
     // 차트 컨텍스트 추출
     const chartContext = extractChartContext(data);
 
-    // 약점 문제 데이터 준비 (12개, 각 400자 제한)
-    const weakProblemsSummary = data.weakProblems.slice(0, 12).map(wp => {
+    // 약점 문제 데이터 준비 (8개로 축소, 각 250자 제한)
+    const weakProblemsSummary = data.weakProblems.slice(0, 8).map(wp => {
       const scoreData = window.questionScores[wp.qid];
       const solveHistory = scoreData?.solveHistory || [];
       const latestSolve = solveHistory[solveHistory.length - 1];
@@ -247,16 +298,15 @@ export async function startAIAnalysis() {
       const 답안원본 = latestSolve?.user_answer || scoreData?.user_answer || '(답변 없음)';
 
       return {
-        문제: (wp.problem.물음 || '').slice(0, 400) + ((wp.problem.물음 || '').length > 400 ? ' …' : ''),
-        정답: 정답원본.slice(0, 400) + (정답원본.length > 400 ? ' …' : ''),
-        내답안: 답안원본.slice(0, 400) + (답안원본.length > 400 ? ' …' : ''),
+        문제: (wp.problem.물음 || '').slice(0, 250) + ((wp.problem.물음 || '').length > 250 ? ' …' : ''),
+        정답: 정답원본.slice(0, 250) + (정답원본.length > 250 ? ' …' : ''),
+        내답안: 답안원본.slice(0, 250) + (답안원본.length > 250 ? ' …' : ''),
         점수: wp.score
       };
     });
 
-    // 🔄 단계별 분석 시작
-    const results = [];
-    const totalSteps = 1 + Math.ceil(weakProblemsSummary.length / 4) + 1; // 차트 + 약점그룹 + 종합
+    // 🔄 단계별 분석 시작 (JSON 모드 사용)
+    const totalSteps = 1 + Math.ceil(weakProblemsSummary.length / 2) + 1; // 차트 + 약점그룹(2개씩) + 종합
     let currentStep = 0;
 
     // 진행률 표시 함수
@@ -275,28 +325,79 @@ export async function startAIAnalysis() {
     const chartAnalysis = await analyzeChartTrend(chartContext, geminiApiKey);
     if (chartAnalysis) results.push(chartAnalysis);
 
-    // 2단계: 약점 문제 그룹별 분석 (4개씩 나눔)
+    // API 과부하 방지 딜레이
+    await new Promise(r => setTimeout(r, 1000));
+
+    // 2단계: 약점 문제 그룹별 분석 (2개씩 나눔, API 부하 최소화)
     const weaknessAnalyses = [];
-    for (let i = 0; i < weakProblemsSummary.length; i += 4) {
-      const group = weakProblemsSummary.slice(i, i + 4);
-      const groupNumber = Math.floor(i / 4) + 1;
+    for (let i = 0; i < weakProblemsSummary.length; i += 2) {
+      const group = weakProblemsSummary.slice(i, i + 2);
+      const groupNumber = Math.floor(i / 2) + 1;
       updateProgress(`🔍 약점 문제 분석 중 (그룹 ${groupNumber})`);
-      const analysis = await analyzeWeakProblemsGroup(group, groupNumber, geminiApiKey);
-      if (analysis) weaknessAnalyses.push(analysis);
+
+      try {
+        const analysis = await analyzeWeakProblemsGroup(group, groupNumber, geminiApiKey);
+        if (analysis) weaknessAnalyses.push(analysis);
+      } catch (err) {
+        console.warn(`⚠️ 그룹 ${groupNumber} 분석 실패 (건너뜀): ${err.message}`);
+        // 실패해도 계속 진행 (부분 결과라도 표시)
+      }
+
+      // 각 그룹 호출 사이 딜레이 (API 과부하 방지)
+      if (i + 2 < weakProblemsSummary.length) {
+        await new Promise(r => setTimeout(r, 1500));
+      }
     }
+
+    // API 과부하 방지 딜레이
+    await new Promise(r => setTimeout(r, 1000));
 
     // 3단계: 종합 평가
     updateProgress('📋 종합 평가 생성 중');
     const synthesis = await synthesizeAnalysis(chartAnalysis, weaknessAnalyses, geminiApiKey);
     if (synthesis) results.push(synthesis);
 
-    // 최종 결과 조합
-    const finalReport = `# 🎓 감린이 AI 채점위원 분석 리포트
+    // JSON → 마크다운 변환
+    let finalReport = `# 🎓 감린이 AI 채점위원 분석 리포트\n\n`;
 
-${results.join('\n\n---\n\n')}
+    // 1. 차트 분석
+    if (chartAnalysis) {
+      finalReport += `## 📊 차트 추세 분석\n\n`;
+      finalReport += `**현재 추세:** ${chartAnalysis.trend_status}\n\n`;
+      if (chartAnalysis.golden_cross) finalReport += `**골든크로스:** ${chartAnalysis.golden_cross}\n\n`;
+      if (chartAnalysis.dead_cross) finalReport += `**데드크로스:** ${chartAnalysis.dead_cross}\n\n`;
+      if (chartAnalysis.weak_chapters) finalReport += `**취약 단원:** ${chartAnalysis.weak_chapters}\n\n`;
+      finalReport += `**전략 조언:** ${chartAnalysis.recommendation}\n\n`;
+      finalReport += `---\n\n`;
+    }
 
-${weaknessAnalyses.length > 0 ? '\n\n## 🔍 약점 문제 상세 분석\n\n' + weaknessAnalyses.join('\n\n') : ''}
-`;
+    // 2. 약점 문제 상세 분석
+    if (weaknessAnalyses.length > 0) {
+      finalReport += `## 🔍 약점 문제 상세 분석\n\n`;
+      weaknessAnalyses.forEach((group, idx) => {
+        if (group && group.problems) {
+          finalReport += `### 그룹 ${idx + 1}\n\n`;
+          group.problems.forEach(p => {
+            finalReport += `**문제 ${p.problem_number}**\n`;
+            finalReport += `- 오해한 개념: ${p.misunderstood_concept}\n`;
+            finalReport += `- 핵심 차이: ${p.key_difference}\n`;
+            finalReport += `- 조언: ${p.advice}\n\n`;
+          });
+        }
+      });
+      finalReport += `---\n\n`;
+    }
+
+    // 3. 종합 평가
+    if (synthesis) {
+      finalReport += `## 📋 종합 평가 및 학습 조치사항\n\n`;
+      finalReport += `${synthesis.current_status}\n\n`;
+      finalReport += `**우선순위 조치사항:**\n`;
+      synthesis.action_items?.forEach(item => {
+        finalReport += `- ${item}\n`;
+      });
+      finalReport += `\n${synthesis.encouragement}\n`;
+    }
 
     if (loading) loading.classList.add('hidden');
     if (result) result.classList.remove('hidden');
