@@ -394,3 +394,109 @@ export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selected
     throw err;
   }
 }
+
+/**
+ * Gemini API를 사용하여 암기팁 생성 (JSON 스키마 모드)
+ * @param {string} prompt - 암기팁 생성 프롬프트
+ * @param {string} apiKey - Gemini API 키
+ * @param {string} selectedAiModel - 사용할 모델
+ * @param {number} retries - 재시도 횟수
+ * @param {number} delay - 재시도 대기 시간 (ms)
+ * @returns {Promise<string>} 생성된 암기팁 문자열
+ */
+export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini-2.5-flash', retries = 2, delay = 800) {
+  const schema = {
+    type: "OBJECT",
+    properties: {
+      tip: { type: "STRING", description: "암기 팁 내용" }
+    },
+    required: ["tip"]
+  };
+
+  const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+  const generationConfig = {
+    responseMimeType: 'application/json',
+    responseSchema: schema,
+    maxOutputTokens: 800,  // 암기팁은 짧게 제한
+    temperature: 0.7,
+    topP: 0.85
+  };
+
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig
+  };
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const msg = body?.error?.message || res.statusText;
+
+      if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) {
+        throw new Error(`모델/버전 불일치: ${msg}`);
+      }
+      if (res.status === 401 || res.status === 403) {
+        console.error(`❌ [Gemini Tip API] 403/401 상세 오류:`, body);
+        const detailedMsg = msg || 'API 키 권한 부족';
+        throw new Error(`API 키 오류 (${res.status}): ${detailedMsg}\n\n가능한 원인:\n1. API 키에 Generative Language API 권한 미부여\n2. API 키 도메인 제한 설정 확인 필요\n3. API 키 만료 또는 비활성화\n4. 사용량 초과 (무료: 분당 15req, 일당 1500req)`);
+      }
+      if (res.status === 429) {
+        throw new Error(`API 할당량 초과 (429)`);
+      }
+      if (res.status >= 500) {
+        throw new Error(`서버 오류 (${res.status})`);
+      }
+      throw new Error(msg);
+    }
+
+    const data = await res.json();
+    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
+
+    try {
+      const parsed = JSON.parse(raw);
+      return String(parsed.tip || '').trim();
+    } catch (parseErr) {
+      console.error('❌ [Gemini Tip API] JSON 파싱 실패:', raw);
+      throw new Error('API 응답 JSON 파싱 실패');
+    }
+  } catch (err) {
+    // 재시도 조건: 429(할당량) 또는 서버 오류(503 포함)
+    const is503 = String(err.message).includes('503');
+    const shouldRetry = retries > 0 && (
+      String(err.message).includes('429') ||
+      /^서버 오류/.test(String(err.message))
+    );
+
+    if (shouldRetry) {
+      const retryDelay = is503 ? delay * 2.5 : delay;
+      const retryDelaySeconds = (retryDelay / 1000).toFixed(1);
+
+      console.warn(`⚠️ [Gemini Tip API] ${err.message} - ${retryDelaySeconds}초 후 재시도 (남은 횟수: ${retries})`);
+
+      await new Promise((r) => setTimeout(r, retryDelay));
+      return callGeminiTipAPI(prompt, apiKey, selectedAiModel, retries - 1, delay * 1.8);
+    }
+
+    // 503 재시도 모두 실패 시, flash 모델이었다면 lite로 다운그레이드 시도
+    if (is503 && selectedAiModel === 'gemini-2.5-flash') {
+      console.warn(`⚠️ [Gemini Tip API] 503 에러 지속 → gemini-2.5-flash-lite로 자동 전환 시도`);
+      try {
+        return await callGeminiTipAPI(prompt, apiKey, 'gemini-2.5-flash-lite', 2, 800);
+      } catch (liteErr) {
+        console.error(`❌ [Gemini Tip API] lite 모델도 실패: ${liteErr.message}`);
+        throw new Error(`암기팁 생성 실패 (원본 에러: ${err.message})`);
+      }
+    }
+
+    console.error(`❌ [Gemini Tip API] 최종 실패: ${err.message}`);
+    throw err;
+  }
+}
