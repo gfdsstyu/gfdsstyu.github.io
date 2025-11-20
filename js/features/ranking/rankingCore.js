@@ -134,12 +134,17 @@ export async function updateUserStats(userId, score) {
       const nickname = await getNickname();
       console.log(`🔍 [Ranking DEBUG] 닉네임: ${nickname || '익명'}`);
 
+      // ✅ [최적화] 대학교 정보 가져오기 (대학교 랭킹 필터링용)
+      const university = userData.university || null;
+      console.log(`🔍 [Ranking DEBUG] 대학교: ${university || '미인증'}`);
+
       const rankingDocRef = doc(db, 'rankings', userId);
       console.log(`🔍 [Ranking DEBUG] rankings 문서 경로: rankings/${userId}`);
 
       const rankingData = {
         userId: userId,
         nickname: nickname || '익명',
+        university: university, // ✅ [신규] 대학교 필드 추가
         [`daily.${dailyKey}`]: dailyStats,
         [`weekly.${weeklyKey}`]: weeklyStats,
         [`monthly.${monthlyKey}`]: monthlyStats,
