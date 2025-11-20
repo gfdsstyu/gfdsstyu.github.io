@@ -44,10 +44,14 @@ export function mergeQuizScores(existing, imported) {
         new Map(combinedHistory.map(h => [h.date, h])).values()
       ).sort((a, b) => a.date - b.date);
 
+      // 🛡️ 방어 로직: 상세 데이터(답안/피드백)가 비어있다면 로컬 데이터 보존
+      const shouldUseImportedAnswer = useImported && (importedData.user_answer != null && importedData.user_answer !== '');
+      const shouldUseImportedFeedback = useImported && (importedData.feedback != null && importedData.feedback !== '');
+
       result[qid] = {
         score: useImported ? (importedData.score || 0) : (existingData.score || 0),
-        feedback: useImported ? importedData.feedback : existingData.feedback,
-        user_answer: useImported ? importedData.user_answer : existingData.user_answer,
+        feedback: shouldUseImportedFeedback ? importedData.feedback : existingData.feedback,
+        user_answer: shouldUseImportedAnswer ? importedData.user_answer : existingData.user_answer,
         hintUsed: useImported ? importedData.hintUsed : existingData.hintUsed,
         isSolved: existingData.isSolved || importedData.isSolved,
         lastSolvedDate: Math.max(existingData.lastSolvedDate || 0, importedData.lastSolvedDate || 0),

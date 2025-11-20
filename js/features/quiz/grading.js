@@ -272,8 +272,9 @@ export async function handleGrade() {
     console.log('   - 로그인 상태:', currentUser ? `✅ ${currentUser.email}` : '❌ 로그아웃');
 
     if (currentUser) {
-      console.log('   - 동기화 시작:', currentUser.uid);
-      syncToFirestore(currentUser.uid)
+      console.log('   - 동기화 시작:', currentUser.uid, '문제 ID:', qKey);
+      // 🆕 specificQid(qKey) 전달하여 상세 데이터를 서브컬렉션에 저장
+      syncToFirestore(currentUser.uid, qKey)
         .then(result => {
           if (result.success) {
             console.log('   - ✅ Firestore 동기화 성공:', result.message);

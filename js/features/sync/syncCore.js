@@ -385,14 +385,15 @@ export async function syncOnLogin(userId) {
 /**
  * 학습 중 점수 저장 시 Firestore에 업데이트
  *
- * 주의: 전체 userScores를 매번 업로드하는 것은 비효율적이지만,
- * Firestore의 제한(단일 필드 업데이트 시 배열 병합 어려움) 때문에
- * 전체 userScores를 업데이트합니다.
+ * 개선: 1MB 제한 회피를 위해 상세 데이터는 서브컬렉션에 분리 저장
+ * - 메인 문서: 점수, 날짜, 플래그 등 경량 데이터 (리스트 렌더링용)
+ * - 서브컬렉션: user_answer, feedback 등 상세 데이터 (개별 조회용)
  *
  * @param {string} userId - 사용자 UID
+ * @param {string} specificQid - (선택) 특정 문제 ID. 제공 시 해당 문제의 상세 데이터를 서브컬렉션에 저장
  * @returns {Promise<{success: boolean, message: string}>}
  */
-export async function syncToFirestore(userId) {
+export async function syncToFirestore(userId, specificQid = null) {
   if (!userId) {
     console.warn('⚠️ [SyncCore] 로그인되지 않음 - Firestore 동기화 스킵');
     return { success: false, message: '로그인되지 않음' };
@@ -405,6 +406,7 @@ export async function syncToFirestore(userId) {
     const localCount = Object.keys(localScores).length;
     console.log(`   - Local 문제 수: ${localCount}개`);
 
+    // 1️⃣ 메인 문서 업데이트: 경량 데이터만 (user_answer, feedback 제외)
     const convertedScores = toFirestoreFormat(localScores);
     const convertedCount = Object.keys(convertedScores).length;
     console.log(`   - 변환 후 문제 수: ${convertedCount}개`);
@@ -417,8 +419,29 @@ export async function syncToFirestore(userId) {
       'profile.lastSyncAt': serverTimestamp()
     });
 
-    console.log(`✅ [SyncCore] Firestore 동기화 완료: ${convertedCount}개 문제`);
-    return { success: true, message: `${convertedCount}개 문제 동기화` };
+    console.log(`✅ [SyncCore] 메인 문서 동기화 완료: ${convertedCount}개 문제`);
+
+    // 2️⃣ 서브컬렉션 업데이트: specificQid가 있으면 상세 데이터 저장
+    if (specificQid && localScores[specificQid]) {
+      const detailedData = localScores[specificQid];
+      const recordRef = doc(db, 'users', userId, 'records', specificQid);
+
+      console.log(`📝 [SyncCore] 서브컬렉션 저장: records/${specificQid}`);
+
+      await setDoc(recordRef, {
+        user_answer: detailedData.user_answer || '',
+        feedback: detailedData.feedback || '',
+        score: detailedData.score || 0,
+        lastSolvedDate: detailedData.lastSolvedDate || Date.now(),
+        hintUsed: !!detailedData.hintUsed,
+        memoryTipUsed: !!detailedData.memoryTipUsed,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+
+      console.log(`✅ [SyncCore] 서브컬렉션 저장 완료: ${specificQid}`);
+    }
+
+    return { success: true, message: `${convertedCount}개 문제 동기화${specificQid ? ' + 상세 데이터 저장' : ''}` };
   } catch (error) {
     console.error('❌ [SyncCore] Firestore 동기화 실패:', error);
     console.error('   - 에러 코드:', error.code);
