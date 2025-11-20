@@ -395,23 +395,17 @@ export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selected
 
 /**
  * Gemini API를 사용하여 암기팁 생성 (Text 모드)
- * - Flash 모델의 503 오류 방지를 위해 JSON 스키마를 제거하고 순수 텍스트로 요청
- * @param {string} prompt - 암기팁 생성 프롬프트
- * @param {string} apiKey - Gemini API 키
- * @param {string} selectedAiModel - 사용할 모델
- * @param {number} retries - 재시도 횟수
- * @param {number} delay - 재시도 대기 시간 (ms)
- * @returns {Promise<string>} 생성된 암기팁 문자열
+ * - [수정됨] 출력 제한 3000으로 상향 & 잘린 텍스트도 반환하도록 개선
  */
 export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini-2.5-flash', retries = 2, delay = 800) {
   const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
-  // 핵심 변경: JSON 스키마를 제거하고 Plain Text로 요청
+  // [수정 1] JSON 스키마 제거 및 출력 길이 제한을 3000으로 대폭 상향 (잘림 방지)
   const generationConfig = {
-    responseMimeType: 'text/plain', // JSON 아님!
-    maxOutputTokens: 800,           // 길이 제한으로 타임아웃 방지
-    temperature: 0.8                // 창의성을 위해 약간 높게 설정
+    responseMimeType: 'text/plain', 
+    maxOutputTokens: 3000,          
+    temperature: 0.8                
   };
 
   const payload = {
@@ -430,11 +424,10 @@ export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini
       const body = await res.json().catch(() => ({}));
       const msg = body?.error?.message || res.statusText;
 
-      // 재시도 로직 (503 포함)
+      // 재시도 로직
       if ((res.status === 429 || res.status >= 500) && retries > 0) {
         console.warn(`⚠️ [Tip API] ${res.status} 오류 - 재시도...`);
         await new Promise(r => setTimeout(r, delay));
-        // 재시도 시에도 원래 선택한 모델 유지
         return callGeminiTipAPI(prompt, apiKey, selectedAiModel, retries - 1, delay * 1.5);
       }
 
@@ -456,38 +449,26 @@ export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini
     }
 
     const data = await res.json();
-
-    // [디버깅용] 전체 응답 로그 (안전성 필터 등 차단 사유 확인)
-    console.log('📋 [Tip API] Gemini 응답:', JSON.stringify(data, null, 2));
-
     const candidate = data?.candidates?.[0];
     const text = candidate?.content?.parts?.[0]?.text;
+    const finishReason = candidate?.finishReason;
 
-    // 텍스트가 없으면 차단 사유 확인 후 에러 발생
-    if (!text) {
-      const finishReason = candidate?.finishReason || 'UNKNOWN';
-      const safetyRatings = candidate?.safetyRatings || [];
-
-      console.warn(`⚠️ [Tip API] AI 생성 실패 - finishReason: ${finishReason}`);
-      console.warn(`⚠️ [Tip API] 안전성 등급:`, safetyRatings);
-
-      // 차단 사유별 메시지
-      let errorMessage = 'AI가 암기팁을 생성하지 못했습니다.';
-
-      if (finishReason === 'SAFETY') {
-        errorMessage = '안전성 필터에 의해 차단되었습니다. 문제 내용이나 암기팁 모드를 확인해주세요.';
-      } else if (finishReason === 'RECITATION') {
-        errorMessage = '저작권 보호 자료와 유사하여 생성이 차단되었습니다.';
-      } else if (finishReason === 'MAX_TOKENS') {
-        errorMessage = '생성 토큰 제한 초과. 문제가 너무 깁니다.';
-      } else if (finishReason === 'OTHER') {
-        errorMessage = '알 수 없는 이유로 생성이 차단되었습니다.';
-      }
-
-      throw new Error(`${errorMessage} (사유: ${finishReason})`);
+    // [수정 2] 텍스트가 조금이라도 있으면 (잘렸더라도) 무조건 반환
+    if (text) {
+      return text.trim();
     }
 
-    return text.trim();
+    // 텍스트가 아예 없는 경우에만 에러 처리
+    if (finishReason === 'MAX_TOKENS') {
+      throw new Error('생성 토큰 제한 초과 (내용 없음)');
+    } else if (finishReason === 'SAFETY') {
+      console.warn('⚠️ 안전성 필터 등급:', candidate?.safetyRatings);
+      throw new Error('부적절한 콘텐츠로 감지되어 생성이 차단되었습니다.');
+    } else if (finishReason === 'RECITATION') {
+      throw new Error('저작권/반복 문제로 생성이 차단되었습니다.');
+    } else {
+      throw new Error('암기팁 생성 실패 (응답 내용 없음)');
+    }
 
   } catch (err) {
     // 503 에러이고 flash 모델이었다면 lite로 다운그레이드 시도
