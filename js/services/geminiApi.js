@@ -456,10 +456,35 @@ export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini
     }
 
     const data = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
+    // [디버깅용] 전체 응답 로그 (안전성 필터 등 차단 사유 확인)
+    console.log('📋 [Tip API] Gemini 응답:', JSON.stringify(data, null, 2));
+
+    const candidate = data?.candidates?.[0];
+    const text = candidate?.content?.parts?.[0]?.text;
+
+    // 텍스트가 없으면 차단 사유 확인 후 에러 발생
     if (!text) {
-      throw new Error('AI가 암기팁을 생성하지 못했습니다.');
+      const finishReason = candidate?.finishReason || 'UNKNOWN';
+      const safetyRatings = candidate?.safetyRatings || [];
+
+      console.warn(`⚠️ [Tip API] AI 생성 실패 - finishReason: ${finishReason}`);
+      console.warn(`⚠️ [Tip API] 안전성 등급:`, safetyRatings);
+
+      // 차단 사유별 메시지
+      let errorMessage = 'AI가 암기팁을 생성하지 못했습니다.';
+
+      if (finishReason === 'SAFETY') {
+        errorMessage = '안전성 필터에 의해 차단되었습니다. 문제 내용이나 암기팁 모드를 확인해주세요.';
+      } else if (finishReason === 'RECITATION') {
+        errorMessage = '저작권 보호 자료와 유사하여 생성이 차단되었습니다.';
+      } else if (finishReason === 'MAX_TOKENS') {
+        errorMessage = '생성 토큰 제한 초과. 문제가 너무 깁니다.';
+      } else if (finishReason === 'OTHER') {
+        errorMessage = '알 수 없는 이유로 생성이 차단되었습니다.';
+      }
+
+      throw new Error(`${errorMessage} (사유: ${finishReason})`);
     }
 
     return text.trim();
