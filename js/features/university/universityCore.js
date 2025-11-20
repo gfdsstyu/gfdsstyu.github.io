@@ -212,6 +212,14 @@ export async function sendVerificationEmail(email) {
       return { success: false, message: '이미 대학교 인증이 완료되었습니다.' };
     }
 
+    // ✅ [신규] 1.5. 이메일 중복 확인 (이미 다른 사람이 쓴 이메일인지)
+    const emailDocRef = doc(db, 'universityEmails', email);
+    const emailDocSnap = await getDoc(emailDocRef);
+
+    if (emailDocSnap.exists()) {
+      return { success: false, message: '이미 다른 계정에서 사용 중인 이메일입니다.' };
+    }
+
     // 2. 이메일 도메인 검증
     const university = getUniversityFromEmail(email);
     if (!university) {
@@ -379,6 +387,22 @@ export async function verifyCode(code) {
     if (verificationData.code !== code) {
       return { success: false, message: '인증 코드가 일치하지 않습니다.' };
     }
+
+    // ✅ [신규] 3.5. (이중 체크) 그 사이에 누가 썼는지 한 번 더 확인
+    const email = verificationData.email;
+    const emailDocRef = doc(db, 'universityEmails', email);
+    const emailDocSnap = await getDoc(emailDocRef);
+
+    if (emailDocSnap.exists()) {
+      return { success: false, message: '이미 인증된 이메일입니다.' };
+    }
+
+    // ✅ [신규] 3.6. 이메일 점유 등록 (중복 방지용 저장)
+    // 문서 ID를 이메일 주소로 설정하여 유일성 보장
+    await setDoc(emailDocRef, {
+      uid: currentUser.uid,
+      verifiedAt: serverTimestamp()
+    });
 
     // 4. 사용자 문서에 대학교 정보 저장
     const userDocRef = doc(db, 'users', currentUser.uid);
