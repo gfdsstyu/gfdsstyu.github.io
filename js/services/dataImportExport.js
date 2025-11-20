@@ -31,9 +31,27 @@ export function mergeQuizScores(existing, imported) {
       // 새로운 문제 ID - 그냥 추가
       result[qid] = importedData;
     } else {
-      // 기존 문제 ID - 병합 (최신 풀이 데이터 우선)
       const existingData = result[qid];
-      const useImported = (importedData.lastSolvedDate || 0) > (existingData.lastSolvedDate || 0);
+
+      // 1. 날짜 비교 (백업본이 더 최신인가?)
+      const isImportNewer = (importedData.lastSolvedDate || 0) > (existingData.lastSolvedDate || 0);
+
+      // 2. 내용 존재 여부 확인 (trim()으로 공백만 있는 경우도 체크)
+      const hasImportedAnswer = importedData.user_answer != null && String(importedData.user_answer).trim() !== '';
+      const hasExistingAnswer = existingData.user_answer != null && String(existingData.user_answer).trim() !== '';
+
+      const hasImportedFeedback = importedData.feedback != null && String(importedData.feedback).trim() !== '';
+      const hasExistingFeedback = existingData.feedback != null && String(existingData.feedback).trim() !== '';
+
+      // 3. 결정 로직 (핵심 수정 사항)
+      // - 백업이 더 최신이면서 내용이 있을 때
+      // - OR 기존 데이터가 비어있는데 백업에는 내용이 있을 때 (날짜 무관)
+      // - 기존 데이터가 아예 없는 경우(!hasExistingAnswer)도 커버
+      const shouldUseImportedAnswer = (isImportNewer && hasImportedAnswer) || (!hasExistingAnswer && hasImportedAnswer);
+      const shouldUseImportedFeedback = (isImportNewer && hasImportedFeedback) || (!hasExistingFeedback && hasImportedFeedback);
+
+      // 점수 등 메타데이터는 날짜가 최신인 쪽을 따름
+      const useImportedMeta = isImportNewer;
 
       // solveHistory 병합 (날짜 기준 중복 제거)
       const combinedHistory = [
@@ -44,20 +62,20 @@ export function mergeQuizScores(existing, imported) {
         new Map(combinedHistory.map(h => [h.date, h])).values()
       ).sort((a, b) => a.date - b.date);
 
-      // 🛡️ 방어 로직: 상세 데이터(답안/피드백)가 비어있다면 로컬 데이터 보존
-      const shouldUseImportedAnswer = useImported && (importedData.user_answer != null && importedData.user_answer !== '');
-      const shouldUseImportedFeedback = useImported && (importedData.feedback != null && importedData.feedback !== '');
-
       result[qid] = {
-        score: useImported ? (importedData.score || 0) : (existingData.score || 0),
-        feedback: shouldUseImportedFeedback ? importedData.feedback : existingData.feedback,
-        user_answer: shouldUseImportedAnswer ? importedData.user_answer : existingData.user_answer,
-        hintUsed: useImported ? importedData.hintUsed : existingData.hintUsed,
+        // 메타데이터는 최신 날짜 기준
+        score: useImportedMeta ? (importedData.score || 0) : (existingData.score || 0),
+        hintUsed: useImportedMeta ? importedData.hintUsed : existingData.hintUsed,
         isSolved: existingData.isSolved || importedData.isSolved,
         lastSolvedDate: Math.max(existingData.lastSolvedDate || 0, importedData.lastSolvedDate || 0),
-        solveHistory: uniqueHistory,
         userReviewFlag: existingData.userReviewFlag || importedData.userReviewFlag,
-        userReviewExclude: existingData.userReviewExclude || importedData.userReviewExclude
+        userReviewExclude: existingData.userReviewExclude || importedData.userReviewExclude,
+
+        // 상세 내용은 '채워진 쪽'을 우선 (위에서 결정한 로직)
+        feedback: shouldUseImportedFeedback ? importedData.feedback : existingData.feedback,
+        user_answer: shouldUseImportedAnswer ? importedData.user_answer : existingData.user_answer,
+
+        solveHistory: uniqueHistory
       };
     }
   }
