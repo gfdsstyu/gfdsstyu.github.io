@@ -458,8 +458,11 @@ export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini
     const data = await res.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    // 텍스트가 있으면 바로 반환 (JSON 파싱 과정 없음)
-    return text ? text.trim() : '암기팁을 생성하지 못했습니다.';
+    if (!text) {
+      throw new Error('AI가 암기팁을 생성하지 못했습니다.');
+    }
+
+    return text.trim();
 
   } catch (err) {
     // 503 에러이고 flash 모델이었다면 lite로 다운그레이드 시도
