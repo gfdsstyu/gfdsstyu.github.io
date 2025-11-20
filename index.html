@@ -1846,7 +1846,12 @@
               />
             </div>
             <div>
-              <label for="login-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">비밀번호</label>
+              <div class="flex items-center justify-between mb-1">
+                <label for="login-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">비밀번호</label>
+                <button type="button" id="forgot-password-btn" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                  비밀번호를 잊으셨나요?
+                </button>
+              </div>
               <input
                 type="password"
                 id="login-password"
@@ -1925,11 +1930,133 @@
                 required
               />
             </div>
+            <!-- 개인정보 수집 및 이용 동의 (필수) -->
+            <div class="flex items-start gap-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <input
+                type="checkbox"
+                id="privacy-consent"
+                class="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                required
+              />
+              <label for="privacy-consent" class="text-sm text-gray-700 dark:text-gray-300">
+                <span class="font-medium text-blue-600 dark:text-blue-400 cursor-pointer hover:underline" onclick="window.open('docs/privacy_policy.html', '_blank')">개인정보 수집 및 이용</span>에 동의합니다 <span class="text-red-500">*</span>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  수집 항목: 이메일, 이름, 학습 기록 | 이용 목적: 회원 식별, 학습 관리 | 보유 기간: 회원 탈퇴 시까지
+                </p>
+              </label>
+            </div>
             <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 rounded-lg transition shadow-md">
               회원가입
             </button>
           </form>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 프로필 관리 모달 -->
+  <div id="profile-modal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center">
+    <!-- 배경 (Backdrop) -->
+    <div id="profile-modal-backdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+
+    <!-- 모달 컨텐츠 -->
+    <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+      <!-- 헤더 -->
+      <div class="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-4 flex items-center justify-between">
+        <h2 class="text-xl font-bold text-white">⚙️ 내 정보 관리</h2>
+        <button id="profile-modal-close" class="text-white hover:text-gray-200 text-2xl leading-none" aria-label="닫기">×</button>
+      </div>
+
+      <!-- 모달 본문 -->
+      <div class="p-6 space-y-6">
+        <!-- 기본 정보 표시 -->
+        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-2">
+          <div class="flex items-center gap-3">
+            <div id="profile-avatar" class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg"></div>
+            <div class="flex-1">
+              <div id="profile-display-name" class="font-semibold text-gray-900 dark:text-gray-100"></div>
+              <div id="profile-email" class="text-sm text-gray-500 dark:text-gray-400"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 상태 메시지 설정 -->
+        <div>
+          <label for="status-message-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            💬 상태 메시지
+          </label>
+          <div class="relative">
+            <input
+              type="text"
+              id="status-message-input"
+              maxlength="20"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+              placeholder="나를 표현하는 한 마디 (최대 20자)"
+            />
+            <div class="absolute right-3 top-2 text-xs text-gray-400 dark:text-gray-500">
+              <span id="status-char-count">0</span>/20
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            그룹원들이 내 타일에 마우스를 올리면 상태 메시지를 볼 수 있습니다.
+          </p>
+        </div>
+
+        <!-- 저장 버튼 -->
+        <button
+          id="save-status-btn"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition shadow-md flex items-center justify-center gap-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          저장
+        </button>
+
+        <!-- 구분선 -->
+        <div class="border-t border-gray-200 dark:border-gray-700"></div>
+
+        <!-- 회원 탈퇴 영역 -->
+        <details class="bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+          <summary class="px-4 py-3 cursor-pointer text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            회원 탈퇴
+          </summary>
+          <div class="px-4 pb-4 space-y-3">
+            <div class="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+              <p>⚠️ 회원 탈퇴 시 다음 정보가 삭제됩니다:</p>
+              <ul class="list-disc list-inside ml-2 space-y-1">
+                <li>프로필 정보 (이름, 이메일, 상태 메시지)</li>
+                <li>학습 기록 및 통계</li>
+                <li>그룹 가입 정보</li>
+                <li>업적 달성 기록</li>
+              </ul>
+              <p class="mt-2 font-medium text-red-600 dark:text-red-400">이 작업은 되돌릴 수 없습니다.</p>
+            </div>
+
+            <!-- 이메일 로그인 사용자를 위한 비밀번호 입력 -->
+            <div id="delete-password-section" class="hidden">
+              <label for="delete-password-input" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                본인 확인을 위해 비밀번호를 입력하세요
+              </label>
+              <input
+                type="password"
+                id="delete-password-input"
+                class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-gray-100"
+                placeholder="비밀번호"
+              />
+            </div>
+
+            <button
+              id="delete-account-btn"
+              class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg transition text-sm"
+            >
+              탈퇴하기
+            </button>
+          </div>
+        </details>
       </div>
     </div>
   </div>

@@ -441,7 +441,7 @@ async function renderGroupMembersManagement(groupId, isOwner) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    // 1. 각 멤버의 rankings 데이터 로드
+    // 1. 각 멤버의 rankings 데이터 + 프로필 데이터 로드
     const membersWithStats = await Promise.all(members.map(async (member) => {
       const rankingDocRef = doc(db, 'rankings', member.userId);
       const rankingDocSnap = await getDoc(rankingDocRef);
@@ -483,12 +483,37 @@ async function renderGroupMembersManagement(groupId, isOwner) {
         }
       }
 
+      // 프로필 데이터 로드 (상태 메시지)
+      let statusMessage = '';
+      let achievementPoints = 0;
+
+      try {
+        const userDocRef = doc(db, 'users', member.userId);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          statusMessage = userData.profile?.statusMessage || '';
+
+          // 업적 점수 계산 (achievements 객체의 모든 달성된 업적 점수 합계)
+          if (userData.achievements) {
+            achievementPoints = Object.values(userData.achievements)
+              .filter(achievement => achievement.unlocked === true)
+              .reduce((sum, achievement) => sum + (achievement.points || 0), 0);
+          }
+        }
+      } catch (error) {
+        console.error(`⚠️ [GroupMembers] ${member.userId} 프로필 로드 실패:`, error);
+      }
+
       return {
         ...member,
         dailyProblems,
         weeklyProblems,
         dailyScore,
-        weeklyScore
+        weeklyScore,
+        statusMessage,
+        achievementPoints
       };
     }));
 
@@ -574,12 +599,30 @@ async function renderGroupMembersManagement(groupId, isOwner) {
 
             <!-- 호버 시 상세 정보 툴팁 -->
             <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-10">
-              <div class="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg p-3 shadow-xl whitespace-nowrap">
-                <div class="font-bold mb-2">${member.nickname} ${memberIsOwner ? '👑' : ''}</div>
+              <div class="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg p-3 shadow-xl min-w-max max-w-xs">
+                <div class="font-bold mb-2 text-center">${member.nickname} ${memberIsOwner ? '👑' : ''}</div>
+
+                ${member.statusMessage ? `
+                  <div class="text-center mb-2 px-2 py-1 bg-white/10 dark:bg-gray-900/10 rounded italic">
+                    💬 "${member.statusMessage}"
+                  </div>
+                ` : ''}
+
                 <div class="space-y-1">
-                  <div>📅 일: ${member.dailyScore}점 (${member.dailyProblems}문제)</div>
-                  <div>📊 주: ${member.weeklyScore}점 (${member.weeklyProblems}문제)</div>
+                  <div class="flex items-center justify-between gap-3">
+                    <span>📅 일:</span>
+                    <span class="font-semibold">${member.dailyScore}점 (${member.dailyProblems}문제)</span>
+                  </div>
+                  <div class="flex items-center justify-between gap-3">
+                    <span>📊 주:</span>
+                    <span class="font-semibold">${member.weeklyScore}점 (${member.weeklyProblems}문제)</span>
+                  </div>
+                  <div class="flex items-center justify-between gap-3 pt-1 border-t border-white/20 dark:border-gray-900/20">
+                    <span>🏆 업적:</span>
+                    <span class="font-semibold">${member.achievementPoints}점</span>
+                  </div>
                 </div>
+
                 <!-- 화살표 -->
                 <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
                   <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-100"></div>

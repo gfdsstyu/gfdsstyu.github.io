@@ -8,7 +8,11 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  deleteUser
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
 
 import {
@@ -171,14 +175,14 @@ export async function signUpWithEmail(email, password, displayName) {
 
     let message = '회원가입에 실패했습니다.';
     if (error.code === 'auth/email-already-in-use') {
-      message = '이미 사용 중인 이메일입니다.';
+      message = '이미 가입된 이메일입니다. 로그인을 시도해주세요.';
     } else if (error.code === 'auth/weak-password') {
       message = '비밀번호는 최소 6자 이상이어야 합니다.';
     } else if (error.code === 'auth/invalid-email') {
       message = '이메일 형식이 올바르지 않습니다.';
     }
 
-    return { success: false, error: message };
+    return { success: false, error: message, errorCode: error.code };
   }
 }
 
@@ -376,4 +380,183 @@ export function initAuthStateObserver() {
     // 등록된 모든 리스너에 알림
     notifyAuthStateChange(user);
   });
+}
+
+// ============================================
+// 비밀번호 재설정
+// ============================================
+
+/**
+ * 비밀번호 재설정 이메일 발송
+ * @param {string} email - 비밀번호를 재설정할 이메일 주소
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export async function resetPassword(email) {
+  try {
+    if (!email || !email.trim()) {
+      return { success: false, message: '이메일 주소를 입력해주세요.' };
+    }
+
+    // Firebase에서 비밀번호 재설정 이메일 발송
+    await sendPasswordResetEmail(auth, email);
+
+    console.log('✅ 비밀번호 재설정 이메일 발송 성공:', email);
+    return {
+      success: true,
+      message: '비밀번호 재설정 링크가 이메일로 전송되었습니다.\n메일함을 확인해주세요.'
+    };
+  } catch (error) {
+    console.error('❌ 비밀번호 재설정 이메일 발송 실패:', error);
+
+    let message = '비밀번호 재설정에 실패했습니다.';
+    if (error.code === 'auth/user-not-found') {
+      message = '등록되지 않은 이메일입니다.';
+    } else if (error.code === 'auth/invalid-email') {
+      message = '이메일 형식이 올바르지 않습니다.';
+    } else if (error.code === 'auth/too-many-requests') {
+      message = '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.';
+    }
+
+    return { success: false, message };
+  }
+}
+
+// ============================================
+// 상태 메시지 관리
+// ============================================
+
+/**
+ * 상태 메시지 업데이트
+ * @param {string} message - 상태 메시지 (최대 20자)
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export async function updateStatusMessage(message) {
+  if (!currentUser) {
+    return { success: false, message: '로그인이 필요합니다.' };
+  }
+
+  // 상태 메시지 유효성 검사
+  const trimmedMessage = message.trim();
+  if (trimmedMessage.length > 20) {
+    return { success: false, message: '상태 메시지는 최대 20자까지 가능합니다.' };
+  }
+
+  try {
+    console.log('💬 상태 메시지 업데이트 시작:', trimmedMessage);
+
+    const userDocRef = doc(db, 'users', currentUser.uid);
+
+    // 상태 메시지 업데이트
+    await updateDoc(userDocRef, {
+      'profile.statusMessage': trimmedMessage || null,
+      'profile.lastUpdatedAt': serverTimestamp()
+    });
+
+    console.log('✅ 상태 메시지 업데이트 완료');
+    return { success: true, message: '상태 메시지가 저장되었습니다.' };
+  } catch (error) {
+    console.error('❌ 상태 메시지 업데이트 실패:', error);
+    return { success: false, message: `상태 메시지 저장 실패: ${error.message}` };
+  }
+}
+
+/**
+ * 현재 사용자의 상태 메시지 조회
+ * @returns {Promise<string|null>}
+ */
+export async function getStatusMessage() {
+  if (!currentUser) return null;
+
+  try {
+    const userDocRef = doc(db, 'users', currentUser.uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (userDocSnap.exists()) {
+      return userDocSnap.data().profile?.statusMessage || null;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('❌ 상태 메시지 조회 실패:', error);
+    return null;
+  }
+}
+
+// ============================================
+// 회원 탈퇴 (Soft Delete)
+// ============================================
+
+/**
+ * 회원 탈퇴 (재인증 + Soft Delete)
+ * @param {string} password - 현재 비밀번호 (이메일 로그인 사용자만)
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export async function deleteUserAccount(password = null) {
+  if (!currentUser) {
+    return { success: false, message: '로그인이 필요합니다.' };
+  }
+
+  try {
+    console.log('⚠️ 회원 탈퇴 시작:', currentUser.email);
+
+    // 이메일/비밀번호 로그인 사용자는 재인증 필요
+    const isEmailProvider = currentUser.providerData.some(
+      provider => provider.providerId === 'password'
+    );
+
+    if (isEmailProvider) {
+      if (!password) {
+        return {
+          success: false,
+          message: '회원 탈퇴를 위해 현재 비밀번호를 입력해주세요.'
+        };
+      }
+
+      // 재인증
+      const credential = EmailAuthProvider.credential(currentUser.email, password);
+      try {
+        await reauthenticateWithCredential(currentUser, credential);
+        console.log('✅ 재인증 성공');
+      } catch (reauthError) {
+        console.error('❌ 재인증 실패:', reauthError);
+        if (reauthError.code === 'auth/wrong-password') {
+          return { success: false, message: '비밀번호가 일치하지 않습니다.' };
+        }
+        return { success: false, message: '재인증에 실패했습니다.' };
+      }
+    }
+
+    // Firestore에서 Soft Delete 처리
+    const userDocRef = doc(db, 'users', currentUser.uid);
+
+    await updateDoc(userDocRef, {
+      deleted: true,
+      deletedAt: serverTimestamp(),
+      'profile.displayName': '(알 수 없음)',
+      'profile.nickname': '(알 수 없음)',
+      'profile.statusMessage': null,
+      'profile.email': '(알 수 없음)',
+      'profile.photoURL': null
+    });
+
+    console.log('✅ Firestore 데이터 익명화 완료');
+
+    // Firebase Auth에서 사용자 삭제
+    await deleteUser(currentUser);
+
+    console.log('✅ 회원 탈퇴 완료');
+    return {
+      success: true,
+      message: '회원 탈퇴가 완료되었습니다. 그동안 감사했습니다.'
+    };
+  } catch (error) {
+    console.error('❌ 회원 탈퇴 실패:', error);
+
+    let message = '회원 탈퇴에 실패했습니다.';
+    if (error.code === 'auth/requires-recent-login') {
+      message = '보안을 위해 다시 로그인한 후 탈퇴를 진행해주세요.';
+    }
+
+    return { success: false, message };
+  }
 }
