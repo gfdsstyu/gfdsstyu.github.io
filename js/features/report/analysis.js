@@ -4,346 +4,493 @@
  * - 토큰 효율성을 위해 기존 채점 데이터 활용 극대화 및 유형별 정밀 분석 복원
  */
 
-import { el, $ } from '../../ui/elements.js';
-import { callGeminiJsonAPI } from '../../services/geminiApi.js';
-import { getReportData } from './reportCore.js';
-import { showToast } from '../../ui/domUtils.js';
-import { openApiModal } from '../settings/settingsCore.js';
-import { getGeminiApiKey } from '../../core/stateManager.js';
-import { fetchDetailedRecords } from '../sync/syncCore.js';
-import { getCurrentUser } from '../auth/authCore.js';
+// ============================================
+// 감린이 v4.0 - Gemini API 서비스
+// ============================================
 
-// ==========================================
-// 1. Helper Functions
-// ==========================================
+import { BASE_SYSTEM_PROMPT, LITE_STRICT_ADDENDUM } from '../config/config.js';
+import { clamp, sanitizeModelText } from '../utils/helpers.js';
 
-function extractChartContext(reportData) {
-  const { chartData, chapterData } = reportData;
-  if (!chartData) return null;
+/**
+ * AI 모델 매핑
+ */
+const MODEL_MAP = {
+  'gemini-2.5-flash': 'gemini-2.5-flash',
+  'gemini-2.5-flash-lite': 'gemini-2.5-flash-lite',
+  'gemini-2.5-pro': 'gemini-2.5-pro'
+};
 
-  const { ma5, ma20, ma60, sorted } = chartData;
-  const lastIdx = ma5.length - 1;
+/**
+ * Gemini API를 사용하여 채점
+ * @returns {Promise<{score: number, feedback: string}>}
+ */
+export async function callGeminiAPI(userAnswer, correctAnswer, apiKey, selectedAiModel = 'gemini-2.5-flash', retries = 2, delay = 800) {
+  const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
-  // 골든/데드크로스 감지 (최근 5일)
-  let signal = null;
-  for (let i = Math.max(0, lastIdx - 4); i <= lastIdx; i++) {
-    if (ma5[i-1] <= ma20[i-1] && ma5[i] > ma20[i]) signal = "최근 골든크로스 발생 (긍정)";
-    if (ma5[i-1] >= ma20[i-1] && ma5[i] < ma20[i]) signal = "최근 데드크로스 발생 (주의)";
-  }
-
-  // 정배열 여부
-  const isPerfect = ma5[lastIdx] > ma20[lastIdx] && ma20[lastIdx] > ma60[lastIdx];
-
-  // 취약 단원 추출
-  const weakChapters = Array.from(chapterData.entries())
-    .map(([ch, d]) => ({ ch, score: Math.round(d.scores.reduce((a,b)=>a+b,0)/d.scores.length) }))
-    .sort((a,b) => a.score - b.score)
-    .slice(0, 2); // Top 2만 추출 (토큰 절약)
-
-  return {
-    ma5: ma5[lastIdx]?.toFixed(1),
-    ma20: ma20[lastIdx]?.toFixed(1),
-    signal: signal || (isPerfect ? "정배열 상승세" : "특이사항 없음"),
-    weakChapter: weakChapters[0]?.ch || "없음"
-  };
-}
-
-function markdownToHtml(md) {
-  if (!md) return '';
-  return md
-    .replace(/^### (.+)$/gm, '<h3 class="text-lg font-bold mt-5 mb-2 text-gray-800 dark:text-gray-100">$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold mt-8 mb-4 text-blue-700 dark:text-blue-400 border-b border-gray-200 dark:border-gray-700 pb-2">$1</h2>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-blue-900 dark:text-blue-200">$1</strong>')
-    .replace(/^\- (.+)$/gm, '<li class="ml-4 list-disc text-gray-700 dark:text-gray-300">$1</li>')
-    .replace(/\n/g, '<br>');
-}
-
-// ==========================================
-// 2. Stage 1: Data Mining (Flash Model)
-// - 목적: 대량의 오답 데이터를 빠르게 분류하고 태깅
-// - 전략: 기존 AI 피드백을 읽고 유형만 분류하라고 지시 (토큰/시간 절약)
-// ==========================================
-
-async function mineWeaknessData(problems, geminiApiKey) {
-  const schema = {
-    type: "ARRAY",
-    items: {
-      type: "OBJECT",
+  const generationConfig = {
+    responseMimeType: 'application/json',
+    responseSchema: {
+      type: 'OBJECT',
       properties: {
-        index: { type: "NUMBER" },
-        type: { 
-          type: "STRING", 
-          enum: ["Comprehension", "Recall", "Structure"], 
-          description: "오답 원인 유형 (이해/암기/서술)" 
-        },
-        keyword: { type: "STRING", description: "누락된 핵심 기준서 키워드 1개" },
-        cause_summary: { type: "STRING", description: "기존 피드백 요약 (15자 내외)" }
+        score: { type: 'NUMBER' },
+        feedback: { type: 'STRING' }
       },
-      required: ["index", "type", "keyword", "cause_summary"]
+      required: ['score', 'feedback']
     }
   };
 
-  const prompt = `
-[역할] 회계감사 오답 분류기
-[지침] 학생의 오답과 '기존 AI 피드백'을 분석하여 아래 기준에 따라 **오답 유형을 태깅**하세요.
+  // Lite 모델일 경우 엄격 모드 추가
+  const systemText = (model === 'gemini-2.5-flash-lite')
+    ? `${BASE_SYSTEM_PROMPT}\n\n${LITE_STRICT_ADDENDUM}`
+    : BASE_SYSTEM_PROMPT;
 
-[분류 기준 - 엄격 적용]
-1. **Comprehension (이해 부족)**: 
-   - 묻는 말에 동문서답함
-   - 개념 자체를 잘못 알고 있음
-2. **Recall (암기 부족)**: 
-   - 내용은 대충 맞으나 '기준서 문구'를 정확히 못 씀
-   - 핵심 키워드가 누락됨
-3. **Structure (서술 미흡)**: 
-   - 키워드는 있으나 인과관계가 불분명함
-   - "~때문이다" 등의 서술 종결이 어색함
-
-[입력 데이터]
-${JSON.stringify(problems)}
-
-분석 결과를 JSON 배열로 출력하세요.`;
-
-  // Flash 모델 사용 (토큰 효율성 최적화)
-  return await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-2.5-flash');
-}
-
-// ==========================================
-// 3. Stage 2: Synthesis (Pro Model)
-// - 목적: 통계 데이터를 바탕으로 통찰력 있는 리포트 작성
-// - 전략: 계산된 통계와 대표 사례만 넘겨서 깊이 있는 조언 유도
-// ==========================================
-
-async function synthesizeReport(stats, bestExamples, chartInfo, geminiApiKey) {
-  const schema = {
-    type: "OBJECT",
-    properties: {
-      qualitative_diagnosis: { type: "STRING", description: "1. 답안 서술 능력 진단 (종합 평가)" },
-      pattern_analysis: { type: "STRING", description: "2. 행동 패턴 분석 (유형별 비율에 따른 구체적 조언)" },
-      correction_notes: { 
-        type: "ARRAY", 
-        items: {
-            type: "OBJECT",
-            properties: {
-                problem_title: { type: "STRING" },
-                diagnosis: { type: "STRING", description: "채점위원 관점의 지적" },
-                prescription: { type: "STRING", description: "구체적인 교정 처방" }
-            }
-        },
-        description: "3. Top 3 교정 노트 (대표 오답 사례별)" 
-      },
-      total_review: { type: "STRING", description: "4. 총평 및 다음 주 목표" }
-    },
-    required: ["qualitative_diagnosis", "pattern_analysis", "correction_notes", "total_review"]
+  const systemInstruction = {
+    parts: [{ text: systemText }]
   };
 
-  const prompt = `
-[역할] 20년차 현직 회계사(CPA) 및 채점위원
-[목표] 학습 데이터를 기반으로 **합격을 위한 심층 진단 리포트**를 작성하세요.
+  const userQuery = `[모범 답안]\n${correctAnswer}\n\n[사용자 답안]\n${userAnswer}\n\n[채점 요청]\n{"score": number, "feedback": string}`;
 
-[입력 데이터]
-1. **학습 추세 (차트)**: ${JSON.stringify(chartInfo)}
-2. **오답 통계 (총 ${stats.total}문제 중 비율)**:
-   - 🧠 이해 부족 (Comprehension): ${stats.percentages.Comprehension}%
-   - 📖 암기 부족 (Recall): ${stats.percentages.Recall}% 
-   - 📝 서술 미흡 (Structure): ${stats.percentages.Structure}%
-   - 🔑 자주 누락된 키워드: ${stats.keywords.join(', ')}
-3. **대표 오답 사례 (심층 첨삭용)**:
-${JSON.stringify(bestExamples)}
-
-[작성 지침]
-1. **답안 서술 능력**: 통계를 바탕으로 학생의 현재 수준을 냉철하게 진단하세요. (예: 암기 부족이 50%라면 기준서 회독수 부족을 지적)
-2. **행동 패턴**: 가장 비율이 높은 오답 유형에 집중하여, 이를 해결하기 위한 구체적 학습법(백지복습, 목차암기 등)을 제안하세요.
-3. **교정 노트**: 제공된 오답 사례를 분석하여, 어떻게 고쳐야 부분점수가 아닌 만점을 받을 수 있는지 '채점위원 관점'에서 첨삭하세요.
-4. **총평**: 차트의 추세(골든크로스 등)와 오답 패턴을 종합하여, 다음 주에 집중해야 할 구체적 목표를 제시하세요. 어조는 따뜻하고 격려적이어야 합니다.
-
-JSON으로 출력하세요.`;
-
-  // Pro 모델 사용 (높은 추론 능력 필요)
-  return await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-2.5-pro');
-}
-
-// ==========================================
-// 4. Main Orchestrator
-// ==========================================
-
-export async function startAIAnalysis() {
-  const startBtn = $('ai-analysis-start-btn');
-  const loading = $('ai-analysis-loading');
-  const resultUi = $('ai-analysis-result');
-  
-  const apiKey = getGeminiApiKey();
-  if (!apiKey) {
-    openApiModal(false);
-    showToast('Gemini API 키가 필요합니다.', 'error');
-    return;
-  }
-
-  if (startBtn) startBtn.parentElement.classList.add('hidden');
-  if (loading) loading.classList.remove('hidden');
-
-  const updateMsg = (msg) => { 
-    const p = loading.querySelector('p');
-    if(p) p.textContent = msg; 
+  const payload = {
+    contents: [{ parts: [{ text: userQuery }] }],
+    systemInstruction,
+    generationConfig
   };
 
   try {
-    const reportData = getReportData();
-    const weakProblems = reportData.weakProblems;
-
-    if (weakProblems.length === 0) {
-      throw new Error("분석할 오답 데이터가 없습니다.");
-    }
-
-    // ------------------------------------------
-    // Step 1: 데이터 준비 (Hybrid Loading)
-    // ------------------------------------------
-    updateMsg("☁️ 데이터 동기화 및 준비 중...");
-    
-    // 최근/중요 오답 최대 15개 추출 (Mining용)
-    const targetProblems = weakProblems.slice(0, 15); 
-    
-    const currentUser = getCurrentUser();
-    let serverData = {};
-    if (currentUser) {
-      try {
-        // 상세 데이터(답안, 피드백)는 Firestore에서 가져옴
-        serverData = await fetchDetailedRecords(currentUser.uid, targetProblems.map(p => p.qid));
-      } catch(e) { console.warn('Server fetch failed:', e); }
-    }
-
-    // 분석용 데이터셋 경량화 (Token Diet)
-    const minifiedProblems = targetProblems.map((p, idx) => {
-      const local = window.questionScores[p.qid] || {};
-      const server = serverData[p.qid] || {};
-      const feedback = server.feedback || local.feedback || "";
-      const userAnswer = server.user_answer || local.user_answer || "";
-      
-      return {
-        index: idx,
-        q_id: p.qid,
-        q_txt: (p.problem.problemTitle || p.problem.물음).slice(0, 40), // 제목 위주
-        u_ans: userAnswer.slice(0, 80),
-        m_ans: p.problem.정답.slice(0, 80),
-        ai_fb: feedback.slice(0, 100) // 기존 AI 분석 활용
-      };
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
 
-    // ------------------------------------------
-    // Step 2: Data Mining (Flash Model)
-    // ------------------------------------------
-    updateMsg("🔍 오답 유형 분류 및 키워드 추출 (Flash)...");
-    const miningResult = await mineWeaknessData(minifiedProblems, apiKey);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const msg = body?.error?.message || res.statusText;
 
-    // JS에서 통계 집계 (Token 절약)
-    const counts = { Comprehension: 0, Recall: 0, Structure: 0 };
-    const keywords = [];
-    
-    miningResult.forEach(m => {
-      if (counts[m.type] !== undefined) counts[m.type]++;
-      if (m.keyword && m.keyword.length > 1) keywords.push(m.keyword);
-    });
-    
-    const totalAnalyzed = miningResult.length;
-    const stats = {
-      counts,
-      total: totalAnalyzed,
-      percentages: {
-        Comprehension: Math.round(counts.Comprehension / totalAnalyzed * 100) || 0,
-        Recall: Math.round(counts.Recall / totalAnalyzed * 100) || 0,
-        Structure: Math.round(counts.Structure / totalAnalyzed * 100) || 0
-      },
-      keywords: [...new Set(keywords)].slice(0, 5) // 중복제거 Top 5
+      if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) {
+        throw new Error(`모델/버전 불일치: ${msg}`);
+      }
+      if (res.status === 401 || res.status === 403) {
+        console.error(`❌ [Gemini API] 403/401 상세 오류:`, body);
+        const detailedMsg = msg || 'API 키 권한 부족';
+        throw new Error(`API 키 오류 (${res.status}): ${detailedMsg}\n\n가능한 원인:\n1. API 키에 Generative Language API 권한 미부여\n2. API 키 도메인 제한 설정 확인 필요\n3. API 키 만료 또는 비활성화\n4. 사용량 초과 (무료: 분당 15req, 일당 1500req)`);
+      }
+      if (res.status === 429) {
+        throw new Error(`API 할당량 초과 (429)`);
+      }
+      if (res.status >= 500) {
+        throw new Error(`서버 오류 (${res.status})`);
+      }
+      throw new Error(msg);
+    }
+
+    const data = await res.json();
+    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    const cleaned = sanitizeModelText(raw);
+
+    let parsed;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      throw new Error('API 응답 파싱 실패');
+    }
+
+    return {
+      score: clamp(+parsed.score, 0, 100),
+      feedback: String(parsed.feedback || '피드백 없음').trim()
     };
+  } catch (err) {
+    // 429 또는 서버 오류 시 재시도 (503 포함)
+    const is503 = String(err.message).includes('503');
+    const shouldRetry = retries > 0 && (
+      String(err.message).includes('429') ||
+      /^서버 오류/.test(String(err.message))
+    );
 
-    // ------------------------------------------
-    // Step 3: Report Synthesis (Pro Model)
-    // ------------------------------------------
-    updateMsg("📝 채점위원 심층 리포트 작성 중 (Pro)...");
-    
-    // Top 3 대표 오답 사례 선정 (각 유형별 우선순위)
-    const bestExamples = [];
-    const types = ['Comprehension', 'Recall', 'Structure'];
-    
-    // 각 유형별로 하나씩 예제 추출 시도
-    types.forEach(type => {
-        const found = miningResult.find(m => m.type === type);
-        if (found) {
-            const original = minifiedProblems.find(p => p.index === found.index);
-            bestExamples.push({
-                type: found.type,
-                question: original.q_txt,
-                user_answer: original.u_ans,
-                model_answer: original.m_ans,
-                diagnosis_hint: found.cause_summary
-            });
-        }
-    });
-    // 부족하면 아무거나 채워서 3개 맞춤
-    while (bestExamples.length < 3 && bestExamples.length < miningResult.length) {
-        const next = miningResult[bestExamples.length];
-        const original = minifiedProblems.find(p => p.index === next.index);
-        if (!bestExamples.some(e => e.question === original.q_txt)) {
-            bestExamples.push({
-                type: next.type,
-                question: original.q_txt,
-                user_answer: original.u_ans,
-                model_answer: original.m_ans,
-                diagnosis_hint: next.cause_summary
-            });
-        }
+    if (shouldRetry) {
+      const retryDelay = is503 ? delay * 2.5 : delay;
+      await new Promise((r) => setTimeout(r, retryDelay));
+      return callGeminiAPI(userAnswer, correctAnswer, apiKey, selectedAiModel, retries - 1, delay * 1.8);
     }
-
-    const chartInfo = extractChartContext(reportData);
-    const finalReport = await synthesizeReport(stats, bestExamples, chartInfo, apiKey);
-
-    // ------------------------------------------
-    // Step 4: Rendering (Markdown Construction)
-    // ------------------------------------------
-    let md = `# 🤖 AI 채점위원 딥러닝 리포트\n\n`;
-    
-    // 1. 차트 & 요약
-    if (chartInfo) {
-      md += `### 📊 학습 추세 진단\n`;
-      md += `- **현재 상태**: ${chartInfo.signal}\n`;
-      md += `- **취약 단원**: ${chartInfo.weakChapter}\n\n`;
-    }
-
-    // 2. 정성 진단
-    md += `### 🩺 답안 서술 능력 진단\n${finalReport.qualitative_diagnosis}\n\n`;
-
-    // 3. 행동 패턴 분석 (테이블)
-    md += `### 🧠 행동 패턴 분석 (오답 유형 통계)\n`;
-    md += `이번 분석 대상 **${stats.total}문제**의 오답 원인을 분석한 결과입니다.\n\n`;
-    md += `| 유형 | 비율 | 진단 |\n|---|---|---|\n`;
-    md += `| **이해 부족** | ${stats.percentages.Comprehension}% | 개념 오해 및 동문서답 |\n`;
-    md += `| **암기 부족** | ${stats.percentages.Recall}% | 기준서 키워드(${stats.keywords.slice(0,2).join(', ')} 등) 누락 |\n`;
-    md += `| **서술 미흡** | ${stats.percentages.Structure}% | 논리 구조 및 인과관계 부족 |\n\n`;
-    md += `💡 **분석**: ${finalReport.pattern_analysis}\n\n`;
-
-    // 4. 교정 노트
-    md += `### 📝 Top 3 교정 노트 (채점위원 첨삭)\n`;
-    finalReport.correction_notes.forEach((note, idx) => {
-        md += `**${idx + 1}. ${note.problem_title}**\n`;
-        md += `- **🚫 지적**: ${note.diagnosis}\n`;
-        md += `- **✅ 처방**: ${note.prescription}\n\n`;
-    });
-
-    // 5. 총평
-    md += `### 🧾 총평 & Next Step\n${finalReport.total_review}`;
-
-    if (el.aiErrorPattern) el.aiErrorPattern.innerHTML = markdownToHtml(md);
-
-    if (loading) loading.classList.add('hidden');
-    if (resultUi) resultUi.classList.remove('hidden');
-
-  } catch (e) {
-    console.error(e);
-    showToast(`분석 실패: ${e.message}`, 'error');
-    if (loading) loading.classList.add('hidden');
-    if (startBtn) startBtn.parentElement.classList.remove('hidden');
+    throw err;
   }
 }
 
+/**
+ * Gemini API를 사용하여 힌트 생성
+ * @returns {Promise<string>} 힌트 문자열
+ */
+export async function callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, selectedAiModel = 'gemini-2.5-flash', retries = 2, delay = 800) {
+  const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+  const generationConfig = {
+    responseMimeType: 'application/json',
+    responseSchema: {
+      type: 'OBJECT',
+      properties: {
+        hint: { type: 'STRING' }
+      },
+      required: ['hint']
+    }
+  };
+
+  const systemInstruction = {
+    parts: [{
+      text: `역할: 회계감사 학습 튜터.\n목표: 정답을 노출하지 않고 핵심 개념을 떠올리게 만드는 2~4줄 힌트 제공.\n출력: JSON만.`
+    }]
+  };
+
+  const userQuery = `[문제]\n${questionText}\n\n[모범 답안]\n${correctAnswer}\n\n[사용자 답안]\n${userAnswer || '(미입력)'}\n\n[요청]\n{"hint": string }`;
+
+  const payload = {
+    contents: [{ parts: [{ text: userQuery }] }],
+    systemInstruction,
+    generationConfig
+  };
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const msg = body?.error?.message || res.statusText;
+
+      if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) {
+        throw new Error(`모델/버전 불일치: ${msg}`);
+      }
+      if (res.status === 401 || res.status === 403) {
+        console.error(`❌ [Gemini API] 403/401 상세 오류:`, body);
+        const detailedMsg = msg || 'API 키 권한 부족';
+        throw new Error(`API 키 오류 (${res.status}): ${detailedMsg}\n\n가능한 원인:\n1. API 키에 Generative Language API 권한 미부여\n2. API 키 도메인 제한 설정 확인 필요\n3. API 키 만료 또는 비활성화\n4. 사용량 초과 (무료: 분당 15req, 일당 1500req)`);
+      }
+      if (res.status === 429) {
+        throw new Error(`API 할당량 초과 (429)`);
+      }
+      if (res.status >= 500) {
+        throw new Error(`서버 오류 (${res.status})`);
+      }
+      throw new Error(msg);
+    }
+
+    const data = await res.json();
+    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    const cleaned = sanitizeModelText(raw);
+
+    let parsed;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      throw new Error('API 응답 파싱 실패');
+    }
+
+    return String(parsed.hint || '').trim();
+  } catch (err) {
+    const is503 = String(err.message).includes('503');
+    const shouldRetry = retries > 0 && (
+      String(err.message).includes('429') ||
+      /^서버 오류/.test(String(err.message))
+    );
+
+    if (shouldRetry) {
+      const retryDelay = is503 ? delay * 2.5 : delay;
+      await new Promise((r) => setTimeout(r, retryDelay));
+      return callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, selectedAiModel, retries - 1, delay * 1.8);
+    }
+    throw err;
+  }
+}
+
+/**
+ * Gemini API를 사용하여 범용 텍스트 생성 (리포트 AI 분석 등)
+ * @param {string} prompt - 생성할 텍스트에 대한 프롬프트
+ * @param {string} apiKey - Gemini API 키
+ * @param {string} selectedAiModel - 사용할 모델 ('gemini-2.5-flash' 또는 'gemini-2.5-flash-lite')
+ * @param {number} retries - 재시도 횟수
+ * @param {number} delay - 재시도 대기 시간 (ms)
+ * @param {object} generationConfigOverride - generationConfig 오버라이드 옵션
+ * @returns {Promise<string>} 생성된 텍스트
+ */
+export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemini-2.5-flash', retries = 3, delay = 1500, generationConfigOverride = null) {
+  const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+  // 기본 generationConfig: 출력 길이 제한으로 API 타임아웃 방지
+  const defaultGenerationConfig = {
+    maxOutputTokens: 1200,  // 과도한 결과 방지 (≈900단어)
+    temperature: 0.7,
+    topP: 0.85
+  };
+
+  const generationConfig = generationConfigOverride || defaultGenerationConfig;
+
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig
+  };
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const msg = body?.error?.message || res.statusText;
+
+      if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) {
+        throw new Error(`모델/버전 불일치: ${msg}`);
+      }
+      if (res.status === 401 || res.status === 403) {
+        console.error(`❌ [Gemini API] 403/401 상세 오류:`, body);
+        const detailedMsg = msg || 'API 키 권한 부족';
+        throw new Error(`API 키 오류 (${res.status}): ${detailedMsg}\n\n가능한 원인:\n1. API 키에 Generative Language API 권한 미부여\n2. API 키 도메인 제한 설정 확인 필요\n3. API 키 만료 또는 비활성화\n4. 사용량 초과 (무료: 분당 15req, 일당 1500req)`);
+      }
+      if (res.status === 429) {
+        throw new Error(`API 할당량 초과 (429)`);
+      }
+      if (res.status >= 500) {
+        throw new Error(`서버 오류 (${res.status})`);
+      }
+      throw new Error(msg);
+    }
+
+    const data = await res.json();
+    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    return raw.trim();
+  } catch (err) {
+    // 재시도 조건: 429(할당량) 또는 서버 오류(503 포함)
+    const is503 = String(err.message).includes('503');
+    const shouldRetry = retries > 0 && (
+      String(err.message).includes('429') ||
+      /^서버 오류/.test(String(err.message))
+    );
+
+    if (shouldRetry) {
+      // 503의 경우 더 긴 delay 사용 (서버 부하 감소 대기)
+      const retryDelay = is503 ? delay * 2.5 : delay;
+      const retryDelaySeconds = (retryDelay / 1000).toFixed(1);
+
+      console.warn(`⚠️ [Gemini API] ${err.message} - ${retryDelaySeconds}초 후 재시도 (남은 횟수: ${retries})`);
+
+      await new Promise((r) => setTimeout(r, retryDelay));
+      return callGeminiTextAPI(prompt, apiKey, selectedAiModel, retries - 1, delay * 1.8, generationConfigOverride);
+    }
+
+    // 503 재시도 모두 실패 시, flash 모델이었다면 lite로 다운그레이드 시도
+    if (is503 && selectedAiModel === 'gemini-2.5-flash') {
+      console.warn(`⚠️ [Gemini API] 503 에러 지속 → gemini-2.5-flash-lite로 자동 전환 시도`);
+      try {
+        return await callGeminiTextAPI(prompt, apiKey, 'gemini-2.5-flash-lite', 2, 1500, generationConfigOverride);
+      } catch (liteErr) {
+        console.error(`❌ [Gemini API] lite 모델도 실패: ${liteErr.message}`);
+        throw new Error(`프롬프트가 너무 크거나 복잡합니다. 데이터 범위를 줄여주세요. (원본 에러: ${err.message})`);
+      }
+    }
+
+    console.error(`❌ [Gemini API] 최종 실패: ${err.message}`);
+    throw err;
+  }
+}
+
+/**
+ * Gemini API를 사용하여 구조화된 JSON 생성 (리포트 AI 분석 등)
+ * @param {string} prompt - 생성할 내용에 대한 프롬프트
+ * @param {object} responseSchema - JSON 스키마 (OBJECT 타입)
+ * @param {string} apiKey - Gemini API 키
+ * @param {string} selectedAiModel - 사용할 모델
+ * @param {number} retries - 재시도 횟수
+ * @param {number} delay - 재시도 대기 시간 (ms)
+ * @returns {Promise<object>} 생성된 JSON 객체
+ */
+export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selectedAiModel = 'gemini-2.5-flash-lite', retries = 3, delay = 1500) {
+  const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash-lite';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+  const generationConfig = {
+    responseMimeType: 'application/json',
+    responseSchema: responseSchema,
+    maxOutputTokens: 2000,
+    temperature: 0.7,
+    topP: 0.85
+  };
+
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig
+  };
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const msg = body?.error?.message || res.statusText;
+
+      if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) {
+        throw new Error(`모델/버전 불일치: ${msg}`);
+      }
+      if (res.status === 401 || res.status === 403) {
+        console.error(`❌ [Gemini JSON API] 403/401 상세 오류:`, body);
+        const detailedMsg = msg || 'API 키 권한 부족';
+        throw new Error(`API 키 오류 (${res.status}): ${detailedMsg}\n\n가능한 원인:\n1. API 키에 Generative Language API 권한 미부여\n2. API 키 도메인 제한 설정 확인 필요\n3. API 키 만료 또는 비활성화\n4. 사용량 초과 (무료: 분당 15req, 일당 1500req)`);
+      }
+      if (res.status === 429) {
+        throw new Error(`API 할당량 초과 (429)`);
+      }
+      if (res.status >= 500) {
+        throw new Error(`서버 오류 (${res.status})`);
+      }
+      throw new Error(msg);
+    }
+
+    const data = await res.json();
+    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
+
+    try {
+      return JSON.parse(raw);
+    } catch (parseErr) {
+      console.error('❌ [Gemini JSON API] JSON 파싱 실패:', raw);
+      throw new Error('API 응답 JSON 파싱 실패');
+    }
+  } catch (err) {
+    // 재시도 조건: 429(할당량) 또는 서버 오류(503 포함)
+    const is503 = String(err.message).includes('503');
+    const shouldRetry = retries > 0 && (
+      String(err.message).includes('429') ||
+      /^서버 오류/.test(String(err.message))
+    );
+
+    if (shouldRetry) {
+      const retryDelay = is503 ? delay * 2.5 : delay;
+      const retryDelaySeconds = (retryDelay / 1000).toFixed(1);
+
+      console.warn(`⚠️ [Gemini JSON API] ${err.message} - ${retryDelaySeconds}초 후 재시도 (남은 횟수: ${retries})`);
+
+      await new Promise((r) => setTimeout(r, retryDelay));
+      return callGeminiJsonAPI(prompt, responseSchema, apiKey, selectedAiModel, retries - 1, delay * 1.8);
+    }
+
+    // 503 재시도 모두 실패 시, flash 모델이었다면 lite로 다운그레이드 시도
+    if (is503 && selectedAiModel === 'gemini-2.5-flash') {
+      console.warn(`⚠️ [Gemini JSON API] 503 에러 지속 → gemini-2.5-flash-lite로 자동 전환 시도`);
+      try {
+        return await callGeminiJsonAPI(prompt, responseSchema, apiKey, 'gemini-2.5-flash-lite', 2, 1500);
+      } catch (liteErr) {
+        console.error(`❌ [Gemini JSON API] lite 모델도 실패: ${liteErr.message}`);
+        throw new Error(`프롬프트가 너무 크거나 복잡합니다. 데이터 범위를 줄여주세요. (원본 에러: ${err.message})`);
+      }
+    }
+
+    console.error(`❌ [Gemini JSON API] 최종 실패: ${err.message}`);
+    throw err;
+  }
+}
+
+/**
+ * Gemini API를 사용하여 암기팁 생성 (Text 모드)
+ * - [수정됨] 출력 제한 3000으로 상향 & 잘린 텍스트도 반환하도록 개선
+ */
+export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini-2.5-flash', retries = 2, delay = 800) {
+  const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+  // [수정 1] JSON 스키마 제거 및 출력 길이 제한을 3000으로 대폭 상향 (잘림 방지)
+  const generationConfig = {
+    responseMimeType: 'text/plain',
+    maxOutputTokens: 3000,
+    temperature: 0.8
+  };
+
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig
+  };
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const msg = body?.error?.message || res.statusText;
+
+      // 재시도 로직
+      if ((res.status === 429 || res.status >= 500) && retries > 0) {
+        console.warn(`⚠️ [Tip API] ${res.status} 오류 - 재시도...`);
+        await new Promise(r => setTimeout(r, delay));
+        return callGeminiTipAPI(prompt, apiKey, selectedAiModel, retries - 1, delay * 1.5);
+      }
+
+      if ((res.status === 404 || res.status === 400) && /model/i.test(msg)) {
+        throw new Error(`모델/버전 불일치: ${msg}`);
+      }
+      if (res.status === 401 || res.status === 403) {
+        console.error(`❌ [Gemini Tip API] 403/401 상세 오류:`, body);
+        const detailedMsg = msg || 'API 키 권한 부족';
+        throw new Error(`API 키 오류 (${res.status}): ${detailedMsg}`);
+      }
+      if (res.status === 429) {
+        throw new Error(`API 할당량 초과 (429)`);
+      }
+      if (res.status >= 500) {
+        throw new Error(`서버 오류 (${res.status})`);
+      }
+      throw new Error(msg);
+    }
+
+    const data = await res.json();
+    const candidate = data?.candidates?.[0];
+    const text = candidate?.content?.parts?.[0]?.text;
+    const finishReason = candidate?.finishReason;
+
+    // [수정 2] 텍스트가 조금이라도 있으면 (잘렸더라도) 무조건 반환
+    if (text) {
+      return text.trim();
+    }
+
+    // 텍스트가 아예 없는 경우에만 에러 처리
+    if (finishReason === 'MAX_TOKENS') {
+      throw new Error('생성 토큰 제한 초과 (내용 없음)');
+    } else if (finishReason === 'SAFETY') {
+      console.warn('⚠️ 안전성 필터 등급:', candidate?.safetyRatings);
+      throw new Error('부적절한 콘텐츠로 감지되어 생성이 차단되었습니다.');
+    } else if (finishReason === 'RECITATION') {
+      throw new Error('저작권/반복 문제로 생성이 차단되었습니다.');
+    } else {
+      throw new Error('암기팁 생성 실패 (응답 내용 없음)');
+    }
+
+  } catch (err) {
+    // 503 에러이고 flash 모델이었다면 lite로 다운그레이드 시도
+    const is503 = String(err.message).includes('503') || String(err.message).includes('서버 오류');
+    if (is503 && selectedAiModel === 'gemini-2.5-flash' && retries === 0) {
+      console.warn(`⚠️ [Tip API] Flash 모델 503 에러 → lite 모델로 전환 시도`);
+      try {
+        return await callGeminiTipAPI(prompt, apiKey, 'gemini-2.5-flash-lite', 2, 800);
+      } catch (liteErr) {
+        console.error(`❌ [Tip API] lite 모델도 실패: ${liteErr.message}`);
+      }
+    }
+
+    console.error('Tip API Error:', err);
+    throw err;
+  }
+}
 export function copyAIAnalysis() {
   const content = document.getElementById('ai-error-pattern')?.innerText;
   if (content) {
