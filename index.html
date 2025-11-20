@@ -1846,7 +1846,12 @@
               />
             </div>
             <div>
-              <label for="login-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">비밀번호</label>
+              <div class="flex items-center justify-between mb-1">
+                <label for="login-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">비밀번호</label>
+                <button type="button" id="forgot-password-btn" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                  비밀번호를 잊으셨나요?
+                </button>
+              </div>
               <input
                 type="password"
                 id="login-password"
@@ -1924,6 +1929,21 @@
                 placeholder="••••••••"
                 required
               />
+            </div>
+            <!-- 개인정보 수집 및 이용 동의 (필수) -->
+            <div class="flex items-start gap-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <input
+                type="checkbox"
+                id="privacy-consent"
+                class="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                required
+              />
+              <label for="privacy-consent" class="text-sm text-gray-700 dark:text-gray-300">
+                <span class="font-medium text-blue-600 dark:text-blue-400 cursor-pointer hover:underline" onclick="window.open('docs/privacy_policy.html', '_blank')">개인정보 수집 및 이용</span>에 동의합니다 <span class="text-red-500">*</span>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  수집 항목: 이메일, 이름, 학습 기록 | 이용 목적: 회원 식별, 학습 관리 | 보유 기간: 회원 탈퇴 시까지
+                </p>
+              </label>
             </div>
             <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 rounded-lg transition shadow-md">
               회원가입
