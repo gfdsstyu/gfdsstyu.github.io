@@ -8,7 +8,11 @@ import {
   signUpWithEmail,
   logout,
   getCurrentUser,
-  addAuthStateListener
+  addAuthStateListener,
+  resetPassword,
+  updateStatusMessage,
+  getStatusMessage,
+  deleteUserAccount
 } from './authCore.js';
 
 import { showToast } from '../../ui/domUtils.js';
@@ -122,6 +126,52 @@ function setupEventListeners() {
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', handleLogout);
+  }
+
+  // 비밀번호 찾기 버튼
+  const forgotPasswordBtn = document.getElementById('forgot-password-btn');
+  if (forgotPasswordBtn) {
+    forgotPasswordBtn.addEventListener('click', handleForgotPassword);
+  }
+
+  // 내 프로필 버튼
+  const myProfileBtn = document.getElementById('my-profile-btn');
+  if (myProfileBtn) {
+    myProfileBtn.addEventListener('click', openProfileModal);
+  }
+
+  // 프로필 모달 닫기
+  const profileModalClose = document.getElementById('profile-modal-close');
+  const profileModalBackdrop = document.getElementById('profile-modal-backdrop');
+
+  if (profileModalClose) {
+    profileModalClose.addEventListener('click', closeProfileModal);
+  }
+
+  if (profileModalBackdrop) {
+    profileModalBackdrop.addEventListener('click', closeProfileModal);
+  }
+
+  // 상태 메시지 입력 - 글자 수 카운터
+  const statusMessageInput = document.getElementById('status-message-input');
+  const statusCharCount = document.getElementById('status-char-count');
+
+  if (statusMessageInput && statusCharCount) {
+    statusMessageInput.addEventListener('input', () => {
+      statusCharCount.textContent = statusMessageInput.value.length;
+    });
+  }
+
+  // 상태 메시지 저장 버튼
+  const saveStatusBtn = document.getElementById('save-status-btn');
+  if (saveStatusBtn) {
+    saveStatusBtn.addEventListener('click', handleSaveStatusMessage);
+  }
+
+  // 회원 탈퇴 버튼
+  const deleteAccountBtn = document.getElementById('delete-account-btn');
+  if (deleteAccountBtn) {
+    deleteAccountBtn.addEventListener('click', handleDeleteAccount);
   }
 }
 
@@ -288,6 +338,248 @@ document.addEventListener('click', (e) => {
     }
   }
 });
+
+// ============================================
+// 프로필 모달 관리
+// ============================================
+
+/**
+ * 프로필 모달 열기
+ */
+async function openProfileModal() {
+  const profileModal = document.getElementById('profile-modal');
+  if (!profileModal) return;
+
+  const user = getCurrentUser();
+  if (!user) {
+    showToast('❌ 로그인이 필요합니다.', 'error');
+    return;
+  }
+
+  // 사용자 정보 표시
+  updateProfileModalUI(user);
+
+  // 현재 상태 메시지 가져오기
+  const statusResult = await getStatusMessage();
+  if (statusResult.success && statusResult.statusMessage) {
+    const statusInput = document.getElementById('status-message-input');
+    const charCount = document.getElementById('status-char-count');
+    if (statusInput) {
+      statusInput.value = statusResult.statusMessage;
+      if (charCount) {
+        charCount.textContent = statusResult.statusMessage.length;
+      }
+    }
+  }
+
+  // 이메일 로그인 사용자인지 확인하여 비밀번호 섹션 표시 여부 결정
+  const isEmailProvider = user.providerData.some(
+    provider => provider.providerId === 'password'
+  );
+  const deletePasswordSection = document.getElementById('delete-password-section');
+  if (deletePasswordSection) {
+    if (isEmailProvider) {
+      deletePasswordSection.classList.remove('hidden');
+    } else {
+      deletePasswordSection.classList.add('hidden');
+    }
+  }
+
+  // 모달 표시
+  profileModal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  // 사용자 메뉴 닫기
+  closeUserMenu();
+}
+
+/**
+ * 프로필 모달 닫기
+ */
+function closeProfileModal() {
+  const profileModal = document.getElementById('profile-modal');
+  if (profileModal) {
+    profileModal.classList.add('hidden');
+    document.body.style.overflow = '';
+
+    // 입력 필드 초기화
+    const statusInput = document.getElementById('status-message-input');
+    const deletePasswordInput = document.getElementById('delete-password-input');
+    if (statusInput) statusInput.value = '';
+    if (deletePasswordInput) deletePasswordInput.value = '';
+  }
+}
+
+/**
+ * 프로필 모달 UI 업데이트
+ */
+function updateProfileModalUI(user) {
+  // 사용자 이름
+  const displayNameEl = document.getElementById('profile-display-name');
+  if (displayNameEl) {
+    displayNameEl.textContent = user.displayName || user.email.split('@')[0];
+  }
+
+  // 이메일
+  const emailEl = document.getElementById('profile-email');
+  if (emailEl) {
+    emailEl.textContent = user.email;
+  }
+
+  // 아바타 (이니셜 표시)
+  const avatarEl = document.getElementById('profile-avatar');
+  if (avatarEl) {
+    const name = user.displayName || user.email;
+    const initial = name.charAt(0).toUpperCase();
+    avatarEl.textContent = initial;
+
+    // Google 프로필 사진이 있으면 표시
+    if (user.photoURL) {
+      avatarEl.style.backgroundImage = `url(${user.photoURL})`;
+      avatarEl.style.backgroundSize = 'cover';
+      avatarEl.textContent = '';
+    }
+  }
+}
+
+// ============================================
+// 비밀번호 재설정
+// ============================================
+
+/**
+ * 비밀번호 찾기 핸들러
+ */
+async function handleForgotPassword() {
+  const emailInput = document.getElementById('login-email');
+  const email = emailInput ? emailInput.value.trim() : '';
+
+  if (!email) {
+    showToast('❌ 이메일 주소를 먼저 입력해주세요.', 'error');
+    return;
+  }
+
+  const confirmed = confirm(`${email}로 비밀번호 재설정 링크를 보내시겠습니까?`);
+  if (!confirmed) return;
+
+  const result = await resetPassword(email);
+
+  if (result.success) {
+    showToast('✅ ' + result.message, 'success');
+  } else {
+    showToast('❌ ' + result.message, 'error');
+  }
+}
+
+// ============================================
+// 상태 메시지 관리
+// ============================================
+
+/**
+ * 상태 메시지 저장 핸들러
+ */
+async function handleSaveStatusMessage() {
+  const statusInput = document.getElementById('status-message-input');
+  if (!statusInput) return;
+
+  const message = statusInput.value.trim();
+
+  // 저장 중 표시
+  const saveBtn = document.getElementById('save-status-btn');
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> 저장 중...';
+  }
+
+  const result = await updateStatusMessage(message);
+
+  // 버튼 복원
+  if (saveBtn) {
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> 저장';
+  }
+
+  if (result.success) {
+    showToast('✅ 상태 메시지가 저장되었습니다.', 'success');
+  } else {
+    showToast('❌ ' + result.message, 'error');
+  }
+}
+
+// ============================================
+// 회원 탈퇴
+// ============================================
+
+/**
+ * 회원 탈퇴 핸들러
+ */
+async function handleDeleteAccount() {
+  const user = getCurrentUser();
+  if (!user) {
+    showToast('❌ 로그인이 필요합니다.', 'error');
+    return;
+  }
+
+  // 확인 메시지
+  const confirmed = confirm(
+    '⚠️ 정말로 탈퇴하시겠습니까?\n\n' +
+    '이 작업은 되돌릴 수 없으며, 다음 정보가 모두 삭제됩니다:\n' +
+    '• 프로필 정보\n' +
+    '• 학습 기록 및 통계\n' +
+    '• 그룹 가입 정보\n' +
+    '• 업적 달성 기록'
+  );
+
+  if (!confirmed) return;
+
+  // 한 번 더 확인
+  const doubleConfirmed = confirm(
+    '마지막 확인입니다.\n정말로 탈퇴하시겠습니까?'
+  );
+
+  if (!doubleConfirmed) return;
+
+  // 이메일 로그인 사용자는 비밀번호 확인
+  const isEmailProvider = user.providerData.some(
+    provider => provider.providerId === 'password'
+  );
+
+  let password = null;
+  if (isEmailProvider) {
+    const passwordInput = document.getElementById('delete-password-input');
+    password = passwordInput ? passwordInput.value : '';
+
+    if (!password) {
+      showToast('❌ 본인 확인을 위해 비밀번호를 입력해주세요.', 'error');
+      return;
+    }
+  }
+
+  // 탈퇴 진행 중 표시
+  const deleteBtn = document.getElementById('delete-account-btn');
+  if (deleteBtn) {
+    deleteBtn.disabled = true;
+    deleteBtn.textContent = '탈퇴 처리 중...';
+  }
+
+  const result = await deleteUserAccount(password);
+
+  // 버튼 복원
+  if (deleteBtn) {
+    deleteBtn.disabled = false;
+    deleteBtn.textContent = '탈퇴하기';
+  }
+
+  if (result.success) {
+    showToast('✅ 회원 탈퇴가 완료되었습니다.', 'info');
+    closeProfileModal();
+    // 페이지 새로고침하여 로그아웃 상태 반영
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
+  } else {
+    showToast('❌ ' + result.message, 'error');
+  }
+}
 
 // ============================================
 // UI 상태 업데이트
