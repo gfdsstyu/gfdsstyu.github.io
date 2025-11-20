@@ -9,6 +9,8 @@ import {
   updateDoc,
   collection,
   getDocs,
+  query,
+  where,
   serverTimestamp,
   increment
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
@@ -660,35 +662,34 @@ export async function getIntraUniversityRankings(university, period, criteria) {
   try {
     console.log(`📊 [IntraUniversityRanking] 대학 내 랭킹 조회 - university: ${university}, period: ${period}, criteria: ${criteria}`);
 
-    // rankings 컬렉션에서 모든 사용자 조회하고 필터링
+    // ✅ [최적화] where 쿼리로 해당 대학교 사용자만 필터링
+    // rankings 컬렉션에 university 필드가 추가되어 있어야 함
     const rankingsRef = collection(db, 'rankings');
-    const rankingsSnapshot = await getDocs(rankingsRef);
+    const q = query(rankingsRef, where('university', '==', university));
+    const rankingsSnapshot = await getDocs(q);
+
+    console.log(`📋 [IntraUniversityRanking] where 쿼리 결과: ${rankingsSnapshot.size}명`);
 
     const periodKey = getPeriodKey(period);
     const fieldName = `${period}.${periodKey}`;
 
     const rankings = [];
 
-    for (const rankingDoc of rankingsSnapshot.docs) {
+    // 각 랭킹 문서에서 해당 기간 데이터 추출
+    rankingsSnapshot.forEach(rankingDoc => {
       const rankingData = rankingDoc.data();
       const userId = rankingDoc.id;
 
-      // 사용자의 대학교 확인
-      const userDocRef = doc(db, 'users', userId);
-      const userDocSnap = await getDoc(userDocRef);
-
-      if (!userDocSnap.exists()) {
-        continue;
-      }
-
-      const userUniversity = normalizeUniversityName(userDocSnap.data().university) || userDocSnap.data().university;
-      if (userUniversity !== university) {
-        continue; // 해당 대학 아니면 제외
+      // 대학교 필드 재확인 (정규화 적용)
+      const docUniversity = normalizeUniversityName(rankingData.university) || rankingData.university;
+      if (docUniversity !== university) {
+        console.log(`⚠️ [IntraUniversityRanking] 정규화 후 불일치 제외: ${docUniversity} != ${university}`);
+        return; // 정규화 후에도 불일치하면 제외
       }
 
       const periodData = rankingData[fieldName];
       if (!periodData) {
-        continue; // 해당 기간 데이터 없으면 제외
+        return; // 해당 기간 데이터 없으면 제외
       }
 
       rankings.push({
@@ -698,7 +699,7 @@ export async function getIntraUniversityRankings(university, period, criteria) {
         problems: periodData.problems || 0,
         avgScore: periodData.avgScore || 0
       });
-    }
+    });
 
     // 기준에 따라 정렬
     rankings.sort((a, b) => {
