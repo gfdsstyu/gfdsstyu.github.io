@@ -1743,6 +1743,7 @@
       // Phase 2: 데이터 Import/Export 모듈은 lazy loading (버튼 클릭 시 로드)
       window.el.exportDataBtn?.addEventListener('click', loadDataImportExportModule, { once: true });
       window.el.importDataBtn?.addEventListener('click', loadDataImportExportModule, { once: true });
+      window.el.mergeDataBtn?.addEventListener('click', loadDataImportExportModule, { once: true });
       initReportListeners();
       // Phase 2: AI 분석 모듈은 lazy loading (버튼 클릭 시 로드)
       window.el.aiAnalysisStartBtn?.addEventListener('click', loadAIAnalysisModule, { once: true });
