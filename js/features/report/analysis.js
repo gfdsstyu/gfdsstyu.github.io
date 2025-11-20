@@ -158,6 +158,8 @@ function markdownToHtml(md) {
 async function classifyFeedbackBatch(weakProblemsSummary, geminiApiKey) {
   if (!weakProblemsSummary || weakProblemsSummary.length === 0) return null;
 
+  console.log(`🚀 [피드백 분류] 요청 시작... (${weakProblemsSummary.length}개 문제)`);
+
   const schema = {
     type: "OBJECT",
     properties: {
@@ -229,8 +231,15 @@ ${JSON.stringify(problemsSummary, null, 2)}
 1. classifications 배열: 각 문제의 인덱스, 오답 유형, 빠뜨린 키워드, 오해한 개념
 2. type_summary 객체: 각 유형별 문제 개수 합계`;
 
-  // 일괄 배치 분석 → Flash (lite보다 정확, Pro보다 빠름)
-  return await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-2.5-flash');
+  try {
+    // 일괄 배치 분석 → Flash (lite보다 정확, Pro보다 빠름)
+    const result = await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-2.5-flash');
+    console.log('✅ [피드백 분류] 완료');
+    return result;
+  } catch (error) {
+    console.error('❌ [피드백 분류] 실패:', error.message);
+    throw error; // 에러를 상위로 전파 (startAIAnalysis에서 처리)
+  }
 }
 
 /**
@@ -238,6 +247,8 @@ ${JSON.stringify(problemsSummary, null, 2)}
  */
 async function analyzeChartTrend(chartContext, geminiApiKey) {
   if (!chartContext) return null;
+
+  console.log('🚀 [차트 분석] 요청 시작...');
 
   const schema = {
     type: "OBJECT",
@@ -266,8 +277,16 @@ ${CHART_INTERPRETATION_RULES}
 [요청]
 위 데이터를 분석하여 JSON으로 출력하세요.`;
 
-  // 단순 해석 → lite (빠르고 저렴)
-  return await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-2.5-flash-lite');
+  try {
+    // 단순 해석 → lite (빠르고 저렴)
+    const result = await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-2.5-flash-lite');
+    console.log('✅ [차트 분석] 완료');
+    return result;
+  } catch (error) {
+    console.error('❌ [차트 분석] 실패:', error.message);
+    // 실패해도 null 반환으로 전체 프로세스 계속 진행
+    return null;
+  }
 }
 
 /**
@@ -542,6 +561,15 @@ export async function startAIAnalysis() {
       };
     });
 
+    // ⚠️ 최소 데이터 체크 (통계 분석에 필요한 최소 문제 수)
+    if (weakProblemsSummary.length < 3) {
+      console.warn(`⚠️ [AI Analysis] 분석 데이터 부족 (${weakProblemsSummary.length}개 < 3개)`);
+      showToast(`분석에 필요한 데이터가 부족합니다. (최소 3문제 필요, 현재 ${weakProblemsSummary.length}문제)`, 'warn');
+      if (loading) loading.classList.add('hidden');
+      if (startBtn) startBtn.parentElement.classList.remove('hidden');
+      return;
+    }
+
     // 🔄 새로운 4단계 분석 플로우 시작
     const totalSteps = 4; // 피드백 분류 + 차트 분석 + 패턴 분석 + 최종 종합
     let currentStep = 0;
@@ -557,43 +585,94 @@ export async function startAIAnalysis() {
       }
     };
 
-    // 1단계: 피드백 일괄 분류 (Flash - 배치 분석, 토큰 효율적)
-    updateProgress('🔍 오답 유형 분류 및 키워드 추출 중');
-    const classification = await classifyFeedbackBatch(weakProblemsSummary, geminiApiKey);
+    // 분석 결과를 저장할 변수들 (에러 발생 시 부분 결과만이라도 표시하기 위함)
+    let classification = null;
+    let chartAnalysis = null;
+    let patternAnalysis = null;
+    let synthesis = null;
 
-    // API 과부하 방지 딜레이
-    await new Promise(r => setTimeout(r, 1000));
+    try {
+      // 1단계: 피드백 일괄 분류 (Flash - 배치 분석, 토큰 효율적)
+      updateProgress('🔍 오답 유형 분류 및 키워드 추출 중');
+      console.log('🚀 [1단계] 피드백 분류 시작...');
+      classification = await classifyFeedbackBatch(weakProblemsSummary, geminiApiKey);
+      console.log('✅ [1단계] 피드백 분류 완료');
 
-    // 2단계: 차트 추세 분석 (Flash-lite - 빠르고 저렴)
-    updateProgress('📊 차트 추세 분석 중');
-    const chartAnalysis = await analyzeChartTrend(chartContext, geminiApiKey);
+      // API 과부하 방지 딜레이
+      await new Promise(r => setTimeout(r, 1000));
+    } catch (error) {
+      console.error('❌ [1단계] 피드백 분류 실패:', error.message);
+      showToast('오답 유형 분류 실패. 차트 분석으로 진행합니다.', 'warn');
+    }
 
-    // API 과부하 방지 딜레이
-    await new Promise(r => setTimeout(r, 1000));
+    try {
+      // 2단계: 차트 추세 분석 (Flash-lite - 빠르고 저렴)
+      updateProgress('📊 차트 추세 분석 중');
+      console.log('🚀 [2단계] 차트 분석 시작...');
+      chartAnalysis = await analyzeChartTrend(chartContext, geminiApiKey);
+      if (chartAnalysis) {
+        console.log('✅ [2단계] 차트 분석 완료');
+      }
 
-    // 3단계: 유형별 패턴 분석 (Flash - 정확도 중요)
-    updateProgress('📈 유형별 패턴 및 약점 분석 중');
-    const patternAnalysis = await analyzeErrorTypePatterns(classification, weakProblemsSummary, chartContext, geminiApiKey);
+      // API 과부하 방지 딜레이
+      await new Promise(r => setTimeout(r, 1000));
+    } catch (error) {
+      console.error('❌ [2단계] 차트 분석 실패:', error.message);
+      showToast('차트 분석 실패. 패턴 분석으로 진행합니다.', 'warn');
+    }
 
-    // API 과부하 방지 딜레이 (Pro 호출 전 충분한 대기)
-    await new Promise(r => setTimeout(r, 2000));
+    try {
+      // 3단계: 유형별 패턴 분석 (Flash - 정확도 중요)
+      if (classification) {
+        updateProgress('📈 유형별 패턴 및 약점 분석 중');
+        console.log('🚀 [3단계] 패턴 분석 시작...');
+        patternAnalysis = await analyzeErrorTypePatterns(classification, weakProblemsSummary, chartContext, geminiApiKey);
+        console.log('✅ [3단계] 패턴 분석 완료');
 
-    // 4단계: 최종 종합 처방 (Pro - 깊이 있는 추론, 1회만 호출)
-    updateProgress('🧠 최종 종합 처방 생성 중 (Pro 모델)');
-    const synthesis = await synthesizeWithPro(chartAnalysis, classification, patternAnalysis, geminiApiKey);
+        // API 과부하 방지 딜레이 (Pro 호출 전 충분한 대기)
+        await new Promise(r => setTimeout(r, 2000));
+      } else {
+        console.warn('⚠️ [3단계] 분류 데이터 없음으로 패턴 분석 건너뜀');
+        currentStep++; // 진행률 업데이트
+      }
+    } catch (error) {
+      console.error('❌ [3단계] 패턴 분석 실패:', error.message);
+      showToast('패턴 분석 실패. 최종 종합으로 진행합니다.', 'warn');
+    }
+
+    try {
+      // 4단계: 최종 종합 처방 (Pro - 깊이 있는 추론, 1회만 호출)
+      updateProgress('🧠 최종 종합 처방 생성 중 (Pro 모델)');
+      console.log('🚀 [4단계] 최종 종합 시작...');
+      synthesis = await synthesizeWithPro(chartAnalysis, classification, patternAnalysis, geminiApiKey);
+      console.log('✅ [4단계] 최종 종합 완료');
+    } catch (error) {
+      console.error('❌ [4단계] 최종 종합 실패:', error.message);
+      showToast('최종 종합 처방 생성 실패. 부분 결과를 표시합니다.', 'warn');
+    }
 
     // JSON → 마크다운 변환
     let finalReport = `# 🎓 감린이 AI 채점위원 분석 리포트\n\n`;
 
-    // 0. 오답 유형별 통계 (신규 추가)
-    if (classification && classification.type_summary) {
-      const total = classification.type_summary.이해부족 + classification.type_summary.암기부족 + classification.type_summary.서술불완전;
-      finalReport += `## 📊 오답 유형별 통계\n\n`;
-      finalReport += `**분석 문제 수:** ${total}문제\n\n`;
-      finalReport += `- 🧠 **이해부족:** ${classification.type_summary.이해부족}문제 (${Math.round(classification.type_summary.이해부족 / total * 100)}%)\n`;
-      finalReport += `- 📝 **암기부족:** ${classification.type_summary.암기부족}문제 (${Math.round(classification.type_summary.암기부족 / total * 100)}%)\n`;
-      finalReport += `- ✍️ **서술불완전:** ${classification.type_summary.서술불완전}문제 (${Math.round(classification.type_summary.서술불완전 / total * 100)}%)\n\n`;
-      finalReport += `---\n\n`;
+    // ⚠️ 분석 결과가 하나도 없으면 최소한의 메시지라도 표시
+    if (!classification && !chartAnalysis && !patternAnalysis && !synthesis) {
+      finalReport += `## ⚠️ 분석 실패\n\n`;
+      finalReport += `AI 분석 중 오류가 발생했습니다. 다음을 확인해주세요:\n\n`;
+      finalReport += `- Gemini API 키가 올바른지 확인\n`;
+      finalReport += `- 네트워크 연결 상태 확인\n`;
+      finalReport += `- 잠시 후 다시 시도\n\n`;
+      finalReport += `**문제가 지속되면 GitHub Issues로 문의해주세요.**\n`;
+    } else {
+      // 0. 오답 유형별 통계 (신규 추가)
+      if (classification && classification.type_summary) {
+        const total = classification.type_summary.이해부족 + classification.type_summary.암기부족 + classification.type_summary.서술불완전;
+        finalReport += `## 📊 오답 유형별 통계\n\n`;
+        finalReport += `**분석 문제 수:** ${total}문제\n\n`;
+        finalReport += `- 🧠 **이해부족:** ${classification.type_summary.이해부족}문제 (${Math.round(classification.type_summary.이해부족 / total * 100)}%)\n`;
+        finalReport += `- 📝 **암기부족:** ${classification.type_summary.암기부족}문제 (${Math.round(classification.type_summary.암기부족 / total * 100)}%)\n`;
+        finalReport += `- ✍️ **서술불완전:** ${classification.type_summary.서술불완전}문제 (${Math.round(classification.type_summary.서술불완전 / total * 100)}%)\n\n`;
+        finalReport += `---\n\n`;
+      }
     }
 
     // 1. 차트 분석
