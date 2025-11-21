@@ -52,11 +52,18 @@ export async function callGeminiAPI(userAnswer, correctAnswer, apiKey, selectedA
   };
 
   try {
+    // AbortController로 30초 타임아웃 설정 (네트워크 지연 방지)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
@@ -95,6 +102,11 @@ export async function callGeminiAPI(userAnswer, correctAnswer, apiKey, selectedA
       feedback: String(parsed.feedback || '피드백 없음').trim()
     };
   } catch (err) {
+    // 타임아웃 에러 처리
+    if (err.name === 'AbortError') {
+      throw new Error('API 요청 타임아웃 (30초 초과)');
+    }
+
     // 429 또는 서버 오류 시 재시도 (503 포함)
     const is503 = String(err.message).includes('503');
     const shouldRetry = retries > 0 && (
@@ -145,11 +157,18 @@ export async function callGeminiHintAPI(userAnswer, correctAnswer, questionText,
   };
 
   try {
+    // AbortController로 30초 타임아웃 설정
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
@@ -185,6 +204,11 @@ export async function callGeminiHintAPI(userAnswer, correctAnswer, questionText,
 
     return String(parsed.hint || '').trim();
   } catch (err) {
+    // 타임아웃 에러 처리
+    if (err.name === 'AbortError') {
+      throw new Error('API 요청 타임아웃 (30초 초과)');
+    }
+
     const is503 = String(err.message).includes('503');
     const shouldRetry = retries > 0 && (
       String(err.message).includes('429') ||
@@ -229,11 +253,18 @@ export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemin
   };
 
   try {
+    // AbortController로 30초 타임아웃 설정
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
@@ -260,6 +291,11 @@ export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemin
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     return raw.trim();
   } catch (err) {
+    // 타임아웃 에러 처리
+    if (err.name === 'AbortError') {
+      throw new Error('API 요청 타임아웃 (30초 초과)');
+    }
+
     // 재시도 조건: 429(할당량) 또는 서버 오류(503 포함)
     // 503 Service Unavailable은 일시적 서비스 과부하 또는 프롬프트가 너무 큼
     const is503 = String(err.message).includes('503');
@@ -323,11 +359,18 @@ export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selected
   };
 
   try {
+    // AbortController로 30초 타임아웃 설정
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
@@ -360,6 +403,11 @@ export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selected
       throw new Error('API 응답 JSON 파싱 실패');
     }
   } catch (err) {
+    // 타임아웃 에러 처리
+    if (err.name === 'AbortError') {
+      throw new Error('API 요청 타임아웃 (30초 초과)');
+    }
+
     // 재시도 조건: 429(할당량) 또는 서버 오류(503 포함)
     const is503 = String(err.message).includes('503');
     const shouldRetry = retries > 0 && (
@@ -414,11 +462,18 @@ export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini
   };
 
   try {
+    // AbortController로 30초 타임아웃 설정
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
@@ -471,6 +526,11 @@ export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini
     }
 
   } catch (err) {
+    // 타임아웃 에러 처리
+    if (err.name === 'AbortError') {
+      throw new Error('API 요청 타임아웃 (30초 초과)');
+    }
+
     // 503 에러이고 flash 모델이었다면 lite로 다운그레이드 시도
     const is503 = String(err.message).includes('503') || String(err.message).includes('서버 오류');
     if (is503 && selectedAiModel === 'gemini-2.5-flash' && retries === 0) {
