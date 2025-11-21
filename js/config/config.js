@@ -72,6 +72,137 @@ export const PART_INSERTIONS = [
   { before: 17, label: "Part 6. 그룹재무제표에 대한 감사와 기타인증업무" }
 ];
 
+// ========================================
+// Audit Flow 기반 학습 시스템 (v5.0)
+// "숲을 보는 감사, 흐름을 타는 암기"
+// ========================================
+
+/**
+ * AUDIT_FLOW_MAP: 20개 단원을 6단계의 감사 논리 흐름으로 재편
+ * 각 FLOW는 감사 프로세스의 순차적 단계를 나타내며,
+ * 학습자가 "왜 이걸 외우는지" 이해할 수 있도록 인과관계 제공
+ */
+export const AUDIT_FLOW_MAP = {
+  1: {
+    id: 1,
+    name: "감사 준비",
+    nameEn: "Ready",
+    meaning: "[자격&계약] 누가, 무엇을, 어떻게 계약하나?",
+    chapters: [1, 2, 3, 4, 5],
+    strategy: "기본기",
+    strategyDetail: "실무상 오류가 잦은 독립성/계약 파트. 100% 암기 목표.",
+    color: "#3B82F6", // blue
+    icon: "📋",
+    role: "Foundation",
+    connectedFlows: [2], // FLOW 2로 이어짐
+    studyMode: "ox" // OX 퀴즈 모드 추천
+  },
+  2: {
+    id: 2,
+    name: "기초 지식",
+    nameEn: "Understand",
+    meaning: "[기업 이해] 감사 대상(기업)을 알아야 시작한다",
+    chapters: [6],
+    strategy: "연결고리",
+    strategyDetail: "KSA 315(위험평가)로 들어가는 관문.",
+    color: "#10B981", // green
+    icon: "🏢",
+    role: "Bridge",
+    connectedFlows: [3], // FLOW 3의 전제조건
+    studyMode: "concept"
+  },
+  3: {
+    id: 3,
+    name: "위험 평가",
+    nameEn: "Assess",
+    meaning: "[설계도 그리기] 어디가 얼마나 위험한가? (가장 중요)",
+    chapters: [7],
+    strategy: "논리적 기반",
+    strategyDetail: "이곳의 결과가 FLOW 4의 '원인'이 됨. 개념 완벽 이해 필수.",
+    color: "#F59E0B", // amber
+    icon: "⚠️",
+    role: "Core Logic",
+    connectedFlows: [4], // FLOW 4의 모든 절차를 결정함
+    studyMode: "case" // 사례 분석 모드 추천
+  },
+  4: {
+    id: 4,
+    name: "감사 수행",
+    nameEn: "Respond",
+    meaning: "[증거 수집] 위험에 맞춰 빡빡하게/느슨하게 검증!",
+    chapters: [8, 9, 10, 11, 12, 13, 14],
+    strategy: "암기량 폭발",
+    strategyDetail: "단순 암기 금물. '경영진 주장'과 '절차'를 매핑하는 훈련.",
+    color: "#EF4444", // red
+    icon: "🔍",
+    role: "Execution",
+    connectedFlows: [5], // 수집한 증거로 FLOW 5에서 보고
+    studyMode: "flashcard" // 빈칸 채우기 모드 추천
+  },
+  5: {
+    id: 5,
+    name: "보고",
+    nameEn: "Report",
+    meaning: "[성적표 작성] 결과를 모아 최종 의견을 낸다",
+    chapters: [15, 16],
+    strategy: "사례형 대비",
+    strategyDetail: "의견 변형 사유(한정/부적정/거절) 칼같이 구분.",
+    color: "#8B5CF6", // purple
+    icon: "📊",
+    role: "Conclusion",
+    connectedFlows: [6], // 일반 감사 완료 후 확장으로
+    studyMode: "case" // 사례 분석 모드 추천
+  },
+  6: {
+    id: 6,
+    name: "확장",
+    nameEn: "Extend",
+    meaning: "[특수 상황] 일반 감사 외의 변수들",
+    chapters: [17, 18, 19, 20],
+    strategy: "방어",
+    strategyDetail: "휘발성이 강함. 비교 대조 위주로 시험 직전 집중 암기.",
+    color: "#6B7280", // gray
+    icon: "🌐",
+    role: "Extension",
+    connectedFlows: [], // 마지막 단계
+    studyMode: "ox" // OX 퀴즈 모드 추천
+  }
+};
+
+/**
+ * 단원 번호로 FLOW 정보 조회
+ * @param {number} chapterNum - 단원 번호 (1~20)
+ * @returns {object|null} FLOW 정보
+ */
+export function getFlowByChapter(chapterNum) {
+  for (const flow of Object.values(AUDIT_FLOW_MAP)) {
+    if (flow.chapters.includes(chapterNum)) {
+      return flow;
+    }
+  }
+  return null;
+}
+
+/**
+ * 단원별 연결된 후속 단원 조회 (논리적 흐름)
+ * @param {number} chapterNum - 현재 단원 번호
+ * @returns {number[]} 연결된 단원 번호 배열
+ */
+export function getConnectedChapters(chapterNum) {
+  const currentFlow = getFlowByChapter(chapterNum);
+  if (!currentFlow) return [];
+
+  // 현재 FLOW와 연결된 다음 FLOW의 모든 단원 반환
+  const connectedChapters = [];
+  for (const nextFlowId of currentFlow.connectedFlows) {
+    const nextFlow = AUDIT_FLOW_MAP[nextFlowId];
+    if (nextFlow) {
+      connectedChapters.push(...nextFlow.chapters);
+    }
+  }
+  return connectedChapters;
+}
+
 // 단원 관련 헬퍼 함수들
 export const chapterLabelText = (chStr) => {
   const n = Number(chStr);

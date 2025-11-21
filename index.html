@@ -1439,6 +1439,184 @@
         <!-- 탭 1: 요약 및 차트 -->
         <div id="report-content-1" class="report-content">
           <div class="space-y-6">
+
+            <!-- 🌲 Audit Flow Map (숲 시각화) -->
+            <div id="audit-flowmap-container" class="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-6 border-2 border-blue-200 dark:border-blue-800">
+              <div class="flex justify-between items-center mb-4">
+                <div>
+                  <h3 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    🌲 Audit Flow Map
+                    <span class="text-sm font-normal text-gray-600 dark:text-gray-400">숲을 보는 감사, 흐름을 타는 암기</span>
+                  </h3>
+                  <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">감사 프로세스의 6단계 흐름 속에서 현재 위치를 파악하세요</p>
+                </div>
+                <button id="flowmap-help-btn" class="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                  Flow 가이드
+                </button>
+              </div>
+
+              <!-- Flow 단계들 (가로 스크롤) -->
+              <div class="overflow-x-auto pb-4">
+                <div class="flex gap-4 min-w-max">
+
+                  <!-- FLOW 1: 감사 준비 -->
+                  <div class="flow-step" data-flow-id="1">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-blue-500 shadow-lg hover:shadow-xl transition-all cursor-pointer min-w-[220px]">
+                      <div class="flex items-center gap-2 mb-2">
+                        <span class="text-3xl">📋</span>
+                        <div>
+                          <div class="text-xs text-blue-600 dark:text-blue-400 font-bold">FLOW 1</div>
+                          <h4 class="font-bold text-gray-900 dark:text-white">감사 준비</h4>
+                        </div>
+                      </div>
+                      <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">[자격&계약] 누가, 무엇을, 어떻게 계약하나?</p>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">Ch 1-5</span>
+                        <div class="flow-status-indicator w-6 h-6 rounded-full bg-gray-300" title="상태 계산 중..."></div>
+                      </div>
+                      <div class="mt-2 text-xs text-gray-500">
+                        <span class="font-semibold">전략:</span> 기본기 100% 암기
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 화살표 -->
+                  <div class="flex items-center text-3xl text-gray-400">→</div>
+
+                  <!-- FLOW 2: 기초 지식 -->
+                  <div class="flow-step" data-flow-id="2">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-green-500 shadow-lg hover:shadow-xl transition-all cursor-pointer min-w-[220px]">
+                      <div class="flex items-center gap-2 mb-2">
+                        <span class="text-3xl">🏢</span>
+                        <div>
+                          <div class="text-xs text-green-600 dark:text-green-400 font-bold">FLOW 2</div>
+                          <h4 class="font-bold text-gray-900 dark:text-white">기초 지식</h4>
+                        </div>
+                      </div>
+                      <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">[기업 이해] 감사 대상을 알아야 시작한다</p>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">Ch 6</span>
+                        <div class="flow-status-indicator w-6 h-6 rounded-full bg-gray-300" title="상태 계산 중..."></div>
+                      </div>
+                      <div class="mt-2 text-xs text-gray-500">
+                        <span class="font-semibold">전략:</span> 위험평가의 관문
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center text-3xl text-gray-400">→</div>
+
+                  <!-- FLOW 3: 위험 평가 -->
+                  <div class="flow-step" data-flow-id="3">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-amber-500 shadow-lg hover:shadow-xl transition-all cursor-pointer min-w-[220px]">
+                      <div class="flex items-center gap-2 mb-2">
+                        <span class="text-3xl">⚠️</span>
+                        <div>
+                          <div class="text-xs text-amber-600 dark:text-amber-400 font-bold">FLOW 3 🔥</div>
+                          <h4 class="font-bold text-gray-900 dark:text-white">위험 평가</h4>
+                        </div>
+                      </div>
+                      <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">[설계도] 어디가 얼마나 위험한가?</p>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">Ch 7</span>
+                        <div class="flow-status-indicator w-6 h-6 rounded-full bg-gray-300" title="상태 계산 중..."></div>
+                      </div>
+                      <div class="mt-2 text-xs text-gray-500">
+                        <span class="font-semibold">핵심:</span> 논리적 기반 (가장 중요!)
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center text-3xl text-gray-400">→</div>
+
+                  <!-- FLOW 4: 감사 수행 -->
+                  <div class="flow-step" data-flow-id="4">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-red-500 shadow-lg hover:shadow-xl transition-all cursor-pointer min-w-[220px]">
+                      <div class="flex items-center gap-2 mb-2">
+                        <span class="text-3xl">🔍</span>
+                        <div>
+                          <div class="text-xs text-red-600 dark:text-red-400 font-bold">FLOW 4</div>
+                          <h4 class="font-bold text-gray-900 dark:text-white">감사 수행</h4>
+                        </div>
+                      </div>
+                      <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">[증거 수집] 위험에 맞춰 검증!</p>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">Ch 8-14</span>
+                        <div class="flow-status-indicator w-6 h-6 rounded-full bg-gray-300" title="상태 계산 중..."></div>
+                      </div>
+                      <div class="mt-2 text-xs text-gray-500">
+                        <span class="font-semibold">주의:</span> 암기량 폭발 구간
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center text-3xl text-gray-400">→</div>
+
+                  <!-- FLOW 5: 보고 -->
+                  <div class="flow-step" data-flow-id="5">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-purple-500 shadow-lg hover:shadow-xl transition-all cursor-pointer min-w-[220px]">
+                      <div class="flex items-center gap-2 mb-2">
+                        <span class="text-3xl">📊</span>
+                        <div>
+                          <div class="text-xs text-purple-600 dark:text-purple-400 font-bold">FLOW 5</div>
+                          <h4 class="font-bold text-gray-900 dark:text-white">보고</h4>
+                        </div>
+                      </div>
+                      <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">[성적표] 최종 의견을 낸다</p>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">Ch 15-16</span>
+                        <div class="flow-status-indicator w-6 h-6 rounded-full bg-gray-300" title="상태 계산 중..."></div>
+                      </div>
+                      <div class="mt-2 text-xs text-gray-500">
+                        <span class="font-semibold">대비:</span> 의견 변형 사례
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center text-3xl text-gray-400">→</div>
+
+                  <!-- FLOW 6: 확장 -->
+                  <div class="flow-step" data-flow-id="6">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-500 shadow-lg hover:shadow-xl transition-all cursor-pointer min-w-[220px]">
+                      <div class="flex items-center gap-2 mb-2">
+                        <span class="text-3xl">🌐</span>
+                        <div>
+                          <div class="text-xs text-gray-600 dark:text-gray-400 font-bold">FLOW 6</div>
+                          <h4 class="font-bold text-gray-900 dark:text-white">확장</h4>
+                        </div>
+                      </div>
+                      <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">[특수 상황] 일반 감사 외 변수들</p>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">Ch 17-20</span>
+                        <div class="flow-status-indicator w-6 h-6 rounded-full bg-gray-300" title="상태 계산 중..."></div>
+                      </div>
+                      <div class="mt-2 text-xs text-gray-500">
+                        <span class="font-semibold">전략:</span> 시험 직전 집중암기
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- 범례 -->
+              <div class="mt-4 flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
+                <div class="flex items-center gap-1">
+                  <div class="w-4 h-4 rounded-full bg-green-500"></div>
+                  <span>안전 (80점 이상)</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <div class="w-4 h-4 rounded-full bg-yellow-500"></div>
+                  <span>주의 (60-79점)</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <div class="w-4 h-4 rounded-full bg-red-500"></div>
+                  <span>위험 (60점 미만)</span>
+                </div>
+                <div class="ml-auto text-gray-500">클릭하여 해당 단원 문제 보기</div>
+              </div>
+            </div>
+
             <div>
               <div class="flex justify-between items-center mb-3">
                 <h3 class="text-lg font-bold">학습 성과 추이</h3>
