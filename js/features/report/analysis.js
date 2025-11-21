@@ -496,6 +496,32 @@ export async function startAIAnalysis() {
     // hasData 필드 제거 (AI에 전달하지 않음)
     const cleanedProblems = minifiedProblems.map(({ hasData, ...rest }) => rest);
 
+    // 🔍 디버깅: AI에 전달되는 실제 데이터 확인
+    console.log('🔍 [DEBUG] AI에 전달할 데이터 샘플 (첫 2개):');
+    cleanedProblems.slice(0, 2).forEach((p, i) => {
+      console.log(`   문제 ${i+1}:`, {
+        index: p.index,
+        id: p.id,
+        q_length: p.q.length,
+        u_ans_length: p.u_ans.length,
+        m_ans_length: p.m_ans.length,
+        prev_fb_length: p.prev_fb.length,
+        score: p.score,
+        q: p.q.slice(0, 30) + '...',
+        u_ans: p.u_ans.slice(0, 30) + '...',
+        prev_fb: p.prev_fb.slice(0, 30) + '...'
+      });
+    });
+
+    // 빈 필드 체크
+    const emptyFieldsCount = cleanedProblems.filter(p =>
+      !p.q && !p.u_ans && !p.m_ans && !p.prev_fb
+    ).length;
+
+    if (emptyFieldsCount > 0) {
+      console.warn(`⚠️ 경고: ${emptyFieldsCount}개 문제가 모든 필드가 비어있음`);
+    }
+
     // ------------------------------------------
     // Step 2: Data Mining (Flash Model)
     // ------------------------------------------
