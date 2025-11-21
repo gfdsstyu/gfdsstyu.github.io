@@ -394,7 +394,30 @@ export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selected
     }
 
     const data = await res.json();
+
+    // 🔍 디버깅: API 응답 구조 확인
+    console.log('🔍 [Gemini JSON API] 전체 응답:', JSON.stringify(data, null, 2).slice(0, 500));
+
+    // finishReason 확인 (STOP이 아니면 문제가 있음)
+    const finishReason = data?.candidates?.[0]?.finishReason;
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
+
+    console.log('🔍 [Gemini JSON API] finishReason:', finishReason);
+    console.log('🔍 [Gemini JSON API] 추출된 text:', raw.slice(0, 200));
+
+    // 생성이 차단되거나 실패한 경우
+    if (finishReason && finishReason !== 'STOP') {
+      console.error('❌ [Gemini JSON API] 생성 차단됨:', finishReason);
+      if (finishReason === 'SAFETY') {
+        throw new Error('안전 필터에 의해 생성이 차단되었습니다.');
+      } else if (finishReason === 'RECITATION') {
+        throw new Error('저작권 문제로 생성이 차단되었습니다.');
+      } else if (finishReason === 'MAX_TOKENS') {
+        throw new Error('토큰 한도 초과로 생성이 중단되었습니다.');
+      } else {
+        throw new Error(`생성 실패: ${finishReason}`);
+      }
+    }
 
     try {
       return JSON.parse(raw);
