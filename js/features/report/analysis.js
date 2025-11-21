@@ -169,22 +169,29 @@ function markdownToHtml(md) {
 async function mineWeaknessData(problems, geminiApiKey) {
   console.log('🚀 [Stage 1: Mining] 오답 유형 분류 시작...');
 
+  // Gemini JSON mode는 최상위 타입이 반드시 OBJECT여야 함 (ARRAY 직접 사용 불가)
   const schema = {
-    type: "ARRAY",
-    items: {
-      type: "OBJECT",
-      properties: {
-        index: { type: "NUMBER", description: "문제 인덱스" },
-        type: {
-          type: "STRING",
-          enum: ["Misjudged_Type", "Keyword_Gap", "Wrong_Subject", "Recall_Error"],
-          description: "오답 원인 유형"
-        },
-        keyword: { type: "STRING", description: "누락된 핵심 기준서 키워드 1개" },
-        diagnosis: { type: "STRING", description: "진단 요약 (30자 내외)" }
-      },
-      required: ["index", "type", "keyword", "diagnosis"]
-    }
+    type: "OBJECT",
+    properties: {
+      classifications: {
+        type: "ARRAY",
+        items: {
+          type: "OBJECT",
+          properties: {
+            index: { type: "NUMBER", description: "문제 인덱스" },
+            type: {
+              type: "STRING",
+              enum: ["Misjudged_Type", "Keyword_Gap", "Wrong_Subject", "Recall_Error"],
+              description: "오답 원인 유형"
+            },
+            keyword: { type: "STRING", description: "누락된 핵심 기준서 키워드 1개" },
+            diagnosis: { type: "STRING", description: "진단 요약 (30자 내외)" }
+          },
+          required: ["index", "type", "keyword", "diagnosis"]
+        }
+      }
+    },
+    required: ["classifications"]
   };
 
   const prompt = `[역할] CPA 회계감사 오답 정밀 분석기
@@ -205,41 +212,25 @@ async function mineWeaknessData(problems, geminiApiKey) {
 ${JSON.stringify(problems, null, 2)}
 
 [출력 형식]
-각 문제에 대해 index, type, keyword(누락된 핵심 키워드 1개), diagnosis(진단 요약)를 포함한 JSON 배열로 출력하세요.`;
+{ "classifications": [ { "index": 0, "type": "...", "keyword": "...", "diagnosis": "..." }, ... ] } 형태로 출력하세요.`;
 
   try {
     // Flash 모델 사용 (빠르고 저렴)
     let result = await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-2.5-flash');
 
-    // API 응답 검증: 배열인지 확인하고, 객체로 감싸져 있으면 추출
+    // API 응답 검증 및 추출
     if (!result) {
       console.error('❌ [Stage 1: Mining] API 응답이 null/undefined');
       throw new Error('API 응답이 비어있습니다.');
     }
 
-    // 응답이 배열이 아닌 객체일 경우 (예: { classifications: [...] } 또는 { result: [...] })
-    if (!Array.isArray(result)) {
-      console.warn('⚠️ [Stage 1: Mining] API 응답이 배열이 아님, 추출 시도:', result);
-
-      // 일반적인 키로 배열 찾기
-      const possibleKeys = ['classifications', 'result', 'results', 'data', 'items'];
-      let extracted = null;
-
-      for (const key of possibleKeys) {
-        if (result[key] && Array.isArray(result[key])) {
-          extracted = result[key];
-          console.log(`✅ [Stage 1: Mining] 배열 추출 성공: ${key} 키에서`);
-          break;
-        }
-      }
-
-      if (extracted) {
-        result = extracted;
-      } else {
-        console.error('❌ [Stage 1: Mining] 배열을 찾을 수 없음. 응답:', result);
-        throw new Error('API 응답 형식이 올바르지 않습니다.');
-      }
+    // 응답은 { classifications: [...] } 형태여야 함
+    if (!result.classifications || !Array.isArray(result.classifications)) {
+      console.error('❌ [Stage 1: Mining] API 응답에 classifications 배열이 없음:', result);
+      throw new Error('API 응답 형식이 올바르지 않습니다.');
     }
+
+    result = result.classifications;
 
     console.log('✅ [Stage 1: Mining] 완료 -', result.length, '문제 분류됨');
     return result;
