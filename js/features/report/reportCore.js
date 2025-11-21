@@ -11,6 +11,7 @@ import { chapterLabelText } from '../../config/config.js';
 import { renderDailyVolumeChart, renderScoreTrendChart, renderChapterWeaknessChart, calculateMovingAverage } from './charts.js';
 import { showToast, closeDrawer } from '../../ui/domUtils.js';
 import { LocalHLRPredictor, EnhancedHLRPredictor, calculateRecallProbability } from '../review/hlrDataset.js';
+import { initFlowMap, updateFlowMapUI } from './flowMap.js';
 
 // Module state
 let reportCharts = {};
@@ -349,6 +350,9 @@ export function generateReport() {
   renderScoreTrendChart(data.dailyData, reportCharts, data.chartData); // 성능 최적화: 사전 계산된 데이터 전달
   renderChapterWeaknessChart(data.chapterData, reportCharts);
   renderActionPlan(data.weakProblems);
+
+  // Update Audit Flow Map (v5.0)
+  updateFlowMapUI();
 }
 
 /**
@@ -709,6 +713,9 @@ export function initReportListeners() {
       }
     });
   }
+
+  // Initialize Audit Flow Map (v5.0)
+  initFlowMap();
 }
 
 /**
