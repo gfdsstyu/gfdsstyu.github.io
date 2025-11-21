@@ -5,7 +5,7 @@
 
 import { AUDIT_FLOW_MAP, getFlowByChapter, getConnectedChapters } from '../../config/config.js';
 import { getQuestionScores } from '../../core/stateManager.js';
-import { showToast } from '../../utils/helpers.js';
+import { showToast } from '../../ui/domUtils.js';
 
 /**
  * Flow별 평균 점수 계산
