@@ -20,12 +20,14 @@ import {
   setDoc,
   getDoc,
   updateDoc,
+  deleteDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 import { auth, db } from '../../app.js';
 import { syncOnLogin } from '../sync/syncCore.js';
 import { showToast } from '../../ui/domUtils.js';
+import { getMyGroups, leaveGroup } from '../group/groupCore.js';
 
 // ============================================
 // 상태 관리
@@ -558,5 +560,90 @@ export async function deleteUserAccount(password = null) {
     }
 
     return { success: false, message };
+  }
+}
+
+// ============================================
+// 회원 탈퇴 (완전 삭제)
+// ============================================
+
+/**
+ * 회원 탈퇴 (데이터 정리 및 계정 완전 삭제)
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export async function withdrawUser() {
+  if (!currentUser) {
+    return { success: false, message: '로그인이 필요합니다.' };
+  }
+
+  try {
+    const userId = currentUser.uid;
+    console.log(`🗑️ 회원 탈퇴 프로세스 시작: ${userId}`);
+
+    // 1. 그룹 소유 여부 확인 및 탈퇴 처리
+    // 그룹장은 탈퇴 불가하므로, 먼저 그룹을 삭제하거나 권한을 위임해야 함
+    console.log('   - 그룹 정보 확인 중...');
+    const myGroups = await getMyGroups();
+    const ownedGroups = myGroups.filter(g => g.ownerId === userId);
+
+    if (ownedGroups.length > 0) {
+      return {
+        success: false,
+        message: `운영 중인 그룹(${ownedGroups[0].name} 등)이 있습니다.\n그룹을 삭제하거나 그룹장을 위임한 후 탈퇴해주세요.`
+      };
+    }
+
+    // 2. 가입된 그룹에서 모두 탈퇴
+    // (그룹 랭킹 및 멤버 카운트 갱신을 위해 leaveGroup 함수 재사용)
+    if (myGroups.length > 0) {
+      console.log(`   - ${myGroups.length}개 그룹에서 탈퇴 중...`);
+      for (const group of myGroups) {
+        console.log(`     * 그룹 탈퇴: ${group.name}`);
+        await leaveGroup(group.groupId);
+      }
+    }
+
+    // 3. Firestore 개인 데이터 삭제
+    // (보안 규칙상 본인 데이터 삭제 허용됨)
+    console.log('   - Firestore 개인 데이터 삭제 중...');
+    const deletions = [
+      deleteDoc(doc(db, 'users', userId)),           // 사용자 정보 & 점수
+      deleteDoc(doc(db, 'rankings', userId))         // 랭킹 정보
+    ];
+
+    // universityVerifications 문서는 존재할 수도, 안 할 수도 있음
+    try {
+      const verificationDocRef = doc(db, 'universityVerifications', userId);
+      const verificationDocSnap = await getDoc(verificationDocRef);
+      if (verificationDocSnap.exists()) {
+        deletions.push(deleteDoc(verificationDocRef));
+      }
+    } catch (err) {
+      console.warn('   - universityVerifications 확인 실패 (무시):', err.message);
+    }
+
+    await Promise.all(deletions);
+    console.log('   - Firestore 개인 데이터 삭제 완료');
+
+    // 4. Firebase Auth 계정 삭제
+    // (가장 마지막에 수행. 성공 시 자동으로 로그아웃 처리됨)
+    console.log('   - Firebase Auth 계정 삭제 중...');
+    await deleteUser(currentUser);
+    console.log('✅ Firebase Auth 계정 삭제 완료');
+
+    return { success: true, message: '회원 탈퇴가 완료되었습니다. 그동안 감사했습니다.' };
+
+  } catch (error) {
+    console.error('❌ 회원 탈퇴 실패:', error);
+
+    // 재인증 필요 에러 처리
+    if (error.code === 'auth/requires-recent-login') {
+      return {
+        success: false,
+        message: '보안을 위해 다시 로그인이 필요합니다.\n로그아웃 후 다시 로그인하여 시도해주세요.'
+      };
+    }
+
+    return { success: false, message: `탈퇴 실패: ${error.message}` };
   }
 }
