@@ -12,7 +12,8 @@ import {
   resetPassword,
   updateStatusMessage,
   getStatusMessage,
-  deleteUserAccount
+  deleteUserAccount,
+  withdrawUser
 } from './authCore.js';
 
 import { showToast } from '../../ui/domUtils.js';
@@ -126,6 +127,12 @@ function setupEventListeners() {
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', handleLogout);
+  }
+
+  // 회원 탈퇴 버튼
+  const withdrawBtn = document.getElementById('withdraw-btn');
+  if (withdrawBtn) {
+    withdrawBtn.addEventListener('click', handleWithdrawal);
   }
 
   // 비밀번호 찾기 버튼
@@ -306,6 +313,47 @@ async function handleLogout() {
     closeUserMenu();
   } else {
     showToast(`❌ ${result.error}`, 'error');
+  }
+}
+
+/**
+ * 회원 탈퇴 핸들러
+ */
+async function handleWithdrawal() {
+  // 1차 경고
+  if (!confirm('정말로 탈퇴하시겠습니까?\n\n모든 학습 기록, 랭킹 정보, 그룹 활동 내역이 영구적으로 삭제되며 복구할 수 없습니다.')) {
+    return;
+  }
+
+  // 2차 확인 (실수 방지)
+  if (!confirm('마지막 확인입니다.\n\n정말 삭제하시겠습니까?')) {
+    return;
+  }
+
+  // 로딩 표시
+  showToast('탈퇴 처리 중입니다...', 'info');
+
+  const result = await withdrawUser();
+
+  if (result.success) {
+    showToast('안녕히 가세요. 계정이 삭제되었습니다.', 'success');
+    closeUserMenu();
+    // 페이지 새로고침으로 상태 초기화
+    setTimeout(() => window.location.reload(), 1500);
+  } else {
+    showToast(`❌ ${result.message}`, 'error');
+
+    // 재로그인 필요 시 안내
+    if (result.message.includes('다시 로그인')) {
+      setTimeout(() => {
+        if (confirm('로그아웃 후 다시 로그인하시겠습니까?')) {
+          logout().then(() => {
+            showToast('로그아웃되었습니다. 다시 로그인해주세요.', 'info');
+            closeUserMenu();
+          });
+        }
+      }, 2000);
+    }
   }
 }
 
