@@ -209,7 +209,38 @@ ${JSON.stringify(problems, null, 2)}
 
   try {
     // Flash 모델 사용 (빠르고 저렴)
-    const result = await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-2.5-flash');
+    let result = await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-2.5-flash');
+
+    // API 응답 검증: 배열인지 확인하고, 객체로 감싸져 있으면 추출
+    if (!result) {
+      console.error('❌ [Stage 1: Mining] API 응답이 null/undefined');
+      throw new Error('API 응답이 비어있습니다.');
+    }
+
+    // 응답이 배열이 아닌 객체일 경우 (예: { classifications: [...] } 또는 { result: [...] })
+    if (!Array.isArray(result)) {
+      console.warn('⚠️ [Stage 1: Mining] API 응답이 배열이 아님, 추출 시도:', result);
+
+      // 일반적인 키로 배열 찾기
+      const possibleKeys = ['classifications', 'result', 'results', 'data', 'items'];
+      let extracted = null;
+
+      for (const key of possibleKeys) {
+        if (result[key] && Array.isArray(result[key])) {
+          extracted = result[key];
+          console.log(`✅ [Stage 1: Mining] 배열 추출 성공: ${key} 키에서`);
+          break;
+        }
+      }
+
+      if (extracted) {
+        result = extracted;
+      } else {
+        console.error('❌ [Stage 1: Mining] 배열을 찾을 수 없음. 응답:', result);
+        throw new Error('API 응답 형식이 올바르지 않습니다.');
+      }
+    }
+
     console.log('✅ [Stage 1: Mining] 완료 -', result.length, '문제 분류됨');
     return result;
   } catch (error) {
@@ -430,6 +461,17 @@ export async function startAIAnalysis() {
     } catch (error) {
       console.error('❌ Mining 단계 실패:', error.message);
       throw new Error(`오답 분류 실패: ${error.message}`);
+    }
+
+    // 안전장치: miningResult 검증
+    if (!miningResult || !Array.isArray(miningResult)) {
+      console.error('❌ Mining 결과가 유효하지 않음:', miningResult);
+      throw new Error('오답 분류 결과가 올바르지 않습니다.');
+    }
+
+    if (miningResult.length === 0) {
+      console.error('❌ Mining 결과가 비어있음');
+      throw new Error('오답 분류 결과가 비어있습니다. 다시 시도해주세요.');
     }
 
     // 통계 집계
