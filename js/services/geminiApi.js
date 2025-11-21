@@ -348,7 +348,7 @@ export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selected
   const generationConfig = {
     responseMimeType: 'application/json',
     responseSchema: responseSchema,
-    maxOutputTokens: 2000,
+    maxOutputTokens: 8000,  // MAX_TOKENS 에러 방지: 2000 → 8000
     temperature: 0.7,
     topP: 0.85
   };
