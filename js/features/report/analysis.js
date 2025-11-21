@@ -1,20 +1,21 @@
 /**
- * @fileoverview AI 분석 기능 (v2.0 - 유형별 정밀 분석 + API 최적화)
- * - Gemini API를 활용한 학습 패턴 분석
- * - 마크다운 렌더링
+ * @fileoverview AI 분석 기능 (v4.0 - Advanced Pipeline for Exam-specific Analysis)
+ * - 2-Stage Analysis: Mining (Flash) -> Synthesis (Pro)
+ * - 회계감사 수험 특화 분석 (유형 오판, 키워드 누락, 주체 혼동 정밀 진단)
+ * - Enhanced error handling and graceful degradation
  *
- * [v2.0 주요 변경사항]
- * 1. 유형별 정밀 분석 부활: 이해부족/암기부족/서술불완전 3가지 유형으로 오답 분류 및 통계
- * 2. API 효율성 최적화:
- *    - 기존: 문제별 반복 호출(Pro) → 신규: 일괄 배치 분석(Flash)
- *    - Pro 모델은 최종 종합 단계에만 1회 호출 (RPM 제한 준수)
- *    - 토큰 절약 + 속도 향상
- * 3. 기존 AI 채점평 활용: 재분석 없이 기존 피드백을 핵심 근거로 사용
- * 4. 새로운 4단계 플로우:
- *    - 1단계: 피드백 일괄 분류 (Flash - 배치)
- *    - 2단계: 차트 추세 분석 (Flash-lite)
- *    - 3단계: 유형별 패턴 분석 (Flash)
- *    - 4단계: 최종 종합 처방 (Pro - 1회)
+ * [v4.0 주요 변경사항]
+ * 1. 회계감사 수험 특화 오답 분류:
+ *    - Misjudged_Type (유형 판단 오류): 사례형인 척하는 기준서 문제에 속음
+ *    - Keyword_Gap (키워드 누락): 내용은 알지만 핵심 용어 누락으로 감점
+ *    - Wrong_Subject (주체 혼동): 감사인 vs 경영진 책임 혼동
+ *    - Recall_Error (단순 암기 부족): 기준서 회독 수 부족
+ * 2. 2-Stage Pipeline 구조:
+ *    - Stage 1 (Mining): Flash 모델로 빠른 데이터 분류
+ *    - Stage 2 (Synthesis): Pro 모델로 심층 분석 및 맞춤형 처방
+ * 3. 채점위원 페르소나 강화:
+ *    - "칼채점 위원"의 냉철한 진단
+ *    - "두문자 요정"의 구체적 암기 팁 (예: 성.시.범)
  */
 
 import { el, $ } from '../../ui/elements.js';
@@ -22,483 +23,330 @@ import { callGeminiJsonAPI, callGeminiTipAPI } from '../../services/geminiApi.js
 import { getReportData } from './reportCore.js';
 import { showToast } from '../../ui/domUtils.js';
 import { openApiModal } from '../settings/settingsCore.js';
-import { calculateMovingAverage } from './charts.js';
 import { getGeminiApiKey, getQuestionScores, setQuestionScores, saveQuestionScores, getMemoryTipMode } from '../../core/stateManager.js';
 import { normId } from '../../utils/helpers.js';
 import { createMemoryTipPrompt } from '../../config/config.js';
 import { fetchDetailedRecords } from '../sync/syncCore.js';
 import { getCurrentUser } from '../auth/authCore.js';
 
-/**
- * 차트 해석 규칙 (축약판 - API 타임아웃 방지)
- */
-const CHART_INTERPRETATION_RULES = `
-**이동평균선:** 5일선(단기), 20일선(중기-핵심), 60일선(장기)
-**골든크로스 🟢:** 5일선이 20일선 상향돌파 → 긍정신호, 현재 페이스 유지
-**데드크로스 🔴:** 5일선이 20일선 하향이탈 → 경고신호, 학습법 점검
-**정배열 🚀:** 5일>20일>60일 → 최상 상태, 현재 페이스 유지
-**역배열 ⚠️:** 5일<20일<60일 → 침체, 학습법 재점검
-`;
+// ==========================================
+// 1. Helper Functions
+// ==========================================
 
 /**
- * 차트 컨텍스트 추출 (Task 4: AI 프롬프트용)
+ * 차트 컨텍스트 추출 (간소화 버전 - v4.0)
  * @param {object} reportData - getReportData() 반환값
  * @returns {object|null} 차트 분석 컨텍스트
  */
 function extractChartContext(reportData) {
-  const { dailyData, chapterData, chartData } = reportData;
+  const { chartData, chapterData } = reportData;
+  if (!chartData) return null;
 
-  // 성능 최적화: 사전 계산된 차트 데이터 사용
-  if (!chartData) {
-    return null; // 차트 데이터 없음
-  }
+  const { ma5, ma20, ma60, sorted } = chartData;
+  const lastIdx = ma5.length - 1;
 
-  const { sorted, avgScores, ma5, ma20, ma60 } = chartData;
-
-  // 최근 7일치만 추출 (토큰 절약)
-  const recentDays = 7;
-  const recentMA5 = ma5.slice(-recentDays);
-  const recentMA20 = ma20.slice(-recentDays);
-  const recentMA60 = ma60.slice(-recentDays);
-
-  // 골든크로스/데드크로스 감지 (최근 7일)
-  let lastGoldenCross = null;
-  let lastDeadCross = null;
-
-  for (let i = Math.max(0, ma5.length - 7); i < ma5.length; i++) {
+  // 골든/데드크로스 감지 (최근 5일)
+  let signal = null;
+  for (let i = Math.max(0, lastIdx - 4); i <= lastIdx; i++) {
     if (i < 1) continue;
     if (ma5[i] !== null && ma20[i] !== null && ma5[i-1] !== null && ma20[i-1] !== null) {
-      // Golden Cross
       if (ma5[i-1] <= ma20[i-1] && ma5[i] > ma20[i]) {
-        lastGoldenCross = {
-          date: sorted[i][0],
-          daysAgo: sorted.length - 1 - i
-        };
+        signal = "📈 최근 골든크로스 발생 (실력 상승세)";
       }
-      // Dead Cross
       if (ma5[i-1] >= ma20[i-1] && ma5[i] < ma20[i]) {
-        lastDeadCross = {
-          date: sorted[i][0],
-          daysAgo: sorted.length - 1 - i
-        };
+        signal = "📉 최근 데드크로스 발생 (슬럼프 주의)";
       }
     }
   }
 
-  // 정배열 확인
-  const lastIdx = ma5.length - 1;
-  const isPerfectOrder = ma5[lastIdx] && ma20[lastIdx] && ma60[lastIdx] &&
-                        ma5[lastIdx] > ma20[lastIdx] && ma20[lastIdx] > ma60[lastIdx];
+  // 정배열 여부
+  const isPerfect = ma5[lastIdx] && ma20[lastIdx] && ma60[lastIdx] &&
+                    ma5[lastIdx] > ma20[lastIdx] && ma20[lastIdx] > ma60[lastIdx];
 
-  // 취약 단원 Top 3
+  // 취약 단원 추출 (Top 2)
   const weakChapters = Array.from(chapterData.entries())
-    .map(([chapter, data]) => ({
-      chapter,
-      avgScore: Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length)
+    .map(([ch, d]) => ({
+      ch,
+      score: Math.round(d.scores.reduce((a, b) => a + b, 0) / d.scores.length)
     }))
-    .sort((a, b) => a.avgScore - b.avgScore)
-    .slice(0, 3);
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 2);
 
   return {
-    recentMA5,
-    recentMA20,
-    recentMA60,
-    lastGoldenCross,
-    lastDeadCross,
-    isPerfectOrder,
-    weakChapters,
-    currentMA5: ma5[lastIdx],
-    currentMA20: ma20[lastIdx],
-    currentMA60: ma60[lastIdx]
+    ma5: ma5[lastIdx]?.toFixed(1) || 'N/A',
+    ma20: ma20[lastIdx]?.toFixed(1) || 'N/A',
+    signal: signal || (isPerfect ? "🚀 정배열 상승세 (최상의 상태)" : "평이한 상태"),
+    weakChapter: weakChapters[0]?.ch || "없음",
+    weakChapterScore: weakChapters[0]?.score || 0
   };
 }
 
 /**
- * 마크다운을 HTML로 변환
+ * 마크다운을 HTML로 변환 (스타일 강화 버전)
  * @param {string} md - 마크다운 텍스트
  * @returns {string} - HTML 텍스트
  */
 function markdownToHtml(md) {
   if (!md) return '';
+
   let html = md;
 
-  // Headers
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  // Headers with enhanced styling
+  html = html.replace(/^### (.+)$/gm, '<h3 class="text-lg font-bold mt-6 mb-3 text-gray-800 dark:text-gray-100 border-l-4 border-blue-500 pl-3">$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 class="text-xl font-extrabold mt-8 mb-4 text-blue-700 dark:text-blue-400 border-b border-gray-200 dark:border-gray-700 pb-2">$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1 class="text-2xl font-black mb-6 text-purple-800 dark:text-purple-300">$1</h1>');
 
-  // Bold
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Bold text with color
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold text-indigo-700 dark:text-indigo-300">$1</strong>');
 
   // Lists
-  html = html.replace(/^\* (.+)$/gm, '<li>$1</li>');
-  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
-  html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+  html = html.replace(/^[\-\*] (.+)$/gm, '<li class="ml-4 list-disc text-gray-700 dark:text-gray-300 my-1">$1</li>');
 
-  // Numbered lists
-  html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+  // Tables (simple conversion)
+  const lines = html.split('\n');
+  let inTable = false;
+  let tableHtml = '';
+  const processedLines = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.match(/^\|.+\|$/)) {
+      if (!inTable) {
+        inTable = true;
+        tableHtml = '<table class="min-w-full border-collapse border border-gray-300 dark:border-gray-600 my-4">';
+      }
+      const cells = line.split('|').filter(c => c.trim());
+      // Skip separator line
+      if (line.match(/^\|[\s\-:]+\|$/)) continue;
+
+      const isHeader = i === 0 || (processedLines.length > 0 && !processedLines[processedLines.length - 1].includes('<table'));
+      const tag = isHeader ? 'th' : 'td';
+      const cellClass = isHeader
+        ? 'border border-gray-300 dark:border-gray-600 px-4 py-2 bg-blue-100 dark:bg-blue-900 font-bold text-left'
+        : 'border border-gray-300 dark:border-gray-600 px-4 py-2 text-left';
+
+      tableHtml += '<tr>' + cells.map(c => `<${tag} class="${cellClass}">${c.trim()}</${tag}>`).join('') + '</tr>';
+    } else {
+      if (inTable) {
+        tableHtml += '</table>';
+        processedLines.push(tableHtml);
+        tableHtml = '';
+        inTable = false;
+      }
+      processedLines.push(line);
+    }
+  }
+
+  if (inTable) {
+    tableHtml += '</table>';
+    processedLines.push(tableHtml);
+  }
+
+  html = processedLines.join('\n');
 
   // Paragraphs
   html = html.split('\n\n').map(para => {
-    if (para.startsWith('<h') || para.startsWith('<ul') || para.startsWith('<ol')) {
+    if (para.startsWith('<h') || para.startsWith('<ul') || para.startsWith('<ol') || para.startsWith('<table') || para.startsWith('<li')) {
       return para;
     }
-    return para.trim() ? `<p>${para.trim()}</p>` : '';
+    return para.trim() ? `<p class="my-2 text-gray-700 dark:text-gray-300">${para.trim()}</p>` : '';
   }).join('\n');
 
   return html;
 }
 
-/**
- * 1단계: 피드백 일괄 분류 및 키워드 추출 (JSON 모드, Flash 사용 - 배치 분석)
- * @param {Array} weakProblemsSummary - 약점 문제 요약 배열
- * @param {string} geminiApiKey - API 키
- * @returns {Promise<object>} 분류 결과
- */
-async function classifyFeedbackBatch(weakProblemsSummary, geminiApiKey) {
-  if (!weakProblemsSummary || weakProblemsSummary.length === 0) return null;
+// ==========================================
+// 2. Stage 1: Data Mining (Flash Model)
+// - 목적: 오답 데이터를 분석하여 '회계감사 특화 오류 유형'으로 분류
+// ==========================================
 
-  console.log(`🚀 [피드백 분류] 요청 시작... (${weakProblemsSummary.length}개 문제)`);
+/**
+ * Stage 1: 오답 유형 분류 (Flash 모델 사용)
+ * @param {Array} problems - 문제 배열
+ * @param {string} geminiApiKey - API 키
+ * @returns {Promise<Array>} 분류 결과 배열
+ */
+async function mineWeaknessData(problems, geminiApiKey) {
+  console.log('🚀 [Stage 1: Mining] 오답 유형 분류 시작...');
 
   const schema = {
-    type: "OBJECT",
-    properties: {
-      classifications: {
-        type: "ARRAY",
-        items: {
-          type: "OBJECT",
-          properties: {
-            problem_index: { type: "NUMBER", description: "문제 인덱스 (0부터 시작)" },
-            error_type: {
-              type: "STRING",
-              description: "오답 주 원인 (이해부족/암기부족/서술불완전 중 택1)",
-              enum: ["이해부족", "암기부족", "서술불완전"]
-            },
-            missing_keywords: {
-              type: "ARRAY",
-              items: { type: "STRING" },
-              description: "빠뜨린 핵심 키워드 리스트 (최대 5개)"
-            },
-            misunderstood_concept: { type: "STRING", description: "오해한 개념 (이해부족인 경우만, 50자 이내)" }
-          },
-          required: ["problem_index", "error_type", "missing_keywords"]
-        }
-      },
-      type_summary: {
-        type: "OBJECT",
-        properties: {
-          이해부족: { type: "NUMBER", description: "이해부족 문제 개수" },
-          암기부족: { type: "NUMBER", description: "암기부족 문제 개수" },
-          서술불완전: { type: "NUMBER", description: "서술불완전 문제 개수" }
+    type: "ARRAY",
+    items: {
+      type: "OBJECT",
+      properties: {
+        index: { type: "NUMBER", description: "문제 인덱스" },
+        type: {
+          type: "STRING",
+          enum: ["Misjudged_Type", "Keyword_Gap", "Wrong_Subject", "Recall_Error"],
+          description: "오답 원인 유형"
         },
-        required: ["이해부족", "암기부족", "서술불완전"]
-      }
-    },
-    required: ["classifications", "type_summary"]
+        keyword: { type: "STRING", description: "누락된 핵심 기준서 키워드 1개" },
+        diagnosis: { type: "STRING", description: "진단 요약 (30자 내외)" }
+      },
+      required: ["index", "type", "keyword", "diagnosis"]
+    }
   };
 
-  // 문제 요약을 간결하게 변환 (토큰 절약)
-  const problemsSummary = weakProblemsSummary.map((p, idx) => ({
-    idx,
-    문제: p.문제.slice(0, 150),
-    정답: p.정답.slice(0, 200),
-    내답안: p.내답안.slice(0, 200),
-    AI채점평: p.기존피드백.slice(0, 150),
-    점수: p.점수
-  }));
+  const prompt = `[역할] CPA 회계감사 오답 정밀 분석기
+[지침] 학생의 오답과 문제 특성을 분석하여 아래 **4가지 특화 유형** 중 하나로 태깅하세요.
 
-  const prompt = `당신은 CPA 2차 회계감사 채점위원입니다. 20년 경력의 회계사입니다.
+[분류 기준 - 우선순위 순]
+1. **Misjudged_Type (유형 판단 오류)**:
+   - 문제는 '기준서 내용'을 그대로 묻는 것(발문만으로 답 가능)인데, 학생은 '상황/사례'를 분석하여 답함.
+   - 힌트: 문제 주어가 일반적('감사인은')이나, 학생 답은 구체적 상황을 묘사함.
+2. **Wrong_Subject (주체 혼동)**:
+   - '감사인'이 할 일을 물었는데 '경영진'의 책임을 적음 (또는 반대).
+3. **Keyword_Gap (결정적 키워드 누락)**:
+   - 내용은 비슷하나 채점 기준이 되는 '전문 용어(예: 유의성, 적격성 등)'가 빠짐.
+4. **Recall_Error (단순 암기 부족)**:
+   - 아예 다른 내용을 적거나 백지를 냄.
 
-[역할]
-아래 오답 문제들의 AI 채점평을 분석하여, 각 문제의 주된 오답 원인을 분류하고 핵심 키워드를 추출하세요.
+[입력 데이터]
+${JSON.stringify(problems, null, 2)}
 
-[오답 유형 정의]
-1. **이해부족**: 기준서 개념/원리를 잘못 이해하거나 적용했음. 답안 방향 자체가 틀림.
-2. **암기부족**: 개념은 이해했으나 핵심 키워드/절차/조건을 누락. 방향은 맞지만 불완전.
-3. **서술불완전**: 키워드는 대부분 포함했으나 문장 구조/논리 전개가 미흡하여 감점.
-
-[분류 기준]
-- AI채점평에서 "개념 오해", "잘못 적용", "방향 틀림" → **이해부족**
-- AI채점평에서 "누락", "빠뜨림", "키워드 부족" → **암기부족**
-- AI채점평에서 "불명확", "서술 미흡", "논리 부족" → **서술불완전**
-- 점수 50점 미만은 대부분 이해부족, 50-75점은 암기부족, 75-85점은 서술불완전일 가능성 높음
-
-[오답 문제 목록]
-${JSON.stringify(problemsSummary, null, 2)}
-
-[요청]
-각 문제를 분석하여 JSON으로 출력하세요:
-1. classifications 배열: 각 문제의 인덱스, 오답 유형, 빠뜨린 키워드, 오해한 개념
-2. type_summary 객체: 각 유형별 문제 개수 합계`;
+[출력 형식]
+각 문제에 대해 index, type, keyword(누락된 핵심 키워드 1개), diagnosis(진단 요약)를 포함한 JSON 배열로 출력하세요.`;
 
   try {
-    // 일괄 배치 분석 → Flash (lite보다 정확, Pro보다 빠름)
+    // Flash 모델 사용 (빠르고 저렴)
     const result = await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-2.5-flash');
-    console.log('✅ [피드백 분류] 완료');
+    console.log('✅ [Stage 1: Mining] 완료 -', result.length, '문제 분류됨');
     return result;
   } catch (error) {
-    console.error('❌ [피드백 분류] 실패:', error.message);
-    throw error; // 에러를 상위로 전파 (startAIAnalysis에서 처리)
+    console.error('❌ [Stage 1: Mining] 실패:', error.message);
+    throw error;
   }
 }
 
-/**
- * 2단계: 차트 추세 분석 (JSON 모드, lite 사용)
- */
-async function analyzeChartTrend(chartContext, geminiApiKey) {
-  if (!chartContext) return null;
-
-  console.log('🚀 [차트 분석] 요청 시작...');
-
-  const schema = {
-    type: "OBJECT",
-    properties: {
-      trend_status: { type: "STRING", description: "현재 추세 상태 (정배열/역배열/중립)" },
-      golden_cross: { type: "STRING", description: "골든크로스 발생 여부 및 의미" },
-      dead_cross: { type: "STRING", description: "데드크로스 발생 여부 및 의미" },
-      weak_chapters: { type: "STRING", description: "취약 단원 요약" },
-      recommendation: { type: "STRING", description: "학습 전략 조언 (1-2문장)" }
-    },
-    required: ["trend_status", "recommendation"]
-  };
-
-  const prompt = `당신은 CPA 2차 회계감사 학습 코치입니다.
-
-[차트 해석 규칙]
-${CHART_INTERPRETATION_RULES}
-
-[사용자 차트 데이터]
-- 현재 이동평균: 5일선 ${chartContext.currentMA5?.toFixed(1)}, 20일선 ${chartContext.currentMA20?.toFixed(1)}, 60일선 ${chartContext.currentMA60?.toFixed(1)}
-- 골든크로스: ${chartContext.lastGoldenCross ? `${chartContext.lastGoldenCross.daysAgo}일 전 발생` : '최근 7일 내 없음'}
-- 데드크로스: ${chartContext.lastDeadCross ? `${chartContext.lastDeadCross.daysAgo}일 전 발생` : '최근 7일 내 없음'}
-- 정배열: ${chartContext.isPerfectOrder ? '예' : '아니오'}
-- 취약 단원: ${chartContext.weakChapters.map((c, i) => `${i+1}. ${c.chapter} (${c.avgScore}점)`).join(', ')}
-
-[요청]
-위 데이터를 분석하여 JSON으로 출력하세요.`;
-
-  try {
-    // 단순 해석 → lite (빠르고 저렴)
-    const result = await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-2.5-flash-lite');
-    console.log('✅ [차트 분석] 완료');
-    return result;
-  } catch (error) {
-    console.error('❌ [차트 분석] 실패:', error.message);
-    // 실패해도 null 반환으로 전체 프로세스 계속 진행
-    return null;
-  }
-}
+// ==========================================
+// 3. Stage 2: Synthesis (Pro Model)
+// - 목적: 통계와 대표 사례를 바탕으로 '수험 전략적' 리포트 생성
+// ==========================================
 
 /**
- * 3단계: 유형별 패턴 분석 (JSON 모드, Flash 사용)
- * @param {object} classification - 1단계 분류 결과
- * @param {Array} weakProblemsSummary - 약점 문제 요약 배열
- * @param {object} chartContext - 차트 컨텍스트
+ * Stage 2: 종합 리포트 생성 (Pro 모델 사용)
+ * @param {object} stats - 통계 데이터
+ * @param {Array} bestExamples - 대표 오답 사례
+ * @param {object} chartInfo - 차트 정보
  * @param {string} geminiApiKey - API 키
- * @returns {Promise<object>} 유형별 패턴 분석
+ * @returns {Promise<object>} 최종 리포트
  */
-async function analyzeErrorTypePatterns(classification, weakProblemsSummary, chartContext, geminiApiKey) {
-  if (!classification) return null;
+async function synthesizeReport(stats, bestExamples, chartInfo, geminiApiKey) {
+  console.log('🚀 [Stage 2: Synthesis] 종합 리포트 생성 시작...');
 
   const schema = {
     type: "OBJECT",
     properties: {
-      이해부족_패턴: {
-        type: "OBJECT",
-        properties: {
-          주요개념: {
-            type: "ARRAY",
-            items: { type: "STRING" },
-            description: "자주 오해하는 기준서 개념 (최대 3개)"
-          },
-          개선방법: { type: "STRING", description: "개념 이해 개선 방법 (1-2문장)" }
-        }
-      },
-      암기부족_패턴: {
-        type: "OBJECT",
-        properties: {
-          누락키워드: {
-            type: "ARRAY",
-            items: { type: "STRING" },
-            description: "자주 빠뜨리는 키워드 Top 5"
-          },
-          단원별분포: { type: "STRING", description: "암기 부족 문제가 많은 단원 (최대 3개)" },
-          개선방법: { type: "STRING", description: "암기 강화 방법 (1-2문장)" }
-        }
-      },
-      서술불완전_패턴: {
-        type: "OBJECT",
-        properties: {
-          주요문제: { type: "STRING", description: "서술의 주요 약점 (논리/구조/표현 등)" },
-          개선방법: { type: "STRING", description: "서술 개선 방법 (1-2문장)" }
-        }
-      }
-    }
-  };
-
-  // 유형별 문제 그룹화
-  const 이해부족문제 = classification.classifications.filter(c => c.error_type === '이해부족');
-  const 암기부족문제 = classification.classifications.filter(c => c.error_type === '암기부족');
-  const 서술불완전문제 = classification.classifications.filter(c => c.error_type === '서술불완전');
-
-  // 누락 키워드 집계
-  const 모든누락키워드 = classification.classifications.flatMap(c => c.missing_keywords || []);
-  const 키워드빈도 = {};
-  모든누락키워드.forEach(kw => {
-    키워드빈도[kw] = (키워드빈도[kw] || 0) + 1;
-  });
-  const 상위키워드 = Object.entries(키워드빈도)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([kw, cnt]) => `${kw} (${cnt}회)`);
-
-  const prompt = `당신은 CPA 2차 회계감사 학습 코치입니다.
-
-[오답 유형별 통계]
-- 이해부족: ${classification.type_summary.이해부족}문제
-- 암기부족: ${classification.type_summary.암기부족}문제
-- 서술불완전: ${classification.type_summary.서술불완전}문제
-
-[이해부족 문제 상세]
-${이해부족문제.map(c => `문제${c.problem_index}: ${c.misunderstood_concept || '개념 오해'}, 누락: ${(c.missing_keywords || []).join(', ')}`).join('\n')}
-
-[암기부족 문제 상세]
-${암기부족문제.map(c => `문제${c.problem_index}: 누락 키워드 ${(c.missing_keywords || []).join(', ')}`).join('\n')}
-
-[서술불완전 문제 상세]
-${서술불완전문제.map(c => `문제${c.problem_index}: 누락 키워드 ${(c.missing_keywords || []).join(', ')}`).join('\n')}
-
-[자주 누락하는 키워드 Top 5]
-${상위키워드.join(', ')}
-
-[취약 단원]
-${chartContext?.weakChapters.map((c, i) => `${i+1}. ${c.chapter} (${c.avgScore}점)`).join(', ') || '없음'}
-
-[요청]
-위 데이터를 분석하여 각 유형별 패턴과 개선 방법을 JSON으로 출력하세요:
-1. 이해부족_패턴: 주요 오해 개념, 개선 방법
-2. 암기부족_패턴: 자주 누락하는 키워드, 단원별 분포, 개선 방법
-3. 서술불완전_패턴: 서술 약점, 개선 방법`;
-
-  // 패턴 분석 → Flash (정확도 중요)
-  return await callGeminiJsonAPI(prompt, schema, geminiApiKey, 'gemini-2.5-flash');
-}
-
-/**
- * 4단계: 최종 종합 처방 (JSON 모드, Pro 사용 - 1회만 호출)
- * @param {object} chartAnalysis - 차트 분석 결과
- * @param {object} classification - 유형 분류 결과
- * @param {object} patternAnalysis - 패턴 분석 결과
- * @param {string} geminiApiKey - API 키
- * @returns {Promise<object>} 최종 종합 처방
- */
-async function synthesizeWithPro(chartAnalysis, classification, patternAnalysis, geminiApiKey) {
-  const schema = {
-    type: "OBJECT",
-    properties: {
-      current_diagnosis: {
+      executive_summary: {
         type: "STRING",
-        description: "현재 학습 상태 종합 진단 (3-5문장, 따뜻하면서도 현실적)"
+        description: "1. 종합 진단 (차트 상태 + 오답률 결합, 3-4문장)"
       },
-      priority_actions: {
+      pattern_analysis: {
+        type: "STRING",
+        description: "2. 행동 패턴 분석 (유형별 비율에 따른 구체적 조언, 3-5문장)"
+      },
+      correction_notes: {
         type: "ARRAY",
         items: {
           type: "OBJECT",
           properties: {
-            action: { type: "STRING", description: "조치사항 (구체적)" },
-            rationale: { type: "STRING", description: "이유/근거 (1문장)" },
-            expected_effect: { type: "STRING", description: "기대 효과 (1문장)" }
+            problem_title: { type: "STRING", description: "문제 제목 (간략)" },
+            diagnosis: { type: "STRING", description: "채점위원 관점의 냉철한 지적 (2-3문장)" },
+            prescription: { type: "STRING", description: "실전적 처방 (두문자 제안 등, 2-3문장)" }
           },
-          required: ["action", "rationale", "expected_effect"]
+          required: ["problem_title", "diagnosis", "prescription"]
         },
-        description: "우선순위 학습 조치사항 (3-5개, 중요도 순)"
+        description: "3. Top 3 집중 케어 (대표 오답 사례별)"
       },
-      study_strategy: {
+      next_week_strategy: {
         type: "STRING",
-        description: "향후 2주간 학습 전략 (2-3문장)"
-      },
-      encouragement: {
-        type: "STRING",
-        description: "격려 및 동기부여 메시지 (2-3문장)"
+        description: "4. 다음 주 합격 전략 (구체적 액션 아이템, 3-4문장)"
       }
     },
-    required: ["current_diagnosis", "priority_actions", "study_strategy", "encouragement"]
+    required: ["executive_summary", "pattern_analysis", "correction_notes", "next_week_strategy"]
   };
 
-  const prompt = `당신은 CPA 2차 회계감사 전문 튜터입니다. 20년 경력의 회계사이자 교육자입니다.
+  const prompt = `[역할] 20년차 CPA 감사 강사 및 출제위원
+[목표] 학습 데이터를 기반으로 **'합격권 진입'을 위한 실전 리포트**를 작성하세요.
 
-[차트 추세 분석]
-${JSON.stringify(chartAnalysis, null, 2)}
+[입력 데이터]
+1. **학습 추세**: ${JSON.stringify(chartInfo)}
+2. **오답 통계 (총 ${stats.total}문제)**:
+   - 🚫 유형 판단 오류: ${stats.percentages.Misjudged_Type}% ("사례형인 줄 알고 헛다리 짚음")
+   - 🔑 키워드 누락: ${stats.percentages.Keyword_Gap}% ("알지만 점수 못 받음")
+   - 👤 주체 혼동: ${stats.percentages.Wrong_Subject}% ("감사인 vs 경영진 혼동")
+   - 💭 단순 암기 부족: ${stats.percentages.Recall_Error}%
+3. **누락 키워드 Top 5**: ${stats.keywords.join(', ') || '없음'}
+4. **대표 오답 사례 (집중 케어용)**:
+${JSON.stringify(bestExamples, null, 2)}
 
-[오답 유형별 통계]
-- 이해부족: ${classification?.type_summary?.이해부족 || 0}문제
-- 암기부족: ${classification?.type_summary?.암기부족 || 0}문제
-- 서술불완전: ${classification?.type_summary?.서술불완전 || 0}문제
+[작성 지침 - 중요!]
+1. **종합 진단 (executive_summary)**:
+   - 차트 상태(골든크로스 등)와 오답률을 결합해 현재 위치를 진단하세요.
+   - 학생의 강점과 약점을 명확히 파악하세요.
 
-[유형별 패턴 분석]
-${JSON.stringify(patternAnalysis, null, 2)}
+2. **패턴 분석 (pattern_analysis)**:
+   - '유형 판단 오류'가 많다면 → "발문(물음)을 먼저 읽고 기준서 문제인지 판단하는 훈련"을 강조하세요.
+   - '키워드 누락'이 많다면 → "문장 완성보다 핵심 단어(Terminology) 현출"에 집중하라고 조언하세요.
+   - '주체 혼동'이 많다면 → "감사인/경영진/감사위원회 책임 구분표를 만들라"고 조언하세요.
 
-[임무]
-위 모든 분석 결과를 **깊이 있게 종합**하여, 학생에게 실질적 도움이 되는 맞춤형 학습 처방을 제시하세요.
+3. **집중 케어 (correction_notes)**:
+   - 각 오답 사례에 대해:
+     * diagnosis: 채점위원처럼 냉철하게 지적 ("~이 빠져 0점입니다")
+     * prescription: **"앞글자(두문자) 따기"**나 **"목차 구조화"** 같은 구체적 암기 팁 제공
+     * 예: "이 기준서는 '성.시.범(성격,시기,범위)'으로 외우면 쉽습니다."
 
-[출력 요구사항]
-1. **current_diagnosis**:
-   - 차트 추세, 유형별 비율, 패턴을 모두 고려한 종합 진단
-   - 학생의 현재 강점과 약점을 명확히 파악
-   - 따뜻하면서도 현실적인 톤 유지 (3-5문장)
+4. **전략 (next_week_strategy)**:
+   - '기준서 문제'는 점수 밭입니다. 이를 놓치지 않도록 격려하세요.
+   - 구체적 액션 아이템 제시 (예: "매일 기준서 10문제 + 키워드 체크리스트 작성")
 
-2. **priority_actions**:
-   - 가장 시급한 것부터 순서대로 3-5개 제시
-   - 각 조치마다 "왜 필요한지(rationale)", "어떤 효과가 있는지(expected_effect)" 명시
-   - 막연한 조언 금지, 구체적 실행 가능한 액션만
+[톤] 따뜻하면서도 현실적. 칼채점 위원의 냉철함 + 두문자 요정의 실용성
 
-3. **study_strategy**:
-   - 향후 2주간 집중해야 할 학습 방향
-   - 유형별 비율을 고려한 시간 배분 제안 (2-3문장)
+JSON으로 출력하세요.`;
 
-4. **encouragement**:
-   - 학생의 노력을 인정하고 동기부여
-   - 구체적 성장 가능성 제시 (2-3문장)
+  try {
+    // Pro 모델 사용 (높은 추론 능력) - Flash로 폴백 가능
+    const models = ['gemini-2.5-pro', 'gemini-2.5-flash'];
 
-[중요]
-- 단순 나열 금지. 분석 결과 간 인과관계를 파악하여 통찰력 있는 처방 제시
-- 학생의 데이터에 맞춤형 조언 (일반론 금지)`;
-
-  // 최종 종합 → Pro (깊이 있는 추론)
-  // Pro RPM 제한(2회/분)으로 실패 시 Flash로 폴백
-  const models = ['gemini-2.5-pro', 'gemini-2.5-flash'];
-
-  for (let i = 0; i < models.length; i++) {
-    const model = models[i];
-    try {
-      console.log(`🧠 [최종 종합] ${model} 모델 시도 중...`);
-      const result = await callGeminiJsonAPI(prompt, schema, geminiApiKey, model);
-      console.log(`✅ [최종 종합] ${model} 성공`);
-      return result;
-    } catch (err) {
-      const isLastModel = i === models.length - 1;
-      if (isLastModel) {
-        console.error(`❌ [최종 종합] 모든 모델 실패: ${err.message}`);
-        throw err;
-      } else {
-        console.warn(`⚠️ [최종 종합] ${model} 실패, ${models[i + 1]}로 재시도: ${err.message}`);
-        await new Promise(r => setTimeout(r, 1500)); // Pro 실패 후 충분한 대기
+    for (let i = 0; i < models.length; i++) {
+      const model = models[i];
+      try {
+        console.log(`🧠 [Stage 2: Synthesis] ${model} 모델 시도 중...`);
+        const result = await callGeminiJsonAPI(prompt, schema, geminiApiKey, model);
+        console.log(`✅ [Stage 2: Synthesis] ${model} 성공`);
+        return result;
+      } catch (err) {
+        const isLastModel = i === models.length - 1;
+        if (isLastModel) {
+          console.error(`❌ [Stage 2: Synthesis] 모든 모델 실패: ${err.message}`);
+          throw err;
+        } else {
+          console.warn(`⚠️ [Stage 2: Synthesis] ${model} 실패, ${models[i + 1]}로 재시도: ${err.message}`);
+          await new Promise(r => setTimeout(r, 2000)); // Pro 실패 후 충분한 대기
+        }
       }
     }
+  } catch (error) {
+    console.error('❌ [Stage 2: Synthesis] 실패:', error.message);
+    throw error;
   }
 }
 
+// ==========================================
+// 4. Main Orchestrator
+// ==========================================
+
 /**
- * AI 분석 시작 (단계별 호출)
+ * AI 분석 시작 (v4.0 - 2-Stage Pipeline)
  */
 export async function startAIAnalysis() {
   const startBtn = $('ai-analysis-start-btn');
   const loading = $('ai-analysis-loading');
-  const result = $('ai-analysis-result');
+  const resultUi = $('ai-analysis-result');
 
-  // Check API key first
-  const geminiApiKey = getGeminiApiKey();
-  if (!geminiApiKey) {
+  // API 키 확인
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
     openApiModal(false);
     showToast('Gemini API 키를 입력해주세요.', 'error');
     return;
@@ -507,275 +355,242 @@ export async function startAIAnalysis() {
   if (startBtn) startBtn.parentElement.classList.add('hidden');
   if (loading) loading.classList.remove('hidden');
 
-  try {
-    const data = getReportData();
+  // 진행 상황 메시지 업데이트 함수
+  const updateMsg = (msg) => {
+    if (loading) {
+      loading.innerHTML = `<div class="flex items-center gap-3">
+        <div class="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+        <span class="text-sm text-gray-600 dark:text-gray-300">${msg}</span>
+      </div>`;
+    }
+  };
 
-    if (data.weakProblems.length === 0) {
-      showToast('분석할 오답 데이터가 없습니다', 'warn');
-      if (loading) loading.classList.add('hidden');
-      if (startBtn) startBtn.parentElement.classList.remove('hidden');
-      return;
+  try {
+    const reportData = getReportData();
+    const weakProblems = reportData.weakProblems;
+
+    // 최소 데이터 체크
+    if (weakProblems.length === 0) {
+      throw new Error("분석할 오답 데이터가 없습니다.");
     }
 
-    // 차트 컨텍스트 추출
-    const chartContext = extractChartContext(data);
+    if (weakProblems.length < 3) {
+      throw new Error(`분석에 필요한 데이터가 부족합니다. (최소 3문제 필요, 현재 ${weakProblems.length}문제)`);
+    }
 
-    // 약점 문제 선별 (최대 8개)
-    const targetProblems = data.weakProblems.slice(0, 8);
+    // ------------------------------------------
+    // Step 1: 데이터 준비 (Hybrid Loading)
+    // ------------------------------------------
+    updateMsg("☁️ 데이터 동기화 및 준비 중...");
 
-    // 🆕 상세 데이터(답안/피드백)를 Firestore에서 가져오기
+    // 최근/중요 오답 최대 12개 추출
+    const targetProblems = weakProblems.slice(0, 12);
+
     const currentUser = getCurrentUser();
-    let detailedMap = {};
+    let serverData = {};
 
     if (currentUser) {
-      // 로그인 상태면 서버에서 상세 데이터 가져오기
-      const targetIds = targetProblems.map(wp => wp.qid);
-      console.log(`📥 [AI Analysis] 상세 데이터 조회 시작: ${targetIds.length}개 문제`);
       try {
-        detailedMap = await fetchDetailedRecords(currentUser.uid, targetIds);
-        console.log(`✅ [AI Analysis] 상세 데이터 로드 완료: ${Object.keys(detailedMap).length}개`);
+        console.log(`📥 상세 데이터 조회 시작: ${targetProblems.length}개 문제`);
+        serverData = await fetchDetailedRecords(currentUser.uid, targetProblems.map(p => p.qid));
+        console.log(`✅ 상세 데이터 로드 완료: ${Object.keys(serverData).length}개`);
       } catch (err) {
-        console.error('❌ [AI Analysis] 상세 데이터 로드 중 오류:', err);
-        showToast('상세 데이터 로드 실패, 로컬 데이터로 진행합니다.', 'warn');
+        console.warn('⚠️ 서버 데이터 로드 실패, 로컬 데이터 사용:', err.message);
       }
     } else {
-      console.log('⚠️ [AI Analysis] 로그아웃 상태 - 로컬 데이터 사용');
+      console.log('⚠️ 로그아웃 상태 - 로컬 데이터 사용');
     }
 
-    // 약점 문제 데이터 준비 (서버 데이터 우선, 로컬 데이터 백업)
-    const weakProblemsSummary = targetProblems.map(wp => {
-      const scoreData = window.questionScores[wp.qid]; // 로컬 데이터
-      const serverData = detailedMap[wp.qid];          // 서버 데이터
-
-      // 서버 데이터가 있으면 우선 사용, 없으면 로컬 데이터 사용
-      const 답안원본 = serverData?.user_answer || scoreData?.user_answer || '(답변 없음)';
-      const 피드백원본 = serverData?.feedback || scoreData?.feedback || '';
-      const 정답원본 = wp.problem.정답 || '';
+    // 분석용 데이터셋 구성 (토큰 절약을 위해 최소화)
+    const minifiedProblems = targetProblems.map((p, idx) => {
+      const local = window.questionScores?.[p.qid] || {};
+      const server = serverData[p.qid] || {};
+      const feedback = server.feedback || local.feedback || "";
+      const userAnswer = server.user_answer || local.user_answer || "";
 
       return {
-        문제: (wp.problem.물음 || '').slice(0, 250) + ((wp.problem.물음 || '').length > 250 ? ' …' : ''),
-        정답: 정답원본.slice(0, 250) + (정답원본.length > 250 ? ' …' : ''),
-        내답안: 답안원본.slice(0, 250) + (답안원본.length > 250 ? ' …' : ''),
-        기존피드백: 피드백원본.slice(0, 200) + (피드백원본.length > 200 ? ' …' : ''),
-        점수: wp.score
+        index: idx,
+        id: p.qid,
+        q: (p.problem.problemTitle || p.problem.물음 || '').slice(0, 80),
+        u_ans: userAnswer.slice(0, 120),
+        m_ans: (p.problem.정답 || '').slice(0, 120),
+        prev_fb: feedback.slice(0, 100),
+        score: p.score || 0
       };
     });
 
-    // ⚠️ 최소 데이터 체크 (통계 분석에 필요한 최소 문제 수)
-    if (weakProblemsSummary.length < 3) {
-      console.warn(`⚠️ [AI Analysis] 분석 데이터 부족 (${weakProblemsSummary.length}개 < 3개)`);
-      showToast(`분석에 필요한 데이터가 부족합니다. (최소 3문제 필요, 현재 ${weakProblemsSummary.length}문제)`, 'warn');
-      if (loading) loading.classList.add('hidden');
-      if (startBtn) startBtn.parentElement.classList.remove('hidden');
-      return;
+    // ------------------------------------------
+    // Step 2: Data Mining (Flash Model)
+    // ------------------------------------------
+    updateMsg("🔍 오답 유형 정밀 분류 중 (Flash)...");
+
+    let miningResult = null;
+    try {
+      miningResult = await mineWeaknessData(minifiedProblems, apiKey);
+    } catch (error) {
+      console.error('❌ Mining 단계 실패:', error.message);
+      throw new Error(`오답 분류 실패: ${error.message}`);
     }
 
-    // 🔄 새로운 4단계 분석 플로우 시작
-    const totalSteps = 4; // 피드백 분류 + 차트 분석 + 패턴 분석 + 최종 종합
-    let currentStep = 0;
+    // 통계 집계
+    const counts = {
+      Misjudged_Type: 0,
+      Keyword_Gap: 0,
+      Wrong_Subject: 0,
+      Recall_Error: 0
+    };
+    const keywords = [];
 
-    // 진행률 표시 함수
-    const updateProgress = (message) => {
-      currentStep++;
-      if (loading) {
-        loading.innerHTML = `<div class="flex items-center gap-3">
-          <div class="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-          <span class="text-sm text-gray-600 dark:text-gray-300">${message} (${currentStep}/${totalSteps})</span>
-        </div>`;
-      }
+    miningResult.forEach(m => {
+      if (counts[m.type] !== undefined) counts[m.type]++;
+      if (m.keyword && m.keyword.length > 1) keywords.push(m.keyword);
+    });
+
+    const totalAnalyzed = miningResult.length;
+    const stats = {
+      counts,
+      total: totalAnalyzed,
+      percentages: {
+        Misjudged_Type: Math.round(counts.Misjudged_Type / totalAnalyzed * 100) || 0,
+        Keyword_Gap: Math.round(counts.Keyword_Gap / totalAnalyzed * 100) || 0,
+        Wrong_Subject: Math.round(counts.Wrong_Subject / totalAnalyzed * 100) || 0,
+        Recall_Error: Math.round(counts.Recall_Error / totalAnalyzed * 100) || 0
+      },
+      keywords: [...new Set(keywords)].slice(0, 5)
     };
 
-    // 분석 결과를 저장할 변수들 (에러 발생 시 부분 결과만이라도 표시하기 위함)
-    let classification = null;
-    let chartAnalysis = null;
-    let patternAnalysis = null;
-    let synthesis = null;
+    // API 과부하 방지 딜레이
+    await new Promise(r => setTimeout(r, 1500));
 
-    try {
-      // 1단계: 피드백 일괄 분류 (Flash - 배치 분석, 토큰 효율적)
-      updateProgress('🔍 오답 유형 분류 및 키워드 추출 중');
-      console.log('🚀 [1단계] 피드백 분류 시작...');
-      classification = await classifyFeedbackBatch(weakProblemsSummary, geminiApiKey);
-      console.log('✅ [1단계] 피드백 분류 완료');
+    // ------------------------------------------
+    // Step 3: Report Synthesis (Pro Model)
+    // ------------------------------------------
+    updateMsg("📝 채점위원 심층 리포트 작성 중 (Pro)...");
 
-      // API 과부하 방지 딜레이
-      await new Promise(r => setTimeout(r, 1000));
-    } catch (error) {
-      console.error('❌ [1단계] 피드백 분류 실패:', error.message);
-      showToast('오답 유형 분류 실패. 차트 분석으로 진행합니다.', 'warn');
-    }
+    // 대표 오답 사례 선정 (우선순위: 유형판단오류 > 키워드누락 > 주체혼동 > 단순암기)
+    const bestExamples = [];
+    const typePriority = ['Misjudged_Type', 'Keyword_Gap', 'Wrong_Subject', 'Recall_Error'];
 
-    try {
-      // 2단계: 차트 추세 분석 (Flash-lite - 빠르고 저렴)
-      updateProgress('📊 차트 추세 분석 중');
-      console.log('🚀 [2단계] 차트 분석 시작...');
-      chartAnalysis = await analyzeChartTrend(chartContext, geminiApiKey);
-      if (chartAnalysis) {
-        console.log('✅ [2단계] 차트 분석 완료');
+    typePriority.forEach(type => {
+      if (bestExamples.length >= 3) return;
+      const found = miningResult.find(m => m.type === type);
+      if (found) {
+        const original = minifiedProblems.find(p => p.index === found.index);
+        if (original) {
+          bestExamples.push({
+            type: found.type,
+            question: original.q,
+            user_answer: original.u_ans,
+            model_answer: original.m_ans,
+            diagnosis_hint: found.diagnosis,
+            score: original.score
+          });
+        }
       }
+    });
 
-      // API 과부하 방지 딜레이
-      await new Promise(r => setTimeout(r, 1000));
-    } catch (error) {
-      console.error('❌ [2단계] 차트 분석 실패:', error.message);
-      showToast('차트 분석 실패. 패턴 분석으로 진행합니다.', 'warn');
-    }
+    const chartInfo = extractChartContext(reportData);
 
+    let finalReport = null;
     try {
-      // 3단계: 유형별 패턴 분석 (Flash - 정확도 중요)
-      if (classification) {
-        updateProgress('📈 유형별 패턴 및 약점 분석 중');
-        console.log('🚀 [3단계] 패턴 분석 시작...');
-        patternAnalysis = await analyzeErrorTypePatterns(classification, weakProblemsSummary, chartContext, geminiApiKey);
-        console.log('✅ [3단계] 패턴 분석 완료');
-
-        // API 과부하 방지 딜레이 (Pro 호출 전 충분한 대기)
-        await new Promise(r => setTimeout(r, 2000));
-      } else {
-        console.warn('⚠️ [3단계] 분류 데이터 없음으로 패턴 분석 건너뜀');
-        currentStep++; // 진행률 업데이트
-      }
+      finalReport = await synthesizeReport(stats, bestExamples, chartInfo, apiKey);
     } catch (error) {
-      console.error('❌ [3단계] 패턴 분석 실패:', error.message);
-      showToast('패턴 분석 실패. 최종 종합으로 진행합니다.', 'warn');
+      console.error('❌ Synthesis 단계 실패:', error.message);
+      throw new Error(`리포트 생성 실패: ${error.message}`);
     }
 
-    try {
-      // 4단계: 최종 종합 처방 (Pro - 깊이 있는 추론, 1회만 호출)
-      updateProgress('🧠 최종 종합 처방 생성 중 (Pro 모델)');
-      console.log('🚀 [4단계] 최종 종합 시작...');
-      synthesis = await synthesizeWithPro(chartAnalysis, classification, patternAnalysis, geminiApiKey);
-      console.log('✅ [4단계] 최종 종합 완료');
-    } catch (error) {
-      console.error('❌ [4단계] 최종 종합 실패:', error.message);
-      showToast('최종 종합 처방 생성 실패. 부분 결과를 표시합니다.', 'warn');
+    // ------------------------------------------
+    // Step 4: Rendering (Markdown Construction)
+    // ------------------------------------------
+    let md = `# 🎓 감린이 AI 합격 리포트 (v4.0)\n\n`;
+
+    // 1. 차트 & 종합 진단
+    if (chartInfo) {
+      md += `## 📊 학습 상태 진단\n\n`;
+      md += `**추세 신호**: ${chartInfo.signal}\n\n`;
+      md += `**현재 이동평균**: 5일선 ${chartInfo.ma5}점, 20일선 ${chartInfo.ma20}점\n\n`;
+      md += `**취약 단원**: ${chartInfo.weakChapter} (평균 ${chartInfo.weakChapterScore}점)\n\n`;
+      md += `---\n\n`;
     }
 
-    // JSON → 마크다운 변환
-    let finalReport = `# 🎓 감린이 AI 채점위원 분석 리포트\n\n`;
+    md += `## 💡 종합 진단\n\n`;
+    md += `${finalReport.executive_summary}\n\n`;
+    md += `---\n\n`;
 
-    // ⚠️ 분석 결과가 하나도 없으면 최소한의 메시지라도 표시
-    if (!classification && !chartAnalysis && !patternAnalysis && !synthesis) {
-      finalReport += `## ⚠️ 분석 실패\n\n`;
-      finalReport += `AI 분석 중 오류가 발생했습니다. 다음을 확인해주세요:\n\n`;
-      finalReport += `- Gemini API 키가 올바른지 확인\n`;
-      finalReport += `- 네트워크 연결 상태 확인\n`;
-      finalReport += `- 잠시 후 다시 시도\n\n`;
-      finalReport += `**문제가 지속되면 GitHub Issues로 문의해주세요.**\n`;
+    // 2. 행동 패턴 분석 (테이블)
+    md += `## 🧠 오답 패턴 분석 (총 ${stats.total}문제)\n\n`;
+    md += `회계감사 시험에 최적화된 4가지 유형으로 분석했습니다.\n\n`;
+    md += `| 유형 | 비율 | 문제수 | 진단 |\n`;
+    md += `|:---|:---:|:---:|:---|\n`;
+    md += `| **유형 판단 오류** | ${stats.percentages.Misjudged_Type}% | ${stats.counts.Misjudged_Type}문제 | 🚨 사례형인 척하는 기준서 문제에 속음 |\n`;
+    md += `| **키워드 누락** | ${stats.percentages.Keyword_Gap}% | ${stats.counts.Keyword_Gap}문제 | ⚠️ 내용은 알지만 점수 못 받는 답안 |\n`;
+    md += `| **주체 혼동** | ${stats.percentages.Wrong_Subject}% | ${stats.counts.Wrong_Subject}문제 | 👤 감사인 vs 경영진 책임 혼동 |\n`;
+    md += `| **암기 부족** | ${stats.percentages.Recall_Error}% | ${stats.counts.Recall_Error}문제 | 💭 기준서 회독 수 부족 |\n\n`;
+
+    if (stats.keywords.length > 0) {
+      md += `**자주 누락하는 키워드**: ${stats.keywords.join(', ')}\n\n`;
+    }
+
+    md += `### 🎯 패턴 분석 및 조언\n\n`;
+    md += `${finalReport.pattern_analysis}\n\n`;
+    md += `---\n\n`;
+
+    // 3. 교정 노트 (Top 3)
+    md += `## 📝 Top 3 집중 케어 (채점위원 첨삭)\n\n`;
+
+    if (finalReport.correction_notes && finalReport.correction_notes.length > 0) {
+      finalReport.correction_notes.forEach((note, idx) => {
+        md += `### ${idx + 1}. ${note.problem_title}\n\n`;
+        md += `**🚫 채점위원 지적**\n\n`;
+        md += `${note.diagnosis}\n\n`;
+        md += `**💊 실전 처방**\n\n`;
+        md += `${note.prescription}\n\n`;
+        md += `---\n\n`;
+      });
     } else {
-      // 0. 오답 유형별 통계 (신규 추가)
-      if (classification && classification.type_summary) {
-        const total = classification.type_summary.이해부족 + classification.type_summary.암기부족 + classification.type_summary.서술불완전;
-        finalReport += `## 📊 오답 유형별 통계\n\n`;
-        finalReport += `**분석 문제 수:** ${total}문제\n\n`;
-        finalReport += `- 🧠 **이해부족:** ${classification.type_summary.이해부족}문제 (${Math.round(classification.type_summary.이해부족 / total * 100)}%)\n`;
-        finalReport += `- 📝 **암기부족:** ${classification.type_summary.암기부족}문제 (${Math.round(classification.type_summary.암기부족 / total * 100)}%)\n`;
-        finalReport += `- ✍️ **서술불완전:** ${classification.type_summary.서술불완전}문제 (${Math.round(classification.type_summary.서술불완전 / total * 100)}%)\n\n`;
-        finalReport += `---\n\n`;
-      }
+      md += `대표 사례를 찾을 수 없습니다.\n\n`;
     }
 
-    // 1. 차트 분석
-    if (chartAnalysis) {
-      finalReport += `## 📈 차트 추세 분석\n\n`;
-      finalReport += `**현재 추세:** ${chartAnalysis.trend_status}\n\n`;
-      if (chartAnalysis.golden_cross) finalReport += `**골든크로스:** ${chartAnalysis.golden_cross}\n\n`;
-      if (chartAnalysis.dead_cross) finalReport += `**데드크로스:** ${chartAnalysis.dead_cross}\n\n`;
-      if (chartAnalysis.weak_chapters) finalReport += `**취약 단원:** ${chartAnalysis.weak_chapters}\n\n`;
-      finalReport += `**전략 조언:** ${chartAnalysis.recommendation}\n\n`;
-      finalReport += `---\n\n`;
-    }
-
-    // 2. 유형별 패턴 분석 (신규 추가)
-    if (patternAnalysis) {
-      finalReport += `## 🔍 유형별 약점 패턴 분석\n\n`;
-
-      // 이해부족 패턴
-      if (patternAnalysis.이해부족_패턴 && classification.type_summary.이해부족 > 0) {
-        finalReport += `### 🧠 이해부족 패턴 (${classification.type_summary.이해부족}문제)\n\n`;
-        if (patternAnalysis.이해부족_패턴.주요개념 && patternAnalysis.이해부족_패턴.주요개념.length > 0) {
-          finalReport += `**자주 오해하는 개념:**\n`;
-          patternAnalysis.이해부족_패턴.주요개념.forEach(concept => {
-            finalReport += `- ${concept}\n`;
-          });
-          finalReport += `\n`;
-        }
-        if (patternAnalysis.이해부족_패턴.개선방법) {
-          finalReport += `**개선 방법:** ${patternAnalysis.이해부족_패턴.개선방법}\n\n`;
-        }
-      }
-
-      // 암기부족 패턴
-      if (patternAnalysis.암기부족_패턴 && classification.type_summary.암기부족 > 0) {
-        finalReport += `### 📝 암기부족 패턴 (${classification.type_summary.암기부족}문제)\n\n`;
-        if (patternAnalysis.암기부족_패턴.누락키워드 && patternAnalysis.암기부족_패턴.누락키워드.length > 0) {
-          finalReport += `**자주 누락하는 키워드 Top 5:**\n`;
-          patternAnalysis.암기부족_패턴.누락키워드.forEach(kw => {
-            finalReport += `- ${kw}\n`;
-          });
-          finalReport += `\n`;
-        }
-        if (patternAnalysis.암기부족_패턴.단원별분포) {
-          finalReport += `**단원별 분포:** ${patternAnalysis.암기부족_패턴.단원별분포}\n\n`;
-        }
-        if (patternAnalysis.암기부족_패턴.개선방법) {
-          finalReport += `**개선 방법:** ${patternAnalysis.암기부족_패턴.개선방법}\n\n`;
-        }
-      }
-
-      // 서술불완전 패턴
-      if (patternAnalysis.서술불완전_패턴 && classification.type_summary.서술불완전 > 0) {
-        finalReport += `### ✍️ 서술불완전 패턴 (${classification.type_summary.서술불완전}문제)\n\n`;
-        if (patternAnalysis.서술불완전_패턴.주요문제) {
-          finalReport += `**주요 약점:** ${patternAnalysis.서술불완전_패턴.주요문제}\n\n`;
-        }
-        if (patternAnalysis.서술불완전_패턴.개선방법) {
-          finalReport += `**개선 방법:** ${patternAnalysis.서술불완전_패턴.개선방법}\n\n`;
-        }
-      }
-
-      finalReport += `---\n\n`;
-    }
-
-    // 3. 최종 종합 처방 (신규 개선)
-    if (synthesis) {
-      finalReport += `## 💡 최종 종합 처방 (Pro 분석)\n\n`;
-
-      // 현재 진단
-      finalReport += `### 📋 현재 학습 상태 진단\n\n`;
-      finalReport += `${synthesis.current_diagnosis}\n\n`;
-
-      // 우선순위 조치사항
-      finalReport += `### 🎯 우선순위 학습 조치사항\n\n`;
-      if (synthesis.priority_actions && synthesis.priority_actions.length > 0) {
-        synthesis.priority_actions.forEach((item, idx) => {
-          finalReport += `**${idx + 1}. ${item.action}**\n`;
-          finalReport += `- 이유: ${item.rationale}\n`;
-          finalReport += `- 기대 효과: ${item.expected_effect}\n\n`;
-        });
-      }
-
-      // 향후 학습 전략
-      finalReport += `### 📅 향후 2주간 학습 전략\n\n`;
-      finalReport += `${synthesis.study_strategy}\n\n`;
-
-      // 격려 메시지
-      finalReport += `### 💪 격려의 말\n\n`;
-      finalReport += `${synthesis.encouragement}\n`;
-    }
-
-    if (loading) loading.classList.add('hidden');
-    if (result) result.classList.remove('hidden');
+    // 4. 다음 주 전략
+    md += `## 🚀 다음 주 합격 전략\n\n`;
+    md += `${finalReport.next_week_strategy}\n\n`;
+    md += `---\n\n`;
+    md += `*이 리포트는 Gemini Pro 모델로 생성되었습니다.*\n`;
 
     // 결과 표시
     if (el.aiErrorPattern) {
-      el.aiErrorPattern.innerHTML = markdownToHtml(finalReport);
+      el.aiErrorPattern.innerHTML = markdownToHtml(md);
     }
 
+    if (loading) loading.classList.add('hidden');
+    if (resultUi) resultUi.classList.remove('hidden');
+
+    showToast('AI 분석이 완료되었습니다! 📊', 'success');
+
   } catch (err) {
+    console.error('❌ AI 분석 전체 실패:', err);
+
     if (loading) loading.classList.add('hidden');
     if (startBtn) startBtn.parentElement.classList.remove('hidden');
-    showToast('AI 분석 실패: ' + err.message, 'error');
+
+    showToast(`AI 분석 실패: ${err.message}`, 'error');
+
+    // 에러 시 최소한의 안내 표시
+    if (el.aiErrorPattern) {
+      el.aiErrorPattern.innerHTML = `
+        <div class="p-6 bg-red-50 dark:bg-red-900 rounded-lg border border-red-200 dark:border-red-700">
+          <h3 class="text-lg font-bold text-red-800 dark:text-red-200 mb-3">⚠️ 분석 실패</h3>
+          <p class="text-gray-700 dark:text-gray-300 mb-3">${err.message}</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">다음을 확인해주세요:</p>
+          <ul class="list-disc ml-6 text-sm text-gray-600 dark:text-gray-400 mt-2">
+            <li>Gemini API 키가 올바른지 확인</li>
+            <li>네트워크 연결 상태 확인</li>
+            <li>분석할 오답 데이터가 충분한지 확인 (최소 3문제)</li>
+            <li>잠시 후 다시 시도</li>
+          </ul>
+        </div>
+      `;
+    }
   }
 }
 
@@ -784,15 +599,23 @@ export async function startAIAnalysis() {
  */
 export function copyAIAnalysis() {
   const errorPattern = $('ai-error-pattern')?.innerText || '';
-  const conceptWeakness = $('ai-concept-weakness')?.innerText || '';
-  const text = `# 실수 유형 분석\n\n${errorPattern}\n\n# 주요 개념 약점\n\n${conceptWeakness}`;
 
-  navigator.clipboard.writeText(text).then(() => {
-    showToast('분석 내용을 클립보드에 복사했습니다');
-  }).catch(() => {
+  if (!errorPattern) {
+    showToast('복사할 내용이 없습니다.', 'warn');
+    return;
+  }
+
+  navigator.clipboard.writeText(errorPattern).then(() => {
+    showToast('분석 리포트를 클립보드에 복사했습니다! 📋');
+  }).catch((err) => {
+    console.error('복사 실패:', err);
     showToast('복사 실패', 'error');
   });
 }
+
+// ==========================================
+// 5. Memory Tip (AI 암기 코치) - 기존 기능 유지
+// ==========================================
 
 /**
  * AI 암기 코치 요청 (Tab 4: 일일 학습 기록 전용)
@@ -813,7 +636,6 @@ export async function handleCoachingRequest(qid, btn, forceRegenerate = false) {
   // DOM에 이미 표시된 팁이 있고 forceRegenerate가 아니면 토글만
   if (coachingContent.textContent.trim() && !forceRegenerate) {
     coachingTip.classList.toggle('hidden');
-    // 버튼 텍스트는 변경하지 않음
     return;
   }
 
@@ -826,14 +648,12 @@ export async function handleCoachingRequest(qid, btn, forceRegenerate = false) {
     if (savedTip) {
       coachingContent.textContent = savedTip;
       coachingTip.classList.remove('hidden');
-      // 버튼 텍스트는 변경하지 않음
       showToast('저장된 암기 팁을 불러왔습니다! 💡');
       return;
     }
   }
 
   // 2순위: Gemini API 호출하여 새로 생성
-  // API 키 확인
   const geminiApiKey = getGeminiApiKey();
   if (!geminiApiKey) {
     openApiModal(false);
@@ -876,7 +696,6 @@ export async function handleCoachingRequest(qid, btn, forceRegenerate = false) {
     // 결과를 카드 내 암기 팁 영역에 표시
     coachingContent.textContent = response;
     coachingTip.classList.remove('hidden');
-    // 버튼 텍스트는 원래대로 복원
 
     showToast(forceRegenerate ? '암기 팁을 새로 생성했습니다! 💡' : '암기 팁이 생성되었습니다! 💡');
 
