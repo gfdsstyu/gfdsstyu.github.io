@@ -432,12 +432,33 @@ export async function startAIAnalysis() {
       console.log('⚠️ 로그아웃 상태 - 로컬 데이터 사용');
     }
 
+    // 로컬 데이터 가져오기 (stateManager 사용)
+    const localScores = getQuestionScores();
+    console.log('📦 로컬 데이터 로드:', Object.keys(localScores).length, '개 문제');
+
     // 분석용 데이터셋 구성 (토큰 절약을 위해 최소화)
-    const minifiedProblems = targetProblems.map((p, idx) => {
-      const local = window.questionScores?.[p.qid] || {};
+    // + 유효한 데이터(답안 또는 피드백이 있는)만 필터링
+    const allProblems = targetProblems.map((p, idx) => {
+      // qid 정규화 (대소문자 통일, 공백 제거)
+      const normalizedQid = String(p.qid || '').trim().toLowerCase();
+
+      // 로컬 데이터 조회 (여러 형식 시도)
+      const local = localScores[normalizedQid] ||
+                    localScores[p.qid] ||
+                    localScores[String(p.qid).toUpperCase()] ||
+                    {};
       const server = serverData[p.qid] || {};
+
       const feedback = server.feedback || local.feedback || "";
       const userAnswer = server.user_answer || local.user_answer || "";
+
+      const hasData = !!(userAnswer || feedback);
+
+      // 디버깅 로그
+      console.log(`   - 문제 ${idx+1} (${p.qid}):`,
+        hasData ? '✅ 데이터 있음' : '❌ 데이터 없음',
+        `(답안: ${userAnswer ? '있음' : '없음'}, 피드백: ${feedback ? '있음' : '없음'})`
+      );
 
       return {
         index: idx,
@@ -446,9 +467,34 @@ export async function startAIAnalysis() {
         u_ans: userAnswer.slice(0, 120),
         m_ans: (p.problem.정답 || '').slice(0, 120),
         prev_fb: feedback.slice(0, 100),
-        score: p.score || 0
+        score: p.score || 0,
+        hasData
       };
     });
+
+    // 유효한 데이터가 있는 문제만 필터링
+    const minifiedProblems = allProblems.filter(p => p.hasData);
+
+    console.log(`📊 데이터 필터링 결과: ${minifiedProblems.length}/${allProblems.length}개 문제에 유효한 데이터 있음`);
+
+    // 디버깅: 각 문제의 데이터 상태 출력
+    allProblems.forEach((p, i) => {
+      if (!p.hasData) {
+        console.warn(`   ⚠️ 문제 ${i+1} (${p.id}): 답안/피드백 없음 - 분석에서 제외`);
+      }
+    });
+
+    // 필터링 후 최소 데이터 체크
+    if (minifiedProblems.length === 0) {
+      throw new Error('분석 가능한 데이터가 없습니다.\n답안이나 피드백이 있는 문제가 필요합니다.');
+    }
+
+    if (minifiedProblems.length < 3) {
+      throw new Error(`분석에 필요한 데이터가 부족합니다.\n답안/피드백이 있는 문제가 최소 3개 필요합니다. (현재 ${minifiedProblems.length}개)`);
+    }
+
+    // hasData 필드 제거 (AI에 전달하지 않음)
+    const cleanedProblems = minifiedProblems.map(({ hasData, ...rest }) => rest);
 
     // ------------------------------------------
     // Step 2: Data Mining (Flash Model)
@@ -457,7 +503,7 @@ export async function startAIAnalysis() {
 
     let miningResult = null;
     try {
-      miningResult = await mineWeaknessData(minifiedProblems, apiKey);
+      miningResult = await mineWeaknessData(cleanedProblems, apiKey);
     } catch (error) {
       console.error('❌ Mining 단계 실패:', error.message);
       throw new Error(`오답 분류 실패: ${error.message}`);
@@ -517,7 +563,7 @@ export async function startAIAnalysis() {
       if (bestExamples.length >= 3) return;
       const found = miningResult.find(m => m.type === type);
       if (found) {
-        const original = minifiedProblems.find(p => p.index === found.index);
+        const original = cleanedProblems.find(p => p.index === found.index);
         if (original) {
           bestExamples.push({
             type: found.type,
