@@ -11,6 +11,7 @@ import { chapterLabelText } from '../../config/config.js';
 import { renderDailyVolumeChart, renderScoreTrendChart, renderChapterWeaknessChart, calculateMovingAverage } from './charts.js';
 import { showToast, closeDrawer } from '../../ui/domUtils.js';
 import { LocalHLRPredictor, EnhancedHLRPredictor, calculateRecallProbability } from '../review/hlrDataset.js';
+import { initFlowMap, updateFlowMapUI } from './flowMap.js';
 
 // Module state
 let reportCharts = {};
@@ -146,6 +147,22 @@ export function getReportData() {
     }
   }
 
+  // 중복 제거: 각 qid당 최신 기록 1개만 유지 (AI 분석용)
+  const uniqueWeakProblems = [];
+  const qidMap = new Map();
+
+  for (const item of weakProblems) {
+    const existing = qidMap.get(item.qid);
+    // 같은 qid가 없거나, 현재 기록이 더 최신이면 업데이트
+    if (!existing || item.date > existing.date) {
+      qidMap.set(item.qid, item);
+    }
+  }
+
+  // Map을 배열로 변환 (최신순 정렬)
+  const deduplicatedWeakProblems = Array.from(qidMap.values())
+    .sort((a, b) => b.date - a.date);
+
   // 차트 데이터 사전 계산 (성능 최적화: 중복 계산 방지)
   let chartData = null;
   const sorted = Array.from(dailyData.entries())
@@ -167,7 +184,7 @@ export function getReportData() {
     };
   }
 
-  return { dailyData, chapterData, weakProblems, chartData };
+  return { dailyData, chapterData, weakProblems: deduplicatedWeakProblems, chartData };
 }
 
 // ============================================
@@ -333,6 +350,9 @@ export function generateReport() {
   renderScoreTrendChart(data.dailyData, reportCharts, data.chartData); // 성능 최적화: 사전 계산된 데이터 전달
   renderChapterWeaknessChart(data.chapterData, reportCharts);
   renderActionPlan(data.weakProblems);
+
+  // Update Audit Flow Map (v5.0)
+  updateFlowMapUI();
 }
 
 /**
@@ -693,6 +713,9 @@ export function initReportListeners() {
       }
     });
   }
+
+  // Initialize Audit Flow Map (v5.0)
+  initFlowMap();
 }
 
 /**
