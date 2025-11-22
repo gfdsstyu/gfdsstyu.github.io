@@ -15,6 +15,12 @@ const MODEL_MAP = {
 };
 
 /**
+ * API 타임아웃 설정 (밀리초)
+ * Pro 모델의 느린 응답 시간을 고려하여 60초로 설정
+ */
+const API_TIMEOUT_MS = 60000; // 60초 (30초 → 60초로 증가)
+
+/**
  * Gemini API를 사용하여 채점
  * @returns {Promise<{score: number, feedback: string}>}
  */
@@ -52,9 +58,9 @@ export async function callGeminiAPI(userAnswer, correctAnswer, apiKey, selectedA
   };
 
   try {
-    // AbortController로 30초 타임아웃 설정 (네트워크 지연 방지)
+    // AbortController로 타임아웃 설정 (네트워크 지연 및 Pro 모델 응답 시간 고려)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
     const res = await fetch(url, {
       method: 'POST',
@@ -157,9 +163,9 @@ export async function callGeminiHintAPI(userAnswer, correctAnswer, questionText,
   };
 
   try {
-    // AbortController로 30초 타임아웃 설정
+    // AbortController로 타임아웃 설정 (Pro 모델 응답 시간 고려)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
     const res = await fetch(url, {
       method: 'POST',
@@ -253,9 +259,9 @@ export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemin
   };
 
   try {
-    // AbortController로 30초 타임아웃 설정
+    // AbortController로 타임아웃 설정 (Pro 모델 응답 시간 고려)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
     const res = await fetch(url, {
       method: 'POST',
@@ -359,9 +365,9 @@ export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selected
   };
 
   try {
-    // AbortController로 30초 타임아웃 설정
+    // AbortController로 타임아웃 설정 (Pro 모델 응답 시간 고려)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
     const res = await fetch(url, {
       method: 'POST',
@@ -485,9 +491,9 @@ export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini
   };
 
   try {
-    // AbortController로 30초 타임아웃 설정
+    // AbortController로 타임아웃 설정 (Pro 모델 응답 시간 고려)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
     const res = await fetch(url, {
       method: 'POST',
