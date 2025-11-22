@@ -11,7 +11,7 @@
  *    - 재시도 로직: 네트워크 오류 시 최대 2회 재시도
  *    - 부분 실패 허용: 일부 배치 실패해도 분석 계속 진행
  * 2. 회계감사 수험 특화 오답 분류 (v4.0 기능 유지):
- *    - Misjudged_Type (유형 판단 오류): 사례형인 척하는 기준서 문제에 속음
+ *    - Misjudged_Type (유형 판단 오류): 어떤 기준서 문제인지 파악 실패
  *    - Keyword_Gap (키워드 누락): 내용은 알지만 핵심 용어 누락으로 감점
  *    - Wrong_Subject (주체 혼동): 감사인 vs 경영진 책임 혼동
  *    - Recall_Error (단순 암기 부족): 기준서 회독 수 부족
@@ -276,8 +276,8 @@ async function mineWeaknessData(problems, geminiApiKey) {
 
 [분류 기준 - 우선순위 순]
 1. **Misjudged_Type (유형 판단 오류)**:
-   - 문제는 '기준서 내용'을 그대로 묻는 것(발문만으로 답 가능)인데, 학생은 '상황/사례'를 분석하여 답함.
-   - 힌트: 문제 주어가 일반적('감사인은')이나, 학생 답은 구체적 상황을 묘사함.
+   - 문제가 어떤 기준서 챕터/섹션을 다루는지 파악하지 못해 엉뚱한 답을 작성함.
+   - 힌트: 학생이 다른 영역의 기준서 내용으로 답하거나, 문제의 핵심 주제를 잘못 이해함.
 2. **Wrong_Subject (주체 혼동)**:
    - '감사인'이 할 일을 물었는데 '경영진'의 책임을 적음 (또는 반대).
 3. **Keyword_Gap (결정적 키워드 누락)**:
@@ -404,7 +404,7 @@ async function synthesizeReport(stats, bestExamples, chartInfo, geminiApiKey) {
 [입력 데이터]
 1. **학습 추세**: ${JSON.stringify(chartInfo)}
 2. **오답 통계 (총 ${stats.total}문제)**:
-   - 🚫 유형 판단 오류: ${stats.percentages.Misjudged_Type}% ("사례형인 줄 알고 헛다리 짚음")
+   - 🚫 유형 판단 오류: ${stats.percentages.Misjudged_Type}% ("어떤 기준서 문제인지 파악 실패")
    - 🔑 키워드 누락: ${stats.percentages.Keyword_Gap}% ("알지만 점수 못 받음")
    - 👤 주체 혼동: ${stats.percentages.Wrong_Subject}% ("감사인 vs 경영진 혼동")
    - 💭 단순 암기 부족: ${stats.percentages.Recall_Error}%
@@ -418,7 +418,7 @@ ${JSON.stringify(bestExamples, null, 2)}
    - 학생의 강점과 약점을 명확히 파악하세요.
 
 2. **패턴 분석 (pattern_analysis)**:
-   - '유형 판단 오류'가 많다면 → "발문(물음)을 먼저 읽고 기준서 문제인지 판단하는 훈련"을 강조하세요.
+   - '유형 판단 오류'가 많다면 → "문제가 다루는 기준서 영역(챕터/섹션)을 먼저 파악하는 훈련"을 강조하세요.
    - '키워드 누락'이 많다면 → "문장 완성보다 핵심 단어(Terminology) 현출"에 집중하라고 조언하세요.
    - '주체 혼동'이 많다면 → "감사인/경영진/감사위원회 책임 구분표를 만들라"고 조언하세요.
 
@@ -739,7 +739,7 @@ export async function startAIAnalysis() {
     md += `회계감사 시험에 최적화된 4가지 유형으로 분석했습니다.\n\n`;
     md += `| 유형 | 비율 | 문제수 | 진단 |\n`;
     md += `|:---|:---:|:---:|:---|\n`;
-    md += `| **유형 판단 오류** | ${stats.percentages.Misjudged_Type}% | ${stats.counts.Misjudged_Type}문제 | 🚨 사례형인 척하는 기준서 문제에 속음 |\n`;
+    md += `| **유형 판단 오류** | ${stats.percentages.Misjudged_Type}% | ${stats.counts.Misjudged_Type}문제 | 🚨 어떤 기준서 문제인지 파악 실패 |\n`;
     md += `| **키워드 누락** | ${stats.percentages.Keyword_Gap}% | ${stats.counts.Keyword_Gap}문제 | ⚠️ 내용은 알지만 점수 못 받는 답안 |\n`;
     md += `| **주체 혼동** | ${stats.percentages.Wrong_Subject}% | ${stats.counts.Wrong_Subject}문제 | 👤 감사인 vs 경영진 책임 혼동 |\n`;
     md += `| **암기 부족** | ${stats.percentages.Recall_Error}% | ${stats.counts.Recall_Error}문제 | 💭 기준서 회독 수 부족 |\n\n`;
