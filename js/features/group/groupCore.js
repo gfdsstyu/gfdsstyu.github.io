@@ -16,7 +16,8 @@ import {
   orderBy,
   limit,
   serverTimestamp,
-  increment
+  increment,
+  writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 import { db } from '../../app.js';
@@ -743,6 +744,95 @@ export async function kickMember(groupId, targetUserId) {
   }
 }
 
+/**
+ * 그룹장 위임 (그룹장만 가능)
+ * @param {string} groupId - 그룹 ID
+ * @param {string} newOwnerId - 새 그룹장이 될 사용자 ID
+ * @returns {Promise<Object>}
+ */
+export async function delegateGroupOwner(groupId, newOwnerId) {
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    return { success: false, message: '로그인이 필요합니다.' };
+  }
+
+  try {
+    const currentOwnerId = currentUser.uid;
+
+    // 1. 그룹 정보 확인
+    const groupDocRef = doc(db, 'groups', groupId);
+    const groupDocSnap = await getDoc(groupDocRef);
+
+    if (!groupDocSnap.exists()) {
+      return { success: false, message: '존재하지 않는 그룹입니다.' };
+    }
+
+    const groupData = groupDocSnap.data();
+    if (groupData.ownerId !== currentOwnerId) {
+      return { success: false, message: '그룹장만 위임할 수 있습니다.' };
+    }
+
+    if (newOwnerId === currentOwnerId) {
+      return { success: false, message: '자기 자신에게 위임할 수 없습니다.' };
+    }
+
+    // 2. 새 그룹장 후보가 멤버인지 확인
+    const newOwnerMemberRef = doc(db, 'groups', groupId, 'members', newOwnerId);
+    const newOwnerMemberSnap = await getDoc(newOwnerMemberRef);
+    if (!newOwnerMemberSnap.exists()) {
+      return { success: false, message: '대상 사용자가 그룹 멤버가 아닙니다.' };
+    }
+
+    // 3. 일괄 업데이트 (Batch Write)
+    const batch = writeBatch(db);
+
+    // A. 그룹 문서의 ownerId 변경
+    batch.update(groupDocRef, {
+      ownerId: newOwnerId,
+      lastUpdatedAt: serverTimestamp()
+    });
+
+    // B. 기존 그룹장의 멤버 역할 변경 (owner -> member)
+    const currentOwnerMemberRef = doc(db, 'groups', groupId, 'members', currentOwnerId);
+    batch.update(currentOwnerMemberRef, { role: 'member' });
+
+    // C. 새 그룹장의 멤버 역할 변경 (member -> owner)
+    batch.update(newOwnerMemberRef, { role: 'owner' });
+
+    // D. 사용자 문서 업데이트 (선택 사항: rules에 의해 막힐 수 있음)
+    // Client-side에서는 다른 사용자의 문서를 수정하는 것이 규칙에 의해 제한될 수 있습니다.
+    // 따라서 자신의 문서는 업데이트하고, 상대방 문서는 업데이트를 시도하되 실패해도 로직이 깨지지 않도록 합니다.
+    // 하지만 batch는 전체 성공/실패이므로, 본인 것만 batch에 넣고 상대방 것은 별도로 처리하거나
+    // 그룹 조회 시 'groups' 컬렉션의 ownerId를 기준으로 권한을 판단하도록 로직이 구성되어야 합니다.
+    // (현재 getMyGroups는 users/{uid}.groups를 참조하므로 데이터 불일치 가능성 있음)
+    // -> 안전하게 자신의 문서만 업데이트하고, groups 컬렉션이 진실의 원천(SSOT)이 되도록 합니다.
+
+    const currentUserDocRef = doc(db, 'users', currentOwnerId);
+    batch.update(currentUserDocRef, { [`groups.${groupId}.role`]: 'member' });
+
+    // 실행
+    await batch.commit();
+
+    // E. (Best Effort) 새 그룹장의 users 문서 업데이트 시도 (규칙 허용 시)
+    // 만약 실패하더라도 그룹 기능은 groups 컬렉션을 참조하므로 중요 기능은 작동함.
+    // 리스트 표시 등 캐싱된 데이터만 일시적으로 안 맞을 수 있음.
+    try {
+      const newUserDocRef = doc(db, 'users', newOwnerId);
+      await updateDoc(newUserDocRef, { [`groups.${groupId}.role`]: 'owner' });
+    } catch (e) {
+      console.warn('⚠️ 새 그룹장의 사용자 문서 업데이트 실패 (권한 문제 가능성):', e);
+      // 치명적이지 않음
+    }
+
+    console.log(`✅ [Group] 그룹장 위임 완료: ${currentOwnerId} -> ${newOwnerId}`);
+    return { success: true, message: '그룹장이 변경되었습니다.' };
+
+  } catch (error) {
+    console.error('❌ [Group] 그룹장 위임 실패:', error);
+    return { success: false, message: `위임 실패: ${error.message}` };
+  }
+}
+
 // ============================================
 // 전역 노출 (디버깅용)
 // ============================================
@@ -757,6 +847,7 @@ if (typeof window !== 'undefined') {
     searchPublicGroups,
     updateGroupDescription,
     getGroupMembers,
-    kickMember
+    kickMember,
+    delegateGroupOwner
   };
 }
