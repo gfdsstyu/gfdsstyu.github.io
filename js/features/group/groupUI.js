@@ -34,6 +34,11 @@ export function openCreateGroupModal() {
   document.getElementById('create-group-password').value = '';
   document.getElementById('create-group-max-members').value = '50';
 
+  // 모달을 body의 직계 자식으로 이동 (최상위 레벨 보장)
+  if (modal.parentNode !== document.body) {
+    document.body.appendChild(modal);
+  }
+
   modal.classList.remove('hidden');
   modal.classList.add('flex');
 }
@@ -112,6 +117,11 @@ export async function openSearchGroupModal() {
 
   // 다른 그룹 모달이 열려있으면 닫기
   closeCreateGroupModal();
+
+  // 모달을 body의 직계 자식으로 이동 (최상위 레벨 보장)
+  if (modal.parentNode !== document.body) {
+    document.body.appendChild(modal);
+  }
 
   modal.classList.remove('hidden');
   modal.classList.add('flex');

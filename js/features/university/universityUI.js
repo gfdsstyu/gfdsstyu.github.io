@@ -33,6 +33,11 @@ export async function openVerifyModal() {
     codeSection.classList.add('hidden');
   }
 
+  // 모달을 body의 직계 자식으로 이동 (최상위 레벨 보장)
+  if (modal.parentNode !== document.body) {
+    document.body.appendChild(modal);
+  }
+
   modal.classList.remove('hidden');
   modal.classList.add('flex');
 }
