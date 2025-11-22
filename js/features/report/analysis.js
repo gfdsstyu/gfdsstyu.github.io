@@ -7,7 +7,7 @@
  * [v5.0 주요 변경사항]
  * 1. 배치 마이닝 아키텍처 도입:
  *    - 분석 대상 확대: 12개 → 60개 (5배 증가)
- *    - 병렬 처리: 15개씩 청크로 분할하여 동시 처리
+ *    - 병렬 처리: 10개씩 청크로 분할하여 동시 처리
  *    - 재시도 로직: 네트워크 오류 시 최대 2회 재시도
  *    - 부분 실패 허용: 일부 배치 실패해도 분석 계속 진행
  * 2. 회계감사 수험 특화 오답 분류 (v4.0 기능 유지):
@@ -42,7 +42,7 @@ import { getCurrentUser } from '../auth/authCore.js';
 // ==========================================
 
 // v5.0 Configuration
-const BATCH_SIZE = 15; // 각 배치당 문제 수
+const BATCH_SIZE = 10; // 각 배치당 문제 수 (API 타임아웃 방지)
 const MAX_ANALYSIS_PROBLEMS = 60; // 최대 분석 문제 수 (12 → 60)
 const MAX_RETRIES = 2; // 최대 재시도 횟수
 
@@ -319,7 +319,7 @@ ${JSON.stringify(problems, null, 2)}
 
 /**
  * 단일 배치의 문제들을 AI로 분석하여 오답 유형 분류 (v5.0)
- * @param {Array<Object>} problems - 분석할 문제 배열 (최대 15개)
+ * @param {Array<Object>} problems - 분석할 문제 배열 (최대 10개, API 타임아웃 방지)
  * @param {string} apiKey - Gemini API 키
  * @param {number} retryCount - 현재 재시도 횟수 (내부 사용)
  * @returns {Promise<Array<Object>>} - 분류 결과 배열
@@ -628,7 +628,7 @@ export async function startAIAnalysis() {
     // ------------------------------------------
     updateMsg("🔍 오답 유형 정밀 분류 중 (Batch Mining)...");
 
-    // 2-1. 청크 분할 (15개씩)
+    // 2-1. 청크 분할 (10개씩, API 타임아웃 방지)
     const chunks = chunkArray(cleanedProblems, BATCH_SIZE);
     console.log(`📦 [Analysis] ${cleanedProblems.length}개 문제를 ${chunks.length}개 배치로 분할`);
 
