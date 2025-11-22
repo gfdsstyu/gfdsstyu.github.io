@@ -118,43 +118,57 @@ export const AUDIT_FLOW_MAP = {
     meaning: "[설계도 그리기] 어디가 얼마나 위험한가? (가장 중요)",
     chapters: [7],
     strategy: "논리적 기반",
-    strategyDetail: "이곳의 결과가 FLOW 4의 '원인'이 됨. 개념 완벽 이해 필수.",
+    strategyDetail: "이곳의 결과가 FLOW 4, 5의 '원인'이 됨. 개념 완벽 이해 필수.",
     color: "#F59E0B", // amber
     icon: "⚠️",
     role: "Core Logic",
-    connectedFlows: [4], // FLOW 4의 모든 절차를 결정함
+    connectedFlows: [4, 5], // FLOW 4(통제), 5(실증) 모두에 영향
     studyMode: "case" // 사례 분석 모드 추천
   },
   4: {
     id: 4,
-    name: "감사 수행",
-    nameEn: "Respond",
-    meaning: "[증거 수집] 위험에 맞춰 빡빡하게/느슨하게 검증!",
-    chapters: [8, 9, 10, 11, 12, 13, 14],
-    strategy: "암기량 폭발",
-    strategyDetail: "단순 암기 금물. '경영진 주장'과 '절차'를 매핑하는 훈련.",
-    color: "#EF4444", // red
-    icon: "🔍",
-    role: "Execution",
-    connectedFlows: [5], // 수집한 증거로 FLOW 5에서 보고
-    studyMode: "flashcard" // 빈칸 채우기 모드 추천
+    name: "통제 및 전략",
+    nameEn: "Strategy",
+    meaning: "[관문] 회사 통제를 믿을 것인가? (전략적 분기점)",
+    chapters: [8, 9],
+    strategy: "대응 전략 수립",
+    strategyDetail: "내부통제 신뢰도에 따라 실증절차 범위가 결정됨. 전략적 관문.",
+    color: "#8B5CF6", // purple
+    icon: "🛡️",
+    role: "Gateway",
+    connectedFlows: [5], // 통제 결과가 실증절차 범위 결정
+    studyMode: "case" // 판단 훈련 모드
   },
   5: {
     id: 5,
+    name: "실증 수행",
+    nameEn: "Execute",
+    meaning: "[증거 수집] 위험과 통제에 맞춰 증거 수집!",
+    chapters: [10, 11, 12, 13, 14],
+    strategy: "암기량 폭발",
+    strategyDetail: "Flow 3(위험)과 Flow 4(통제) 결과에 따라 성·시·범 결정. 논리 이해 필수.",
+    color: "#EF4444", // red
+    icon: "🔍",
+    role: "Execution",
+    connectedFlows: [6], // 수집한 증거로 FLOW 6에서 보고
+    studyMode: "flashcard" // 빈칸 채우기 모드 추천
+  },
+  6: {
+    id: 6,
     name: "보고",
     nameEn: "Report",
     meaning: "[성적표 작성] 결과를 모아 최종 의견을 낸다",
     chapters: [15, 16],
     strategy: "사례형 대비",
     strategyDetail: "의견 변형 사유(한정/부적정/거절) 칼같이 구분.",
-    color: "#8B5CF6", // purple
+    color: "#10B981", // green
     icon: "📊",
     role: "Conclusion",
-    connectedFlows: [6], // 일반 감사 완료 후 확장으로
+    connectedFlows: [7], // 일반 감사 완료 후 확장으로
     studyMode: "case" // 사례 분석 모드 추천
   },
-  6: {
-    id: 6,
+  7: {
+    id: 7,
     name: "확장",
     nameEn: "Extend",
     meaning: "[특수 상황] 일반 감사 외의 변수들",
@@ -168,6 +182,41 @@ export const AUDIT_FLOW_MAP = {
     studyMode: "ox" // OX 퀴즈 모드 추천
   }
 };
+
+/**
+ * FLOW_DEPENDENCIES: Flow 간 인과관계 정의 (v2.0)
+ * AI가 병목 진단 시 참고하는 논리적 연결 규칙
+ */
+export const FLOW_DEPENDENCIES = [
+  {
+    source: 3,
+    target: 5,
+    type: "Direct",
+    logic: "위험평가(Flow 3)에서 RMM이 높게 평가되면 실증절차(Flow 5)의 범위를 늘려야 합니다.",
+    impactDescription: "위험을 제대로 식별하지 못하면 실증절차가 방향을 잃습니다."
+  },
+  {
+    source: 4,
+    target: 5,
+    type: "Inverse",
+    logic: "내부통제(Flow 4)가 효과적이면 실증절차(Flow 5)를 줄일 수 있습니다. 반대라면 늘려야 합니다.",
+    impactDescription: "통제를 신뢰하지 못하면 실증절차로 2배 이상 검증해야 합니다."
+  },
+  {
+    source: 3,
+    target: 4,
+    type: "Direct",
+    logic: "위험평가(Flow 3) 결과에 따라 내부통제 테스트(Flow 4) 범위가 결정됩니다.",
+    impactDescription: "위험이 높은 영역의 통제를 집중 테스트해야 합니다."
+  },
+  {
+    source: 5,
+    target: 6,
+    type: "Direct",
+    logic: "실증절차(Flow 5)에서 발견한 미수정왜곡표시와 계속기업 의문이 감사의견(Flow 6)을 결정합니다.",
+    impactDescription: "Ch 14(계속기업), Ch 15(미수정왜곡)를 모르면 감사보고서를 쓸 수 없습니다."
+  }
+];
 
 /**
  * 단원 번호로 FLOW 정보 조회
