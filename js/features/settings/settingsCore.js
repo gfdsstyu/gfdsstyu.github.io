@@ -97,6 +97,11 @@ export function ensureApiKeyGate() {
 export async function openSettingsModal() {
   const el = getElements();
 
+  // 모달을 body의 직계 자식으로 이동 (최상위 레벨 보장)
+  if (el.settingsModal && el.settingsModal.parentNode !== document.body) {
+    document.body.appendChild(el.settingsModal);
+  }
+
   el.settingsModal.classList.remove('hidden');
   el.settingsModal.classList.add('flex');
 

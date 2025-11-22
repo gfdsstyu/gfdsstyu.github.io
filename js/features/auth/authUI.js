@@ -188,6 +188,11 @@ function setupEventListeners() {
 
 function openLoginModal() {
   if (loginModal) {
+    // 모달을 body의 직계 자식으로 이동 (최상위 레벨 보장)
+    if (loginModal.parentNode !== document.body) {
+      document.body.appendChild(loginModal);
+    }
+
     loginModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
   }
@@ -431,6 +436,11 @@ async function openProfileModal() {
     } else {
       deletePasswordSection.classList.add('hidden');
     }
+  }
+
+  // 모달을 body의 직계 자식으로 이동 (최상위 레벨 보장)
+  if (profileModal.parentNode !== document.body) {
+    document.body.appendChild(profileModal);
   }
 
   // 모달 표시
