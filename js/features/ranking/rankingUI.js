@@ -16,7 +16,7 @@ import {
 import { db } from '../../app.js';
 import { getCurrentUser, getNickname } from '../auth/authCore.js';
 import { getMyRanking, getGroupRankings, getIntraGroupRankings } from './rankingCore.js';
-import { getMyGroups, updateGroupDescription, getGroupMembers, kickMember, deleteGroup } from '../group/groupCore.js';
+import { getMyGroups, updateGroupDescription, getGroupMembers, kickMember, deleteGroup, delegateGroupOwner } from '../group/groupCore.js';
 import { handleLeaveGroup } from '../group/groupUI.js';
 import { getMyUniversity, getUniversityRankings, getIntraUniversityRankings } from '../university/universityCore.js';
 import { showToast } from '../../ui/domUtils.js';
@@ -286,84 +286,39 @@ async function loadMyGroupsList() {
 }
 
 /**
- * 그룹 관리 UI 열기/닫기 토글
+ * 그룹 상세(관리/멤버보기) 토글
  * @param {string} groupId - 그룹 ID
+ * @param {boolean} isOwner - 그룹장 여부
  */
-async function openGroupManagement(groupId) {
-  const managementSection = document.getElementById(`group-management-${groupId}`);
+async function toggleGroupExpansion(groupId, isOwner) {
+  const expansionContainer = document.getElementById(`group-expansion-${groupId}`);
+  const arrow = document.getElementById(`group-arrow-${groupId}`);
 
-  // 이미 열려있으면 닫기
-  if (managementSection && !managementSection.classList.contains('hidden')) {
-    managementSection.classList.add('hidden');
-    return;
-  }
+  if (!expansionContainer) return;
 
-  // 다른 모든 관리 섹션 닫기
-  document.querySelectorAll('[id^="group-management-"]').forEach(section => {
-    section.classList.add('hidden');
-  });
+  const isHidden = expansionContainer.classList.contains('hidden');
 
-  // 관리 섹션이 없으면 생성
-  if (!managementSection) {
-    await loadGroupManagementUI(groupId);
+  if (isHidden) {
+    // 열기
+    expansionContainer.classList.remove('hidden');
+    if (arrow) arrow.style.transform = 'rotate(180deg)';
+
+    // 내용 로드
+    const contentLoaded = expansionContainer.dataset.loaded === 'true';
+    if (!contentLoaded) {
+       expansionContainer.innerHTML = `
+        <div class="pt-4 border-t border-gray-300 dark:border-gray-600">
+          <p class="text-center text-gray-500 dark:text-gray-400">로딩 중...</p>
+        </div>
+       `;
+       // 그룹원 관리/보기 렌더링 (isOwner에 따라 UI 달라짐)
+       await renderGroupMembersManagement(groupId, isOwner, expansionContainer);
+       expansionContainer.dataset.loaded = 'true';
+    }
   } else {
-    managementSection.classList.remove('hidden');
-  }
-}
-
-/**
- * 그룹 관리 UI 로드
- * @param {string} groupId - 그룹 ID
- */
-async function loadGroupManagementUI(groupId) {
-  const groupCard = document.querySelector(`[data-group-id="${groupId}"]`);
-  if (!groupCard) return;
-
-  // 로딩 표시
-  const loadingHtml = `
-    <div id="group-management-${groupId}" class="mt-4 pt-4 border-t border-gray-300 dark:border-gray-600">
-      <p class="text-center text-gray-500 dark:text-gray-400">로딩 중...</p>
-    </div>
-  `;
-  groupCard.insertAdjacentHTML('beforeend', loadingHtml);
-
-  await renderGroupMembersManagement(groupId, true);
-}
-
-/**
- * 그룹원 보기 UI 열기/닫기 토글 (일반 멤버용)
- * @param {string} groupId - 그룹 ID
- * @param {string} groupName - 그룹 이름
- */
-async function openGroupMembersView(groupId, groupName) {
-  const membersSection = document.getElementById(`group-members-view-${groupId}`);
-
-  // 이미 열려있으면 닫기
-  if (membersSection && !membersSection.classList.contains('hidden')) {
-    membersSection.classList.add('hidden');
-    return;
-  }
-
-  // 다른 모든 그룹원 보기 섹션 닫기
-  document.querySelectorAll('[id^="group-members-view-"]').forEach(section => {
-    section.classList.add('hidden');
-  });
-
-  // 그룹원 보기 섹션이 없으면 생성
-  if (!membersSection) {
-    const groupCard = document.querySelector(`[data-group-id="${groupId}"]`);
-    if (!groupCard) return;
-
-    const loadingHtml = `
-      <div id="group-members-view-${groupId}" class="mt-4 pt-4 border-t border-gray-300 dark:border-gray-600">
-        <p class="text-center text-gray-500 dark:text-gray-400">로딩 중...</p>
-      </div>
-    `;
-    groupCard.insertAdjacentHTML('beforeend', loadingHtml);
-
-    await renderGroupMembersManagement(groupId, false);
-  } else {
-    membersSection.classList.remove('hidden');
+    // 닫기
+    expansionContainer.classList.add('hidden');
+    if (arrow) arrow.style.transform = 'rotate(0deg)';
   }
 }
 
@@ -424,11 +379,12 @@ function getMemberTileColor(dailyProblems) {
 }
 
 /**
- * 그룹원 관리/보기 UI 렌더링 (통합 함수)
+ * 그룹 관리/보기 UI 렌더링 (기존 renderGroupMembersManagement 수정)
  * @param {string} groupId - 그룹 ID
  * @param {boolean} isOwner - 그룹장 여부
+ * @param {HTMLElement} container - 렌더링할 컨테이너
  */
-async function renderGroupMembersManagement(groupId, isOwner) {
+async function renderGroupMembersManagement(groupId, isOwner, container) {
   try {
     const currentUser = getCurrentUser();
     const myGroups = await getMyGroups();
@@ -436,10 +392,6 @@ async function renderGroupMembersManagement(groupId, isOwner) {
     const members = await getGroupMembers(groupId);
 
     if (!group || !currentUser) return;
-
-    const containerId = isOwner ? `group-management-${groupId}` : `group-members-view-${groupId}`;
-    const container = document.getElementById(containerId);
-    if (!container) return;
 
     // 1. 각 멤버의 rankings 데이터 + 프로필 데이터 로드
     const membersWithStats = await Promise.all(members.map(async (member) => {
@@ -517,56 +469,57 @@ async function renderGroupMembersManagement(groupId, isOwner) {
       };
     }));
 
-    // 2. 일별 문제 수로 내림차순 정렬
+    // 2. 정렬
     membersWithStats.sort((a, b) => b.dailyProblems - a.dailyProblems);
 
     // 3. UI 렌더링
-    let html = `<div class="space-y-4">`;
+    let html = `<div class="space-y-4 pt-2 border-t border-gray-300 dark:border-gray-600">`;
 
-    // 그룹장만 설명 수정/삭제 가능
+    // 그룹장 전용 관리 UI (설명 수정)
     if (isOwner) {
       html += `
-        <!-- 그룹 설명 수정 (그룹장만) -->
         <div>
           <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">📝 그룹 설명 수정</label>
-          <textarea
-            id="edit-description-${groupId}"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm resize-none"
-            rows="2"
-            placeholder="그룹 설명을 입력하세요"
-          >${group.description || ''}</textarea>
-          <div class="mt-2 flex items-center justify-between">
-            <button
-              onclick="window.RankingUI?.handleUpdateDescription('${groupId}');"
-              class="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white font-bold text-sm rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition"
-            >
-              💾 저장
-            </button>
-            <button
-              onclick="window.RankingUI?.handleDeleteGroup('${groupId}', '${group.name.replace(/'/g, "\\'")}')"
-              class="text-red-600 dark:text-red-400 text-xs hover:text-red-800 dark:hover:text-red-300 hover:underline transition"
-              title="그룹을 삭제하면 모든 데이터가 영구적으로 삭제됩니다."
-            >
-              🗑️ 그룹 삭제
-            </button>
+          <div class="flex gap-2">
+              <textarea
+                id="edit-description-${groupId}"
+                class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm resize-none"
+                rows="1"
+                placeholder="그룹 설명을 입력하세요"
+              >${group.description || ''}</textarea>
+              <button
+                onclick="window.RankingUI?.handleUpdateDescription('${groupId}');"
+                class="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white font-bold text-sm rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition h-full"
+              >
+                저장
+              </button>
           </div>
         </div>
       `;
     }
 
-    // 그룹원 타일
+    // 멤버 리스트 (타일 형태)
     html += `
       <div>
         <div class="flex items-center justify-between mb-3">
           <label class="text-sm font-bold text-gray-700 dark:text-gray-300">👥 그룹원 (${members.length}명)</label>
           ${isOwner ? `
-            <button
-              id="kick-btn-${groupId}"
-              onclick="window.RankingUI?.handleKickButton('${groupId}');"
-              class="px-3 py-1.5 bg-red-600 dark:bg-red-500 text-white font-bold text-xs rounded hover:bg-red-700 dark:hover:bg-red-600 transition"
-            >
-              강퇴
-            </button>
+            <div class="flex gap-2">
+                 <button
+                  id="delegate-btn-${groupId}"
+                  onclick="window.RankingUI?.handleDelegateButton('${groupId}');"
+                  class="px-3 py-1.5 bg-amber-600 dark:bg-amber-500 text-white font-bold text-xs rounded hover:bg-amber-700 dark:hover:bg-amber-600 transition"
+                >
+                  그룹장 위임
+                </button>
+                <button
+                  id="kick-btn-${groupId}"
+                  onclick="window.RankingUI?.handleKickButton('${groupId}');"
+                  class="px-3 py-1.5 bg-red-600 dark:bg-red-500 text-white font-bold text-xs rounded hover:bg-red-700 dark:hover:bg-red-600 transition"
+                >
+                  강퇴
+                </button>
+            </div>
           ` : ''}
         </div>
 
@@ -579,8 +532,8 @@ async function renderGroupMembersManagement(groupId, isOwner) {
 
       html += `
         <div class="relative group">
-          <div class="p-3 rounded-lg ${tileColor} transition-transform hover:scale-105 cursor-pointer h-24 flex flex-col justify-center">
-            ${isOwner && !memberIsOwner ? `
+          <div class="p-3 rounded-lg ${tileColor} transition-transform hover:scale-105 cursor-pointer h-24 flex flex-col justify-center relative">
+             ${isOwner && !memberIsOwner ? `
               <input
                 type="checkbox"
                 class="kick-checkbox absolute top-2 left-2 w-4 h-4 hidden"
@@ -589,6 +542,17 @@ async function renderGroupMembersManagement(groupId, isOwner) {
                 data-nickname="${member.nickname.replace(/"/g, '&quot;')}"
               />
             ` : ''}
+            ${isOwner && !memberIsOwner ? `
+              <input
+                type="checkbox"
+                class="delegate-checkbox absolute top-2 right-2 w-4 h-4 hidden"
+                data-group-id="${groupId}"
+                data-user-id="${member.userId}"
+                data-nickname="${member.nickname.replace(/"/g, '&quot;')}"
+                onchange="window.RankingUI?.handleSingleSelection(this, '${groupId}')"
+              />
+            ` : ''}
+
 
             <div class="flex flex-col items-center text-center">
               <div class="text-lg font-bold mb-1">${member.dailyScore}<span class="text-xs">점</span></div>
@@ -597,34 +561,16 @@ async function renderGroupMembersManagement(groupId, isOwner) {
               </div>
             </div>
 
-            <!-- 호버 시 상세 정보 툴팁 -->
-            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-10">
+            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-20">
               <div class="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg p-3 shadow-xl min-w-max max-w-xs">
                 <div class="font-bold mb-2 text-center">${member.nickname} ${memberIsOwner ? '👑' : ''}</div>
-
-                ${member.statusMessage ? `
-                  <div class="text-center mb-2 px-2 py-1 bg-white/10 dark:bg-gray-900/10 rounded italic">
-                    💬 "${member.statusMessage}"
-                  </div>
-                ` : ''}
-
+                ${member.statusMessage ? `<div class="text-center mb-2 px-2 py-1 bg-white/10 dark:bg-gray-900/10 rounded italic">💬 "${member.statusMessage}"</div>` : ''}
                 <div class="space-y-1">
-                  <div class="flex items-center justify-between gap-3">
-                    <span>📅 일:</span>
-                    <span class="font-semibold">${member.dailyScore}점 (${member.dailyProblems}문제)</span>
-                  </div>
-                  <div class="flex items-center justify-between gap-3">
-                    <span>📊 주:</span>
-                    <span class="font-semibold">${member.weeklyScore}점 (${member.weeklyProblems}문제)</span>
-                  </div>
-                  <div class="flex items-center justify-between gap-3 pt-1 border-t border-white/20 dark:border-gray-900/20">
-                    <span>🏆 업적:</span>
-                    <span class="font-semibold">${member.achievementPoints}점</span>
-                  </div>
+                    <div>📅 일: ${member.dailyScore}점 (${member.dailyProblems}문제)</div>
+                    <div>📊 주: ${member.weeklyScore}점 (${member.weeklyProblems}문제)</div>
+                    <div>🏆 업적: ${member.achievementPoints}점</div>
                 </div>
-
-                <!-- 화살표 -->
-                <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                 <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
                   <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-100"></div>
                 </div>
               </div>
@@ -634,114 +580,198 @@ async function renderGroupMembersManagement(groupId, isOwner) {
       `;
     });
 
+    html += `</div>`; // End grid
+
+    // 하단 액션 버튼 (그룹 삭제 or 탈퇴)
     html += `
-        </div>
+      <div class="flex justify-end mt-4 pt-2 border-t border-gray-200 dark:border-gray-700">
+        ${isOwner ? `
+           <button
+              onclick="window.RankingUI?.handleDeleteGroup('${groupId}', '${group.name.replace(/'/g, "\\'")}')"
+              class="text-red-600 dark:text-red-400 text-xs hover:text-red-800 dark:hover:text-red-300 hover:underline transition"
+            >
+              🗑️ 그룹 삭제 (영구)
+            </button>
+        ` : `
+            <button
+              onclick="window.GroupUI?.handleLeaveGroup('${groupId}', '${group.name.replace(/'/g, "\\'")}')"
+              class="text-red-600 dark:text-red-400 text-sm hover:underline transition font-bold"
+            >
+              그룹 탈퇴하기
+            </button>
+        `}
       </div>
-    </div>
     `;
 
+    html += `</div>`; // End space-y-4
     container.innerHTML = html;
+
   } catch (error) {
-    console.error('❌ [RankingUI] 그룹원 관리 UI 로드 실패:', error);
-    const containerId = isOwner ? `group-management-${groupId}` : `group-members-view-${groupId}`;
-    const container = document.getElementById(containerId);
-    if (container) {
-      container.innerHTML = '<p class="text-center text-red-500 dark:text-red-400">그룹원 정보를 불러오는데 실패했습니다.</p>';
-    }
+    console.error('❌ [RankingUI] 그룹 상세 로드 실패:', error);
+    container.innerHTML = '<p class="text-center text-red-500">정보를 불러오는데 실패했습니다.</p>';
   }
 }
 
 /**
- * 강퇴 버튼 핸들러 (통합)
+ * 강퇴 버튼 핸들러
  */
 function handleKickButton(groupId) {
+  // 위임 모드가 켜져있으면 끔
+  const delegateChecks = document.querySelectorAll(`.delegate-checkbox[data-group-id="${groupId}"]`);
+  if (!delegateChecks[0]?.classList.contains('hidden')) {
+     handleDelegateButton(groupId); // 토글해서 끔
+  }
+
   const checkboxes = document.querySelectorAll(`.kick-checkbox[data-group-id="${groupId}"]`);
   const button = document.getElementById(`kick-btn-${groupId}`);
-
-  // 현재 체크박스가 보이는지 확인
   const isKickMode = !checkboxes[0]?.classList.contains('hidden');
 
   if (!isKickMode) {
-    // 1단계: 체크박스 활성화
     checkboxes.forEach(cb => cb.classList.remove('hidden'));
-    button.textContent = '강퇴 실행';
-    button.classList.remove('bg-red-600', 'dark:bg-red-500', 'hover:bg-red-700', 'dark:hover:bg-red-600');
-    button.classList.add('bg-orange-600', 'dark:bg-orange-500', 'hover:bg-orange-700', 'dark:hover:bg-orange-600');
+    button.textContent = '선택 강퇴 실행';
+    button.classList.replace('bg-red-600', 'bg-orange-600');
+    button.classList.replace('dark:bg-red-500', 'dark:bg-orange-500');
   } else {
-    // 2단계: 강퇴 실행
     executeKick(groupId);
   }
 }
 
 /**
- * 강퇴 모드 토글 (제거됨 - handleKickButton으로 통합)
+ * 그룹장 위임 버튼 핸들러
  */
-function toggleKickMode(groupId) {
-  // 하위 호환성을 위해 유지
-  handleKickButton(groupId);
+function handleDelegateButton(groupId) {
+  // 강퇴 모드가 켜져있으면 끔
+  const kickChecks = document.querySelectorAll(`.kick-checkbox[data-group-id="${groupId}"]`);
+  if (!kickChecks[0]?.classList.contains('hidden')) {
+     handleKickButton(groupId); // 토글해서 끔
+  }
+
+  const checkboxes = document.querySelectorAll(`.delegate-checkbox[data-group-id="${groupId}"]`);
+  const button = document.getElementById(`delegate-btn-${groupId}`);
+  const isDelegateMode = !checkboxes[0]?.classList.contains('hidden');
+
+  if (!isDelegateMode) {
+    checkboxes.forEach(cb => {
+        cb.classList.remove('hidden');
+        cb.checked = false;
+    });
+    button.textContent = '위임 실행';
+    button.classList.replace('bg-amber-600', 'bg-red-600'); // 경고색으로 변경
+    button.classList.replace('dark:bg-amber-500', 'dark:bg-red-500');
+  } else {
+    executeDelegate(groupId);
+  }
 }
 
 /**
- * 강퇴 모드 취소 (제거됨)
+ * 위임 체크박스 단일 선택 강제
  */
-function cancelKickMode(groupId) {
-  // 더 이상 필요 없음
+function handleSingleSelection(checkbox, groupId) {
+    if (checkbox.checked) {
+        const all = document.querySelectorAll(`.delegate-checkbox[data-group-id="${groupId}"]`);
+        all.forEach(cb => {
+            if (cb !== checkbox) cb.checked = false;
+        });
+    }
 }
 
 /**
- * 선택된 멤버 강퇴 실행
+ * 강퇴 실행
  */
 async function executeKick(groupId) {
   const checkboxes = document.querySelectorAll(`.kick-checkbox[data-group-id="${groupId}"]:checked`);
-
   if (checkboxes.length === 0) {
-    showToast('강퇴할 멤버를 선택해주세요.', 'warning');
-    return;
+     // 선택 없이 다시 누르면 취소로 간주
+     resetGroupActionUI(groupId, 'kick');
+     return;
   }
 
   const memberNames = Array.from(checkboxes).map(cb => cb.dataset.nickname).join(', ');
-  const confirmed = confirm(
-    `⚠️ 그룹원 강퇴 확인\n\n` +
-    `${memberNames}\n\n` +
-    `위 ${checkboxes.length}명의 멤버를 강퇴하시겠습니까?\n\n` +
-    `강퇴된 멤버는 7일 동안 이 그룹에 재가입할 수 없습니다.\n` +
-    `이 작업은 되돌릴 수 없습니다.`
-  );
+  if (!confirm(`⚠️ ${memberNames} 멤버를 강퇴하시겠습니까?\n(7일간 재가입 불가)`)) return;
 
-  if (!confirmed) {
-    // 취소 시 체크박스 숨기고 버튼 원상복구
-    const button = document.getElementById(`kick-btn-${groupId}`);
-    const allCheckboxes = document.querySelectorAll(`.kick-checkbox[data-group-id="${groupId}"]`);
-    allCheckboxes.forEach(cb => {
-      cb.classList.add('hidden');
-      cb.checked = false;
-    });
-    button.textContent = '강퇴';
-    button.classList.remove('bg-orange-600', 'dark:bg-orange-500', 'hover:bg-orange-700', 'dark:hover:bg-orange-600');
-    button.classList.add('bg-red-600', 'dark:bg-red-500', 'hover:bg-red-700', 'dark:hover:bg-red-600');
-    return;
-  }
-
-  // 각 멤버 강퇴
   let successCount = 0;
   for (const cb of checkboxes) {
     try {
       const result = await kickMember(groupId, cb.dataset.userId);
-      if (result.success) {
-        successCount++;
-      }
-    } catch (error) {
-      console.error('강퇴 실패:', error);
-    }
+      if (result.success) successCount++;
+    } catch (e) { console.error(e); }
   }
 
   if (successCount > 0) {
-    showToast(`${successCount}명의 멤버를 강퇴했습니다.`, 'success');
-    // UI 새로고침
-    await renderGroupMembersManagement(groupId, true);
-  } else {
-    showToast('강퇴에 실패했습니다.', 'error');
+    showToast(`${successCount}명 강퇴 완료`, 'success');
+    // 강제 리로드 대신 다시 렌더링
+    const container = document.getElementById(`group-expansion-${groupId}`);
+    if(container) {
+         container.dataset.loaded = 'false'; // 리로드 트리거
+         toggleGroupExpansion(groupId, true); // 닫았다 열면 리로드됨 (단순화) -> 아니면 직접 호출
+         // UI Refresh
+         await renderGroupMembersManagement(groupId, true, container);
+    }
   }
+}
+
+/**
+ * 위임 실행
+ */
+async function executeDelegate(groupId) {
+    const checkboxes = document.querySelectorAll(`.delegate-checkbox[data-group-id="${groupId}"]:checked`);
+
+    if (checkboxes.length === 0) {
+        // 취소
+        resetGroupActionUI(groupId, 'delegate');
+        return;
+    }
+
+    if (checkboxes.length > 1) {
+        showToast('한 명의 멤버에게만 위임할 수 있습니다.', 'warning');
+        return;
+    }
+
+    const targetUser = checkboxes[0];
+    const targetName = targetUser.dataset.nickname;
+    const targetId = targetUser.dataset.userId;
+
+    const confirmed = confirm(
+        `⚠️ 정말로 그룹장을 "${targetName}"님에게 위임하시겠습니까?\n\n` +
+        `위임 후 귀하는 '일반 멤버'가 되며, 이 작업은 되돌릴 수 없습니다.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        const result = await delegateGroupOwner(groupId, targetId);
+        if (result.success) {
+            showToast(result.message, 'success');
+            // 권한이 바뀌었으므로 전체 리스트 리로드 필요
+            await loadMyGroupsList();
+        } else {
+            showToast(result.message, 'error');
+        }
+    } catch (error) {
+        console.error(error);
+        showToast('위임 중 오류 발생', 'error');
+    }
+}
+
+/**
+ * 액션 UI 초기화 (버튼 색상 복구 및 체크박스 숨김)
+ */
+function resetGroupActionUI(groupId, action) {
+    if (action === 'kick') {
+        const checkboxes = document.querySelectorAll(`.kick-checkbox[data-group-id="${groupId}"]`);
+        const button = document.getElementById(`kick-btn-${groupId}`);
+        checkboxes.forEach(cb => { cb.classList.add('hidden'); cb.checked = false; });
+        button.textContent = '강퇴';
+        button.classList.replace('bg-orange-600', 'bg-red-600');
+        button.classList.replace('dark:bg-orange-500', 'dark:bg-red-500');
+    } else if (action === 'delegate') {
+        const checkboxes = document.querySelectorAll(`.delegate-checkbox[data-group-id="${groupId}"]`);
+        const button = document.getElementById(`delegate-btn-${groupId}`);
+        checkboxes.forEach(cb => { cb.classList.add('hidden'); cb.checked = false; });
+        button.textContent = '그룹장 위임';
+        button.classList.replace('bg-red-600', 'bg-amber-600');
+        button.classList.replace('dark:bg-red-500', 'dark:bg-amber-500');
+    }
 }
 
 /**
@@ -797,9 +827,7 @@ async function handleDeleteGroup(groupId, groupName) {
 }
 
 /**
- * 내 그룹 목록 렌더링
- * @param {Array} groups - 그룹 배열
- * @param {Object} currentUser - 현재 사용자
+ * 내 그룹 목록 렌더링 (펼치기 방식 적용)
  */
 function renderMyGroupsList(groups, currentUser) {
   const myGroupsList = document.getElementById('my-groups-list');
@@ -810,14 +838,17 @@ function renderMyGroupsList(groups, currentUser) {
   groups.forEach(group => {
     const isOwner = group.ownerId === currentUser.uid;
     const ownerBadge = isOwner ? `
-      <span class="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-xs font-bold rounded-full">
+      <span class="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-xs font-bold rounded-full">
         👑 그룹장
       </span>
     ` : '';
 
     html += `
-      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-3" data-group-id="${group.groupId}">
-        <div class="flex items-start justify-between mb-3">
+      <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-3 transition-all shadow-sm hover:shadow-md" data-group-id="${group.groupId}">
+        <div
+            class="p-4 cursor-pointer flex items-center justify-between group-header select-none"
+            onclick="window.RankingUI?.toggleGroupExpansion('${group.groupId}', ${isOwner})"
+        >
           <div class="flex-1">
             <div class="flex items-center gap-2 mb-1">
               <h4 class="text-lg font-bold text-gray-900 dark:text-gray-100">
@@ -825,44 +856,21 @@ function renderMyGroupsList(groups, currentUser) {
               </h4>
               ${ownerBadge}
             </div>
-            ${group.description ? `
-              <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                ${group.description}
-              </p>
-            ` : ''}
+             <div class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                <span>👥 ${group.memberCount}/${group.maxMembers}명</span>
+                ${group.isPublic ? '<span>🌍 공개</span>' : '<span>🔒 비공개</span>'}
+             </div>
+          </div>
+
+          <div class="text-gray-400 transform transition-transform duration-200" id="group-arrow-${group.groupId}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
           </div>
         </div>
 
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-            <span>👥 ${group.memberCount}/${group.maxMembers}명</span>
-            ${group.isPublic ? '<span>🌍 공개</span>' : '<span>🔒 비공개</span>'}
-          </div>
-
-          <div class="flex gap-2">
-            ${isOwner ? `
-              <button
-                onclick="window.RankingUI?.openGroupManagement('${group.groupId}');"
-                class="px-4 py-2 rounded-lg font-bold text-sm bg-purple-600 dark:bg-purple-500 text-white hover:bg-purple-700 dark:hover:bg-purple-600 transition"
-              >
-                ⚙️ 관리
-              </button>
-            ` : `
-              <button
-                onclick="window.RankingUI?.openGroupMembersView('${group.groupId}', '${group.name.replace(/'/g, "\\'")}');"
-                class="px-4 py-2 rounded-lg font-bold text-sm bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition"
-              >
-                👥 그룹원 보기
-              </button>
-              <button
-                onclick="window.GroupUI?.handleLeaveGroup('${group.groupId}', '${group.name.replace(/'/g, "\\'")}');"
-                class="px-4 py-2 rounded-lg font-bold text-sm bg-red-600 dark:bg-red-500 text-white hover:bg-red-700 dark:hover:bg-red-600 transition"
-              >
-                탈퇴하기
-              </button>
-            `}
-          </div>
-        </div>
+        <div id="group-expansion-${group.groupId}" class="hidden bg-gray-50 dark:bg-gray-800/50 px-4 pb-4" data-loaded="false">
+            </div>
       </div>
     `;
   });
@@ -1941,9 +1949,10 @@ if (typeof window !== 'undefined') {
   window.RankingUI = {
     openRankingModal,
     closeRankingModal,
-    openGroupManagement,
-    openGroupMembersView,
+    toggleGroupExpansion,
     handleKickButton,
+    handleDelegateButton,
+    handleSingleSelection,
     handleUpdateDescription,
     handleDeleteGroup
   };
