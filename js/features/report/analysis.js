@@ -1,21 +1,29 @@
 /**
- * @fileoverview AI 분석 기능 (v4.0 - Advanced Pipeline for Exam-specific Analysis)
+ * @fileoverview AI 분석 기능 (v5.0 - Batch Mining Architecture)
  * - 2-Stage Analysis: Mining (Flash) -> Synthesis (Pro)
  * - 회계감사 수험 특화 분석 (유형 오판, 키워드 누락, 주체 혼동 정밀 진단)
  * - Enhanced error handling and graceful degradation
  *
- * [v4.0 주요 변경사항]
- * 1. 회계감사 수험 특화 오답 분류:
+ * [v5.0 주요 변경사항]
+ * 1. 배치 마이닝 아키텍처 도입:
+ *    - 분석 대상 확대: 12개 → 60개 (5배 증가)
+ *    - 병렬 처리: 15개씩 청크로 분할하여 동시 처리
+ *    - 재시도 로직: 네트워크 오류 시 최대 2회 재시도
+ *    - 부분 실패 허용: 일부 배치 실패해도 분석 계속 진행
+ * 2. 회계감사 수험 특화 오답 분류 (v4.0 기능 유지):
  *    - Misjudged_Type (유형 판단 오류): 사례형인 척하는 기준서 문제에 속음
  *    - Keyword_Gap (키워드 누락): 내용은 알지만 핵심 용어 누락으로 감점
  *    - Wrong_Subject (주체 혼동): 감사인 vs 경영진 책임 혼동
  *    - Recall_Error (단순 암기 부족): 기준서 회독 수 부족
- * 2. 2-Stage Pipeline 구조:
+ * 3. 2-Stage Pipeline 구조 (v4.0 기능 유지):
  *    - Stage 1 (Mining): Flash 모델로 빠른 데이터 분류
  *    - Stage 2 (Synthesis): Pro 모델로 심층 분석 및 맞춤형 처방
- * 3. 채점위원 페르소나 강화:
+ * 4. 채점위원 페르소나 강화 (v4.0 기능 유지):
  *    - "칼채점 위원"의 냉철한 진단
  *    - "두문자 요정"의 구체적 암기 팁 (예: 성.시.범)
+ *
+ * Version: 5.0.0
+ * Last Updated: 2025-01-22
  */
 
 import { el, $ } from '../../ui/elements.js';
@@ -32,6 +40,75 @@ import { getCurrentUser } from '../auth/authCore.js';
 // ==========================================
 // 1. Helper Functions
 // ==========================================
+
+// v5.0 Configuration
+const BATCH_SIZE = 15; // 각 배치당 문제 수
+const MAX_ANALYSIS_PROBLEMS = 60; // 최대 분석 문제 수 (12 → 60)
+const MAX_RETRIES = 2; // 최대 재시도 횟수
+
+/**
+ * 배열을 지정된 크기의 청크로 분할 (v5.0)
+ * @param {Array} array - 분할할 배열
+ * @param {number} size - 각 청크의 크기
+ * @returns {Array<Array>} - 분할된 배열들의 배열
+ * @example
+ * chunkArray([1, 2, 3, 4, 5, 6, 7], 3)
+ * // 결과: [[1, 2, 3], [4, 5, 6], [7]]
+ */
+function chunkArray(array, size) {
+  const chunks = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+}
+
+/**
+ * 분류 결과로부터 통계 데이터 생성 (v5.0)
+ * @param {Array<Object>} classifications - [{index, type, keyword, diagnosis}, ...]
+ * @returns {Object} - { typeFrequency, typePercentage, totalProblems, ... }
+ */
+function calculateStatistics(classifications) {
+  const typeFrequency = {
+    Misjudged_Type: 0,
+    Keyword_Gap: 0,
+    Wrong_Subject: 0,
+    Recall_Error: 0
+  };
+
+  const keywords = [];
+  let totalProblems = classifications.length;
+
+  classifications.forEach(item => {
+    if (typeFrequency[item.type] !== undefined) {
+      typeFrequency[item.type]++;
+    }
+    if (item.keyword && item.keyword.length > 1) {
+      keywords.push(item.keyword);
+    }
+  });
+
+  // 비율 계산 (0으로 나누기 방지)
+  const typePercentage = {};
+  Object.keys(typeFrequency).forEach(type => {
+    typePercentage[type] = totalProblems > 0
+      ? Math.round((typeFrequency[type] / totalProblems) * 100)
+      : 0;
+  });
+
+  // 가장 많은 유형 찾기
+  const mostCommonType = Object.keys(typeFrequency).sort(
+    (a, b) => typeFrequency[b] - typeFrequency[a]
+  )[0];
+
+  return {
+    counts: typeFrequency,
+    percentages: typePercentage,
+    total: totalProblems,
+    keywords: [...new Set(keywords)].slice(0, 5), // 중복 제거 및 상위 5개
+    mostCommonType
+  };
+}
 
 /**
  * 차트 컨텍스트 추출 (간소화 버전 - v4.0)
@@ -240,6 +317,39 @@ ${JSON.stringify(problems, null, 2)}
   }
 }
 
+/**
+ * 단일 배치의 문제들을 AI로 분석하여 오답 유형 분류 (v5.0)
+ * @param {Array<Object>} problems - 분석할 문제 배열 (최대 15개)
+ * @param {string} apiKey - Gemini API 키
+ * @param {number} retryCount - 현재 재시도 횟수 (내부 사용)
+ * @returns {Promise<Array<Object>>} - 분류 결과 배열
+ */
+async function mineBatch(problems, apiKey, retryCount = 0) {
+  console.log(`🔍 [MineBatch] 배치 처리 시작: ${problems.length}개 문제 (재시도: ${retryCount}/${MAX_RETRIES})`);
+
+  try {
+    // 기존 mineWeaknessData 로직 재사용
+    const result = await mineWeaknessData(problems, apiKey);
+    console.log(`✅ [MineBatch] 배치 처리 성공: ${result.length}개 분류`);
+    return result;
+
+  } catch (error) {
+    console.error(`❌ [MineBatch] 배치 처리 실패 (시도 ${retryCount + 1}/${MAX_RETRIES + 1}):`, error.message);
+
+    // 재시도 로직 (지수 백오프)
+    if (retryCount < MAX_RETRIES) {
+      const delay = Math.pow(2, retryCount) * 1000; // 1초, 2초, 4초...
+      console.log(`⏳ [MineBatch] ${delay}ms 후 재시도...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return mineBatch(problems, apiKey, retryCount + 1);
+    }
+
+    // 최종 실패 시 빈 배열 반환 (전체 프로세스 중단 방지)
+    console.warn(`⚠️ [MineBatch] 최종 실패 - 빈 배열 반환`);
+    return [];
+  }
+}
+
 // ==========================================
 // 3. Stage 2: Synthesis (Pro Model)
 // - 목적: 통계와 대표 사례를 바탕으로 '수험 전략적' 리포트 생성
@@ -401,12 +511,12 @@ export async function startAIAnalysis() {
     }
 
     // ------------------------------------------
-    // Step 1: 데이터 준비 (Hybrid Loading)
+    // Step 1: 데이터 준비 (Hybrid Loading) - v5.0 확대
     // ------------------------------------------
     updateMsg("☁️ 데이터 동기화 및 준비 중...");
 
-    // 최근/중요 오답 최대 12개 추출
-    const targetProblems = weakProblems.slice(0, 12);
+    // v5.0: 최근/중요 오답 최대 60개 추출 (12개 → 60개로 확대)
+    const targetProblems = weakProblems.slice(0, MAX_ANALYSIS_PROBLEMS);
 
     const currentUser = getCurrentUser();
     let serverData = {};
@@ -514,55 +624,57 @@ export async function startAIAnalysis() {
     }
 
     // ------------------------------------------
-    // Step 2: Data Mining (Flash Model)
+    // Step 2: Batch Mining (Flash Model) - v5.0 병렬 처리
     // ------------------------------------------
-    updateMsg("🔍 오답 유형 정밀 분류 중 (Flash)...");
+    updateMsg("🔍 오답 유형 정밀 분류 중 (Batch Mining)...");
 
-    let miningResult = null;
-    try {
-      miningResult = await mineWeaknessData(cleanedProblems, apiKey);
-    } catch (error) {
-      console.error('❌ Mining 단계 실패:', error.message);
-      throw new Error(`오답 분류 실패: ${error.message}`);
-    }
+    // 2-1. 청크 분할 (15개씩)
+    const chunks = chunkArray(cleanedProblems, BATCH_SIZE);
+    console.log(`📦 [Analysis] ${cleanedProblems.length}개 문제를 ${chunks.length}개 배치로 분할`);
 
-    // 안전장치: miningResult 검증
-    if (!miningResult || !Array.isArray(miningResult)) {
-      console.error('❌ Mining 결과가 유효하지 않음:', miningResult);
-      throw new Error('오답 분류 결과가 올바르지 않습니다.');
-    }
-
-    if (miningResult.length === 0) {
-      console.error('❌ Mining 결과가 비어있음');
-      throw new Error('오답 분류 결과가 비어있습니다. 다시 시도해주세요.');
-    }
-
-    // 통계 집계
-    const counts = {
-      Misjudged_Type: 0,
-      Keyword_Gap: 0,
-      Wrong_Subject: 0,
-      Recall_Error: 0
-    };
-    const keywords = [];
-
-    miningResult.forEach(m => {
-      if (counts[m.type] !== undefined) counts[m.type]++;
-      if (m.keyword && m.keyword.length > 1) keywords.push(m.keyword);
+    // 2-2. 병렬 처리
+    const batchPromises = chunks.map((chunk, index) => {
+      console.log(`🔄 [Analysis] 배치 ${index + 1}/${chunks.length} 처리 시작 (${chunk.length}개 문제)`);
+      updateMsg(`🔍 오답 유형 분류 중... (배치 ${index + 1}/${chunks.length})`);
+      return mineBatch(chunk, apiKey);
     });
 
-    const totalAnalyzed = miningResult.length;
-    const stats = {
-      counts,
-      total: totalAnalyzed,
-      percentages: {
-        Misjudged_Type: Math.round(counts.Misjudged_Type / totalAnalyzed * 100) || 0,
-        Keyword_Gap: Math.round(counts.Keyword_Gap / totalAnalyzed * 100) || 0,
-        Wrong_Subject: Math.round(counts.Wrong_Subject / totalAnalyzed * 100) || 0,
-        Recall_Error: Math.round(counts.Recall_Error / totalAnalyzed * 100) || 0
-      },
-      keywords: [...new Set(keywords)].slice(0, 5)
-    };
+    // 2-3. 모든 배치 완료 대기
+    let batchResults;
+    try {
+      batchResults = await Promise.all(batchPromises);
+    } catch (error) {
+      console.error('❌ 배치 처리 중 오류:', error.message);
+      throw new Error(`배치 처리 실패: ${error.message}`);
+    }
+
+    // 2-4. 결과 집계 (flatten)
+    const allClassifications = batchResults.flat();
+    console.log(`✅ [Analysis] 총 ${allClassifications.length}개 문제 분류 완료 (${cleanedProblems.length}개 중)`);
+
+    // 2-5. 빈 결과 검증
+    if (allClassifications.length === 0) {
+      console.error('❌ 모든 배치가 빈 결과 반환');
+      throw new Error('오답 분류에 실패했습니다. 다시 시도해주세요.');
+    }
+
+    // 성공한 배치와 실패한 배치 추적
+    const successfulBatches = batchResults.filter(r => r.length > 0).length;
+    const failedBatches = chunks.length - successfulBatches;
+
+    if (failedBatches > 0) {
+      console.warn(`⚠️ ${failedBatches}개 배치 실패, ${successfulBatches}개 배치 성공`);
+      showToast(`일부 배치(${failedBatches}개) 실패했지만 분석을 계속합니다.`, 'warning');
+    }
+
+    // 2-6. 통계 산출 (v5.0 calculateStatistics 사용)
+    const stats = calculateStatistics(allClassifications);
+    console.log('📊 [Analysis] 통계:', {
+      total: stats.total,
+      percentages: stats.percentages,
+      mostCommon: stats.mostCommonType,
+      keywords: stats.keywords
+    });
 
     // API 과부하 방지 딜레이
     await new Promise(r => setTimeout(r, 1500));
@@ -578,7 +690,7 @@ export async function startAIAnalysis() {
 
     typePriority.forEach(type => {
       if (bestExamples.length >= 3) return;
-      const found = miningResult.find(m => m.type === type);
+      const found = allClassifications.find(m => m.type === type);
       if (found) {
         const original = cleanedProblems.find(p => p.index === found.index);
         if (original) {
