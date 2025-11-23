@@ -397,17 +397,25 @@
         </div>
 
         <div class="bg-white rounded-2xl shadow-xl p-4">
-          <h3 class="font-bold text-lg mb-2">오늘의 복습</h3>
-          <label for="review-strategy-select" class="text-sm block mb-2">우선순위</label>
-          <select id="review-strategy-select" name="review-strategy" class="w-full p-2 border rounded">
-            <option value="smart">지능형 추천 (기본)</option>
-            <option value="hlr">HLR 기반 (회상 확률)</option>
-            <option value="low">점수 낮은 순</option>
-            <option value="recentWrong">최근 틀린 순</option>
-            <option value="oldWrong">오래전 틀린 순</option>
-            <option value="flag">사용자 지정 복습 목록</option>
-          </select>
-          <button id="start-review-btn" class="mt-3 w-full bg-blue-600 text-white py-2 rounded-lg">오늘의 복습 시작</button>
+          <div class="flex items-center justify-between mb-2 cursor-pointer" id="review-toggle">
+            <h3 class="font-bold text-lg">오늘의 복습</h3>
+            <svg class="w-5 h-5 transition-transform duration-200" id="review-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
+
+          <div id="review-content" class="transition-all duration-200">
+            <label for="review-strategy-select" class="text-sm block mb-2">우선순위</label>
+            <select id="review-strategy-select" name="review-strategy" class="w-full p-2 border rounded">
+              <option value="smart">지능형 추천 (기본)</option>
+              <option value="hlr">HLR 기반 (회상 확률)</option>
+              <option value="low">점수 낮은 순</option>
+              <option value="recentWrong">최근 틀린 순</option>
+              <option value="oldWrong">오래전 틀린 순</option>
+              <option value="flag">사용자 지정 복습 목록</option>
+            </select>
+            <button id="start-review-btn" class="mt-3 w-full bg-blue-600 text-white py-2 rounded-lg">오늘의 복습 시작</button>
+          </div>
         </div>
       </aside>
 
@@ -646,11 +654,19 @@
           <div id="explorer-chapters" class="space-y-2 transition-all duration-200"></div>
         </div>
         <div class="bg-white rounded-2xl shadow-xl p-4">
-          <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center justify-between mb-2 cursor-pointer" id="problem-list-toggle">
             <h3 class="font-bold text-lg whitespace-nowrap no-kr-break">문제 목록</h3>
-            <input id="explorer-search" name="explorer-search" class="border rounded px-2 py-1 text-sm" placeholder="검색..." aria-label="문제 검색">
+            <svg class="w-5 h-5 transition-transform duration-200" id="problem-list-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
           </div>
-          <div id="explorer-problems" class="space-y-1 max-h-[60vh] overflow-y-auto pr-1"></div>
+
+          <div id="problem-list-content" class="transition-all duration-200">
+            <div class="mb-2">
+              <input id="explorer-search" name="explorer-search" class="w-full border rounded px-2 py-1 text-sm" placeholder="검색..." aria-label="문제 검색">
+            </div>
+            <div id="explorer-problems" class="space-y-1 max-h-[60vh] overflow-y-auto pr-1"></div>
+          </div>
         </div>
       </aside>
     </div>

@@ -187,10 +187,22 @@ export function initCollapsibleSections() {
   const statsOverviewContent = document.getElementById('stats-overview');
   const statsOverviewIcon = document.getElementById('stats-overview-icon');
 
+  // 오늘의 복습
+  const reviewToggle = document.getElementById('review-toggle');
+  const reviewContent = document.getElementById('review-content');
+  const reviewIcon = document.getElementById('review-icon');
+
+  // 문제 목록
+  const problemListToggle = document.getElementById('problem-list-toggle');
+  const problemListContent = document.getElementById('problem-list-content');
+  const problemListIcon = document.getElementById('problem-list-icon');
+
   // 초기 상태 복원 (localStorage에서)
   const sourceFilterCollapsed = localStorage.getItem('sourceFilterCollapsed') === 'true';
   const chapterNavCollapsed = localStorage.getItem('chapterNavCollapsed') === 'true';
   const statsOverviewCollapsed = localStorage.getItem('statsOverviewCollapsed') === 'true';
+  const reviewCollapsed = localStorage.getItem('reviewCollapsed') === 'true';
+  const problemListCollapsed = localStorage.getItem('problemListCollapsed') === 'true';
 
   if (sourceFilterCollapsed && sourceFilterContent && sourceFilterIcon) {
     sourceFilterContent.classList.add('hidden');
@@ -207,6 +219,16 @@ export function initCollapsibleSections() {
     statsOverviewIcon.style.transform = 'rotate(-90deg)';
   }
 
+  if (reviewCollapsed && reviewContent && reviewIcon) {
+    reviewContent.classList.add('hidden');
+    reviewIcon.style.transform = 'rotate(-90deg)';
+  }
+
+  if (problemListCollapsed && problemListContent && problemListIcon) {
+    problemListContent.classList.add('hidden');
+    problemListIcon.style.transform = 'rotate(-90deg)';
+  }
+
   // 이벤트 리스너 등록
   sourceFilterToggle?.addEventListener('click', () => {
     toggleSection('source-filter-side', 'source-filter-icon', 'sourceFilterCollapsed');
@@ -218,6 +240,14 @@ export function initCollapsibleSections() {
 
   statsOverviewToggle?.addEventListener('click', () => {
     toggleSection('stats-overview', 'stats-overview-icon', 'statsOverviewCollapsed');
+  });
+
+  reviewToggle?.addEventListener('click', () => {
+    toggleSection('review-content', 'review-icon', 'reviewCollapsed');
+  });
+
+  problemListToggle?.addEventListener('click', () => {
+    toggleSection('problem-list-content', 'problem-list-icon', 'problemListCollapsed');
   });
 }
 
