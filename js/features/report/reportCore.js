@@ -714,6 +714,14 @@ export function initReportListeners() {
     });
   }
 
+  // Tab 5: 나만의 요약서 이벤트 리스너
+  el.reportTab5?.addEventListener('click', () => {
+    switchReportTab(5);
+    initSummaryBookUI(); // 처음 열릴 때 챕터 체크박스 초기화
+  });
+
+  el.generateSummaryBookBtn?.addEventListener('click', generateSummaryBook);
+
   // Initialize Audit Flow Map (v5.0)
   initFlowMap();
 }
@@ -731,11 +739,13 @@ function openPdfOptionsModal() {
   const tab2 = document.getElementById('pdf-check-tab2');
   const tab3 = document.getElementById('pdf-check-tab3');
   const tab4 = document.getElementById('pdf-check-tab4');
+  const tab5 = document.getElementById('pdf-check-tab5');
 
   if (tab1) tab1.checked = true;
   if (tab2) tab2.checked = true;
   if (tab3) tab3.checked = true;
-  if (tab4) tab4.checked = true; // Tab 4도 기본 체크
+  if (tab4) tab4.checked = true;
+  if (tab5) tab5.checked = true; // Tab 5도 기본 체크
 
   if (checkAll) checkAll.checked = true; // 전체 선택도 체크
 
@@ -763,9 +773,10 @@ function executePdfExport() {
   const tab2 = document.getElementById('pdf-check-tab2')?.checked || false;
   const tab3 = document.getElementById('pdf-check-tab3')?.checked || false;
   const tab4 = document.getElementById('pdf-check-tab4')?.checked || false;
+  const tab5 = document.getElementById('pdf-check-tab5')?.checked || false;
 
   // 최소 1개는 선택해야 함
-  if (!tab1 && !tab2 && !tab3 && !tab4) {
+  if (!tab1 && !tab2 && !tab3 && !tab4 && !tab5) {
     showToast('최소 1개 탭을 선택해주세요', 'warn');
     return;
   }
@@ -775,7 +786,8 @@ function executePdfExport() {
     { element: document.getElementById('report-content-1'), checked: tab1 },
     { element: document.getElementById('report-content-2'), checked: tab2 },
     { element: document.getElementById('report-content-3'), checked: tab3 },
-    { element: document.getElementById('report-content-4'), checked: tab4 }
+    { element: document.getElementById('report-content-4'), checked: tab4 },
+    { element: document.getElementById('report-content-5'), checked: tab5 }
   ];
 
   contents.forEach(({ element, checked }) => {
@@ -857,4 +869,195 @@ function updateCheckAllStatus() {
     const allChecked = Array.from(checkboxes).every(cb => cb.checked);
     checkAll.checked = allChecked;
   }
+}
+
+// ============================================
+// Tab 5: 나만의 요약서 (Summary Book)
+// ============================================
+
+/**
+ * Tab 5 초기화 및 챕터 체크박스 생성
+ */
+function initSummaryBookUI() {
+  const container = document.getElementById('summary-chapter-filters');
+  if (!container || container.dataset.initialized) return;
+
+  // 챕터 1~20 체크박스 생성
+  const chapters = Array.from({ length: 20 }, (_, i) => i + 1);
+
+  let html = `<label class="flex items-center space-x-1 text-sm mr-3 mb-2"><input type="checkbox" id="chk-chapter-all" class="rounded" checked> <span class="font-bold">전체</span></label>`;
+
+  chapters.forEach(ch => {
+    html += `<label class="flex items-center space-x-1 text-sm mr-3 mb-2"><input type="checkbox" class="chk-chapter rounded" value="${ch}" checked> <span>${ch}장</span></label>`;
+  });
+
+  container.innerHTML = html;
+  container.dataset.initialized = 'true';
+
+  // 전체 선택/해제 로직
+  const allChk = document.getElementById('chk-chapter-all');
+  allChk?.addEventListener('change', (e) => {
+    document.querySelectorAll('.chk-chapter').forEach(cb => cb.checked = e.target.checked);
+  });
+}
+
+/**
+ * 요약서 데이터 필터링 및 생성
+ */
+export function generateSummaryBook() {
+  const questionScores = JSON.parse(localStorage.getItem('questionScores') || '{}');
+  const allData = window.allData || [];
+  const resultContainer = document.getElementById('summary-book-result');
+
+  if (!resultContainer) {
+    showToast('요약서 컨테이너를 찾을 수 없습니다', 'error');
+    return;
+  }
+
+  // 1. 필터 조건 수집
+  const selectedChapters = Array.from(document.querySelectorAll('.chk-chapter:checked')).map(cb => cb.value);
+  const selectedSources = Array.from(document.querySelectorAll('.chk-source:checked')).map(cb => cb.value);
+
+  const scoreFilters = Array.from(document.querySelectorAll('.chk-condition:checked')).map(cb => cb.value);
+  const includeExcluded = scoreFilters.includes('excluded');
+
+  // 표시 옵션
+  const showModelAnswer = document.getElementById('show-model-answer')?.checked || false;
+  const showMyScore = document.getElementById('show-my-score')?.checked || false;
+  const showMemoryTip = document.getElementById('show-memory-tip')?.checked || false;
+  const showAiFeedback = document.getElementById('show-ai-feedback')?.checked || false;
+
+  // 2. 출처 그룹 판별 함수 (filterCore.js의 detectSourceGroup 간소화 버전)
+  const detectSourceGroup = (source) => {
+    if (!source) return 'other';
+    const s = source.toUpperCase();
+    if (/^(S|H|HS)$/.test(s)) return 'basic';
+    if (/^(SS|P)$/.test(s)) return 'advanced';
+    if (/^(S|H|HS|SS|P)$/.test(s)) return 'basic-advanced';
+    return 'other';
+  };
+
+  // 3. 데이터 필터링
+  let filtered = allData.filter(q => {
+    const qid = normId(q.고유ID);
+    const record = questionScores[qid] || {};
+    const ch = String(q.단원 || '').trim();
+    const sourceGroup = detectSourceGroup(q.출처);
+
+    // 3-1. 단원 필터
+    if (!selectedChapters.includes(ch)) return false;
+
+    // 3-2. 출처 필터
+    if (sourceGroup === 'basic-advanced') {
+      if (!selectedSources.includes('basic') && !selectedSources.includes('advanced')) return false;
+    } else {
+      if (!selectedSources.includes(sourceGroup)) return false;
+    }
+
+    // 3-3. 상태/점수 필터 (OR 조건)
+    let matchCondition = false;
+    const score = record.score !== undefined ? record.score : null;
+
+    if (scoreFilters.includes('score60') && score !== null && score < 60) matchCondition = true;
+    if (scoreFilters.includes('score70') && score !== null && score < 70) matchCondition = true;
+    if (scoreFilters.includes('score80') && score !== null && score < 80) matchCondition = true;
+    if (scoreFilters.includes('score90') && score !== null && score < 90) matchCondition = true;
+    if (scoreFilters.includes('flagged') && record.userReviewFlag) matchCondition = true;
+
+    // 복습 제외 항목 처리
+    if (record.userReviewExclude && !includeExcluded) return false;
+
+    return matchCondition;
+  });
+
+  // 4. 정렬 (단원 -> 번호)
+  filtered.sort((a, b) => {
+    const chA = +(a.단원 || 999);
+    const chB = +(b.단원 || 999);
+    if (chA !== chB) return chA - chB;
+
+    const noA = +(a.표시번호 || a.물음번호 || 0);
+    const noB = +(b.표시번호 || b.물음번호 || 0);
+    return noA - noB;
+  });
+
+  // 5. HTML 렌더링
+  if (filtered.length === 0) {
+    resultContainer.innerHTML = `
+      <div class="text-center py-20 text-gray-500 dark:text-gray-400">
+        <p class="text-xl">조건에 맞는 문제가 없습니다.</p>
+        <p class="text-sm mt-2">필터 조건을 변경해보세요.</p>
+      </div>
+    `;
+    return;
+  }
+
+  let html = `
+    <div class="summary-book-header text-center mb-8 border-b-2 border-gray-800 dark:border-gray-600 pb-4">
+      <h1 class="text-3xl font-black mb-2 text-gray-900 dark:text-white">나만의 회계감사 요약서</h1>
+      <p class="text-sm text-gray-600 dark:text-gray-400">생성일: ${new Date().toLocaleDateString()} | 총 ${filtered.length}문제</p>
+    </div>
+  `;
+
+  let currentChapter = null;
+
+  filtered.forEach(q => {
+    const chNum = +(q.단원 || 0);
+    const qid = normId(q.고유ID);
+    const record = questionScores[qid] || {};
+
+    // 챕터 헤더
+    if (chNum !== currentChapter) {
+      html += `
+        <div class="chapter-header mt-6 mb-4 pb-2 border-b-2 border-gray-400 dark:border-gray-600 text-lg font-bold text-blue-800 dark:text-blue-400 break-inside-avoid">
+          ${chapterLabelText(chNum)}
+        </div>
+      `;
+      currentChapter = chNum;
+    }
+
+    // 문제 카드
+    const scoreBadgeColor = (record.score >= 80) ? 'text-green-600' : (record.score >= 60 ? 'text-yellow-600' : 'text-red-600');
+    const flagIcon = record.userReviewFlag ? '<span class="text-yellow-500">★</span>' : '';
+    const excludeIcon = record.userReviewExclude ? '<span class="text-gray-400">➖</span>' : '';
+
+    html += `
+      <div class="problem-card mb-6 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600 break-inside-avoid">
+        <div class="flex justify-between items-start mb-2">
+          <h4 class="font-bold text-base text-gray-900 dark:text-white pr-2">
+            ${flagIcon}${excludeIcon} [${q.출처 || ''}] ${q.problemTitle || '문항 ' + (q.표시번호 || q.고유ID)}
+          </h4>
+          ${showMyScore ? `<span class="text-sm font-bold ${scoreBadgeColor}">${record.score || 0}점</span>` : ''}
+        </div>
+
+        <div class="question-text text-sm text-gray-700 dark:text-gray-300 mb-3 font-medium">
+          Q. ${q.물음 || ''}
+        </div>
+
+        ${showModelAnswer ? `
+          <div class="model-answer text-sm bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-600 text-blue-900 dark:text-blue-100 whitespace-pre-wrap">
+            <span class="font-bold text-xs text-blue-500 block mb-1">모범 답안</span>
+            ${q.정답 || ''}
+          </div>
+        ` : ''}
+
+        ${showMemoryTip && record.memoryTip ? `
+          <div class="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-sm text-gray-800 dark:text-gray-200">
+            <span class="font-bold text-xs text-yellow-600 dark:text-yellow-400 block mb-1">💡 암기팁</span>
+            ${record.memoryTip}
+          </div>
+        ` : ''}
+
+        ${showAiFeedback && record.feedback ? `
+          <div class="mt-2 p-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs text-gray-600 dark:text-gray-400">
+            <span class="font-bold text-gray-500 dark:text-gray-400 block mb-1">🤖 AI 총평</span>
+            ${record.feedback}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  });
+
+  resultContainer.innerHTML = html;
+  showToast(`${filtered.length}개 문제로 요약서가 생성되었습니다.`);
 }

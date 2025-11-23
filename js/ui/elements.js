@@ -140,6 +140,14 @@ export function initElements() {
     dailyDatePicker: $('daily-date-picker'),
     dailyProblemList: $('daily-problem-list'),
 
+    // Report Tab 5 - Summary Book
+    reportTab5: $('report-tab-5'),
+    reportContent5: $('report-content-5'),
+    summaryChapterFilters: $('summary-chapter-filters'),
+    generateSummaryBookBtn: $('generate-summary-book-btn'),
+    summaryBookResult: $('summary-book-result'),
+    pdfCheckTab5: $('pdf-check-tab5'),
+
     // AI Analysis
     aiAnalysisStartBtn: $('ai-analysis-start-btn'),
     aiAnalysisResult: $('ai-analysis-result'),
