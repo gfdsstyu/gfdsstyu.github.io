@@ -7,6 +7,7 @@ import { normId } from '../../utils/helpers.js';
 import { isPartValue } from '../../config/config.js';
 import { showToast } from '../../ui/domUtils.js';
 import { detectSourceGroup, getFilteredByUI } from '../filter/filterCore.js';
+import { loadReadStore, computeUniqueReadsFromHistory } from '../../core/storageManager.js';
 import {
   getElements,
   getCurrentQuizData,
@@ -93,6 +94,18 @@ export function displayQuestion() {
   console.log('✅ 퀴즈 영역 표시 시도');
   el.quizArea?.classList.remove('hidden');
 
+  // 회독 수 계산
+  const qid = normId(q.고유ID);
+  const questionScores = getQuestionScores();
+  const saved = questionScores[qid];
+
+  // ReadStore에서 회독 정보 가져오기 (없으면 히스토리에서 계산)
+  const readStore = loadReadStore();
+  const rs = readStore[qid];
+  const reads = rs && Number.isFinite(rs.uniqueReads)
+    ? rs.uniqueReads
+    : computeUniqueReadsFromHistory(saved?.solveHistory || []).uniqueReads;
+
   // 문제 정보 표시
   if (el.questionNumber) {
     const questionLabel = `문항 ${q.표시번호 || q.물음번호 || q.고유ID}`;
@@ -119,6 +132,7 @@ export function displayQuestion() {
     el.questionNumber.innerHTML = `
       ${questionLabel}
       <span class="ml-2 text-xs px-2 py-0.5 rounded-full border ${badgeClass}">${sourceBadge}</span>
+      <span class="ml-1 text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300 dark:bg-indigo-900 dark:text-indigo-300 dark:border-indigo-700" title="현재까지의 총 회독 수">📚 ${reads}회독</span>
     `;
   }
   if (el.questionText) {
@@ -153,10 +167,7 @@ export function displayQuestion() {
   }
   setPrevLoaded(false);
 
-  // 저장된 점수 표시
-  const questionScores = getQuestionScores();
-  const saved = questionScores[normId(q.고유ID)];
-
+  // 저장된 점수 표시 (questionScores, saved는 위에서 이미 선언됨)
   updateFlagButtonsUI(saved);
 
   if (saved && saved.score !== undefined) {
