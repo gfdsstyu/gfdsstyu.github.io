@@ -248,7 +248,8 @@ export async function handleGrade() {
       lastSolvedDate: Date.now(),
       solveHistory: newHistory,
       userReviewFlag: !!existing.userReviewFlag,
-      userReviewExclude: !!existing.userReviewExclude
+      userReviewExclude: !!existing.userReviewExclude,
+      memoryTip: existing.memoryTip // 암기팁 보존
     };
 
     // StateManager를 통한 점수 저장
