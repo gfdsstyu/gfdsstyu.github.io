@@ -115,6 +115,23 @@ export function enterFocusMode() {
   // focus-mode 클래스 추가
   document.documentElement.classList.add('focus-mode');
 
+  // Phase 4.0: Zen Mode 레이아웃 변경 - 사이드바 숨김 & 중앙 확장
+  const leftPanel = document.getElementById('left-dashboard');
+  const rightPanel = document.getElementById('right-explorer');
+  const centerCore = document.getElementById('center-core');
+
+  if (leftPanel) leftPanel.classList.add('hidden');
+  if (rightPanel) rightPanel.classList.add('hidden');
+
+  if (centerCore) {
+    // 기존 col-span 클래스 제거 및 전체 너비/중앙 정렬 적용
+    centerCore.classList.remove('lg:col-span-6', 'xl:col-span-6', '2xl:col-span-6');
+    centerCore.classList.add('lg:col-span-12', 'max-w-4xl', 'mx-auto');
+  }
+
+  // 헤더 숨김 (완전 몰입)
+  if (el.fixedHeader) el.fixedHeader.classList.add('hidden');
+
   // 결과 박스 준비
   ensureResultBoxReady();
 
@@ -123,7 +140,6 @@ export function enterFocusMode() {
   const margin = 12;
   const y = header.getBoundingClientRect().top +
             window.pageYOffset -
-            (el.fixedHeader?.getBoundingClientRect().height || 0) -
             margin;
 
   window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
@@ -143,6 +159,22 @@ export function exitToDashboard() {
 
   // focus-mode 클래스 제거
   document.documentElement.classList.remove('focus-mode');
+
+  // Phase 4.0: Zen Mode 레이아웃 복원
+  const leftPanel = document.getElementById('left-dashboard');
+  const rightPanel = document.getElementById('right-explorer');
+  const centerCore = document.getElementById('center-core');
+
+  if (leftPanel) leftPanel.classList.remove('hidden');
+  if (rightPanel) rightPanel.classList.remove('hidden');
+
+  if (centerCore) {
+    centerCore.classList.add('lg:col-span-6', 'xl:col-span-6', '2xl:col-span-6');
+    centerCore.classList.remove('lg:col-span-12', 'max-w-4xl', 'mx-auto');
+  }
+
+  // 헤더 복원
+  if (el.fixedHeader) el.fixedHeader.classList.remove('hidden');
 
   // 요약 영역으로 스크롤
   if (el.summaryArea) {
