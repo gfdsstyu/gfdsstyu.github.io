@@ -435,6 +435,7 @@ export async function syncToFirestore(userId, specificQid = null) {
         lastSolvedDate: detailedData.lastSolvedDate || Date.now(),
         hintUsed: !!detailedData.hintUsed,
         memoryTipUsed: !!detailedData.memoryTipUsed,
+        memoryTip: detailedData.memoryTip || null, // 암기팁 보존
         updatedAt: serverTimestamp()
       }, { merge: true });
 

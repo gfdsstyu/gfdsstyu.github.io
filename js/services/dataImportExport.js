@@ -74,6 +74,7 @@ export function mergeQuizScores(existing, imported) {
         // 상세 내용은 '채워진 쪽'을 우선 (위에서 결정한 로직)
         feedback: shouldUseImportedFeedback ? importedData.feedback : existingData.feedback,
         user_answer: shouldUseImportedAnswer ? importedData.user_answer : existingData.user_answer,
+        memoryTip: existingData.memoryTip || importedData.memoryTip, // 암기팁 보존 (로컬 우선)
 
         solveHistory: uniqueHistory
       };
