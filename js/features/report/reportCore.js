@@ -973,14 +973,18 @@ export function generateSummaryBook() {
     }
 
     // 3-3. 상태/점수 필터 (OR 조건)
-    let matchCondition = false;
+    // 필터가 없으면 모든 문제 허용, 필터가 있으면 하나라도 만족해야 함
+    let matchCondition = scoreFilters.length === 0; // 필터 없으면 true로 시작
     const score = record.score !== undefined ? record.score : null;
 
-    if (scoreFilters.includes('score60') && score !== null && score < 60) matchCondition = true;
-    if (scoreFilters.includes('score70') && score !== null && score < 70) matchCondition = true;
-    if (scoreFilters.includes('score80') && score !== null && score < 80) matchCondition = true;
-    if (scoreFilters.includes('score90') && score !== null && score < 90) matchCondition = true;
-    if (scoreFilters.includes('flagged') && record.userReviewFlag) matchCondition = true;
+    if (!matchCondition) {
+      // 필터가 있을 때만 조건 체크
+      if (scoreFilters.includes('score60') && score !== null && score < 60) matchCondition = true;
+      if (scoreFilters.includes('score70') && score !== null && score < 70) matchCondition = true;
+      if (scoreFilters.includes('score80') && score !== null && score < 80) matchCondition = true;
+      if (scoreFilters.includes('score90') && score !== null && score < 90) matchCondition = true;
+      if (scoreFilters.includes('flagged') && record.userReviewFlag) matchCondition = true;
+    }
 
     // 복습 제외 항목 처리
     if (record.userReviewExclude && !includeExcluded) return false;
