@@ -7,7 +7,9 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-  serverTimestamp
+  serverTimestamp,
+  collection,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 import { db } from '../../app.js';
@@ -76,10 +78,13 @@ export function toFirestoreFormat(localScores) {
  * @param {Object} firestoreScores - Firestore의 userScores
  * @returns {Object} localStorage 형식의 questionScores
  */
-export function toLocalStorageFormat(firestoreScores) {
+export function toLocalStorageFormat(firestoreScores, subcollectionData = {}) {
   const localScores = {};
 
   Object.entries(firestoreScores).forEach(([qid, data]) => {
+    // Subcollection에서 상세 데이터 가져오기
+    const detailedData = subcollectionData[qid] || {};
+
     localScores[qid] = {
       score: data.score ?? 0,
       lastSolvedDate: data.lastSolvedDate ?? Date.now(),
@@ -87,16 +92,41 @@ export function toLocalStorageFormat(firestoreScores) {
       userReviewFlag: !!data.userReviewFlag,
       userReviewExclude: !!data.userReviewExclude,
 
-      // Firestore에 없는 필드는 기본값 설정
-      feedback: '', // 복원 불가
-      user_answer: '', // 복원 불가
-      hintUsed: false,
-      memoryTipUsed: false,
+      // Subcollection에서 복원 (있으면 사용, 없으면 기본값)
+      feedback: detailedData.feedback || '',
+      user_answer: detailedData.user_answer || '',
+      memoryTip: detailedData.memoryTip || null, // ⚠️ CRITICAL: 암기팁 복원
+      hintUsed: detailedData.hintUsed !== undefined ? detailedData.hintUsed : false,
+      memoryTipUsed: detailedData.memoryTipUsed !== undefined ? detailedData.memoryTipUsed : false,
       isSolved: true // 점수가 있으면 풀이한 것으로 간주
     };
   });
 
   return localScores;
+}
+
+/**
+ * Firestore subcollection (users/{uid}/records/*) 데이터 로드
+ * @param {string} userId - 사용자 UID
+ * @returns {Promise<Object>} { qid: { feedback, user_answer, memoryTip, ... } }
+ */
+export async function loadSubcollectionData(userId) {
+  try {
+    const recordsRef = collection(db, 'users', userId, 'records');
+    const querySnapshot = await getDocs(recordsRef);
+
+    const subcollectionData = {};
+    querySnapshot.forEach((doc) => {
+      const qid = doc.id;
+      subcollectionData[qid] = doc.data();
+    });
+
+    console.log(`   - Subcollection records: ${Object.keys(subcollectionData).length}개`);
+    return subcollectionData;
+  } catch (error) {
+    console.error('❌ Subcollection 로드 실패:', error);
+    return {};
+  }
 }
 
 // ============================================
@@ -234,6 +264,10 @@ export async function syncOnLogin(userId) {
     const cloudScores = userData.userScores || {};
     const localScores = getQuestionScores();
 
+    // ⚠️ CRITICAL: Subcollection 데이터 로드 (memoryTip, feedback, user_answer 복원용)
+    console.log('🔄 Subcollection 데이터 로드 중...');
+    const subcollectionData = await loadSubcollectionData(userId);
+
     const cloudCount = Object.keys(cloudScores).length;
     const localCount = Object.keys(localScores).length;
 
@@ -275,7 +309,7 @@ export async function syncOnLogin(userId) {
     } else if (cloudCount > 0 && localCount === 0) {
       // Cloud만 있음 → Local로 다운로드
       console.log('📥 questionScores: Cloud → Local 동기화 중...');
-      const convertedScores = toLocalStorageFormat(cloudScores);
+      const convertedScores = toLocalStorageFormat(cloudScores, subcollectionData);
       setQuestionScores(convertedScores);
       saveQuestionScores();
       console.log(`✅ ${cloudCount}개 문제 다운로드 완료`);
@@ -293,7 +327,7 @@ export async function syncOnLogin(userId) {
     } else {
       // 양쪽 모두 있음 → 병합
       console.log('🔀 questionScores: Cloud ↔ Local 병합 중...');
-      const convertedCloudScores = toLocalStorageFormat(cloudScores);
+      const convertedCloudScores = toLocalStorageFormat(cloudScores, subcollectionData);
       const mergedScores = mergeQuizScores(localScores, convertedCloudScores);
 
       // Local에 병합 결과 저장
