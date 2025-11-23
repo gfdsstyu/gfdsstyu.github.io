@@ -28,7 +28,10 @@ export function openReportModal() {
   el.reportModal?.classList.remove('hidden');
   el.reportModal?.classList.add('flex');
   // Delay chart generation to ensure modal is rendered
-  setTimeout(() => generateReport(), 50);
+  setTimeout(() => {
+    generateReport();
+    initSummaryBookUI(); // Tab 5 챕터 체크박스 초기화
+  }, 50);
 }
 
 /**
@@ -905,18 +908,33 @@ function initSummaryBookUI() {
  * 요약서 데이터 필터링 및 생성
  */
 export function generateSummaryBook() {
+  console.log('📑 요약서 생성 시작...');
+
   const questionScores = JSON.parse(localStorage.getItem('questionScores') || '{}');
   const allData = window.allData || [];
   const resultContainer = document.getElementById('summary-book-result');
 
+  console.log(`   - allData: ${allData.length}개 문제`);
+  console.log(`   - questionScores: ${Object.keys(questionScores).length}개 기록`);
+
   if (!resultContainer) {
+    console.error('❌ summary-book-result 컨테이너 없음');
     showToast('요약서 컨테이너를 찾을 수 없습니다', 'error');
+    return;
+  }
+
+  if (allData.length === 0) {
+    console.warn('⚠️ allData가 비어있음');
+    showToast('문제 데이터가 로드되지 않았습니다', 'warn');
     return;
   }
 
   // 1. 필터 조건 수집
   const selectedChapters = Array.from(document.querySelectorAll('.chk-chapter:checked')).map(cb => cb.value);
   const selectedSources = Array.from(document.querySelectorAll('.chk-source:checked')).map(cb => cb.value);
+
+  console.log(`   - 선택된 단원: ${selectedChapters.length}개`, selectedChapters);
+  console.log(`   - 선택된 출처: ${selectedSources.join(', ')}`);
 
   const scoreFilters = Array.from(document.querySelectorAll('.chk-condition:checked')).map(cb => cb.value);
   const includeExcluded = scoreFilters.includes('excluded');
