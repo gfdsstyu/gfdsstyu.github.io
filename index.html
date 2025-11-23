@@ -39,9 +39,15 @@
   <!-- Phase 3.6: Firebase Extensions를 사용하여 이메일 발송 (EmailJS 제거됨) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <!-- Phase 4.0: Digital Library 폰트 - Pretendard (UI용), Ridibatang (본문용) -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css" />
+  <link href="https://cdn.jsdelivr.net/npm/ridibatang@1.0.0/dist/web/static/ridibatang.min.css" rel="stylesheet">
+
   <style>
-    body { font-family: 'Noto Sans KR', sans-serif; }
+    body { font-family: 'Pretendard', 'Noto Sans KR', sans-serif; }
+    /* 본문용 세리프 클래스 별도 정의 */
+    .font-serif { font-family: 'Ridibatang', serif; }
     .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .summary-btn{ width:38px;height:38px;font-size:.8rem;line-height:1;display:flex;align-items:center;justify-content:center;padding:0 2px;transition:.2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis }
@@ -363,7 +369,7 @@
       <aside id="left-dashboard" class="lg:col-span-3 xl:col-span-3 2xl:col-span-3 space-y-4">
         <button id="drawer-close" class="hidden lg:hidden absolute top-2 right-2 z-[1101] inline-flex items-center justify-center w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700" aria-label="닫기">✕</button>
 
-        <div class="bg-white rounded-2xl shadow-xl p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-4">
           <div class="flex items-center justify-between mb-2">
             <h3 class="font-bold text-lg">학습 캘린더</h3>
             <div class="flex items-center gap-2">
@@ -379,14 +385,14 @@
           <div class="mt-2 text-[11px] text-gray-500">색 = 해당일 풀이량 (노랑→초록→파랑)</div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-xl p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-4">
           <button id="open-report-btn" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold py-3 rounded-lg shadow-md hover:from-blue-600 hover:to-purple-700 transition duration-200 flex items-center justify-center gap-2">
             <span>📊</span>
             <span>학습 리포트 생성</span>
           </button>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-xl p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-4">
           <div class="flex items-center justify-between mb-2 cursor-pointer" id="stats-overview-toggle">
             <h3 class="font-bold text-lg">오늘의 통계</h3>
             <svg class="w-5 h-5 transition-transform duration-200" id="stats-overview-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -396,7 +402,7 @@
           <div id="stats-overview" class="text-sm space-y-1 transition-all duration-200"></div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-xl p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-4">
           <h3 class="font-bold text-lg mb-2">오늘의 복습</h3>
           <label for="review-strategy-select" class="text-sm block mb-2">우선순위</label>
           <select id="review-strategy-select" name="review-strategy" class="w-full p-2 border rounded">
@@ -413,7 +419,7 @@
 
       <!-- CENTER -->
       <main id="center-core" class="lg:col-span-6 xl:col-span-6 2xl:col-span-6">
-        <div class="bg-white rounded-2xl shadow-xl w-full p-6 md:p-8">
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm w-full p-6 md:p-8">
           <div class="flex flex-col md:flex-row gap-4 mb-6 items-center">
             <div class="flex-1 w-full">
               <label for="chapter-select" class="block text-sm font-medium text-gray-700 mb-1">단원 선택</label>
@@ -460,7 +466,7 @@
                     <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400">물음</h3>
                   </button>
                   <div id="flashcard-question-box" class="hidden">
-                    <p id="flashcard-question" class="text-base text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">-</p>
+                    <p id="flashcard-question" class="font-serif text-base text-gray-800 dark:text-gray-200 leading-loose whitespace-pre-wrap">-</p>
                   </div>
                 </div>
 
@@ -506,7 +512,7 @@
               </div>
               <div id="db-question-id" class="text-xs text-gray-500 hidden">ID: -</div>
 
-              <p id="question-text" class="text-gray-800 text-base md:text-lg leading-relaxed mt-2">문제를 불러오는 중입니다...</p>
+              <p id="question-text" class="font-serif text-gray-800 dark:text-gray-200 text-base md:text-lg leading-loose mt-4 mb-6">문제를 불러오는 중입니다...</p>
 
               <!-- 힌트/복습 버튼 영역 -->
               <div class="mt-3 flex items-center justify-between gap-2">
@@ -554,7 +560,7 @@
 
             <!-- 답안 입력 영역: 음성입력 버튼 포함 -->
             <div class="relative">
-              <textarea id="user-answer" name="user-answer" class="w-full p-4 pb-12 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=포커스/현황판)"></textarea>
+              <textarea id="user-answer" name="user-answer" class="w-full p-4 pb-12 text-lg leading-relaxed bg-transparent border-0 border-b-2 border-gray-100 dark:border-gray-700 focus:ring-0 focus:border-blue-500 transition dark:text-gray-100 placeholder-gray-300 dark:placeholder-gray-500 resize-none" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=포커스/현황판)"></textarea>
 
               <!-- 음성입력 버튼: textarea 오른쪽 하단에 floating -->
               <button id="record-btn" class="absolute bottom-2 right-2 p-2 min-w-[36px] bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md flex items-center justify-center gap-0.5" data-state="idle" title="음성 입력 (STT)">
@@ -627,7 +633,7 @@
 
       <!-- RIGHT -->
       <aside id="right-explorer" class="lg:col-span-3 xl:col-span-3 2xl:col-span-3 space-y-4">
-        <div class="bg-white rounded-2xl shadow-xl p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-4">
           <div class="flex items-center justify-between mb-2 cursor-pointer" id="source-filter-toggle">
             <h3 class="font-bold text-lg">학습 범위 필터</h3>
             <svg class="w-5 h-5 transition-transform duration-200" id="source-filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -636,7 +642,7 @@
           </div>
           <div id="source-filter-side" class="transition-all duration-200"></div>
         </div>
-        <div class="bg-white rounded-2xl shadow-xl p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-4">
           <div class="flex items-center justify-between mb-2 cursor-pointer" id="chapter-nav-toggle">
             <h3 class="font-bold text-lg">단원 네비게이터</h3>
             <svg class="w-5 h-5 transition-transform duration-200" id="chapter-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -645,7 +651,7 @@
           </div>
           <div id="explorer-chapters" class="space-y-2 transition-all duration-200"></div>
         </div>
-        <div class="bg-white rounded-2xl shadow-xl p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-4">
           <div class="flex items-center justify-between mb-2">
             <h3 class="font-bold text-lg whitespace-nowrap no-kr-break">문제 목록</h3>
             <input id="explorer-search" name="explorer-search" class="border rounded px-2 py-1 text-sm" placeholder="검색..." aria-label="문제 검색">
@@ -687,7 +693,7 @@
 
   <!-- 업적 모달 -->
   <div id="achievements-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1002] p-4 overflow-y-auto">
-    <div role="dialog" aria-modal="true" aria-labelledby="achievements-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-4xl shadow-xl max-h-[90vh] overflow-y-auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="achievements-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
       <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
         <h2 id="achievements-title" class="text-2xl font-bold">🏆 나의 업적</h2>
         <button id="achievements-close-btn" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl leading-none" aria-label="닫기">×</button>
@@ -731,7 +737,7 @@
 
   <!-- Phase 3.3: 소셜 모달 (랭킹 & 그룹) -->
   <div id="ranking-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1002] p-4 overflow-y-auto">
-    <div role="dialog" aria-modal="true" aria-labelledby="ranking-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-5xl shadow-xl max-h-[90vh] overflow-y-auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="ranking-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg w-full max-w-5xl max-h-[90vh] overflow-y-auto">
       <!-- 헤더 -->
       <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
         <h2 id="ranking-title" class="text-2xl font-bold">📊 소셜</h2>
@@ -1010,7 +1016,7 @@
 
   <!-- Phase 3.5.2: 그룹 생성 모달 -->
   <div id="create-group-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1100] p-4">
-    <div role="dialog" aria-modal="true" aria-labelledby="create-group-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="create-group-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
       <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
         <h2 id="create-group-title" class="text-2xl font-bold">➕ 그룹 만들기</h2>
         <button id="create-group-close-btn" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl leading-none" aria-label="닫기">×</button>
@@ -1112,7 +1118,7 @@
 
   <!-- Phase 3.5.2: 그룹 검색/가입 모달 -->
   <div id="search-group-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1100] p-4">
-    <div role="dialog" aria-modal="true" aria-labelledby="search-group-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-3xl shadow-xl max-h-[90vh] overflow-y-auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="search-group-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
       <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
         <h2 id="search-group-title" class="text-2xl font-bold">🔍 그룹 찾기</h2>
         <button id="search-group-close-btn" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl leading-none" aria-label="닫기">×</button>
@@ -1149,7 +1155,7 @@
   <!-- Phase 3.6: 대학교 이메일 인증 모달 -->
   <!-- ======================================== -->
   <div id="university-verify-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[9999] p-4">
-    <div role="dialog" aria-modal="true" aria-labelledby="university-verify-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="university-verify-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
       <!-- 헤더 -->
       <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
         <h2 id="university-verify-title" class="text-2xl font-bold">🎓 대학교 이메일 인증</h2>
@@ -1230,7 +1236,7 @@
 
   <!-- 설정 모달 -->
   <div id="settings-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1001]">
-    <div role="dialog" aria-modal="true" aria-labelledby="settings-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-2xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="settings-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-2">
         <h2 id="settings-title" class="text-2xl font-bold">설정 ⚙️</h2>
         <button id="settings-close-btn" class="text-gray-500 hover:text-gray-800 dark:hover:text-white" aria-label="닫기">✕</button>
@@ -1385,7 +1391,7 @@
 
   <!-- 학습 리포트 모달 -->
   <div id="report-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1002] p-4 overflow-y-auto">
-    <div role="dialog" aria-modal="true" aria-labelledby="report-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-5xl shadow-xl max-h-[90vh] overflow-y-auto" style="-webkit-overflow-scrolling: touch;">
+    <div role="dialog" aria-modal="true" aria-labelledby="report-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg w-full max-w-5xl max-h-[90vh] overflow-y-auto" style="-webkit-overflow-scrolling: touch;">
       <!-- 헤더 -->
       <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-6 z-10">
   <div class="flex items-center justify-between mb-4">
@@ -1996,7 +2002,7 @@
     <div id="login-modal-backdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
 
     <!-- 모달 컨텐츠 -->
-    <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+    <div class="relative bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg max-w-md w-full mx-4 overflow-hidden">
       <!-- 헤더 -->
       <div class="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 flex items-center justify-between">
         <h2 class="text-xl font-bold text-white">감린이 로그인</h2>
@@ -2164,7 +2170,7 @@
     <div id="profile-modal-backdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
 
     <!-- 모달 컨텐츠 -->
-    <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+    <div class="relative bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg max-w-md w-full mx-4 overflow-hidden">
       <!-- 헤더 -->
       <div class="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-4 flex items-center justify-between">
         <h2 class="text-xl font-bold text-white">⚙️ 내 정보 관리</h2>
