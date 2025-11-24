@@ -44,6 +44,15 @@ const MIN_PROBLEMS_FOR_AVG = {
 };
 
 // ============================================
+// Snapshot Cache (올인원 스냅샷 최적화)
+// ============================================
+
+// 스냅샷 캐시 (메모리에 저장하여 재사용)
+let rankingSnapshotCache = null;
+let snapshotCacheTimestamp = null;
+const SNAPSHOT_CACHE_DURATION = 6 * 60 * 60 * 1000; // 6시간 (밀리초)
+
+// ============================================
 // Modal Open/Close
 // ============================================
 
@@ -1040,69 +1049,116 @@ async function loadRankings() {
 }
 
 /**
- * Phase 3.4: rankings 컬렉션에서 랭킹 데이터 가져오기
+ * 🚀 올인원 스냅샷 기반 랭킹 데이터 가져오기 (최적화)
+ *
+ * 작동 방식:
+ * 1. ranking_cache 컬렉션에서 스냅샷 1개만 읽음 (서버 읽기 1회)
+ * 2. 메모리에 캐싱하여 탭 전환 시 서버 통신 0회
+ * 3. 모든 필터링/정렬은 클라이언트(브라우저)에서 처리
+ *
  * @param {string} period - 'daily', 'weekly', 'monthly'
  * @param {string} criteria - 'totalScore', 'problems', 'avgScore'
  * @returns {Promise<Array>} 랭킹 배열
  */
 async function fetchRankings(period, criteria) {
-  const rankingsRef = collection(db, 'rankings');
+  console.log(`📊 [Ranking] 스냅샷 기반 랭킹 조회 - period: ${period}, criteria: ${criteria}`);
 
-  // 현재 기간 키 (예: '2025-01-17', '2025-W03', '2025-01')
+  // 1. 스냅샷 로드 (캐시 확인 후 필요시 서버에서 가져오기)
+  const snapshot = await loadRankingSnapshot();
+
+  if (!snapshot || !snapshot.users) {
+    console.warn('⚠️ [Ranking] 스냅샷 데이터가 없습니다.');
+    return [];
+  }
+
+  // 2. 현재 기간 키 생성
   const periodKey = getPeriodKeyForQuery();
+  console.log(`🔍 [Ranking] 기간 키: ${periodKey}, 총 ${snapshot.users.length}명 데이터`);
 
-  console.log(`📊 [Ranking] 랭킹 조회 시작 - period: ${period}, criteria: ${criteria}, periodKey: ${periodKey}`);
-
-  // rankings 컬렉션에서 모든 사용자 가져오기
-  const snapshot = await getDocs(rankingsRef);
-
-  console.log(`🔍 [Ranking DEBUG] 총 ${snapshot.size}개의 ranking 문서 발견`);
-
+  // 3. 로컬 필터링 (브라우저에서 처리)
   let rankings = [];
-  snapshot.forEach(doc => {
-    const rankingData = doc.data();
-    console.log(`🔍 [Ranking DEBUG] 문서 ${doc.id}:`, rankingData);
 
-    // 기간별 데이터 추출 (flat field structure)
-    const fieldName = `${period}.${periodKey}`;
-    const periodData = rankingData[fieldName];
-
-    console.log(`🔍 [Ranking DEBUG] ${doc.id}의 필드명 "${fieldName}" 데이터:`, periodData);
+  snapshot.users.forEach(user => {
+    // 기간별 데이터 추출
+    const periodData = user[period]?.[periodKey];
 
     if (!periodData) {
-      console.log(`🔍 [Ranking DEBUG] ${doc.id} - ${period}[${periodKey}] 데이터 없음, 제외`);
       return; // 해당 기간 데이터 없으면 제외
     }
 
-    // ✅ 평균점수 기준일 때: 최소 문제 수 필터링
+    // 평균점수 기준일 때: 최소 문제 수 필터링
     if (criteria === 'avgScore') {
       const minProblems = MIN_PROBLEMS_FOR_AVG[period];
-      console.log(`🔍 [Ranking DEBUG] ${doc.id} - avgScore 필터링: problems=${periodData.problems}, 최소=${minProblems}`);
       if (periodData.problems < minProblems) {
-        console.log(`🔍 [Ranking DEBUG] ${doc.id} - 최소 문제 수 미달로 제외`);
         return; // 제외
       }
     }
 
     rankings.push({
-      userId: rankingData.userId || doc.id,
-      nickname: rankingData.nickname || '익명',
+      userId: user.userId,
+      nickname: user.nickname || '익명',
       totalScore: periodData.totalScore || 0,
       problems: periodData.problems || 0,
       avgScore: periodData.avgScore || 0
     });
   });
 
-  // 기준에 따라 정렬
+  // 4. 로컬 정렬 (브라우저에서 처리)
   rankings.sort((a, b) => {
     const aValue = a[criteria];
     const bValue = b[criteria];
     return bValue - aValue;
   });
 
-  console.log(`✅ [Ranking] ${rankings.length}명의 랭킹 데이터 로드 완료`);
+  console.log(`✅ [Ranking] ${rankings.length}명의 랭킹 데이터 처리 완료 (서버 읽기: 0회)`);
 
   return rankings;
+}
+
+/**
+ * 랭킹 스냅샷 로드 (캐시 우선, 만료 시 서버에서 다시 로드)
+ * @returns {Promise<Object|null>} 스냅샷 데이터
+ */
+async function loadRankingSnapshot() {
+  const now = Date.now();
+
+  // 캐시가 유효한지 확인
+  if (rankingSnapshotCache && snapshotCacheTimestamp) {
+    const elapsed = now - snapshotCacheTimestamp;
+    if (elapsed < SNAPSHOT_CACHE_DURATION) {
+      console.log(`📦 [Ranking] 캐시된 스냅샷 사용 (${Math.floor(elapsed / 60000)}분 경과)`);
+      return rankingSnapshotCache;
+    } else {
+      console.log(`⏰ [Ranking] 캐시 만료 (${Math.floor(elapsed / 60000)}분 경과), 새로 로드...`);
+    }
+  }
+
+  // 서버에서 스냅샷 로드
+  try {
+    console.log(`🌐 [Ranking] ranking_cache에서 스냅샷 다운로드 중...`);
+
+    const snapshotDocRef = doc(db, 'ranking_cache', 'snapshot');
+    const snapshotDoc = await getDoc(snapshotDocRef);
+
+    if (!snapshotDoc.exists()) {
+      console.error('❌ [Ranking] 스냅샷이 존재하지 않습니다. 관리자에게 문의하세요.');
+      return null;
+    }
+
+    const data = snapshotDoc.data();
+
+    // 캐시에 저장
+    rankingSnapshotCache = data;
+    snapshotCacheTimestamp = now;
+
+    console.log(`✅ [Ranking] 스냅샷 로드 완료 - 생성시각: ${data.generatedAt?.toDate?.() || '알 수 없음'}`);
+    console.log(`   - 사용자 수: ${data.users?.length || 0}명`);
+
+    return data;
+  } catch (error) {
+    console.error('❌ [Ranking] 스냅샷 로드 실패:', error);
+    return null;
+  }
 }
 
 /**
