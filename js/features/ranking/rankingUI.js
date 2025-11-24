@@ -453,8 +453,12 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
         const userDocRef = doc(db, 'users', member.userId);
         const userDocSnap = await getDoc(userDocRef);
 
+        console.log(`🔍 [GroupMembers] ${member.userId} 문서 존재:`, userDocSnap.exists());
+
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
+          console.log(`🔍 [GroupMembers] ${member.userId} 전체 데이터:`, userData);
+
           statusMessage = userData.profile?.statusMessage || '';
 
           // 대표 업적 불러오기
@@ -472,20 +476,29 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
           }
 
           // 업적 점수 계산 (achievements 객체의 모든 달성된 업적 점수 합계)
+          console.log(`🔍 [GroupMembers] ${member.userId} achievements 필드:`, userData.achievements);
+
           if (userData.achievements) {
-            console.log(`🔍 [GroupMembers] ${member.userId} achievements:`, userData.achievements);
+            console.log(`🔍 [GroupMembers] ${member.userId} achievements 키들:`, Object.keys(userData.achievements));
 
             // ACHIEVEMENTS config에서 포인트 가져오기
             const { ACHIEVEMENTS } = await import('../../config/config.js');
 
-            achievementPoints = Object.keys(userData.achievements)
-              .filter(achievementId => userData.achievements[achievementId]?.unlocked === true)
-              .reduce((sum, achievementId) => {
-                const points = ACHIEVEMENTS[achievementId]?.points || 0;
-                return sum + points;
-              }, 0);
+            const unlockedAchievements = Object.keys(userData.achievements)
+              .filter(achievementId => {
+                const isUnlocked = userData.achievements[achievementId]?.unlocked === true;
+                console.log(`  - ${achievementId}: unlocked=${isUnlocked}, points=${ACHIEVEMENTS[achievementId]?.points || 0}`);
+                return isUnlocked;
+              });
 
-            console.log(`✅ [GroupMembers] ${member.userId} 업적 점수: ${achievementPoints}점`);
+            achievementPoints = unlockedAchievements.reduce((sum, achievementId) => {
+              const points = ACHIEVEMENTS[achievementId]?.points || 0;
+              return sum + points;
+            }, 0);
+
+            console.log(`✅ [GroupMembers] ${member.userId} 업적 점수: ${achievementPoints}점 (${unlockedAchievements.length}개 업적)`);
+          } else {
+            console.warn(`⚠️ [GroupMembers] ${member.userId} achievements 필드가 없음`);
           }
         }
       } catch (error) {
@@ -710,9 +723,13 @@ function showMemberTooltip(e) {
   `;
 
   document.body.appendChild(tooltip);
+  console.log('✅ [Tooltip] 말풍선 body에 추가됨');
 
-  // 위치 계산
-  positionTooltip(tile, tooltip);
+  // 렌더링 후 위치 계산 (DOM이 완전히 렌더링된 후)
+  requestAnimationFrame(() => {
+    positionTooltip(tile, tooltip);
+    console.log('📍 [Tooltip] 위치 계산 완료');
+  });
 
   // 타일 이동 시 말풍선 위치 업데이트
   tile._tooltipUpdateInterval = setInterval(() => {
@@ -747,12 +764,17 @@ function positionTooltip(tile, tooltip) {
   const tileRect = tile.getBoundingClientRect();
   const tooltipRect = tooltip.firstElementChild.getBoundingClientRect();
 
+  console.log('📐 [Tooltip] tileRect:', tileRect);
+  console.log('📐 [Tooltip] tooltipRect:', tooltipRect);
+
   // 타일 위쪽 중앙에 위치
   const left = tileRect.left + (tileRect.width / 2) - (tooltipRect.width / 2);
   const top = tileRect.top - tooltipRect.height - 8; // 8px 간격
 
   tooltip.style.left = `${Math.max(10, left)}px`;
   tooltip.style.top = `${Math.max(10, top)}px`;
+
+  console.log('📍 [Tooltip] 최종 위치:', { left: tooltip.style.left, top: tooltip.style.top });
 }
 
 /**
