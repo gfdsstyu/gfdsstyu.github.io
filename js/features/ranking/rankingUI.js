@@ -473,9 +473,19 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
 
           // 업적 점수 계산 (achievements 객체의 모든 달성된 업적 점수 합계)
           if (userData.achievements) {
-            achievementPoints = Object.values(userData.achievements)
-              .filter(achievement => achievement.unlocked === true)
-              .reduce((sum, achievement) => sum + (achievement.points || 0), 0);
+            console.log(`🔍 [GroupMembers] ${member.userId} achievements:`, userData.achievements);
+
+            // ACHIEVEMENTS config에서 포인트 가져오기
+            const { ACHIEVEMENTS } = await import('../../config/config.js');
+
+            achievementPoints = Object.keys(userData.achievements)
+              .filter(achievementId => userData.achievements[achievementId]?.unlocked === true)
+              .reduce((sum, achievementId) => {
+                const points = ACHIEVEMENTS[achievementId]?.points || 0;
+                return sum + points;
+              }, 0);
+
+            console.log(`✅ [GroupMembers] ${member.userId} 업적 점수: ${achievementPoints}점`);
           }
         }
       } catch (error) {
@@ -556,8 +566,21 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
       const tileColor = getMemberTileColor(member.dailyProblems);
 
       html += `
-        <div class="relative group">
-          <div class="p-3 rounded-lg ${tileColor} transition-transform hover:scale-105 cursor-pointer h-24 flex flex-col justify-center relative">
+        <div class="relative">
+          <div
+            class="member-tile p-3 rounded-lg ${tileColor} transition-transform hover:scale-105 cursor-pointer h-24 flex flex-col justify-center relative"
+            data-member-data='${JSON.stringify({
+              nickname: member.nickname,
+              isOwner: memberIsOwner,
+              statusMessage: member.statusMessage || '',
+              featuredAchievement: member.featuredAchievement,
+              dailyScore: member.dailyScore,
+              dailyProblems: member.dailyProblems,
+              weeklyScore: member.weeklyScore,
+              weeklyProblems: member.weeklyProblems,
+              achievementPoints: member.achievementPoints
+            }).replace(/'/g, "&#39;")}'
+          >
              ${isOwner && !memberIsOwner ? `
               <input
                 type="checkbox"
@@ -578,27 +601,10 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
               />
             ` : ''}
 
-
             <div class="flex flex-col items-center text-center">
               <div class="text-lg font-bold mb-1">${member.dailyScore}<span class="text-xs">점</span></div>
               <div class="text-xs font-medium truncate w-full">
                 ${memberIsOwner ? '👑' : ''}${member.nickname}
-              </div>
-            </div>
-
-            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-[9999] pointer-events-none">
-              <div class="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg p-3 shadow-xl min-w-max max-w-xs pointer-events-auto">
-                <div class="font-bold mb-2 text-center">${member.nickname} ${memberIsOwner ? '👑' : ''}</div>
-                ${member.statusMessage ? `<div class="text-center mb-2 px-2 py-1 bg-white/10 dark:bg-gray-900/10 rounded italic">💬 "${member.statusMessage}"</div>` : ''}
-                ${member.featuredAchievement ? `<div class="text-center mb-2 px-2 py-1 bg-blue-500/20 dark:bg-blue-500/30 rounded font-medium">⭐ ${member.featuredAchievement.icon} ${member.featuredAchievement.name}</div>` : ''}
-                <div class="space-y-1">
-                    <div>📅 일: ${member.dailyScore}점 (${member.dailyProblems}문제)</div>
-                    <div>📊 주: ${member.weeklyScore}점 (${member.weeklyProblems}문제)</div>
-                    <div>🏆 업적: ${member.achievementPoints}점</div>
-                </div>
-                 <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                  <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-100"></div>
-                </div>
               </div>
             </div>
           </div>
@@ -632,10 +638,107 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
     html += `</div>`; // End space-y-4
     container.innerHTML = html;
 
+    // 말풍선 이벤트 리스너 추가
+    attachMemberTooltipListeners();
+
   } catch (error) {
     console.error('❌ [RankingUI] 그룹 상세 로드 실패:', error);
     container.innerHTML = '<p class="text-center text-red-500">정보를 불러오는데 실패했습니다.</p>';
   }
+}
+
+/**
+ * 그룹원 타일에 말풍선 이벤트 리스너 추가
+ */
+function attachMemberTooltipListeners() {
+  // 기존 말풍선 제거
+  const existingTooltip = document.getElementById('member-tooltip');
+  if (existingTooltip) {
+    existingTooltip.remove();
+  }
+
+  // 모든 멤버 타일에 이벤트 추가
+  document.querySelectorAll('.member-tile').forEach(tile => {
+    tile.addEventListener('mouseenter', showMemberTooltip);
+    tile.addEventListener('mouseleave', hideMemberTooltip);
+  });
+}
+
+/**
+ * 그룹원 말풍선 표시
+ */
+function showMemberTooltip(e) {
+  const tile = e.currentTarget;
+  const memberData = JSON.parse(tile.getAttribute('data-member-data'));
+
+  // 기존 말풍선 제거
+  hideMemberTooltip();
+
+  // 말풍선 생성
+  const tooltip = document.createElement('div');
+  tooltip.id = 'member-tooltip';
+  tooltip.className = 'fixed z-[99999] pointer-events-none';
+
+  tooltip.innerHTML = `
+    <div class="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg p-3 shadow-2xl min-w-max max-w-xs">
+      <div class="font-bold mb-2 text-center">${memberData.nickname} ${memberData.isOwner ? '👑' : ''}</div>
+      ${memberData.statusMessage ? `<div class="text-center mb-2 px-2 py-1 bg-white/10 dark:bg-gray-900/10 rounded italic">💬 "${memberData.statusMessage}"</div>` : ''}
+      ${memberData.featuredAchievement ? `<div class="text-center mb-2 px-2 py-1 bg-blue-500/20 dark:bg-blue-500/30 rounded font-medium">⭐ ${memberData.featuredAchievement.icon} ${memberData.featuredAchievement.name}</div>` : ''}
+      <div class="space-y-1">
+        <div>📅 일: ${memberData.dailyScore}점 (${memberData.dailyProblems}문제)</div>
+        <div>📊 주: ${memberData.weeklyScore}점 (${memberData.weeklyProblems}문제)</div>
+        <div>🏆 업적: ${memberData.achievementPoints}점</div>
+      </div>
+      <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+        <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-100"></div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(tooltip);
+
+  // 위치 계산
+  positionTooltip(tile, tooltip);
+
+  // 타일 이동 시 말풍선 위치 업데이트
+  tile._tooltipUpdateInterval = setInterval(() => {
+    if (document.body.contains(tooltip)) {
+      positionTooltip(tile, tooltip);
+    }
+  }, 100);
+}
+
+/**
+ * 그룹원 말풍선 숨기기
+ */
+function hideMemberTooltip() {
+  const tooltip = document.getElementById('member-tooltip');
+  if (tooltip) {
+    tooltip.remove();
+  }
+
+  // 위치 업데이트 인터벌 제거
+  document.querySelectorAll('.member-tile').forEach(tile => {
+    if (tile._tooltipUpdateInterval) {
+      clearInterval(tile._tooltipUpdateInterval);
+      tile._tooltipUpdateInterval = null;
+    }
+  });
+}
+
+/**
+ * 말풍선 위치 계산
+ */
+function positionTooltip(tile, tooltip) {
+  const tileRect = tile.getBoundingClientRect();
+  const tooltipRect = tooltip.firstElementChild.getBoundingClientRect();
+
+  // 타일 위쪽 중앙에 위치
+  const left = tileRect.left + (tileRect.width / 2) - (tooltipRect.width / 2);
+  const top = tileRect.top - tooltipRect.height - 8; // 8px 간격
+
+  tooltip.style.left = `${Math.max(10, left)}px`;
+  tooltip.style.top = `${Math.max(10, top)}px`;
 }
 
 /**
