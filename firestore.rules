@@ -22,8 +22,8 @@ service cloud.firestore {
     // ============================================
 
     match /users/{userId} {
-      // 읽기: 본인만 가능
-      allow read: if isOwner(userId);
+      // 읽기: 모든 인증된 사용자 가능 (그룹 멤버 프로필, 업적 조회용)
+      allow read: if isAuthenticated();
 
       // 쓰기: 본인만 가능
       allow write: if isOwner(userId);
@@ -144,6 +144,18 @@ service cloud.firestore {
 
       // 수정/삭제 불가 (한 번 인증되면 고정)
       allow update, delete: if false;
+    }
+
+    // ============================================
+    // Ranking Cache Collection (스냅샷 기반 랭킹 시스템)
+    // ============================================
+
+    match /ranking_cache/{document} {
+      // 읽기: 모든 인증된 사용자 가능
+      allow read: if isAuthenticated();
+
+      // 쓰기: 서버 사이드만 가능 (Cloud Functions)
+      allow write: if false;
     }
 
     // ============================================
