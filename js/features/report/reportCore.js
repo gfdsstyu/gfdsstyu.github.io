@@ -1093,9 +1093,9 @@ export function generateSummaryBook() {
         </div>
 
         ${showModelAnswer ? `
-          <div class="model-answer text-sm bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-600 text-blue-900 dark:text-blue-100 whitespace-pre-wrap">
+          <div class="model-answer text-sm bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-600 text-blue-900 dark:text-blue-100 whitespace-pre-line">
             <span class="font-bold text-xs text-blue-500 block mb-1">모범 답안</span>
-            ${q.정답 || ''}
+            ${(q.정답 || '').split('\n').map(line => line.trim()).join('\n')}
           </div>
         ` : ''}
 
