@@ -910,6 +910,13 @@ function initSummaryBookUI() {
 export function generateSummaryBook() {
   console.log('📑 요약서 생성 시작...');
 
+  // ⚠️ CRITICAL: 체크박스가 없으면 먼저 초기화
+  const container = document.getElementById('summary-chapter-filters');
+  if (container && !container.dataset.initialized) {
+    console.log('   ⚠️ 체크박스 미초기화 감지 - 강제 초기화 실행');
+    initSummaryBookUI();
+  }
+
   const questionScores = JSON.parse(localStorage.getItem('questionScores') || '{}');
   const allData = window.allData || [];
   const resultContainer = document.getElementById('summary-book-result');
@@ -936,6 +943,18 @@ export function generateSummaryBook() {
   console.log(`   - 선택된 단원: ${selectedChapters.length}개`, selectedChapters);
   console.log(`   - 선택된 출처: ${selectedSources.join(', ')}`);
 
+  // ⚠️ 체크박스가 전혀 없으면 중단
+  if (selectedChapters.length === 0) {
+    console.error('❌ 단원 체크박스가 하나도 없습니다!');
+    showToast('단원 필터를 불러올 수 없습니다. 페이지를 새로고침 해주세요.', 'error');
+    return;
+  }
+
+  if (selectedSources.length === 0) {
+    console.error('❌ 출처 체크박스가 하나도 없습니다!');
+    showToast('출처 필터를 불러올 수 없습니다. 페이지를 새로고침 해주세요.', 'error');
+    return;
+  }
   const scoreFilters = Array.from(document.querySelectorAll('.chk-condition:checked')).map(cb => cb.value);
   const includeExcluded = scoreFilters.includes('excluded');
 
