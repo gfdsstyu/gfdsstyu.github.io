@@ -267,6 +267,15 @@ export function initUIListeners() {
   const el = window.el;
   if (!el) return;
 
+  // 페이지 로드 시 초기 레이아웃 설정
+  if (window.innerWidth >= 1024) {
+    // 데스크톱: 좌측 패널 보이도록 (hidden 제거)
+    el.leftDashboard?.classList.remove('hidden');
+  } else {
+    // 모바일: 좌측 패널 숨기도록 (hidden 유지)
+    el.leftDashboard?.classList.add('hidden');
+  }
+
   // Hamburger menu - open drawer
   el.hamburger?.addEventListener('click', openDrawer);
 
@@ -282,21 +291,18 @@ export function initUIListeners() {
     if (!el) return;
 
     if (window.innerWidth >= 1024) {
-      // Desktop: close drawer, but keep hidden class (Tailwind lg:block will override it)
+      // 데스크톱: drawer 닫고 좌측 패널 보이기
       el.drawerBackdrop?.classList.add('hidden');
       document.body?.classList.remove('drawer-open');
       el.leftDashboard?.classList.remove('fixed', 'inset-0', 'z-[1100]', 'p-4', 'overflow-y-auto', 'bg-white', 'dark:bg-gray-900', 'relative');
       el.drawerClose?.classList.add('hidden');
-
-      // Ensure hidden class is present (Tailwind lg:block will show it on desktop)
-      if (!el.leftDashboard?.classList.contains('hidden')) {
-        el.leftDashboard?.classList.add('hidden');
-      }
+      el.leftDashboard?.classList.remove('hidden');
     } else {
-      // Mobile: ensure drawer is closed
-      if (!el.leftDashboard?.classList.contains('hidden')) {
-        el.leftDashboard?.classList.add('hidden');
-      }
+      // 모바일: drawer 닫고 좌측 패널 숨기기
+      el.drawerBackdrop?.classList.add('hidden');
+      el.leftDashboard?.classList.remove('fixed', 'inset-0', 'z-[1100]', 'p-4', 'overflow-y-auto', 'bg-white', 'dark:bg-gray-900', 'relative');
+      el.drawerClose?.classList.add('hidden');
+      el.leftDashboard?.classList.add('hidden');
     }
   });
 
