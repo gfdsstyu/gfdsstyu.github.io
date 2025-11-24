@@ -958,6 +958,8 @@ export function generateSummaryBook() {
   const scoreFilters = Array.from(document.querySelectorAll('.chk-condition:checked')).map(cb => cb.value);
   const includeExcluded = scoreFilters.includes('excluded');
 
+  console.log(`   - 선택된 조건: ${scoreFilters.length}개`, scoreFilters);
+
   // 표시 옵션
   const showModelAnswer = document.getElementById('show-model-answer')?.checked || false;
   const showMyScore = document.getElementById('show-my-score')?.checked || false;
@@ -974,6 +976,11 @@ export function generateSummaryBook() {
     return 'other';
   };
 
+  // 🔍 디버깅: 필터 단계별 통과 개수 추적
+  let passChapter = 0;
+  let passSource = 0;
+  let passCondition = 0;
+
   // 3. 데이터 필터링
   let filtered = allData.filter(q => {
     const qid = normId(q.고유ID);
@@ -983,6 +990,7 @@ export function generateSummaryBook() {
 
     // 3-1. 단원 필터
     if (!selectedChapters.includes(ch)) return false;
+    passChapter++;
 
     // 3-2. 출처 필터
     if (sourceGroup === 'basic-advanced') {
@@ -990,6 +998,7 @@ export function generateSummaryBook() {
     } else {
       if (!selectedSources.includes(sourceGroup)) return false;
     }
+    passSource++;
 
     // 3-3. 상태/점수 필터 (OR 조건)
     // 필터가 없으면 모든 문제 허용, 필터가 있으면 하나라도 만족해야 함
@@ -1008,8 +1017,15 @@ export function generateSummaryBook() {
     // 복습 제외 항목 처리
     if (record.userReviewExclude && !includeExcluded) return false;
 
+    if (matchCondition) passCondition++;
     return matchCondition;
   });
+
+  console.log(`   📊 필터링 통과 현황:`);
+  console.log(`      - 단원 필터 통과: ${passChapter}개`);
+  console.log(`      - 출처 필터 통과: ${passSource}개`);
+  console.log(`      - 조건 필터 통과: ${passCondition}개`);
+  console.log(`      - 최종 결과: ${filtered.length}개`);
 
   // 4. 정렬 (단원 -> 번호)
   filtered.sort((a, b) => {
