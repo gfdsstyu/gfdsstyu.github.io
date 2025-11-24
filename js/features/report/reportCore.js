@@ -12,6 +12,7 @@ import { renderDailyVolumeChart, renderScoreTrendChart, renderChapterWeaknessCha
 import { showToast, closeDrawer } from '../../ui/domUtils.js';
 import { LocalHLRPredictor, EnhancedHLRPredictor, calculateRecallProbability } from '../review/hlrDataset.js';
 import { initFlowMap, updateFlowMapUI } from './flowMap.js';
+import { getQuestionScores } from '../../core/stateManager.js';
 
 // Module state
 let reportCharts = {};
@@ -917,7 +918,7 @@ export function generateSummaryBook() {
     initSummaryBookUI();
   }
 
-  const questionScores = JSON.parse(localStorage.getItem('questionScores') || '{}');
+  const questionScores = getQuestionScores(); // ✅ 올바른 방법으로 데이터 가져오기
   const allData = window.allData || [];
   const resultContainer = document.getElementById('summary-book-result');
 
