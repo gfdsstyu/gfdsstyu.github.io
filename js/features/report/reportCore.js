@@ -1091,27 +1091,18 @@ export function generateSummaryBook() {
         <div class="question-text text-sm text-gray-700 dark:text-gray-300 mb-3 font-medium">
           Q. ${q.물음 || ''}
         </div>
-
-        ${showModelAnswer ? `
-          <div class="model-answer text-sm bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-600 text-blue-900 dark:text-blue-100 whitespace-pre-wrap">
+        ${showModelAnswer ? `<div class="model-answer text-sm bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-600 text-blue-900 dark:text-blue-100 whitespace-pre-line">
             <span class="font-bold text-xs text-blue-500 block mb-1">모범 답안</span>
-            ${q.정답 || ''}
-          </div>
-        ` : ''}
-
-        ${showMemoryTip && record.memoryTip ? `
-          <div class="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-sm text-gray-800 dark:text-gray-200">
+            ${(q.정답 || '').trim().split('\n').map(line => line.trim()).join('\n')}
+          </div>` : ''}
+        ${showMemoryTip && record.memoryTip ? `<div class="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-sm text-gray-800 dark:text-gray-200">
             <span class="font-bold text-xs text-yellow-600 dark:text-yellow-400 block mb-1">💡 암기팁</span>
             ${record.memoryTip}
-          </div>
-        ` : ''}
-
-        ${showAiFeedback && record.feedback ? `
-          <div class="mt-2 p-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs text-gray-600 dark:text-gray-400">
+          </div>` : ''}
+        ${showAiFeedback && record.feedback ? `<div class="mt-2 p-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs text-gray-600 dark:text-gray-400">
             <span class="font-bold text-gray-500 dark:text-gray-400 block mb-1">🤖 AI 총평</span>
             ${record.feedback}
-          </div>
-        ` : ''}
+          </div>` : ''}
       </div>
     `;
   });
