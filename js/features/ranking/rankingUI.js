@@ -570,8 +570,8 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
               </div>
             </div>
 
-            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-20">
-              <div class="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg p-3 shadow-xl min-w-max max-w-xs">
+            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-[9999] pointer-events-none">
+              <div class="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg p-3 shadow-xl min-w-max max-w-xs pointer-events-auto">
                 <div class="font-bold mb-2 text-center">${member.nickname} ${memberIsOwner ? '👑' : ''}</div>
                 ${member.statusMessage ? `<div class="text-center mb-2 px-2 py-1 bg-white/10 dark:bg-gray-900/10 rounded italic">💬 "${member.statusMessage}"</div>` : ''}
                 <div class="space-y-1">
