@@ -493,9 +493,11 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
             const unlockedAchievements = Object.keys(userData.achievements)
               .filter(achievementId => {
                 const achievementData = userData.achievements[achievementId];
-                const isUnlocked = achievementData?.unlocked === true;
+                // unlockedAt 필드가 존재하면 잠금 해제된 것으로 판단
+                const isUnlocked = achievementData?.unlockedAt != null;
                 console.log(`  - ${achievementId}:`, {
                   raw: achievementData,
+                  hasUnlockedAt: achievementData?.unlockedAt != null,
                   unlocked: isUnlocked,
                   points: ACHIEVEMENTS[achievementId]?.points || 0
                 });
@@ -715,7 +717,9 @@ function showMemberTooltip(e) {
   // 말풍선 생성
   const tooltip = document.createElement('div');
   tooltip.id = 'member-tooltip';
-  tooltip.className = 'fixed z-[99999] pointer-events-none';
+  tooltip.className = 'fixed pointer-events-none';
+  // z-index를 인라인 스타일로 명시적 설정 (Tailwind z-[99999]가 안 먹혀서)
+  tooltip.style.zIndex = '99999';
 
   tooltip.innerHTML = `
     <div class="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg p-3 shadow-2xl min-w-max max-w-xs">
