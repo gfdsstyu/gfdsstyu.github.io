@@ -481,13 +481,24 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
           if (userData.achievements) {
             console.log(`🔍 [GroupMembers] ${member.userId} achievements 키들:`, Object.keys(userData.achievements));
 
+            // 첫 번째 업적의 실제 구조 확인
+            const firstKey = Object.keys(userData.achievements)[0];
+            if (firstKey) {
+              console.log(`🔍 [샘플] ${firstKey} 실제 데이터 구조:`, JSON.stringify(userData.achievements[firstKey], null, 2));
+            }
+
             // ACHIEVEMENTS config에서 포인트 가져오기
             const { ACHIEVEMENTS } = await import('../../config/config.js');
 
             const unlockedAchievements = Object.keys(userData.achievements)
               .filter(achievementId => {
-                const isUnlocked = userData.achievements[achievementId]?.unlocked === true;
-                console.log(`  - ${achievementId}: unlocked=${isUnlocked}, points=${ACHIEVEMENTS[achievementId]?.points || 0}`);
+                const achievementData = userData.achievements[achievementId];
+                const isUnlocked = achievementData?.unlocked === true;
+                console.log(`  - ${achievementId}:`, {
+                  raw: achievementData,
+                  unlocked: isUnlocked,
+                  points: ACHIEVEMENTS[achievementId]?.points || 0
+                });
                 return isUnlocked;
               });
 
@@ -725,10 +736,29 @@ function showMemberTooltip(e) {
   document.body.appendChild(tooltip);
   console.log('✅ [Tooltip] 말풍선 body에 추가됨');
 
+  // DOM 요소 상태 확인
+  const computedStyle = window.getComputedStyle(tooltip);
+  console.log('🎨 [Tooltip] CSS 상태:', {
+    display: computedStyle.display,
+    visibility: computedStyle.visibility,
+    opacity: computedStyle.opacity,
+    zIndex: computedStyle.zIndex,
+    position: computedStyle.position
+  });
+
   // 렌더링 후 위치 계산 (DOM이 완전히 렌더링된 후)
   requestAnimationFrame(() => {
     positionTooltip(tile, tooltip);
     console.log('📍 [Tooltip] 위치 계산 완료');
+
+    // 최종 위치 확인
+    const finalStyle = window.getComputedStyle(tooltip);
+    console.log('🎨 [Tooltip] 최종 CSS:', {
+      left: finalStyle.left,
+      top: finalStyle.top,
+      width: finalStyle.width,
+      height: finalStyle.height
+    });
   });
 
   // 타일 이동 시 말풍선 위치 업데이트
