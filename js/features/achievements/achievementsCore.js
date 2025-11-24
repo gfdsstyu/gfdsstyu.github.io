@@ -14,6 +14,7 @@ import { syncAchievementsToFirestore } from '../sync/syncCore.js';
 
 // Module state
 let achievementsData = {};
+let featuredAchievementId = null; // 대표 업적 ID
 
 /**
  * Load achievements from localStorage
@@ -34,6 +35,73 @@ export function saveAchievements() {
   try {
     localStorage.setItem(ACHIEVEMENTS_LS_KEY, JSON.stringify(achievementsData));
   } catch {}
+}
+
+/**
+ * Set featured achievement
+ * @param {string} achievementId - Achievement ID to feature
+ */
+export async function setFeaturedAchievement(achievementId) {
+  // Check if achievement is unlocked
+  if (!achievementsData[achievementId]) {
+    showToast('잠금 해제된 업적만 대표로 설정할 수 있습니다.', 'warn');
+    return { success: false };
+  }
+
+  featuredAchievementId = achievementId;
+  localStorage.setItem('featuredAchievement', achievementId);
+
+  // Sync to Firestore
+  const currentUser = getCurrentUser();
+  if (currentUser) {
+    try {
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js');
+      const { db } = await import('../../app.js');
+
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userDocRef, {
+        'profile.featuredAchievement': achievementId
+      });
+
+      const achievement = ACHIEVEMENTS[achievementId];
+      showToast(`대표 업적: ${achievement.icon} ${achievement.name}`, 'success');
+
+      return { success: true };
+    } catch (error) {
+      console.error('❌ [Achievements] 대표 업적 Firestore 저장 실패:', error);
+      showToast('대표 업적 저장에 실패했습니다.', 'error');
+      return { success: false };
+    }
+  }
+
+  return { success: true };
+}
+
+/**
+ * Load featured achievement
+ */
+export function loadFeaturedAchievement() {
+  const stored = localStorage.getItem('featuredAchievement');
+  if (stored) {
+    featuredAchievementId = stored;
+  }
+}
+
+/**
+ * Get featured achievement
+ * @returns {Object|null} Featured achievement object or null
+ */
+export function getFeaturedAchievement() {
+  if (!featuredAchievementId) return null;
+  return ACHIEVEMENTS[featuredAchievementId] || null;
+}
+
+/**
+ * Get featured achievement ID
+ * @returns {string|null}
+ */
+export function getFeaturedAchievementId() {
+  return featuredAchievementId;
 }
 
 /**
@@ -755,6 +823,7 @@ export function checkFlashcardAchievements() {
  */
 export function openAchievementsModal() {
   loadAchievements();
+  loadFeaturedAchievement();
   renderAchievements();
   el.achievementsModal?.classList.remove('hidden');
   el.achievementsModal?.classList.add('flex');
@@ -848,6 +917,8 @@ export function createAchievementCard(achievement, isUnlocked) {
     hidden: '🤫'
   };
 
+  const isFeatured = featuredAchievementId === achievement.id;
+
   div.className = `bg-gradient-to-r ${tierColors[achievement.tier]} dark:from-gray-800 dark:to-gray-700 border rounded-lg p-4 ${isUnlocked ? '' : 'opacity-50 grayscale'}`;
   div.innerHTML = `
     <div class="flex items-start gap-3">
@@ -857,12 +928,33 @@ export function createAchievementCard(achievement, isUnlocked) {
           <h3 class="font-bold text-gray-900 dark:text-gray-100">${achievement.name}</h3>
           <span class="text-xs">${tierIcons[achievement.tier]}</span>
           ${isUnlocked ? '<span class="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">달성</span>' : ''}
+          ${isFeatured ? '<span class="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">⭐ 대표</span>' : ''}
         </div>
         <p class="text-sm text-gray-700 dark:text-gray-300">${achievement.desc}</p>
-        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">+ ${achievement.points}P</div>
+        <div class="flex items-center justify-between mt-2">
+          <div class="text-xs text-gray-500 dark:text-gray-400">+ ${achievement.points}P</div>
+          ${isUnlocked ? `
+            <button
+              class="set-featured-btn text-xs px-3 py-1 rounded ${isFeatured ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}"
+              data-achievement-id="${achievement.id}"
+              ${isFeatured ? 'disabled' : ''}
+            >
+              ${isFeatured ? '⭐ 대표 업적' : '⭐ 대표로 설정'}
+            </button>
+          ` : ''}
+        </div>
       </div>
     </div>
   `;
+
+  // Add event listener for featured button
+  if (isUnlocked && !isFeatured) {
+    const btn = div.querySelector('.set-featured-btn');
+    btn?.addEventListener('click', async () => {
+      await setFeaturedAchievement(achievement.id);
+      renderAchievements(); // Re-render to update UI
+    });
+  }
 
   return div;
 }
@@ -2216,4 +2308,14 @@ export function initAchievementListeners() {
       renderAchievements(tier);
     });
   });
+}
+
+// Export to window for debugging
+if (typeof window !== 'undefined') {
+  window.AchievementsCore = {
+    setFeaturedAchievement,
+    getFeaturedAchievement,
+    getFeaturedAchievementId,
+    loadFeaturedAchievement
+  };
 }
