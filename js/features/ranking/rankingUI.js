@@ -565,21 +565,24 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
       const memberIsOwner = member.role === 'owner';
       const tileColor = getMemberTileColor(member.dailyProblems);
 
+      // JSON 데이터를 안전하게 HTML 속성에 넣기 위해 이스케이핑
+      const memberDataJson = JSON.stringify({
+        nickname: member.nickname,
+        isOwner: memberIsOwner,
+        statusMessage: member.statusMessage || '',
+        featuredAchievement: member.featuredAchievement,
+        dailyScore: member.dailyScore,
+        dailyProblems: member.dailyProblems,
+        weeklyScore: member.weeklyScore,
+        weeklyProblems: member.weeklyProblems,
+        achievementPoints: member.achievementPoints
+      }).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
       html += `
         <div class="relative">
           <div
             class="member-tile p-3 rounded-lg ${tileColor} transition-transform hover:scale-105 cursor-pointer h-24 flex flex-col justify-center relative"
-            data-member-data='${JSON.stringify({
-              nickname: member.nickname,
-              isOwner: memberIsOwner,
-              statusMessage: member.statusMessage || '',
-              featuredAchievement: member.featuredAchievement,
-              dailyScore: member.dailyScore,
-              dailyProblems: member.dailyProblems,
-              weeklyScore: member.weeklyScore,
-              weeklyProblems: member.weeklyProblems,
-              achievementPoints: member.achievementPoints
-            }).replace(/'/g, "&#39;")}'
+            data-member-data="${memberDataJson}"
           >
              ${isOwner && !memberIsOwner ? `
               <input
@@ -669,7 +672,18 @@ function attachMemberTooltipListeners() {
  */
 function showMemberTooltip(e) {
   const tile = e.currentTarget;
-  const memberData = JSON.parse(tile.getAttribute('data-member-data'));
+
+  // JSON 파싱 시도
+  let memberData;
+  try {
+    const jsonStr = tile.getAttribute('data-member-data');
+    console.log('🔍 [Tooltip] Raw data:', jsonStr);
+    memberData = JSON.parse(jsonStr);
+    console.log('✅ [Tooltip] Parsed data:', memberData);
+  } catch (error) {
+    console.error('❌ [Tooltip] JSON 파싱 실패:', error);
+    return; // 파싱 실패 시 말풍선 표시 안 함
+  }
 
   // 기존 말풍선 제거
   hideMemberTooltip();
