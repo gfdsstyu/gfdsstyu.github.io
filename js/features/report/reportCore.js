@@ -45,13 +45,15 @@ export function closeReportModal() {
   Object.values(reportCharts).forEach(chart => chart?.destroy());
   reportCharts = {};
 
-  // Close drawer if open, but keep hidden class (Tailwind lg:block will show it on desktop)
+  // Restore left panel based on screen size
   el.drawerBackdrop?.classList.add('hidden');
   el.leftDashboard?.classList.remove('fixed', 'inset-0', 'z-[1100]', 'p-4', 'overflow-y-auto', 'bg-white', 'dark:bg-gray-900', 'relative');
   el.drawerClose?.classList.add('hidden');
 
-  // Ensure hidden class is present (Tailwind lg:block will override it on desktop)
-  if (!el.leftDashboard?.classList.contains('hidden')) {
+  // 데스크톱이면 보이도록, 모바일이면 숨기도록
+  if (window.innerWidth >= 1024) {
+    el.leftDashboard?.classList.remove('hidden');
+  } else {
     el.leftDashboard?.classList.add('hidden');
   }
 }
