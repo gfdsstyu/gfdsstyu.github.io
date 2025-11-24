@@ -404,6 +404,14 @@ export async function syncOnLogin(userId) {
       syncMessage += `, settings: 없음`;
     }
 
+    // 2-4. Featured Achievement 동기화 (Cloud 우선)
+    const cloudFeatured = userData.profile?.featuredAchievement;
+    if (cloudFeatured) {
+      console.log(`📥 Featured Achievement: Cloud → Local (${cloudFeatured})`);
+      localStorage.setItem('featuredAchievement', cloudFeatured);
+      syncMessage += `, featured: 다운로드`;
+    }
+
     console.log('✅ 전체 동기화 완료');
     return { success: true, message: syncMessage };
   } catch (error) {

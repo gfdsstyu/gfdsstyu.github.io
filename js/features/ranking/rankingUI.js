@@ -444,9 +444,10 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
         }
       }
 
-      // 프로필 데이터 로드 (상태 메시지)
+      // 프로필 데이터 로드 (상태 메시지, 대표 업적)
       let statusMessage = '';
       let achievementPoints = 0;
+      let featuredAchievement = null;
 
       try {
         const userDocRef = doc(db, 'users', member.userId);
@@ -455,6 +456,20 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
           statusMessage = userData.profile?.statusMessage || '';
+
+          // 대표 업적 불러오기
+          const featuredId = userData.profile?.featuredAchievement;
+          if (featuredId) {
+            // ACHIEVEMENTS config에서 업적 정보 가져오기
+            const { ACHIEVEMENTS } = await import('../../config/config.js');
+            if (ACHIEVEMENTS[featuredId]) {
+              featuredAchievement = {
+                id: featuredId,
+                icon: ACHIEVEMENTS[featuredId].icon,
+                name: ACHIEVEMENTS[featuredId].name
+              };
+            }
+          }
 
           // 업적 점수 계산 (achievements 객체의 모든 달성된 업적 점수 합계)
           if (userData.achievements) {
@@ -474,7 +489,8 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
         dailyScore,
         weeklyScore,
         statusMessage,
-        achievementPoints
+        achievementPoints,
+        featuredAchievement
       };
     }));
 
@@ -574,6 +590,7 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
               <div class="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg p-3 shadow-xl min-w-max max-w-xs pointer-events-auto">
                 <div class="font-bold mb-2 text-center">${member.nickname} ${memberIsOwner ? '👑' : ''}</div>
                 ${member.statusMessage ? `<div class="text-center mb-2 px-2 py-1 bg-white/10 dark:bg-gray-900/10 rounded italic">💬 "${member.statusMessage}"</div>` : ''}
+                ${member.featuredAchievement ? `<div class="text-center mb-2 px-2 py-1 bg-blue-500/20 dark:bg-blue-500/30 rounded font-medium">⭐ ${member.featuredAchievement.icon} ${member.featuredAchievement.name}</div>` : ''}
                 <div class="space-y-1">
                     <div>📅 일: ${member.dailyScore}점 (${member.dailyProblems}문제)</div>
                     <div>📊 주: ${member.weeklyScore}점 (${member.weeklyProblems}문제)</div>
