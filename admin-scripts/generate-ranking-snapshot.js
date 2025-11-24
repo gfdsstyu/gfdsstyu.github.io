@@ -24,8 +24,7 @@
  *
  * 4. 자동화 (옵션):
  *    - cron 또는 Cloud Scheduler로 6시간마다 실행
- *    - 예: crontab -e
- *      0 */6 * * * cd /path/to/admin-scripts && node generate-ranking-snapshot.js
+ *    - crontab -e 로 편집하여 6시간 간격 스케줄 설정
  */
 
 const admin = require('firebase-admin');
