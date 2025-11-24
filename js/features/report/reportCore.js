@@ -45,12 +45,14 @@ export function closeReportModal() {
   Object.values(reportCharts).forEach(chart => chart?.destroy());
   reportCharts = {};
 
-  // Restore left sidebar visibility on desktop
-  if (window.innerWidth >= 1024) {
-    el.leftDashboard?.classList.remove('hidden');
-    el.drawerBackdrop?.classList.add('hidden');
-    el.leftDashboard?.classList.remove('fixed', 'inset-0', 'z-[1100]', 'p-4', 'overflow-y-auto', 'bg-white', 'dark:bg-gray-900', 'relative');
-    el.drawerClose?.classList.add('hidden');
+  // Close drawer if open, but keep hidden class (Tailwind lg:block will show it on desktop)
+  el.drawerBackdrop?.classList.add('hidden');
+  el.leftDashboard?.classList.remove('fixed', 'inset-0', 'z-[1100]', 'p-4', 'overflow-y-auto', 'bg-white', 'dark:bg-gray-900', 'relative');
+  el.drawerClose?.classList.add('hidden');
+
+  // Ensure hidden class is present (Tailwind lg:block will override it on desktop)
+  if (!el.leftDashboard?.classList.contains('hidden')) {
+    el.leftDashboard?.classList.add('hidden');
   }
 }
 
