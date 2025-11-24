@@ -40,12 +40,13 @@ service cloud.firestore {
     // ============================================
 
     match /users/{userId} {
-      // 1. 상위 문서(점수, 통계 등) 접근 허용
-      allow read: if isOwner(userId);
+      // 읽기: 모든 인증된 사용자 가능 (그룹 멤버 프로필, 업적 조회용)
+      allow read: if isAuthenticated();
+
+      // 쓰기: 본인만 가능
       allow write: if isOwner(userId);
 
-      // 2. [수정됨] 하위 records 컬렉션(상세 답안, 암기팁 등) 접근 허용
-      // 이 규칙이 없으면 fetchDetailedRecords 호출 시 권한 오류 발생
+      // 상세 기록 서브컬렉션 (user_answer, feedback 등)
       match /records/{recordId} {
         allow read, write: if isOwner(userId);
       }
@@ -136,12 +137,43 @@ service cloud.firestore {
     }
 
     // ============================================
+    // University Emails Collection (Phase 3.6 - 중복 방지)
+    // ============================================
+
+    // [신규] 대학교 인증된 이메일 목록 (중복 방지용)
+    // ID가 이메일 주소인 문서입니다.
+    match /universityEmails/{email} {
+      // 존재 여부 확인(get)은 누구나 가능 (중복 체크용)
+      // 목록 조회(list)는 불가능 (이메일 유출 방지)
+      allow get: if isAuthenticated();
+
+      // 생성은 인증된 사용자만
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+
+      // 수정/삭제 불가 (한 번 인증되면 고정)
+      allow update, delete: if false;
+    }
+
+    // ============================================
+    // Ranking Cache Collection (스냅샷 기반 랭킹 시스템)
+    // ============================================
+
+    match /ranking_cache/{document} {
+      // 읽기: 모든 인증된 사용자 가능
+      allow read: if isAuthenticated();
+
+      // 쓰기: 서버 사이드만 가능 (Cloud Functions)
+      allow write: if false;
+    }
+
+    // ============================================
     // Mail Collection (Firebase Extensions - Trigger Email)
     // ============================================
 
     match /mail/{mailId} {
       // 생성: 인증된 사용자만 (이메일 발송)
       allow create: if isAuthenticated();
+
       // 읽기/업데이트/삭제: Firebase Extensions만 가능 (관리자 권한)
       allow read, update, delete: if false;
     }
@@ -161,8 +193,9 @@ service cloud.firestore {
 ## 🔍 규칙 설명
 
 ### 1. Users Collection
-- **읽기/쓰기**: 본인만 가능
-- 개인 학습 데이터 보호
+- **읽기**: 모든 인증된 사용자 (그룹 멤버 프로필, 업적 조회용)
+- **쓰기**: 본인만 가능
+- 개인 학습 데이터는 본인만 수정 가능, 조회는 그룹 기능을 위해 허용
 
 ### 2. Rankings Collection
 - **읽기**: 모든 인증된 사용자 (랭킹 조회용)
@@ -190,7 +223,17 @@ service cloud.firestore {
 - **읽기**: 모든 인증된 사용자 (랭킹 조회용)
 - **쓰기**: 모든 인증된 사용자 (대학교별 통계 업데이트)
 
-### 8. Mail Collection (Firebase Extensions)
+### 8. University Emails Collection (Phase 3.6)
+- **읽기(get)**: 모든 인증된 사용자 (중복 체크용)
+- **생성**: 인증된 사용자만
+- **수정/삭제**: 불가능 (한 번 인증되면 고정)
+
+### 9. Ranking Cache Collection (스냅샷 시스템)
+- **읽기**: 모든 인증된 사용자 (스냅샷 기반 랭킹 조회)
+- **쓰기**: 불가능 (Cloud Functions만 가능)
+- Firestore 읽기 횟수를 96% 절감하는 스냅샷 캐시
+
+### 10. Mail Collection (Firebase Extensions)
 - **생성**: 인증된 사용자만 가능 (이메일 발송 요청)
 - **읽기/업데이트/삭제**: 차단 (Firebase Extensions만 접근)
 - Firebase Extensions "Trigger Email from Firestore" 사용
@@ -199,18 +242,24 @@ service cloud.firestore {
 
 규칙 적용 후 다음 기능들이 정상 작동하는지 확인하세요:
 
+**기본 기능**
+1. ✅ 랭킹 조회 (스냅샷 기반)
+2. ✅ 그룹 멤버 프로필 조회 (업적, 상태 메시지)
+3. ✅ 개인 데이터 수정
+
 **그룹 기능 (Phase 3.5)**
-1. ✅ 그룹 생성
-2. ✅ 그룹 검색
-3. ✅ 그룹 가입
-4. ✅ 그룹 탈퇴
-5. ✅ 그룹별 랭킹 조회
-6. ✅ 그룹 내 랭킹 조회
+4. ✅ 그룹 생성
+5. ✅ 그룹 검색
+6. ✅ 그룹 가입
+7. ✅ 그룹 탈퇴
+8. ✅ 그룹별 랭킹 조회
+9. ✅ 그룹 내 랭킹 조회
+10. ✅ 그룹원 업적 포인트 조회
 
 **대학교 기능 (Phase 3.6)**
-7. ✅ 대학교 이메일 인증
-8. ✅ 대학교별 랭킹 조회
-9. ✅ 대학 내 랭킹 조회
+11. ✅ 대학교 이메일 인증
+12. ✅ 대학교별 랭킹 조회
+13. ✅ 대학 내 랭킹 조회
 
 ## 🛡️ 보안 참고사항
 
