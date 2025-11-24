@@ -282,15 +282,21 @@ export function initUIListeners() {
     if (!el) return;
 
     if (window.innerWidth >= 1024) {
-      // Desktop: show sidebar, hide drawer
-      el.leftDashboard?.classList.remove('hidden');
+      // Desktop: close drawer, but keep hidden class (Tailwind lg:block will override it)
       el.drawerBackdrop?.classList.add('hidden');
       document.body?.classList.remove('drawer-open');
       el.leftDashboard?.classList.remove('fixed', 'inset-0', 'z-[1100]', 'p-4', 'overflow-y-auto', 'bg-white', 'dark:bg-gray-900', 'relative');
       el.drawerClose?.classList.add('hidden');
+
+      // Ensure hidden class is present (Tailwind lg:block will show it on desktop)
+      if (!el.leftDashboard?.classList.contains('hidden')) {
+        el.leftDashboard?.classList.add('hidden');
+      }
     } else {
-      // Mobile: hide sidebar
-      el.leftDashboard?.classList.add('hidden');
+      // Mobile: ensure drawer is closed
+      if (!el.leftDashboard?.classList.contains('hidden')) {
+        el.leftDashboard?.classList.add('hidden');
+      }
     }
   });
 
