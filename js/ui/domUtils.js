@@ -132,7 +132,12 @@ export function closeDrawer() {
   if (!el) return;
 
   el.drawerBackdrop?.classList.add('hidden');
-  el.leftDashboard?.classList.add('hidden');
+
+  // 모바일에서만 hidden 추가 (데스크톱에서는 항상 보임)
+  if (window.innerWidth < 1024) {
+    el.leftDashboard?.classList.add('hidden');
+  }
+
   el.leftDashboard?.classList.remove('fixed', 'inset-0', 'z-[1100]', 'p-4', 'overflow-y-auto', 'bg-white', 'dark:bg-gray-900', 'relative');
   el.drawerClose?.classList.add('hidden');
 }
