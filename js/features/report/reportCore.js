@@ -1091,7 +1091,7 @@ export function generateSummaryBook() {
         <div class="question-text text-sm text-gray-700 dark:text-gray-300 mb-3 font-medium">
           Q. ${q.물음 || ''}
         </div>
-        ${showModelAnswer ? `<div class="model-answer text-sm bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-600 text-blue-900 dark:text-blue-100 whitespace-pre-line">${(q.정답 || '').trim().split('\n').map(line => line.trim()).join('\n')}</div>` : ''}
+        ${showModelAnswer ? `<div class="model-answer text-sm bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-600 text-blue-900 dark:text-blue-100">${(q.정답 || '').trim().split('\n').map(line => line.trim()).filter(line => line).join('<br>')}</div>` : ''}
         ${showMemoryTip && record.memoryTip ? `<div class="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-sm text-gray-800 dark:text-gray-200">
             <span class="font-bold text-xs text-yellow-600 dark:text-yellow-400 block mb-1">💡 암기팁</span>
             ${record.memoryTip}
