@@ -223,3 +223,31 @@ ${context}
   * **영향:**
       * **긍정:** 사용자가 스스로 핵심을 요약(50자 제한)하는 과정에서 학습 효과가 증대되며, AI가 이를 받아 개인화된 팁을 제공하므로 만족도가 높아질 것입니다.
       * **주의:** 사용자가 "단순 오타 수정"을 하려다가 페널티를 먹는 경우 억울할 수 있습니다. 이를 위해 수정 모드 진입 시 \*\*"지금 수정하시면 메모 열람으로 간주되어 점수가 제한됩니다"\*\*라는 명확한 경고(Toast)가 필수적입니다.
+###리뷰어 피드백
+3. 플레이스홀더 길이 문제
+htmlplaceholder="앞글자(두문자)나 핵심 키워드만 짧게 남기세요. (예: 성.시.범)&#13;&#10;작성된 내용은 AI 암기팁 생성 시 참고되어 더 완벽한 팁을 만들어줍니다."
+문제점: 플레이스홀더가 너무 길어서 모바일에서 읽기 어려울 수 있습니다.
+제안: 간결하게 수정
+htmlplaceholder="예: 성.시.범 (AI 암기팁에 반영됨)"
+4. StateManager 추가 필요
+문서의 Step 2에서 stateManager.js에 추가해야 할 것들:
+javascript// js/core/stateManager.js에 추가 필요
+let activeMemoQuestionKey = null;
+
+export const getActiveMemoQuestionKey = () => activeMemoQuestionKey;
+export const setActiveMemoQuestionKey = (key) => { activeMemoQuestionKey = key; };
+5. AI 프롬프트 개선
+config.js의 프롬프트에서 사용자 메모가 부정확할 경우 수정하라고 했는데, 이러면 사용자가 혼란스러울 수 있습니다.
+제안:
+javascript// 더 명확한 지시
+if (userMemo && userMemo.trim().length > 0) {
+  context = `
+[학습자의 메모 키워드]
+"${userMemo}"
+
+[지침]
+- 학습자가 이미 위 키워드를 암기 단서로 사용 중입니다.
+- 이 키워드를 **중심으로** 암기팁을 구성해주세요.
+- 키워드가 정답과 맞지 않으면, 올바른 연결고리를 **추가**로 제안해주세요.
+`;
+}
