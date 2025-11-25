@@ -158,6 +158,18 @@ export function displayQuestion() {
   el.memoryTipContainer?.classList.add('hidden');
   if (el.memoryTipContent) el.memoryTipContent.textContent = '';
 
+  // 메모 초기화
+  setActiveMemoQuestionKey(null);
+  el.userMemoContainer?.classList.add('hidden');
+  if (el.userMemoInput) el.userMemoInput.value = '';
+  if (el.memoCharCount) el.memoCharCount.textContent = '0';
+
+  // 메모 버튼 텍스트 업데이트 (저장된 메모 확인)
+  if (el.userMemoBtnText) {
+    const hasMemo = saved?.userMemo && saved.userMemo.trim().length > 0;
+    el.userMemoBtnText.textContent = hasMemo ? '메모 보기' : '메모';
+  }
+
   // 결과 및 답안 초기화
   el.resultBox?.classList.add('hidden');
   el.modelAnswerBox?.classList.add('hidden');  // ⚠️ CRITICAL: 새 문제로 이동 시 모범답안 박스도 숨김
