@@ -309,7 +309,13 @@ export function startRandomQuiz() {
  */
 export function initQuizListeners() {
   const el = getElements();
-  if (!el) return;
+  console.log('🎯 initQuizListeners 호출됨');
+  console.log('  - el:', el ? '✅ 존재' : '❌ null');
+  console.log('  - el.userMemoBtn:', el?.userMemoBtn ? '✅ 존재' : '❌ null');
+  if (!el) {
+    console.error('❌ initQuizListeners: elements가 초기화되지 않음!');
+    return;
+  }
 
   // Navigation buttons
   el.prevBtn?.addEventListener('click', handlePrevQuestion);
@@ -370,9 +376,15 @@ export function initQuizListeners() {
 
   // User memo button - 메모 열기/닫기
   el.userMemoBtn?.addEventListener('click', () => {
+    console.log('📝 메모 버튼 클릭됨!');
     const cqd = getCurrentQuizData();
     const cqi = getCurrentQuestionIndex();
-    if (!cqd.length) return;
+    console.log('  - currentQuizData 길이:', cqd.length);
+    if (!cqd.length) {
+      console.warn('⚠️ 퀴즈 데이터가 없습니다. 먼저 문제를 로드하세요.');
+      showToast('먼저 문제를 로드해주세요', 'warn');
+      return;
+    }
 
     const q = cqd[cqi];
     const qKey = normId(q.고유ID);
@@ -412,6 +424,7 @@ export function initQuizListeners() {
 
   // User memo save button - 메모 저장
   el.saveMemoBtn?.addEventListener('click', () => {
+    console.log('💾 메모 저장 버튼 클릭됨!');
     const cqd = getCurrentQuizData();
     const cqi = getCurrentQuestionIndex();
     if (!cqd.length) return;
@@ -542,6 +555,8 @@ export function initQuizListeners() {
       setPrevLoaded(false);
     }
   });
+
+  console.log('✅ initQuizListeners 완료 - 메모 버튼 이벤트 리스너 등록됨');
 }
 
 // ============================================
