@@ -25,6 +25,7 @@ import {
   setActiveHintQuestionKey,
   getActiveMemoryTipQuestionKey,
   setActiveMemoryTipQuestionKey,
+  getActiveMemoQuestionKey,
   getMemoryTipMode
 } from '../../core/stateManager.js';
 import { openApiModal } from '../settings/settingsCore.js';
@@ -205,6 +206,10 @@ export async function handleGrade() {
     const activeMemoryTipQuestionKey = getActiveMemoryTipQuestionKey();
     const usedMemoryTip = (activeMemoryTipQuestionKey === qKey);
 
+    // 메모 열람 여부 확인
+    const activeMemoQuestionKey = getActiveMemoQuestionKey();
+    const usedMemo = (activeMemoQuestionKey === qKey);
+
     // 힌트와 암기팁 모두 사용 시 더 큰 감점 적용
     let finalScore = score;
     let deductionReason = '';
@@ -221,6 +226,14 @@ export async function handleGrade() {
       // 암기팁만 사용: 0.8배 감점, 최대 59점
       finalScore = Math.min(59, Math.round(score * 0.8));
       deductionReason = '(암기팁 사용으로 감점)';
+    }
+
+    // 메모 열람 시 점수 상한 60점 적용
+    if (usedMemo) {
+      if (finalScore > 60) {
+        finalScore = 60;
+        deductionReason += deductionReason ? ' (메모 열람으로 60점 제한)' : '(메모 열람으로 60점 제한)';
+      }
     }
 
     const finalFeedback = deductionReason
@@ -479,13 +492,16 @@ export async function handleMemoryTip(q, forceRegenerate = false) {
   setGradeLoading(true);
 
   try {
-    // config.js의 통합 프롬프트 템플릿 사용 (사용자 설정 모드 반영)
+    // 사용자 메모 가져오기
+    const questionScores = getQuestionScores();
+    const userMemo = questionScores[qKey]?.userMemo || '';
+
+    // config.js의 통합 프롬프트 템플릿 사용 (사용자 설정 모드 + 사용자 메모 반영)
     const mode = getMemoryTipMode();
-    const prompt = createMemoryTipPrompt(q.물음, q.정답, mode);
+    const prompt = createMemoryTipPrompt(q.물음, q.정답, mode, userMemo);
     const response = await callGeminiTipAPI(prompt, geminiApiKey);
 
-    // questionScores에 저장
-    const questionScores = getQuestionScores();
+    // questionScores에 저장 (기존 데이터와 병합)
     if (!questionScores[qKey]) {
       questionScores[qKey] = {};
     }

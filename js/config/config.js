@@ -420,9 +420,10 @@ export const ACHIEVEMENTS = {
  * @param {string} question - 문제 텍스트
  * @param {string} answer - 정답 텍스트
  * @param {string} mode - 암기팁 스타일 ('mild' | 'stimulating')
+ * @param {string} userMemo - 사용자가 작성한 메모 (선택)
  * @returns {string} - Gemini API에 전달할 프롬프트
  */
-export function createMemoryTipPrompt(question, answer, mode = 'mild') {
+export function createMemoryTipPrompt(question, answer, mode = 'mild', userMemo = '') {
   // Mild 모드일 때 자극적 문구 제거
   const s1 = mode === 'stimulating' ? ' 선정적이거나 자극적이어도 좋음.' : '';
   const s2 = mode === 'stimulating' ? ' 경선식 스타일처럼 익살스럽고 선정적이거나 자극적이어도 좋음.' : ' 익살스럽고 재미있으면 좋음.';
@@ -430,6 +431,22 @@ export function createMemoryTipPrompt(question, answer, mode = 'mild') {
   // API 타임아웃 방지: 문제/정답을 각 800자로 제한
   const questionTruncated = (question || '').slice(0, 800) + ((question || '').length > 800 ? ' …' : '');
   const answerTruncated = (answer || '').slice(0, 800) + ((answer || '').length > 800 ? ' …' : '');
+
+  // 사용자 메모가 있을 경우 추가 컨텍스트 생성
+  let memoContext = '';
+  if (userMemo && userMemo.trim().length > 0) {
+    memoContext = `
+
+[학습자의 메모 키워드]
+"${userMemo}"
+
+[추가 지침]
+- 학습자가 이미 위 키워드를 암기 단서로 사용 중입니다.
+- 이 키워드를 **중심으로** 암기팁을 구성해주세요.
+- 키워드가 정답과 잘 맞으면 이를 활용하여 더 완벽한 암기팁을 만들어주세요.
+- 키워드가 정답과 맞지 않거나 부족하면, 올바른 연결고리를 **추가**로 제안해주세요.
+`;
+  }
 
   return `[역할]
 당신은 회계감사 2차 시험을 준비하는 학생의 암기 코치입니다.
@@ -454,7 +471,7 @@ export function createMemoryTipPrompt(question, answer, mode = 'mild') {
 ${questionTruncated}
 
 [정답]
-${answerTruncated}
+${answerTruncated}${memoContext}
 
 [요청]
 위 정답을 외우기 쉽게 만드는 암기 팁을 2-4줄로 제공하세요.

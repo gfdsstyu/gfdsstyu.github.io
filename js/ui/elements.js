@@ -67,6 +67,12 @@ export function initElements() {
     memoryTipContent: $('memory-tip-content'),
     memoryTipRegenBtn: $('memory-tip-regen-btn'),
     memoryTipCopyBtn: $('memory-tip-copy-btn'),
+    userMemoBtn: $('user-memo-btn'),
+    userMemoBtnText: $('user-memo-btn-text'),
+    userMemoContainer: $('user-memo-container'),
+    userMemoInput: $('user-memo-input'),
+    saveMemoBtn: $('save-memo-btn'),
+    memoCharCount: $('memo-char-count'),
     loadPrevAnswerBtn: $('load-prev-answer-btn'),
 
     // Result Display

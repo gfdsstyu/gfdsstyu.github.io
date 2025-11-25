@@ -521,6 +521,9 @@
                 <div class="flex items-center gap-2">
                   <button id="hint-btn" class="text-sm bg-purple-600 text-white px-3 py-1.5 rounded-md shadow hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">힌트</button>
                   <button id="memory-tip-btn" class="text-sm bg-blue-600 text-white px-3 py-1.5 rounded-md shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">암기팁</button>
+                  <button id="user-memo-btn" class="text-sm bg-gray-100 text-gray-700 border border-gray-300 px-3 py-1.5 rounded-md shadow hover:bg-gray-200 transition flex items-center gap-1">
+                    <span>📝</span> <span id="user-memo-btn-text">메모</span>
+                  </button>
                 </div>
 
                 <div class="flex items-center gap-2">
@@ -552,6 +555,23 @@
                   </div>
                 </div>
                 <pre id="memory-tip-content" class="whitespace-pre-wrap text-sm font-sans leading-relaxed" style="color: #111827 !important;"></pre>
+              </div>
+
+              <!-- 메모 컨테이너 -->
+              <div id="user-memo-container" class="hidden mt-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg relative">
+                <div class="flex justify-between items-center mb-2">
+                  <label class="text-sm font-bold text-yellow-800">📝 나만의 핵심 요약</label>
+                  <button id="save-memo-btn" class="text-xs px-3 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300 font-bold">저장</button>
+                </div>
+                <textarea
+                  id="user-memo-input"
+                  class="w-full p-2 text-sm border border-yellow-300 rounded bg-white focus:ring-1 focus:ring-yellow-500"
+                  rows="2"
+                  maxlength="50"
+                  placeholder="예: 성.시.범 (AI 암기팁에 반영됨)"></textarea>
+                <div class="text-right text-xs text-gray-400 mt-1">
+                  <span id="memo-char-count">0</span>/50자
+                </div>
               </div>
             </div>
 
