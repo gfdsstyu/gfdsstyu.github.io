@@ -22,6 +22,7 @@ const state = {
   // UI 상태
   activeHintQuestionKey: null,
   activeMemoryTipQuestionKey: null,
+  activeMemoQuestionKey: null, // 메모 열람 상태 추적
   prevLoaded: false,
   summaryViewMode: 'ALL',
   statsView: 'day',
@@ -66,6 +67,7 @@ export const getSelectedAiModel = () => state.selectedAiModel;
 export const getDarkMode = () => state.darkMode;
 export const getActiveHintQuestionKey = () => state.activeHintQuestionKey;
 export const getActiveMemoryTipQuestionKey = () => state.activeMemoryTipQuestionKey;
+export const getActiveMemoQuestionKey = () => state.activeMemoQuestionKey;
 export const getMemoryTipMode = () => state.memoryTipMode;
 export const getPrevLoaded = () => state.prevLoaded;
 export const getSummaryViewMode = () => state.summaryViewMode;
@@ -108,6 +110,7 @@ export const setSelectedAiModel = (model) => { state.selectedAiModel = model; };
 export const setDarkMode = (mode) => { state.darkMode = mode; };
 export const setActiveHintQuestionKey = (key) => { state.activeHintQuestionKey = key; };
 export const setActiveMemoryTipQuestionKey = (key) => { state.activeMemoryTipQuestionKey = key; };
+export const setActiveMemoQuestionKey = (key) => { state.activeMemoQuestionKey = key; };
 export const setMemoryTipMode = (mode) => {
   state.memoryTipMode = mode;
   localStorage.setItem('memoryTipMode', mode);

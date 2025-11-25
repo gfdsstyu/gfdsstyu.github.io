@@ -15,9 +15,12 @@ import {
   setCurrentQuizData,
   setCurrentQuestionIndex,
   getQuestionScores,
+  setQuestionScores,
+  saveQuestionScores,
   setSummaryViewMode,
   setActiveHintQuestionKey,
   setActiveMemoryTipQuestionKey,
+  setActiveMemoQuestionKey,
   setPrevLoaded,
   getIsFlashcardMode
 } from '../../core/stateManager.js';
@@ -354,6 +357,91 @@ export function initQuizListeners() {
       }).catch(() => {
         showToast('복사 실패', 'error');
       });
+    }
+  });
+
+  // User memo - 글자 수 카운팅
+  el.userMemoInput?.addEventListener('input', (e) => {
+    const len = e.target.value.length;
+    if (el.memoCharCount) {
+      el.memoCharCount.textContent = len;
+    }
+  });
+
+  // User memo button - 메모 열기/닫기
+  el.userMemoBtn?.addEventListener('click', () => {
+    const cqd = getCurrentQuizData();
+    const cqi = getCurrentQuestionIndex();
+    if (!cqd.length) return;
+
+    const q = cqd[cqi];
+    const qKey = normId(q.고유ID);
+    const questionScores = getQuestionScores();
+    const savedMemo = questionScores[qKey]?.userMemo || '';
+
+    const isHidden = el.userMemoContainer?.classList.contains('hidden');
+
+    if (isHidden) {
+      // 메모 컨테이너 열기
+      el.userMemoContainer?.classList.remove('hidden');
+      if (el.userMemoInput) {
+        el.userMemoInput.value = savedMemo;
+      }
+      if (el.memoCharCount) {
+        el.memoCharCount.textContent = savedMemo.length;
+      }
+
+      // 기존 메모가 있으면 "열람"으로 간주 -> 페널티 플래그 ON
+      if (savedMemo.trim().length > 0) {
+        setActiveMemoQuestionKey(qKey);
+        showToast('메모를 열람했습니다. (채점 시 최대 60점)', 'warn');
+      } else {
+        // 최초 작성 시 안내
+        showToast('나만의 핵심 키워드를 50자 이내로 기록하세요!', 'info');
+      }
+
+      // 버튼 텍스트 변경
+      if (el.userMemoBtnText) {
+        el.userMemoBtnText.textContent = savedMemo.trim().length > 0 ? '메모 보기' : '메모 작성';
+      }
+    } else {
+      // 메모 컨테이너 닫기
+      el.userMemoContainer?.classList.add('hidden');
+    }
+  });
+
+  // User memo save button - 메모 저장
+  el.saveMemoBtn?.addEventListener('click', () => {
+    const cqd = getCurrentQuizData();
+    const cqi = getCurrentQuestionIndex();
+    if (!cqd.length) return;
+
+    const q = cqd[cqi];
+    const qKey = normId(q.고유ID);
+    const memoContent = el.userMemoInput?.value.trim() || '';
+
+    // 로컬 저장
+    const questionScores = getQuestionScores();
+    if (!questionScores[qKey]) {
+      questionScores[qKey] = {};
+    }
+    questionScores[qKey].userMemo = memoContent;
+    setQuestionScores(questionScores);
+    saveQuestionScores();
+
+    // Firestore 동기화 (records 서브컬렉션)
+    if (window.AuthCore && window.AuthCore.getCurrentUser) {
+      const currentUser = window.AuthCore.getCurrentUser();
+      if (currentUser && window.SyncCore && window.SyncCore.syncToFirestore) {
+        window.SyncCore.syncToFirestore(currentUser.uid, qKey);
+      }
+    }
+
+    showToast('메모가 저장되었습니다.', 'success');
+
+    // 버튼 텍스트 업데이트
+    if (el.userMemoBtnText) {
+      el.userMemoBtnText.textContent = memoContent.length > 0 ? '메모 보기' : '메모 작성';
     }
   });
 
