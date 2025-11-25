@@ -498,8 +498,23 @@ export async function handleMemoryTip(q, forceRegenerate = false) {
 
     // config.js의 통합 프롬프트 템플릿 사용 (사용자 설정 모드 + 사용자 메모 반영)
     const mode = getMemoryTipMode();
-    const prompt = createMemoryTipPrompt(q.물음, q.정답, mode, userMemo);
-    const response = await callGeminiTipAPI(prompt, geminiApiKey);
+    let prompt = createMemoryTipPrompt(q.물음, q.정답, mode, userMemo);
+    let response;
+
+    try {
+      response = await callGeminiTipAPI(prompt, geminiApiKey);
+    } catch (apiErr) {
+      // MAX_TOKENS 에러 시 더 짧은 버전으로 재시도
+      if (apiErr.message && (apiErr.message.includes('프롬프트 길이 초과') || apiErr.message.includes('생성 토큰 제한'))) {
+        console.warn('⚠️ 프롬프트가 너무 깁니다. 메모 없이 재시도합니다...');
+        // 메모 없이 재시도
+        prompt = createMemoryTipPrompt(q.물음, q.정답, mode, '');
+        response = await callGeminiTipAPI(prompt, geminiApiKey);
+        showToast('프롬프트가 길어 메모 없이 생성되었습니다', 'warn');
+      } else {
+        throw apiErr;
+      }
+    }
 
     // questionScores에 저장 (기존 데이터와 병합)
     if (!questionScores[qKey]) {

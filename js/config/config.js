@@ -428,9 +428,9 @@ export function createMemoryTipPrompt(question, answer, mode = 'mild', userMemo 
   const s1 = mode === 'stimulating' ? ' 선정적이거나 자극적이어도 좋음.' : '';
   const s2 = mode === 'stimulating' ? ' 경선식 스타일처럼 익살스럽고 선정적이거나 자극적이어도 좋음.' : ' 익살스럽고 재미있으면 좋음.';
 
-  // API 타임아웃 방지: 문제/정답을 각 800자로 제한
-  const questionTruncated = (question || '').slice(0, 800) + ((question || '').length > 800 ? ' …' : '');
-  const answerTruncated = (answer || '').slice(0, 800) + ((answer || '').length > 800 ? ' …' : '');
+  // API 타임아웃 방지: 문제/정답을 각 500자로 제한 (토큰 절약)
+  const questionTruncated = (question || '').slice(0, 500) + ((question || '').length > 500 ? ' …' : '');
+  const answerTruncated = (answer || '').slice(0, 500) + ((answer || '').length > 500 ? ' …' : '');
 
   // 사용자 메모가 있을 경우 추가 컨텍스트 생성
   let memoContext = '';
