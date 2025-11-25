@@ -2069,6 +2069,24 @@
       buildSourceFilterUI();
       moveSourceFilterToSide();
 
+      // 메모 버튼 요소들을 window.el에 추가 (initQuizListeners보다 먼저 실행)
+      if (window.el) {
+        window.el.userMemoBtn = $('user-memo-btn');
+        window.el.userMemoBtnText = $('user-memo-btn-text');
+        window.el.userMemoContainer = $('user-memo-container');
+        window.el.userMemoInput = $('user-memo-input');
+        window.el.saveMemoBtn = $('save-memo-btn');
+        window.el.memoCharCount = $('memo-char-count');
+
+        // StateManager에도 동일하게 설정
+        import('./js/core/stateManager.js').then(({ setElements }) => {
+          setElements(window.el);
+          console.log('✅ 메모 버튼 요소들 StateManager에 동기화됨');
+        });
+
+        console.log('✅ 메모 버튼 요소들 window.el에 추가됨');
+      }
+
       initQuizListeners();
       initQuizEventListeners(); // EventBus 리스너 초기화 (순환 의존성 해결)
       initFilterListeners();
