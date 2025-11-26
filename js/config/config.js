@@ -127,7 +127,7 @@ export const AUDIT_FLOW_MAP = {
   },
   4: {
     id: 4,
-    name: "통제 및 전략",
+    name: "내부통제",
     nameEn: "Strategy",
     meaning: "[관문] 회사 통제를 믿을 것인가? (전략적 분기점)",
     chapters: [8, 9],
@@ -141,7 +141,7 @@ export const AUDIT_FLOW_MAP = {
   },
   5: {
     id: 5,
-    name: "실증 수행",
+    name: "실증절차",
     nameEn: "Execute",
     meaning: "[증거 수집] 위험과 통제에 맞춰 증거 수집!",
     chapters: [10, 11, 12, 13, 14],
