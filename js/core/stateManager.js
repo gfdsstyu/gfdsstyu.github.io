@@ -15,7 +15,7 @@ const state = {
 
   // API 및 설정
   geminiApiKey: '',
-  selectedAiModel: 'gemini-2.5-flash',
+  selectedAiModel: 'gemini-2.0-flash',
   darkMode: 'system',
   memoryTipMode: 'mild', // 암기팁 스타일 ('mild' | 'stimulating')
 
@@ -162,7 +162,7 @@ export function loadFromStorage() {
     '';
 
   // AI 모델 설정 로드
-  state.selectedAiModel = localStorage.getItem(STORAGE_KEYS.selectedAiModel) || 'gemini-2.5-flash';
+  state.selectedAiModel = localStorage.getItem(STORAGE_KEYS.selectedAiModel) || 'gemini-2.0-flash';
 
   // 다크 모드 로드
   state.darkMode = localStorage.getItem(STORAGE_KEYS.darkMode) || 'system';
