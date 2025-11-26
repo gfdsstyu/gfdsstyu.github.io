@@ -200,13 +200,31 @@ match /ranking_cache/{document} {
             console.log('🐛 [DEBUG] 전체 data 객체:', data);
           }
 
+          // 🔧 FIX: Firestore의 "daily.2025-11-26" 형식을 중첩 객체로 변환
+          const daily = {};
+          const weekly = {};
+          const monthly = {};
+
+          Object.keys(data).forEach(key => {
+            if (key.startsWith('daily.')) {
+              const dateKey = key.replace('daily.', '');
+              daily[dateKey] = data[key];
+            } else if (key.startsWith('weekly.')) {
+              const weekKey = key.replace('weekly.', '');
+              weekly[weekKey] = data[key];
+            } else if (key.startsWith('monthly.')) {
+              const monthKey = key.replace('monthly.', '');
+              monthly[monthKey] = data[key];
+            }
+          });
+
           users.push({
             userId: data.userId || doc.id,
             nickname: data.nickname || '익명',
             university: data.university || null,
-            daily: data.daily || {},
-            weekly: data.weekly || {},
-            monthly: data.monthly || {}
+            daily: daily,
+            weekly: weekly,
+            monthly: monthly
           });
 
           index++;
