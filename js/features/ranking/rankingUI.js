@@ -4,18 +4,12 @@
 
 import {
   doc,
-  getDoc,
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  limit as firestoreLimit
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 import { db } from '../../app.js';
 import { getCurrentUser, getNickname } from '../auth/authCore.js';
-import { getMyRanking, getGroupRankings, getIntraGroupRankings, getPeriodKey } from './rankingCore.js';
+import { getMyRanking, getGroupRankings, getIntraGroupRankings } from './rankingCore.js';
 import { getMyGroups, updateGroupDescription, getGroupMembers, kickMember, deleteGroup, delegateGroupOwner } from '../group/groupCore.js';
 import { handleLeaveGroup } from '../group/groupUI.js';
 import { getMyUniversity, getUniversityRankings, getIntraUniversityRankings } from '../university/universityCore.js';
@@ -1251,69 +1245,8 @@ async function loadRankings() {
  * @returns {Promise<Array>} 랭킹 배열
  */
 async function fetchRankings(period, criteria) {
-  // ⚠️ [모드 전환] 현재: 실시간 모드 | 스냅샷 모드로 복귀하려면 아래 주석 해제하고 실시간 코드 주석 처리
+  console.log(`📊 [Ranking] 스냅샷 기반 랭킹 조회 - period: ${period}, criteria: ${criteria}`);
 
-  console.log(`📊 [Ranking] 실시간 랭킹 조회 - period: ${period}, criteria: ${criteria}`);
-
-  try {
-    // === 실시간 모드 (현재 사용 중) ===
-    // 1. 현재 기간 키 생성
-    const periodKey = getPeriodKey(period);
-    console.log(`🔍 [Ranking] 기간 키: ${periodKey}`);
-
-    // 2. rankings 컬렉션에서 전체 데이터 가져오기
-    const rankingsRef = collection(db, 'rankings');
-    const rankingsSnapshot = await getDocs(rankingsRef);
-
-    console.log(`✅ [Ranking] ${rankingsSnapshot.size}명의 사용자 데이터 로드`);
-
-    // 3. 로컬 필터링 및 데이터 추출
-    let rankings = [];
-
-    rankingsSnapshot.forEach(doc => {
-      const data = doc.data();
-
-      // 기간별 데이터 추출
-      const periodData = data[period]?.[periodKey];
-
-      if (!periodData) {
-        return; // 해당 기간 데이터 없으면 제외
-      }
-
-      // 평균점수 기준일 때: 최소 문제 수 필터링
-      if (criteria === 'avgScore') {
-        const minProblems = MIN_PROBLEMS_FOR_AVG[period];
-        if (periodData.problems < minProblems) {
-          return; // 제외
-        }
-      }
-
-      rankings.push({
-        userId: data.userId || doc.id,
-        nickname: data.nickname || '익명',
-        totalScore: periodData.totalScore || 0,
-        problems: periodData.problems || 0,
-        avgScore: periodData.avgScore || 0
-      });
-    });
-
-    // 4. 로컬 정렬
-    rankings.sort((a, b) => {
-      const aValue = a[criteria];
-      const bValue = b[criteria];
-      return bValue - aValue;
-    });
-
-    console.log(`✅ [Ranking] ${rankings.length}명의 랭킹 데이터 처리 완료`);
-
-    return rankings;
-
-  } catch (error) {
-    console.error('❌ [Ranking] 실시간 랭킹 조회 실패:', error);
-    throw error;
-  }
-
-  /* === 스냅샷 모드 (복귀 시 주석 해제) ===
   // 1. 스냅샷 로드 (캐시 확인 후 필요시 서버에서 가져오기)
   const snapshot = await loadRankingSnapshot();
 
@@ -1326,20 +1259,30 @@ async function fetchRankings(period, criteria) {
   const periodKey = getPeriodKeyForQuery();
   console.log(`🔍 [Ranking] 기간 키: ${periodKey}, 총 ${snapshot.users.length}명 데이터`);
 
+  // 🐛 DEBUG: 첫 번째 사용자 데이터 출력
+  if (snapshot.users.length > 0) {
+    console.log(`🐛 [DEBUG] 첫 번째 사용자 데이터 샘플:`, snapshot.users[0]);
+    console.log(`🐛 [DEBUG] daily 키들:`, Object.keys(snapshot.users[0].daily || {}));
+    console.log(`🐛 [DEBUG] weekly 키들:`, Object.keys(snapshot.users[0].weekly || {}));
+    console.log(`🐛 [DEBUG] monthly 키들:`, Object.keys(snapshot.users[0].monthly || {}));
+  }
+
   // 3. 로컬 필터링 (브라우저에서 처리)
   let rankings = [];
 
   snapshot.users.forEach(user => {
+    // 기간별 데이터 추출
     const periodData = user[period]?.[periodKey];
 
     if (!periodData) {
-      return;
+      return; // 해당 기간 데이터 없으면 제외
     }
 
+    // 평균점수 기준일 때: 최소 문제 수 필터링
     if (criteria === 'avgScore') {
       const minProblems = MIN_PROBLEMS_FOR_AVG[period];
       if (periodData.problems < minProblems) {
-        return;
+        return; // 제외
       }
     }
 
@@ -1352,7 +1295,7 @@ async function fetchRankings(period, criteria) {
     });
   });
 
-  // 4. 로컬 정렬
+  // 4. 로컬 정렬 (브라우저에서 처리)
   rankings.sort((a, b) => {
     const aValue = a[criteria];
     const bValue = b[criteria];
@@ -1362,7 +1305,6 @@ async function fetchRankings(period, criteria) {
   console.log(`✅ [Ranking] ${rankings.length}명의 랭킹 데이터 처리 완료 (서버 읽기: 0회)`);
 
   return rankings;
-  */
 }
 
 /**

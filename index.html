@@ -802,12 +802,12 @@
         <div id="ranking-tab-global" class="ranking-tab-content">
           <!-- 필터: 기준 + 기간 (한 줄) -->
           <div class="flex items-center justify-between gap-4 mb-6">
-            <!-- 왼쪽: 기준 선택 버튼 -->
-            <div class="flex gap-2 overflow-x-auto pb-2">
+            <!-- 왼쪽: 기준 선택 버튼 + 업데이트 시간 -->
+            <div class="flex gap-2 items-center overflow-x-auto pb-2">
               <button class="ranking-criteria-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-blue-500 text-white" data-criteria="totalScore">📊 총점수</button>
               <button class="ranking-criteria-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600" data-criteria="problems">✍️ 문풀횟수</button>
               <button class="ranking-criteria-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600" data-criteria="avgScore">⭐ 평균점수</button>
-              <!-- 스냅샷 모드 복귀 시 주석 해제: <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">데이터 업데이트: 매일 8시, 13시, 18시, 23시</span> -->
+              <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">데이터 업데이트: 매일 8시, 13시, 18시, 23시</span>
             </div>
 
             <!-- 오른쪽: 기간 드롭다운 -->
