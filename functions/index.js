@@ -33,12 +33,12 @@ const db = admin.firestore();
 
 /**
  * 랭킹 스냅샷 생성 함수
- * - 6시간마다 자동 실행 (Cloud Scheduler 설정 필요)
+ * - 공부 피크타임에 자동 실행 (8시, 13시, 18시, 23시)
  */
 exports.generateRankingSnapshot = functions
   .region('asia-northeast3') // 서울 리전
   .pubsub
-  .schedule('0 */6 * * *') // 6시간마다 (0시, 6시, 12시, 18시)
+  .schedule('0 8,13,18,23 * * *') // 8시, 13시, 18시, 23시
   .timeZone('Asia/Seoul')
   .onRun(async (context) => {
     console.log('🚀 랭킹 스냅샷 생성 시작...');
