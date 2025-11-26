@@ -1259,6 +1259,14 @@ async function fetchRankings(period, criteria) {
   const periodKey = getPeriodKeyForQuery();
   console.log(`🔍 [Ranking] 기간 키: ${periodKey}, 총 ${snapshot.users.length}명 데이터`);
 
+  // 🐛 DEBUG: 첫 번째 사용자 데이터 출력
+  if (snapshot.users.length > 0) {
+    console.log(`🐛 [DEBUG] 첫 번째 사용자 데이터 샘플:`, snapshot.users[0]);
+    console.log(`🐛 [DEBUG] daily 키들:`, Object.keys(snapshot.users[0].daily || {}));
+    console.log(`🐛 [DEBUG] weekly 키들:`, Object.keys(snapshot.users[0].weekly || {}));
+    console.log(`🐛 [DEBUG] monthly 키들:`, Object.keys(snapshot.users[0].monthly || {}));
+  }
+
   // 3. 로컬 필터링 (브라우저에서 처리)
   let rankings = [];
 
