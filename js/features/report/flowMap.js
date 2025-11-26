@@ -169,7 +169,7 @@ export function showFlowGuide() {
 
   // 간단한 알림으로 표시 (또는 모달 라이브러리 사용)
   const guideContainer = document.createElement('div');
-  guideContainer.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+  guideContainer.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1003] p-4';
   guideContainer.innerHTML = `
     <div class="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-2xl max-h-[80vh] overflow-y-auto">
       ${guideHTML}
