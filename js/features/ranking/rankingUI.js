@@ -1492,8 +1492,8 @@ function renderRankingList(rankings) {
         bronze: '🥉',
         silver: '🥈',
         gold: '🥇',
-        platinum: '💎',
-        diamond: '💠',
+        platinum: '🔷',
+        diamond: '💎',
         master: '👑'
       };
       const tierIcon = tierIcons[user.tier] || '⭐';
