@@ -13,7 +13,10 @@ import {
   updateStatusMessage,
   getStatusMessage,
   deleteUserAccount,
-  withdrawUser
+  withdrawUser,
+  getNickname,
+  updateNickname,
+  checkNicknameDuplicate
 } from './authCore.js';
 
 import { showToast } from '../../ui/domUtils.js';
@@ -178,6 +181,54 @@ function setupEventListeners() {
   const saveStatusBtn = document.getElementById('save-status-btn');
   if (saveStatusBtn) {
     saveStatusBtn.addEventListener('click', handleSaveStatusMessage);
+  }
+
+  // [프로필 닉네임] 닉네임 입력 - 글자 수 카운터 및 실시간 중복 체크
+  const profileNicknameInput = document.getElementById('profile-nickname-input');
+  const nicknameCharCount = document.getElementById('nickname-char-count');
+  const nicknameValidationMessage = document.getElementById('nickname-validation-message');
+
+  if (profileNicknameInput && nicknameCharCount) {
+    let nicknameCheckTimeout;
+
+    profileNicknameInput.addEventListener('input', () => {
+      const length = profileNicknameInput.value.length;
+      nicknameCharCount.textContent = length;
+
+      // 실시간 중복 체크 (디바운싱)
+      clearTimeout(nicknameCheckTimeout);
+      nicknameCheckTimeout = setTimeout(async () => {
+        if (length >= 2 && length <= 20) {
+          const result = await checkNicknameDuplicate(profileNicknameInput.value);
+          if (nicknameValidationMessage) {
+            nicknameValidationMessage.classList.remove('hidden');
+            if (result.isDuplicate) {
+              nicknameValidationMessage.className = 'text-xs text-red-600 dark:text-red-400';
+              nicknameValidationMessage.textContent = '❌ ' + result.message;
+            } else {
+              nicknameValidationMessage.className = 'text-xs text-green-600 dark:text-green-400';
+              nicknameValidationMessage.textContent = '✅ ' + result.message;
+            }
+          }
+        } else if (length > 0) {
+          if (nicknameValidationMessage) {
+            nicknameValidationMessage.classList.remove('hidden');
+            nicknameValidationMessage.className = 'text-xs text-gray-600 dark:text-gray-400';
+            nicknameValidationMessage.textContent = '닉네임은 2-20자여야 합니다.';
+          }
+        } else {
+          if (nicknameValidationMessage) {
+            nicknameValidationMessage.classList.add('hidden');
+          }
+        }
+      }, 500); // 500ms 디바운싱
+    });
+  }
+
+  // [프로필 닉네임] 닉네임 저장 버튼
+  const saveProfileNicknameBtn = document.getElementById('save-profile-nickname-btn');
+  if (saveProfileNicknameBtn) {
+    saveProfileNicknameBtn.addEventListener('click', handleSaveProfileNickname);
   }
 
   // 회원 탈퇴 버튼
@@ -506,6 +557,9 @@ async function updateProfileModalUI(user) {
 
   // [Achievement System 2.0] 티어 정보 표시
   await updateProfileTierUI(user.uid);
+
+  // [프로필 닉네임] 현재 닉네임 로드
+  await loadProfileNickname();
 }
 
 /**
@@ -598,6 +652,72 @@ async function updateProfileTierUI(userId) {
 
   } catch (error) {
     console.error('❌ [Profile] 티어 정보 표시 실패:', error);
+  }
+}
+
+/**
+ * [프로필 닉네임] 현재 닉네임 로드
+ */
+async function loadProfileNickname() {
+  try {
+    const nickname = await getNickname();
+    const profileNicknameInput = document.getElementById('profile-nickname-input');
+    const nicknameCharCount = document.getElementById('nickname-char-count');
+
+    if (profileNicknameInput) {
+      profileNicknameInput.value = nickname || '';
+      if (nicknameCharCount) {
+        nicknameCharCount.textContent = (nickname || '').length;
+      }
+    }
+  } catch (error) {
+    console.error('❌ [Profile] 닉네임 로드 실패:', error);
+  }
+}
+
+/**
+ * [프로필 닉네임] 닉네임 저장 핸들러
+ */
+async function handleSaveProfileNickname() {
+  const profileNicknameInput = document.getElementById('profile-nickname-input');
+  const saveBtn = document.getElementById('save-profile-nickname-btn');
+  const validationMessage = document.getElementById('nickname-validation-message');
+
+  if (!profileNicknameInput || !saveBtn) return;
+
+  const nickname = profileNicknameInput.value.trim();
+
+  // 유효성 검사
+  if (nickname.length < 2 || nickname.length > 20) {
+    showToast('❌ 닉네임은 2-20자여야 합니다.', 'error');
+    return;
+  }
+
+  // 중복 체크
+  const duplicateCheck = await checkNicknameDuplicate(nickname);
+  if (duplicateCheck.isDuplicate) {
+    showToast('❌ ' + duplicateCheck.message, 'error');
+    return;
+  }
+
+  // 저장 중 UI 업데이트
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+
+  // 닉네임 저장
+  const result = await updateNickname(nickname);
+
+  // 버튼 복원
+  saveBtn.disabled = false;
+  saveBtn.innerHTML = '닉네임 저장';
+
+  if (result.success) {
+    showToast('✅ ' + result.message, 'success');
+    if (validationMessage) {
+      validationMessage.classList.add('hidden');
+    }
+  } else {
+    showToast('❌ ' + result.message, 'error');
   }
 }
 
