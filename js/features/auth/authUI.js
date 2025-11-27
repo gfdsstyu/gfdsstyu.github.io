@@ -22,7 +22,7 @@ import {
 import { showToast } from '../../ui/domUtils.js';
 
 // [Achievement System 2.0] 티어 시스템
-import { calculateTier } from '../ranking/rankingCore.js';
+import { calculateTier, migrateAchievementPointsToAP } from '../ranking/rankingCore.js';
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 import { db } from '../../app.js';
 
@@ -465,6 +465,16 @@ async function openProfileModal() {
     return;
   }
 
+  // [Achievement System 2.0] 기존 업적 포인트 마이그레이션 (최초 1회만 실행)
+  try {
+    const migrationResult = await migrateAchievementPointsToAP();
+    if (migrationResult.success && migrationResult.migratedAP > 0) {
+      showToast(`✨ ${migrationResult.migratedAP} AP 적용 완료!`, 'success');
+    }
+  } catch (error) {
+    console.error('❌ [Profile] AP 마이그레이션 실패:', error);
+  }
+
   try {
     // 사용자 정보 표시 (티어 정보 포함)
     await updateProfileModalUI(user);
@@ -476,7 +486,7 @@ async function openProfileModal() {
   try {
     // 현재 상태 메시지 가져오기
     const statusResult = await getStatusMessage();
-    if (statusResult.success && statusResult.statusMessage) {
+    if (statusResult && statusResult.success && statusResult.statusMessage) {
       const statusInput = document.getElementById('status-message-input');
       const charCount = document.getElementById('status-char-count');
       if (statusInput) {
