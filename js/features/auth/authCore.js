@@ -21,7 +21,11 @@ import {
   getDoc,
   updateDoc,
   deleteDoc,
-  serverTimestamp
+  serverTimestamp,
+  collection,
+  query,
+  where,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 import { auth, db } from '../../app.js';
@@ -298,6 +302,46 @@ export async function getNickname() {
   } catch (error) {
     console.error('❌ 닉네임 조회 실패:', error);
     return null;
+  }
+}
+
+/**
+ * 닉네임 중복 체크
+ * @param {string} nickname - 체크할 닉네임
+ * @returns {Promise<{isDuplicate: boolean, message: string}>}
+ */
+export async function checkNicknameDuplicate(nickname) {
+  if (!currentUser) {
+    return { isDuplicate: false, message: '로그인이 필요합니다.' };
+  }
+
+  const trimmedNickname = nickname.trim();
+
+  if (trimmedNickname.length < 2) {
+    return { isDuplicate: false, message: '닉네임은 2자 이상이어야 합니다.' };
+  }
+
+  try {
+    // Firestore 쿼리로 닉네임 중복 체크
+    const usersRef = collection(db, 'users');
+    const q = query(
+      usersRef,
+      where('profile.nickname', '==', trimmedNickname)
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    // 자기 자신의 닉네임은 제외
+    const duplicates = querySnapshot.docs.filter(doc => doc.id !== currentUser.uid);
+
+    if (duplicates.length > 0) {
+      return { isDuplicate: true, message: '이미 사용 중인 닉네임입니다.' };
+    }
+
+    return { isDuplicate: false, message: '사용 가능한 닉네임입니다.' };
+  } catch (error) {
+    console.error('❌ 닉네임 중복 체크 실패:', error);
+    return { isDuplicate: false, message: '중복 체크 중 오류가 발생했습니다.' };
   }
 }
 
