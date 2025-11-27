@@ -17,7 +17,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 import { db } from '../../app.js';
-import { getCurrentUser, getNickname, addAuthStateListener } from '../auth/authCore.js';
+import { getCurrentUser, getNickname } from '../auth/authCore.js';
 
 // ============================================
 // Helper Functions
@@ -71,30 +71,14 @@ export async function updateUserStats(userId, score) {
     console.log(`📊 [Ranking] 사용자 통계 업데이트 시작... (userId: ${userId}, score: ${score})`);
 
     const userDocRef = doc(db, 'users', userId);
-    let userDocSnap = await getDoc(userDocRef);
+    const userDocSnap = await getDoc(userDocRef);
 
     if (!userDocSnap.exists()) {
       console.error('❌ [Ranking] 사용자 문서가 없습니다:', userId);
       return { success: false, message: '사용자 문서 없음' };
     }
 
-    let userData = userDocSnap.data();
-
-    // ============================================================
-    // [Safety Check] 업적 포인트 마이그레이션 확인
-    // ============================================================
-    // 사용자가 문제를 풀 때, 아직 업적 포인트가 반영 안 되어 있다면 강제 실행
-    let migratedPoints = 0;
-    if (!userData.ranking?.apMigrated) {
-      console.log('⚡ [Ranking] 업적 포인트 마이그레이션이 누락되어 있어 지금 수행합니다...');
-      const migrationResult = await migrateAchievementPointsToAP();
-      if (migrationResult.success) {
-        migratedPoints = migrationResult.migratedAP;
-        // 마이그레이션으로 인해 DB가 변경되었으므로 데이터를 다시 불러옴
-        userDocSnap = await getDoc(userDocRef);
-        userData = userDocSnap.data();
-      }
-    }
+    const userData = userDocSnap.data();
     const currentStats = userData.stats || {
       totalProblems: 0,
       totalScore: 0,
@@ -158,9 +142,7 @@ export async function updateUserStats(userId, score) {
     const totalGainedAP = earnedAP + bonusAP;
 
     // 현재 랭크 포인트 (currentRP) 증가
-    // 주의: 마이그레이션이 방금 일어났다면 userData는 갱신된 상태임
     const currentRP = (userData.ranking?.currentRP || 0) + totalGainedAP;
-    const totalAccumulatedRP = (userData.ranking?.totalAccumulatedRP || 0) + totalGainedAP;
 
     console.log(`📊 [Ranking AP] 획득: 기본 ${earnedAP} + 보너스 ${bonusAP} = ${totalGainedAP} AP (누적: ${currentRP} AP)`);
 
@@ -175,7 +157,7 @@ export async function updateUserStats(userId, score) {
       [`stats.monthly.${monthlyKey}`]: monthlyStats,
       // [Achievement System 2.0] 랭크 포인트 업데이트
       'ranking.currentRP': currentRP,
-      'ranking.totalAccumulatedRP': totalAccumulatedRP,
+      'ranking.totalAccumulatedRP': (userData.ranking?.totalAccumulatedRP || 0) + totalGainedAP,
       'ranking.lastAPGainedAt': serverTimestamp()
     });
 
@@ -200,11 +182,7 @@ export async function updateUserStats(userId, score) {
         [`daily.${dailyKey}`]: dailyStats,
         [`weekly.${weeklyKey}`]: weeklyStats,
         [`monthly.${monthlyKey}`]: monthlyStats,
-        lastUpdatedAt: serverTimestamp(),
-        // [Achievement System 2.0] 랭킹에도 RP 정보 동기화 (리더보드 정렬용)
-        currentRP: currentRP,
-        totalAccumulatedRP: totalAccumulatedRP,
-        tier: calculateTier(totalAccumulatedRP).tier // 티어 정보도 저장
+        lastUpdatedAt: serverTimestamp()
       };
 
       console.log(`🔍 [Ranking DEBUG] 저장할 데이터:`, rankingData);
@@ -736,7 +714,7 @@ export async function migrateAchievementPointsToAP() {
     }
 
     // 2. localStorage에서 업적 데이터 가져오기
-    const achievements = JSON.parse(localStorage.getItem('achievements_v1') || '{}');
+    const achievements = JSON.parse(localStorage.getItem('achievements') || '{}');
 
     // 3. ACHIEVEMENTS config 가져오기 (동적 import)
     const { ACHIEVEMENTS } = await import('../../config/config.js');
@@ -761,14 +739,11 @@ export async function migrateAchievementPointsToAP() {
     console.log(`💰 [Migration] 총 업적 포인트: ${totalAchievementPoints} AP`);
 
     // 5. Firestore에 AP 추가
-    const currentTotalAP = userData.ranking?.totalAccumulatedRP || 0;
-    const currentRP = userData.ranking?.currentRP || 0;
-    
-    const newTotalAP = currentTotalAP + totalAchievementPoints;
-    const newRP = currentRP + totalAchievementPoints;
+    const currentAP = userData.ranking?.totalAccumulatedRP || 0;
+    const newTotalAP = currentAP + totalAchievementPoints;
 
     await updateDoc(userDocRef, {
-      'ranking.currentRP': newRP,
+      'ranking.currentRP': newTotalAP,
       'ranking.totalAccumulatedRP': newTotalAP,
       'ranking.apMigrated': true,
       'ranking.apMigratedAt': serverTimestamp(),
@@ -776,7 +751,7 @@ export async function migrateAchievementPointsToAP() {
     });
 
     console.log(`✅ [Migration] 마이그레이션 완료: ${totalAchievementPoints} AP 추가`);
-    console.log(`📈 [Migration] 총 AP: ${currentTotalAP} → ${newTotalAP}`);
+    console.log(`📈 [Migration] 총 AP: ${currentAP} → ${newTotalAP}`);
 
     return {
       success: true,
@@ -808,20 +783,3 @@ if (typeof window !== 'undefined') {
     migrateAchievementPointsToAP
   };
 }
-
-// ============================================
-// [자동화] 로그인 시 마이그레이션 트리거
-// ============================================
-
-// 인증 상태 변화 감지하여 로그인 시 자동 마이그레이션 시도
-addAuthStateListener((user) => {
-  if (user) {
-    console.log('🔐 [Ranking] 로그인 감지 - 업적 포인트 마이그레이션 체크 준비...');
-    // 데이터 동기화(syncOnLogin)가 완료될 시간을 주기 위해 지연 실행
-    setTimeout(() => {
-      migrateAchievementPointsToAP().catch(error => {
-        console.warn('⚠️ [Ranking] 자동 마이그레이션 체크 중 오류 (무시 가능):', error);
-      });
-    }, 3000); // 3초 후 실행
-  }
-});
