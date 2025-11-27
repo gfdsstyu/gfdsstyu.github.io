@@ -116,6 +116,36 @@ export async function updateUserStats(userId, score) {
     monthlyStats.totalScore += score;
     monthlyStats.avgScore = monthlyStats.totalScore / monthlyStats.problems;
 
+    // ============================================================
+    // [Achievement System 2.0] 활동 점수(AP) 계산
+    // ============================================================
+
+    // 1. 기본 풀이 점수 (채굴형 점수 Grinding)
+    const earnedAP = score >= 80 ? 3 : 1; // 80점 이상: 3 AP, 미만: 1 AP
+
+    // 2. 데일리 미션 보너스
+    let bonusAP = 0;
+    const todayProblems = dailyStats.problems;
+
+    // 10문제 첫 달성 시 +30 AP 보너스
+    if (todayProblems === 10) {
+      bonusAP += 30;
+      console.log(`🎉 [Ranking AP] 데일리 미션 달성: 10문제 (+30 AP)`);
+    }
+
+    // 50문제 첫 달성 시 +100 AP 보너스
+    if (todayProblems === 50) {
+      bonusAP += 100;
+      console.log(`🎉 [Ranking AP] 데일리 미션 달성: 50문제 (+100 AP)`);
+    }
+
+    const totalGainedAP = earnedAP + bonusAP;
+
+    // 현재 랭크 포인트 (currentRP) 증가
+    const currentRP = (userData.ranking?.currentRP || 0) + totalGainedAP;
+
+    console.log(`📊 [Ranking AP] 획득: 기본 ${earnedAP} + 보너스 ${bonusAP} = ${totalGainedAP} AP (누적: ${currentRP} AP)`);
+
     // 1. users 컬렉션 업데이트
     await updateDoc(userDocRef, {
       'stats.totalProblems': newTotalProblems,
@@ -124,7 +154,11 @@ export async function updateUserStats(userId, score) {
       'stats.lastProblemSolvedAt': serverTimestamp(),
       [`stats.daily.${dailyKey}`]: dailyStats,
       [`stats.weekly.${weeklyKey}`]: weeklyStats,
-      [`stats.monthly.${monthlyKey}`]: monthlyStats
+      [`stats.monthly.${monthlyKey}`]: monthlyStats,
+      // [Achievement System 2.0] 랭크 포인트 업데이트
+      'ranking.currentRP': currentRP,
+      'ranking.totalAccumulatedRP': (userData.ranking?.totalAccumulatedRP || 0) + totalGainedAP,
+      'ranking.lastAPGainedAt': serverTimestamp()
     });
 
     // 2. Phase 3.4: rankings 컬렉션 업데이트 (성능 최적화용)
@@ -466,6 +500,187 @@ export async function getIntraGroupRankings(groupId, period, criteria) {
 }
 
 // ============================================
+// [Achievement System 2.0] 티어 시스템 (Tier System)
+// ============================================
+
+/**
+ * 총 누적 AP 기반 티어 계산
+ * @param {number} totalAccumulatedRP - 총 누적 랭크 포인트
+ * @returns {Object} { tier: string, name: string, minAP: number, nextTier: string|null, nextMinAP: number|null }
+ */
+export function calculateTier(totalAccumulatedRP) {
+  const tiers = [
+    { tier: 'master', name: 'Master', minAP: 30000, color: '#9333ea', decayRate: 300 },
+    { tier: 'diamond', name: 'Diamond', minAP: 20000, color: '#3b82f6', decayRate: 150 },
+    { tier: 'platinum', name: 'Platinum', minAP: 10000, color: '#06b6d4', decayRate: 50 },
+    { tier: 'gold', name: 'Gold', minAP: 5000, color: '#eab308', decayRate: 20 },
+    { tier: 'silver', name: 'Silver', minAP: 2000, color: '#71717a', decayRate: 0 },
+    { tier: 'bronze', name: 'Bronze', minAP: 500, color: '#a3725f', decayRate: 0 }
+  ];
+
+  for (let i = 0; i < tiers.length; i++) {
+    if (totalAccumulatedRP >= tiers[i].minAP) {
+      return {
+        tier: tiers[i].tier,
+        name: tiers[i].name,
+        minAP: tiers[i].minAP,
+        color: tiers[i].color,
+        decayRate: tiers[i].decayRate,
+        nextTier: i > 0 ? tiers[i - 1].tier : null,
+        nextMinAP: i > 0 ? tiers[i - 1].minAP : null
+      };
+    }
+  }
+
+  // 500 AP 미만은 Unranked
+  return {
+    tier: 'unranked',
+    name: 'Unranked',
+    minAP: 0,
+    color: '#52525b',
+    decayRate: 0,
+    nextTier: 'bronze',
+    nextMinAP: 500
+  };
+}
+
+// ============================================
+// [Achievement System 2.0] 강등(Decay) 시스템 준비
+// ============================================
+
+/**
+ * ⚠️ [주의] 이 함수는 Cloud Functions에서 일일 스케줄러로 실행되어야 합니다.
+ *
+ * 티어별 일일 AP 차감 로직:
+ * - Bronze/Silver: 차감 없음 (decayRate: 0)
+ * - Gold: 일일 -20 AP (decayRate: 20)
+ * - Platinum: 일일 -50 AP (decayRate: 50)
+ * - Diamond: 일일 -150 AP (decayRate: 150)
+ * - Master: 일일 -300 AP (decayRate: 300)
+ *
+ * 작동 원리:
+ * 1. 매일 오전 5시(KST)에 Cloud Function 실행
+ * 2. 모든 사용자의 lastAPGainedAt 확인
+ * 3. 24시간 이상 비활동 시 티어별 차감 실행
+ * 4. currentRP가 해당 티어 최소값 미만으로 떨어지면 티어 강등
+ *
+ * 구현 예시 (Cloud Functions):
+ *
+ * ```javascript
+ * exports.applyDailyDecay = functions.pubsub
+ *   .schedule('0 5 * * *') // 매일 오전 5시 (KST: +9시간)
+ *   .timeZone('Asia/Seoul')
+ *   .onRun(async (context) => {
+ *     const usersRef = admin.firestore().collection('users');
+ *     const snapshot = await usersRef.get();
+ *
+ *     const now = admin.firestore.Timestamp.now();
+ *     const oneDayAgo = new Date(now.toMillis() - 24 * 60 * 60 * 1000);
+ *
+ *     const batch = admin.firestore().batch();
+ *     let decayCount = 0;
+ *
+ *     snapshot.forEach(doc => {
+ *       const userData = doc.data();
+ *       const lastAPGainedAt = userData.ranking?.lastAPGainedAt;
+ *
+ *       // 24시간 이상 비활동 체크
+ *       if (!lastAPGainedAt || lastAPGainedAt.toMillis() < oneDayAgo.getTime()) {
+ *         const totalAccumulatedRP = userData.ranking?.totalAccumulatedRP || 0;
+ *         const tierInfo = calculateTier(totalAccumulatedRP);
+ *
+ *         // Bronze/Silver는 차감 없음
+ *         if (tierInfo.decayRate === 0) return;
+ *
+ *         const currentRP = userData.ranking?.currentRP || 0;
+ *         const newRP = Math.max(tierInfo.minAP, currentRP - tierInfo.decayRate);
+ *
+ *         if (newRP < currentRP) {
+ *           batch.update(doc.ref, {
+ *             'ranking.currentRP': newRP,
+ *             'ranking.lastDecayAt': now
+ *           });
+ *           decayCount++;
+ *           console.log(`🔻 Decay applied: ${userData.nickname} (${tierInfo.name}) -${tierInfo.decayRate} AP`);
+ *         }
+ *       }
+ *     });
+ *
+ *     await batch.commit();
+ *     console.log(`✅ Daily decay completed: ${decayCount} users affected`);
+ *   });
+ * ```
+ *
+ * 배포 방법:
+ * 1. functions/index.js에 위 코드 추가
+ * 2. firebase deploy --only functions:applyDailyDecay
+ * 3. Cloud Scheduler 콘솔에서 작동 확인
+ *
+ * @param {string} userId - 사용자 UID (테스트용 단일 사용자 차감)
+ * @returns {Promise<{success: boolean, message: string, decayed: number}>}
+ */
+export async function applyDecayForUser(userId) {
+  // ⚠️ 이 함수는 테스트/디버깅 전용입니다. 실제 운영에서는 Cloud Functions를 사용하세요.
+
+  if (!userId) {
+    return { success: false, message: 'userId 누락', decayed: 0 };
+  }
+
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (!userDocSnap.exists()) {
+      return { success: false, message: '사용자 문서 없음', decayed: 0 };
+    }
+
+    const userData = userDocSnap.data();
+    const lastAPGainedAt = userData.ranking?.lastAPGainedAt;
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    // 24시간 이내 활동이 있으면 차감 안 함
+    if (lastAPGainedAt && lastAPGainedAt.toMillis() > oneDayAgo.getTime()) {
+      return { success: true, message: '최근 활동 있음 - 차감 없음', decayed: 0 };
+    }
+
+    const totalAccumulatedRP = userData.ranking?.totalAccumulatedRP || 0;
+    const tierInfo = calculateTier(totalAccumulatedRP);
+
+    // Bronze/Silver는 차감 없음
+    if (tierInfo.decayRate === 0) {
+      return { success: true, message: `${tierInfo.name} 티어 - 차감 없음`, decayed: 0 };
+    }
+
+    const currentRP = userData.ranking?.currentRP || 0;
+    const newRP = Math.max(tierInfo.minAP, currentRP - tierInfo.decayRate);
+
+    if (newRP >= currentRP) {
+      return { success: true, message: '이미 최소값 도달 - 차감 없음', decayed: 0 };
+    }
+
+    const decayedAmount = currentRP - newRP;
+
+    await updateDoc(userDocRef, {
+      'ranking.currentRP': newRP,
+      'ranking.lastDecayAt': serverTimestamp()
+    });
+
+    console.log(`🔻 [Decay] ${tierInfo.name} 티어 사용자 차감: -${decayedAmount} AP (${currentRP} → ${newRP})`);
+
+    return {
+      success: true,
+      message: `${tierInfo.name} 티어 차감 완료`,
+      decayed: decayedAmount
+    };
+
+  } catch (error) {
+    console.error('❌ [Decay] 차감 실패:', error);
+    return { success: false, message: `차감 실패: ${error.message}`, decayed: 0 };
+  }
+}
+
+// ============================================
 // 전역 노출 (디버깅용)
 // ============================================
 
@@ -477,6 +692,8 @@ if (typeof window !== 'undefined') {
     getPeriodKey,
     updateGroupStats,
     getGroupRankings,
-    getIntraGroupRankings
+    getIntraGroupRankings,
+    calculateTier,
+    applyDecayForUser
   };
 }

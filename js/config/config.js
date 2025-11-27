@@ -267,111 +267,23 @@ export const parsePartValue = (v) => {
 };
 
 // ========================================
-// 업적 시스템
+// 업적 시스템 (Rebalanced v2.0 - Achievement & Ranking System 2.0)
+// - 티어: Bronze, Silver, Gold, Platinum, Diamond, Master
+// - 초점: 누적 풀이 횟수(Cumulative Solves), N회독(Rotation), 활동 점수(AP)
 // ========================================
 export const ACHIEVEMENTS = {
-  // Bronze - Basic achievements
+  // ============================================================
+  // [BRONZE] 입문자 (10~30 AP)
+  // ============================================================
   first_problem: { id: 'first_problem', name: '첫걸음', desc: '첫 번째 문제 풀이 및 채점 완료', icon: '🎯', tier: 'bronze', points: 10 },
-  first_80: { id: 'first_80', name: '첫 80점', desc: '최초로 AI 채점 80점 이상 달성', icon: '📈', tier: 'bronze', points: 10 },
-  problems_100: { id: 'problems_100', name: '성실의 증표', desc: '총 풀이 문제 100개 돌파', icon: '📚', tier: 'bronze', points: 20 },
-  streak_3: { id: 'streak_3', name: '불타는 3일', desc: '3일 연속 학습', icon: '🔥', tier: 'bronze', points: 10 },
-  streak_7: { id: 'streak_7', name: '일주일의 습관', desc: '7일 연속 학습', icon: '📅', tier: 'bronze', points: 20 },
-  daily_20: { id: 'daily_20', name: '일일 퀘스트', desc: '하루에 20문제 이상 풀이 완료', icon: '📝', tier: 'bronze', points: 10 },
-  basic_source: { id: 'basic_source', name: '기본의 왕도', desc: '기본반 출처(H, S, HS)의 모든 문제를 1회 이상 학습', icon: '📖', tier: 'bronze', points: 30 },
-  advanced_source: { id: 'advanced_source', name: '심화반 입반', desc: 'SS 또는 P 출처 문제 50개 이상 풀이', icon: '🎓', tier: 'bronze', points: 20 },
-  retry_same_day: { id: 'retry_same_day', name: '오늘도 힘내요', desc: '60점 미만을 받은 문제를 같은 날 다시 재도전', icon: '💪', tier: 'bronze', points: 10 },
-  explorer: { id: 'explorer', name: '탐험가', desc: '5개 이상의 서로 다른 단원에서 문제를 풀어본 경우', icon: '🗺️', tier: 'bronze', points: 10 },
-  morning_routine: { id: 'morning_routine', name: '아침 루틴', desc: '7일 연속 오전 중 같은 시간대(±1시간)에 학습 시작', icon: '☀️', tier: 'bronze', points: 15 },
-  retry_next_day: { id: 'retry_next_day', name: '재도전의 미학', desc: '하루 전 틀린 문제를 다음날 바로 복습 (누적 20회)', icon: '🔁', tier: 'bronze', points: 15 },
-  review_master: { id: 'review_master', name: '복습의 달인', desc: '오늘의 복습 기능 10회 이상 사용', icon: '🔄', tier: 'bronze', points: 15 },
-  flagged_20: { id: 'flagged_20', name: '오답노트', desc: '복습 추가(★) 플래그 20개 이상 설정', icon: '⭐', tier: 'bronze', points: 10 },
-  flashcard_100: { id: 'flashcard_100', name: '전광석화', desc: '플래시카드 모드로 100개의 카드를 학습 (다음/이전 100회)', icon: '⚡️', tier: 'bronze', points: 15 },
+  first_80: { id: 'first_80', name: '첫 80점', desc: '최초로 AI 채점 80점 이상 달성', icon: '📈', tier: 'bronze', points: 20 },
+  streak_3: { id: 'streak_3', name: '작심삼일 돌파', desc: '3일 연속 학습 성공', icon: '🔥', tier: 'bronze', points: 30 },
+  daily_20: { id: 'daily_20', name: '가벼운 몸풀기', desc: '하루 20문제 이상 풀이', icon: '🏃', tier: 'bronze', points: 20 },
+  problems_100: { id: 'problems_100', name: '맛보기 완료', desc: '누적 풀이 100문제 돌파', icon: '🍪', tier: 'bronze', points: 30 },
+  explorer: { id: 'explorer', name: '탐험가', desc: '5개 이상의 서로 다른 단원 찍먹해보기', icon: '🗺️', tier: 'bronze', points: 20 },
+  retry_same_day: { id: 'retry_same_day', name: '오늘도 힘내요', desc: '60점 미만 문제 당일 재도전', icon: '💪', tier: 'bronze', points: 20 },
 
-  // Silver - Intermediate achievements
-  first_90: { id: 'first_90', name: '고수의 반열', desc: '최초로 90점 이상 달성', icon: '🎖️', tier: 'silver', points: 20 },
-  first_100: { id: 'first_100', name: '완벽한 이해', desc: '최초로 100점 달성', icon: '💯', tier: 'silver', points: 30 },
-  problems_1000: { id: 'problems_1000', name: '천리길', desc: '총 풀이 문제 1,000개 돌파', icon: '🌟', tier: 'silver', points: 100 },
-  streak_30: { id: 'streak_30', name: '한 달의 끈기', desc: '30일 연속 학습', icon: '💪', tier: 'silver', points: 50 },
-  streak_60: { id: 'streak_60', name: '두 달의 집념', desc: '60일 연속 학습', icon: '🏃', tier: 'silver', points: 80 },
-  daily_50: { id: 'daily_50', name: '하루 50제', desc: '하루에 50문제 이상 풀이 완료', icon: '🔥', tier: 'silver', points: 20 },
-  weekly_100: { id: 'weekly_100', name: '주간 정복자', desc: '일주일 동안 100문제 이상 풀이 완료', icon: '📊', tier: 'silver', points: 30 },
-  monthly_300: { id: 'monthly_300', name: '월간 기본반', desc: '한 달 동안 300문제 이상 풀이 완료', icon: '📘', tier: 'silver', points: 50 },
-  advanced_graduate: { id: 'advanced_graduate', name: '심화반 수료', desc: 'SS 또는 P 출처 문제 150개 이상 풀이 + 평균 80점 이상', icon: '🎖️', tier: 'silver', points: 60 },
-  perfectionist: { id: 'perfectionist', name: '완벽주의자', desc: '한 문제를 3회 이상 풀어서 모두 90점 이상 달성', icon: '💎', tier: 'silver', points: 30 },
-  weekend_warrior: { id: 'weekend_warrior', name: '주말 학습러', desc: '토요일, 일요일 모두 10문제 이상씩 푼 주말이 4회 이상', icon: '📅', tier: 'silver', points: 40 },
-  rapid_growth: { id: 'rapid_growth', name: '급성장', desc: '어떤 문제를 첫 시도 70점 이하 → 두 번째 시도 95점 이상 달성', icon: '📈', tier: 'silver', points: 25 },
-  chapter_hopping: { id: 'chapter_hopping', name: '챕터 호핑', desc: '하루에 5개 이상의 서로 다른 단원 문제를 풀이', icon: '🦘', tier: 'silver', points: 20 },
-  review_king: { id: 'review_king', name: '복습왕', desc: '별표(★) 플래그 문제 10개 이상을 모두 85점 이상으로 재달성', icon: '👑', tier: 'silver', points: 50 },
-  memory_test: { id: 'memory_test', name: '기억력 테스트', desc: '일주일 전 푼 문제를 다시 풀어 점수 향상 (30문제)', icon: '🧠', tier: 'silver', points: 30 },
-  nonstop_learning: { id: 'nonstop_learning', name: '논스톱 학습', desc: '30분 내 20문제 이상 풀이', icon: '⏱️', tier: 'silver', points: 25 },
-  weakness_analyzer: { id: 'weakness_analyzer', name: '약점 분석가', desc: '60점 미만 문제들만 모아서 30개 재도전', icon: '🔍', tier: 'silver', points: 30 },
-  consistency_basic: { id: 'consistency_basic', name: '꾸준함의 정석', desc: '한 달 동안 하루도 빠짐없이 최소 5문제씩 풀이', icon: '📆', tier: 'silver', points: 50 },
-  speed_hands: { id: 'speed_hands', name: '빠른 손', desc: '30분 내 15문제 풀고 평균 80점 이상', icon: '✋', tier: 'silver', points: 35 },
-  overcome_weakness: { id: 'overcome_weakness', name: '약점 극복', desc: '60점 미만이었던 문제를 복습하여 85점 이상으로 갱신', icon: '💪', tier: 'silver', points: 25 },
-  perfect_day: { id: 'perfect_day', name: '퍼펙트 데이', desc: '하루에 푼 10개 이상의 문제 모두 80점 이상 달성', icon: '✨', tier: 'silver', points: 30 },
-  avg_80: { id: 'avg_80', name: '안정권 진입', desc: '전체 문제 누적 평균 점수 80점 돌파', icon: '🎯', tier: 'silver', points: 30 },
-  chapter_master: { id: 'chapter_master', name: '챕터 마스터', desc: '특정 단원의 모든 문제 평균 80점 달성', icon: '👑', tier: 'silver', points: 40 },
-  first_completion: { id: 'first_completion', name: '1회독 완료', desc: 'questions.json의 모든 단원을 1문제 이상 학습', icon: '📚', tier: 'silver', points: 50 },
-  flashcard_500: { id: 'flashcard_500', name: '삐깨삐갯피캐쮸', desc: '플래시카드 모드로 500개의 카드를 학습 (다음/이전 500회)', icon: '🚀', tier: 'silver', points: 30 },
-  stt_50: { id: 'stt_50', name: '말터디 에이스', desc: '음성 입력(STT) 기능으로 50개의 답안을 성공적으로 제출', icon: '🗣️', tier: 'silver', points: 25 },
-
-  // Gold - Advanced achievements
-  avg_90: { id: 'avg_90', name: '칭호: 예비 회계사', desc: '기본문제(H, S, HS) 전부 풀이 완료 + 전체 문제 누적 평균 점수 90점 돌파', icon: '🏆', tier: 'gold', points: 100 },
-  avg_95: { id: 'avg_95', name: '칭호: 기준서 프린터', desc: '모든 문제 전부 풀이 완료 + 전체 문제 누적 평균 점수 95점 돌파', icon: '🌟', tier: 'gold', points: 150 },
-  streak_90: { id: 'streak_90', name: '세 달의 경지', desc: '90일 연속 학습', icon: '🔥', tier: 'gold', points: 120 },
-  streak_120: { id: 'streak_120', name: '120일의 전문가', desc: '120일 연속 학습', icon: '👨‍🎓', tier: 'gold', points: 200 },
-  streak_180: { id: 'streak_180', name: '구도자', desc: '학습 시작일부터 시험 D-1일까지 연속 학습 달성', icon: '🧘‍♂️', tier: 'gold', points: 300 },
-  daily_100: { id: 'daily_100', name: '벼락치기 마스터', desc: '하루에 100문제 이상 풀이 완료', icon: '⚡', tier: 'gold', points: 50 },
-  weekly_200: { id: 'weekly_200', name: '주간 고강도', desc: '일주일 동안 200문제 이상 풀이 완료', icon: '💪', tier: 'gold', points: 60 },
-  weekly_300: { id: 'weekly_300', name: '주간 마라톤', desc: '일주일 동안 300문제 이상 풀이 완료', icon: '🏃‍♂️', tier: 'gold', points: 100 },
-  monthly_600: { id: 'monthly_600', name: '월간 600제', desc: '한 달 동안 600문제 이상 풀이 완료', icon: '📈', tier: 'gold', points: 120 },
-  monthly_1000: { id: 'monthly_1000', name: '천일문', desc: '한 달 동안 1,000문제 이상 풀이 완료', icon: '📚', tier: 'gold', points: 200 },
-  legendary_start: { id: 'legendary_start', name: '전설의 시작', desc: '연속 10문제를 모두 첫 시도에 95점 이상 달성', icon: '🌠', tier: 'gold', points: 100 },
-  consistency_master: { id: 'consistency_master', name: '일관성의 화신', desc: '10일 연속 매일 정확히 30~50문제씩 풀이', icon: '⚖️', tier: 'gold', points: 80 },
-  comeback_master: { id: 'comeback_master', name: '역전의 명수', desc: '60점 미만이었던 문제 50개를 모두 85점 이상으로 갱신', icon: '🔄', tier: 'gold', points: 120 },
-  memory_god: { id: 'memory_god', name: '암기의 신', desc: '3일 이상 간격으로 푼 문제 100개 모두 점수 유지 또는 향상', icon: '🧙', tier: 'gold', points: 100 },
-  monthly_master: { id: 'monthly_master', name: '월간 마스터', desc: '한 달 동안 매일 평균 점수 85점 이상 유지', icon: '📊', tier: 'gold', points: 120 },
-  retention_99: { id: 'retention_99', name: '기억 유지율 99%', desc: '2주 전 90점 이상 문제 50개 재풀이시 모두 85점 이상', icon: '💾', tier: 'gold', points: 100 },
-  flash_learning: { id: 'flash_learning', name: '플래시 학습', desc: '하루 100문제 풀고 평균 85점 이상 달성', icon: '⚡', tier: 'gold', points: 80 },
-  long_term_memory: { id: 'long_term_memory', name: '장기 기억', desc: '한 달 전 푼 문제 30개 모두 기억하여 85점 이상', icon: '🗓️', tier: 'gold', points: 90 },
-  problems_5000: { id: 'problems_5000', name: '태산', desc: '총 풀이 문제 5,000개 돌파 (누적)', icon: '⛰️', tier: 'gold', points: 200 },
-  all_chapter_mastery: { id: 'all_chapter_mastery', name: '올라운더', desc: '모든 단원 1회독 이상 달성 및 전 단원 평균 85점 달성', icon: '🏅', tier: 'gold', points: 200 },
-  advanced_mastery: { id: 'advanced_mastery', name: '심화반 수석', desc: '모든 심화(SS, P) 출처 문제를 1회 이상 풀고 평균 85점 달성', icon: '💎', tier: 'gold', points: 150 },
-  flashcard_1000: { id: 'flashcard_1000', name: '무아지경', desc: '플래시카드 모드로 1,000개의 카드를 학습 (다음/이전 1,000회)', icon: '✨', tier: 'gold', points: 50 },
-
-  // Hidden - Special achievements
-  comeback: { id: 'comeback', name: '칠전팔기', desc: '60점 미만으로 3회 이상 기록한 문제를 마침내 85점 이상으로 통과', icon: '🦅', tier: 'hidden', points: 50 },
-  flagged_50: { id: 'flagged_50', name: '반성의 기록', desc: '복습 추가(★) 플래그가 50개 이상 활성화됨', icon: '📝', tier: 'hidden', points: 30 },
-  dawn_learner: { id: 'dawn_learner', name: '새벽의 감린이', desc: '오전 5:00 ~ 7:00 사이에 10문제 이상 풀이', icon: '🌅', tier: 'hidden', points: 25 },
-  night_owl: { id: 'night_owl', name: '올빼미', desc: '다크 모드 상태로 오전 1:00 ~ 4:00 사이에 10문제 이상 풀이', icon: '🦉', tier: 'hidden', points: 25 },
-  d_day_minus_1: { id: 'd_day_minus_1', name: '정상 직전', desc: '시험 D-1입니다. 여기까지 온 당신의 여정을 감린이가 응원합니다. 마지막까지 힘내세요!', icon: '🏔️', tier: 'hidden', points: 50 },
-  perfect_straight_10: { id: 'perfect_straight_10', name: '퍼펙트 스트레이트', desc: '10개의 새로운 문제를 연속으로 100점 달성', icon: '💯', tier: 'hidden', points: 100 },
-  data_backup_1: { id: 'data_backup_1', name: '보험 가입', desc: "'데이터 내보내기' 기능으로 첫 학습 데이터 백업", icon: '🛡️', tier: 'hidden', points: 10 },
-  lucky_777: { id: 'lucky_777', name: '행운의 숫자', desc: '누적 문제 풀이 개수가 정확히 777개 달성', icon: '🎰', tier: 'hidden', points: 77 },
-  extreme_perfectionist: { id: 'extreme_perfectionist', name: '완벽주의의 극치', desc: '하루에 20문제 이상 풀고 모두 95점 이상', icon: '💠', tier: 'hidden', points: 100 },
-  time_traveler: { id: 'time_traveler', name: '시간여행자', desc: '자정(00:00~00:59) 사이에 10문제 이상 풀이', icon: '🕐', tier: 'hidden', points: 30 },
-  full_course: { id: 'full_course', name: '풀코스', desc: '하루에 모든 단원(1~20장)을 최소 1문제씩 풀이', icon: '🎯', tier: 'hidden', points: 80 },
-  perfect_collector: { id: 'perfect_collector', name: '백점 컬렉터', desc: '100점을 50번 이상 달성', icon: '💯', tier: 'hidden', points: 100 },
-  persistence_master: { id: 'persistence_master', name: '끈기의 달인', desc: '한 문제를 5회 이상 재시도하여 마침내 90점 이상 달성', icon: '🔨', tier: 'hidden', points: 60 },
-  midnight_learner: { id: 'midnight_learner', name: '심야 학습러', desc: '새벽 2~4시 사이에 연속 3일 동안 학습 기록', icon: '🌙', tier: 'hidden', points: 50 },
-  rush_hour_avoider: { id: 'rush_hour_avoider', name: '러시아워 회피', desc: '오전 9~11시, 오후 6~8시를 제외한 시간에만 100문제 이상 풀이', icon: '🚇', tier: 'hidden', points: 40 },
-  photographic_memory: { id: 'photographic_memory', name: '포토그래픽 메모리', desc: '연속 50문제를 모두 첫 시도에 90점 이상 달성', icon: '📸', tier: 'hidden', points: 150 },
-  score_stairs: { id: 'score_stairs', name: '점수 계단', desc: '60→70→80→90→100점을 순서대로 달성', icon: '🪜', tier: 'hidden', points: 50 },
-  deja_vu: { id: 'deja_vu', name: '데자뷰', desc: '같은 문제를 정확히 7일 간격으로 3번 풀기', icon: '👁️', tier: 'hidden', points: 40 },
-  mirroring: { id: 'mirroring', name: '미러링', desc: '어제와 정확히 같은 개수, 같은 평균 점수 달성', icon: '🪞', tier: 'hidden', points: 30 },
-  memory_garden: { id: 'memory_garden', name: '기억의 정원', desc: '각 단원별 최고 득점 문제가 모두 95점 이상', icon: '🌸', tier: 'hidden', points: 120 },
-  pattern_breaker: { id: 'pattern_breaker', name: '패턴 브레이커', desc: '매일 다른 시간대에 7일 연속 학습 (시간대: 0~6, 6~12, 12~18, 18~24)', icon: '🔀', tier: 'hidden', points: 50 },
-  monday_conqueror: { id: 'monday_conqueror', name: '월요병 극복', desc: '월요일에 30문제 이상 풀이', icon: '📅', tier: 'hidden', points: 30 },
-  friday_learner: { id: 'friday_learner', name: '불금 학습러', desc: '금요일 저녁(18~24시)에 30문제 이상 풀이', icon: '🍻', tier: 'hidden', points: 30 },
-  sunday_miracle: { id: 'sunday_miracle', name: '일요일의 기적', desc: '일요일에 50문제 이상 풀이', icon: '⛪', tier: 'hidden', points: 40 },
-  lunch_learner: { id: 'lunch_learner', name: '점심시간 학습', desc: '12~13시 사이에 누적 100문제 풀이', icon: '🍱', tier: 'hidden', points: 30 },
-  after_work_warrior: { id: 'after_work_warrior', name: '퇴근후 전사', desc: '18~20시 사이에 누적 200문제 풀이', icon: '💼', tier: 'hidden', points: 50 },
-  morning_warmup: { id: 'morning_warmup', name: '출근전 워밍업', desc: '7~9시 사이에 누적 100문제 풀이', icon: '🌄', tier: 'hidden', points: 30 },
-  new_year_dedication: { id: 'new_year_dedication', name: '신정의 각오', desc: '1월 1일 신정에 30문제 이상 풀이', icon: '🎆', tier: 'hidden', points: 50 },
-  christmas_studier: { id: 'christmas_studier', name: '메리 크리스마스', desc: '12월 25일 크리스마스에 30문제 이상 풀이', icon: '🎄', tier: 'hidden', points: 50 },
-  lunar_new_year: { id: 'lunar_new_year', name: '설날의 다짐', desc: '음력 설날 당일에 30문제 이상 풀이', icon: '🧧', tier: 'hidden', points: 50 },
-
-  // Chapter 1st Completion (Bronze - 10 points each)
+  // Chapter 1st (Bronze) - 각 10점 유지
   ch1_1st: { id: 'ch1_1st', name: '감사의 첫걸음', desc: '제1장(기본) 1회독 완료', icon: '📖', tier: 'bronze', points: 10 },
   ch2_1st: { id: 'ch2_1st', name: '무거운 왕관', desc: '제2장(기본) 1회독 완료 (감사인의 책임과 의무)', icon: '📖', tier: 'bronze', points: 10 },
   ch3_1st: { id: 'ch3_1st', name: '성공보수?', desc: '제3장(기본) 1회독 완료 (독립성)', icon: '📖', tier: 'bronze', points: 10 },
@@ -391,6 +303,34 @@ export const ACHIEVEMENTS = {
   ch18_1st: { id: 'ch18_1st', name: '안살림 엿보기', desc: '제18장(기본) 1회독 완료 (내부회계)', icon: '📖', tier: 'bronze', points: 10 },
   ch20_1st: { id: 'ch20_1st', name: '작지만 소중해', desc: '제20장(기본) 1회독 완료 (소규모기업)', icon: '📖', tier: 'bronze', points: 10 },
 
+  // ============================================================
+  // [SILVER] 숙련자 (50~150 AP)
+  // ============================================================
+  streak_7: { id: 'streak_7', name: '일주일의 기적', desc: '7일 연속 학습', icon: '📅', tier: 'silver', points: 50 },
+  streak_14: { id: 'streak_14', name: '2주 완성', desc: '14일 연속 학습', icon: '🚀', tier: 'silver', points: 80 },
+  daily_40: { id: 'daily_40', name: '성실한 수험생', desc: '하루 40문제 이상 풀이', icon: '📝', tier: 'silver', points: 50 },
+  problems_300: { id: 'problems_300', name: '기초 다지기', desc: '누적 풀이 300문제 돌파', icon: '🧱', tier: 'silver', points: 100 },
+  basic_source: { id: 'basic_source', name: '기본의 왕도', desc: '기본반 출처(H, S, HS) 모든 문제 1회 이상 학습', icon: '📚', tier: 'silver', points: 120 },
+  first_90: { id: 'first_90', name: '우등생', desc: '최초로 90점 이상 달성', icon: '🎖️', tier: 'silver', points: 60 },
+  weekly_100: { id: 'weekly_100', name: '주간 정복자', desc: '주간 100문제 돌파', icon: '📊', tier: 'silver', points: 70 },
+  advanced_source: { id: 'advanced_source', name: '심화반 입반', desc: 'SS 또는 P 출처 문제 50개 이상 풀이', icon: '🎓', tier: 'silver', points: 60 },
+  advanced_graduate: { id: 'advanced_graduate', name: '심화반 수료', desc: 'SS 또는 P 출처 문제 150개 이상 풀이 + 평균 80점 이상', icon: '🎖️', tier: 'silver', points: 120 },
+  perfectionist: { id: 'perfectionist', name: '완벽주의자', desc: '한 문제를 3회 이상 풀어서 모두 90점 이상 달성', icon: '💎', tier: 'silver', points: 80 },
+  weekend_warrior: { id: 'weekend_warrior', name: '주말 학습러', desc: '토요일, 일요일 모두 10문제 이상씩 푼 주말이 4회 이상', icon: '📅', tier: 'silver', points: 90 },
+  rapid_growth: { id: 'rapid_growth', name: '급성장', desc: '어떤 문제를 첫 시도 70점 이하 → 두 번째 시도 95점 이상 달성', icon: '📈', tier: 'silver', points: 70 },
+  chapter_hopping: { id: 'chapter_hopping', name: '챕터 호핑', desc: '하루에 5개 이상의 서로 다른 단원 문제를 풀이', icon: '🦘', tier: 'silver', points: 50 },
+  review_king: { id: 'review_king', name: '복습왕', desc: '별표(★) 플래그 문제 10개 이상을 모두 85점 이상으로 재달성', icon: '👑', tier: 'silver', points: 100 },
+  memory_test: { id: 'memory_test', name: '기억력 테스트', desc: '일주일 전 푼 문제를 다시 풀어 점수 향상 (30문제)', icon: '🧠', tier: 'silver', points: 80 },
+  nonstop_learning: { id: 'nonstop_learning', name: '논스톱 학습', desc: '30분 내 20문제 이상 풀이', icon: '⏱️', tier: 'silver', points: 70 },
+  weakness_analyzer: { id: 'weakness_analyzer', name: '약점 분석가', desc: '60점 미만 문제들만 모아서 30개 재도전', icon: '🔍', tier: 'silver', points: 80 },
+  consistency_basic: { id: 'consistency_basic', name: '꾸준함의 정석', desc: '한 달 동안 하루도 빠짐없이 최소 5문제씩 풀이', icon: '📆', tier: 'silver', points: 120 },
+  speed_hands: { id: 'speed_hands', name: '빠른 손', desc: '30분 내 15문제 풀고 평균 80점 이상', icon: '✋', tier: 'silver', points: 90 },
+  overcome_weakness: { id: 'overcome_weakness', name: '약점 극복', desc: '60점 미만이었던 문제를 복습하여 85점 이상으로 갱신', icon: '💪', tier: 'silver', points: 70 },
+  perfect_day: { id: 'perfect_day', name: '퍼펙트 데이', desc: '하루에 푼 10개 이상의 문제 모두 80점 이상 달성', icon: '✨', tier: 'silver', points: 80 },
+  avg_80: { id: 'avg_80', name: '안정권 진입', desc: '전체 문제 누적 평균 점수 80점 돌파', icon: '🎯', tier: 'silver', points: 100 },
+  chapter_master: { id: 'chapter_master', name: '챕터 마스터', desc: '특정 단원의 모든 문제 평균 80점 달성', icon: '👑', tier: 'silver', points: 90 },
+  first_completion: { id: 'first_completion', name: '1회독 완료', desc: 'questions.json의 모든 단원을 1문제 이상 학습', icon: '📚', tier: 'silver', points: 150 },
+
   // Chapter Mastery (Silver - 20 points each)
   ch1_master: { id: 'ch1_master', name: '이 정도는 이제..', desc: '제1장 1회독 이상 + 평균 85점 달성', icon: '🎓', tier: 'silver', points: 20 },
   ch2_master: { id: 'ch2_master', name: '성공비전전', desc: '제2장 1회독 이상 + 평균 85점 달성', icon: '🎓', tier: 'silver', points: 20 },
@@ -409,7 +349,98 @@ export const ACHIEVEMENTS = {
   ch16_master: { id: 'ch16_master', name: 'KAM 선정 전문가', desc: '제16장 1회독 이상 + 평균 85점 달성', icon: '🎓', tier: 'silver', points: 20 },
   ch17_master: { id: 'ch17_master', name: '그룹감사 지휘자', desc: '제17장 1회독 이상 + 평균 85점 달성', icon: '🎓', tier: 'silver', points: 20 },
   ch18_master: { id: 'ch18_master', name: '내부통제 평가자', desc: '제18장 1회독 이상 + 평균 85점 달성', icon: '🎓', tier: 'silver', points: 20 },
-  ch20_master: { id: 'ch20_master', name: '소규모 전문가', desc: '제20장 1회독 이상 + 평균 85점 달성', icon: '🎓', tier: 'silver', points: 20 }
+  ch20_master: { id: 'ch20_master', name: '소규모 전문가', desc: '제20장 1회독 이상 + 평균 85점 달성', icon: '🎓', tier: 'silver', points: 20 },
+
+  // ============================================================
+  // [GOLD] 실력자 & 1회독 (200~500 AP)
+  // ============================================================
+  rotation_1: { id: 'rotation_1', name: '1회독 마스터', desc: '전체 문제의 95% 이상을 1회 이상 풀이함', icon: '🏁', tier: 'gold', points: 500 },
+  streak_30: { id: 'streak_30', name: '한 달의 끈기', desc: '30일 연속 학습', icon: '🗓️', tier: 'gold', points: 200 },
+  daily_70: { id: 'daily_70', name: '몰입의 시간', desc: '하루 70문제 이상 풀이', icon: '🔥', tier: 'gold', points: 150 },
+  problems_1000: { id: 'problems_1000', name: '천리길 정복', desc: '누적 풀이 1,000문제 돌파', icon: '🌟', tier: 'gold', points: 300 },
+  avg_90: { id: 'avg_90', name: '칭호: 예비 회계사', desc: '기본문제(H, S, HS) 전부 풀이 완료 + 전체 문제 누적 평균 점수 90점 돌파', icon: '🏆', tier: 'gold', points: 250 },
+  first_100: { id: 'first_100', name: '완벽주의', desc: '최초 100점 달성', icon: '💯', tier: 'gold', points: 200 },
+  monthly_600: { id: 'monthly_600', name: '월간 우수생', desc: '월간 600문제 돌파', icon: '📆', tier: 'gold', points: 250 },
+  streak_90: { id: 'streak_90', name: '세 달의 경지', desc: '90일 연속 학습', icon: '🔥', tier: 'gold', points: 300 },
+  streak_120: { id: 'streak_120', name: '120일의 전문가', desc: '120일 연속 학습', icon: '👨‍🎓', tier: 'gold', points: 400 },
+  daily_100: { id: 'daily_100', name: '벼락치기 모드', desc: '하루에 100문제 이상 풀이 완료', icon: '⚡', tier: 'gold', points: 200 },
+  weekly_200: { id: 'weekly_200', name: '주간 고강도', desc: '일주일 동안 200문제 이상 풀이 완료', icon: '💪', tier: 'gold', points: 180 },
+  weekly_300: { id: 'weekly_300', name: '주간 마라톤', desc: '일주일 동안 300문제 이상 풀이 완료', icon: '🏃‍♂️', tier: 'gold', points: 250 },
+  monthly_1000: { id: 'monthly_1000', name: '천일문', desc: '한 달 동안 1,000문제 이상 풀이 완료', icon: '📚', tier: 'gold', points: 400 },
+  legendary_start: { id: 'legendary_start', name: '전설의 시작', desc: '연속 10문제를 모두 첫 시도에 95점 이상 달성', icon: '🌠', tier: 'gold', points: 250 },
+  consistency_master: { id: 'consistency_master', name: '일관성의 화신', desc: '10일 연속 매일 30~50문제씩 풀이', icon: '⚖️', tier: 'gold', points: 200 },
+  comeback_master: { id: 'comeback_master', name: '역전의 명수', desc: '60점 미만이었던 문제 50개를 모두 85점 이상으로 갱신', icon: '🔄', tier: 'gold', points: 300 },
+  memory_god: { id: 'memory_god', name: '암기의 신', desc: '3일 이상 간격으로 푼 문제 100개 모두 점수 유지 또는 향상', icon: '🧙', tier: 'gold', points: 250 },
+  monthly_master: { id: 'monthly_master', name: '월간 마스터', desc: '한 달 동안 매일 평균 점수 85점 이상 유지', icon: '📊', tier: 'gold', points: 300 },
+  retention_99: { id: 'retention_99', name: '기억 유지율 99%', desc: '2주 전 90점 이상 문제 50개 재풀이시 모두 85점 이상', icon: '💾', tier: 'gold', points: 250 },
+  flash_learning: { id: 'flash_learning', name: '플래시 학습', desc: '하루 100문제 풀고 평균 85점 이상 달성', icon: '⚡', tier: 'gold', points: 200 },
+  long_term_memory: { id: 'long_term_memory', name: '장기 기억', desc: '한 달 전 푼 문제 30개 모두 기억하여 85점 이상', icon: '🗓️', tier: 'gold', points: 220 },
+  all_chapter_mastery: { id: 'all_chapter_mastery', name: '올라운더', desc: '모든 단원 1회독 이상 달성 및 전 단원 평균 85점 달성', icon: '🏅', tier: 'gold', points: 400 },
+  advanced_mastery: { id: 'advanced_mastery', name: '심화반 수석', desc: '모든 심화(SS, P) 출처 문제를 1회 이상 풀고 평균 85점 달성', icon: '💎', tier: 'gold', points: 350 },
+
+  // ============================================================
+  // [PLATINUM] N회독 러너 (600~1000 AP)
+  // ============================================================
+  rotation_3: { id: 'rotation_3', name: '3회독 달성', desc: '전체 문제 3회독 완료', icon: '🥉', tier: 'platinum', points: 800 },
+  streak_60: { id: 'streak_60', name: '두 달의 집념', desc: '60일 연속 학습', icon: '🧘', tier: 'platinum', points: 600 },
+  daily_120: { id: 'daily_120', name: '집중 폭발', desc: '하루 120문제 돌파', icon: '💥', tier: 'platinum', points: 500 },
+  problems_3000: { id: 'problems_3000', name: '감사 전문가', desc: '누적 풀이 3,000문제 돌파', icon: '🏔️', tier: 'platinum', points: 700 },
+  avg_92: { id: 'avg_92', name: '예비 회계사', desc: '누적 평균 92점 돌파', icon: '🎓', tier: 'platinum', points: 600 },
+  platinum_mastery: { id: 'platinum_mastery', name: '플래티넘 정복', desc: '전 단원 평균 88점 달성', icon: '💠', tier: 'platinum', points: 700 },
+
+  // ============================================================
+  // [DIAMOND] 고인물 (1500~2500 AP)
+  // ============================================================
+  rotation_5: { id: 'rotation_5', name: '5회독 달성', desc: '전체 문제 5회독 완료', icon: '🥈', tier: 'diamond', points: 1500 },
+  streak_100: { id: 'streak_100', name: '백일의 전사', desc: '100일 연속 학습', icon: '⚔️', tier: 'diamond', points: 1500 },
+  daily_150: { id: 'daily_150', name: '인간 지능 초월', desc: '하루 150문제 돌파', icon: '🤖', tier: 'diamond', points: 1000 },
+  problems_5000: { id: 'problems_5000', name: '감사 기계', desc: '누적 풀이 5,000문제 돌파', icon: '🏭', tier: 'diamond', points: 1200 },
+  avg_95: { id: 'avg_95', name: '칭호: 기준서 프린터', desc: '모든 문제 전부 풀이 완료 + 전체 문제 누적 평균 점수 95점 돌파', icon: '🖨️', tier: 'diamond', points: 2000 },
+  diamond_perfect: { id: 'diamond_perfect', name: '다이아몬드 완성', desc: '전 단원 평균 92점 이상', icon: '💎', tier: 'diamond', points: 1800 },
+
+  // ============================================================
+  // [MASTER] 신의 경지 (3000+ AP)
+  // ============================================================
+  rotation_7: { id: 'rotation_7', name: '해탈의 경지', desc: '전체 문제 7회독 완료', icon: '🥇', tier: 'master', points: 3000 },
+  streak_180: { id: 'streak_180', name: '구도자', desc: '180일 연속 학습', icon: '🛐', tier: 'master', points: 4000 },
+  problems_10000: { id: 'problems_10000', name: '전설', desc: '누적 풀이 10,000문제 돌파', icon: '👑', tier: 'master', points: 5000 },
+  perfect_collector: { id: 'perfect_collector', name: '백점 수집가', desc: '100점 100회 달성', icon: '💯', tier: 'master', points: 3000 },
+
+  // ============================================================
+  // [HIDDEN] 특수 & 이벤트 (50~500 AP)
+  // ============================================================
+  d_day_minus_1: { id: 'd_day_minus_1', name: '정상 직전', desc: '시험 D-1일입니다. 당신의 합격을 기원합니다.', icon: '🏔️', tier: 'hidden', points: 500 },
+  dawn_learner: { id: 'dawn_learner', name: '새벽의 감린이', desc: '오전 5~7시 사이 10문제 풀이', icon: '🌅', tier: 'hidden', points: 100 },
+  night_owl: { id: 'night_owl', name: '올빼미', desc: '새벽 1~4시 사이 다크모드로 풀이', icon: '🦉', tier: 'hidden', points: 100 },
+  lucky_777: { id: 'lucky_777', name: '잭팟', desc: '누적 풀이 문제 수 777개 달성', icon: '🎰', tier: 'hidden', points: 777 },
+  weekend_warrior_hidden: { id: 'weekend_warrior_hidden', name: '주말 반납', desc: '주말 이틀 모두 30문제 이상 풀이', icon: '📅', tier: 'hidden', points: 150 },
+  comeback: { id: 'comeback', name: '칠전팔기', desc: '과거 60점 미만 문제를 85점 이상으로 극복', icon: '🦅', tier: 'hidden', points: 200 },
+  flagged_20: { id: 'flagged_20', name: '오답노트', desc: '복습 추가(★) 플래그 20개 이상 설정', icon: '⭐', tier: 'hidden', points: 50 },
+  flagged_50: { id: 'flagged_50', name: '반성의 기록', desc: '복습 추가(★) 플래그가 50개 이상 활성화됨', icon: '📝', tier: 'hidden', points: 100 },
+  perfect_straight_10: { id: 'perfect_straight_10', name: '퍼펙트 스트레이트', desc: '10개의 새로운 문제를 연속으로 100점 달성', icon: '💯', tier: 'hidden', points: 200 },
+  extreme_perfectionist: { id: 'extreme_perfectionist', name: '완벽주의의 극치', desc: '하루에 20문제 이상 풀고 모두 95점 이상', icon: '💠', tier: 'hidden', points: 200 },
+  time_traveler: { id: 'time_traveler', name: '시간여행자', desc: '자정(00:00~00:59) 사이에 10문제 이상 풀이', icon: '🕐', tier: 'hidden', points: 80 },
+  full_course: { id: 'full_course', name: '풀코스', desc: '하루에 모든 단원(1~20장)을 최소 1문제씩 풀이', icon: '🎯', tier: 'hidden', points: 200 },
+  persistence_master: { id: 'persistence_master', name: '끈기의 달인', desc: '한 문제를 5회 이상 재시도하여 마침내 90점 이상 달성', icon: '🔨', tier: 'hidden', points: 150 },
+  midnight_learner: { id: 'midnight_learner', name: '심야 학습러', desc: '새벽 2~4시 사이에 연속 3일 동안 학습 기록', icon: '🌙', tier: 'hidden', points: 120 },
+  photographic_memory: { id: 'photographic_memory', name: '포토그래픽 메모리', desc: '연속 50문제를 모두 첫 시도에 90점 이상 달성', icon: '📸', tier: 'hidden', points: 300 },
+  score_stairs: { id: 'score_stairs', name: '점수 계단', desc: '60→70→80→90→100점을 순서대로 달성', icon: '🪜', tier: 'hidden', points: 100 },
+  memory_garden: { id: 'memory_garden', name: '기억의 정원', desc: '각 단원별 최고 득점 문제가 모두 95점 이상', icon: '🌸', tier: 'hidden', points: 250 },
+  monday_conqueror: { id: 'monday_conqueror', name: '월요병 극복', desc: '월요일에 30문제 이상 풀이', icon: '📅', tier: 'hidden', points: 80 },
+  friday_learner: { id: 'friday_learner', name: '불금 학습러', desc: '금요일 저녁(18~24시)에 30문제 이상 풀이', icon: '🍻', tier: 'hidden', points: 80 },
+  sunday_miracle: { id: 'sunday_miracle', name: '일요일의 기적', desc: '일요일에 50문제 이상 풀이', icon: '⛪', tier: 'hidden', points: 100 },
+
+  // Legacy achievements (유지)
+  morning_routine: { id: 'morning_routine', name: '아침 루틴', desc: '7일 연속 오전 중 같은 시간대(±1시간)에 학습 시작', icon: '☀️', tier: 'hidden', points: 80 },
+  retry_next_day: { id: 'retry_next_day', name: '재도전의 미학', desc: '하루 전 틀린 문제를 다음날 바로 복습 (누적 20회)', icon: '🔁', tier: 'hidden', points: 80 },
+  flashcard_100: { id: 'flashcard_100', name: '전광석화', desc: '플래시카드 모드로 100개의 카드를 학습 (다음/이전 100회)', icon: '⚡️', tier: 'hidden', points: 50 },
+  flashcard_500: { id: 'flashcard_500', name: '삐깨삐갯피캐쮸', desc: '플래시카드 모드로 500개의 카드를 학습 (다음/이전 500회)', icon: '🚀', tier: 'hidden', points: 120 },
+  flashcard_1000: { id: 'flashcard_1000', name: '무아지경', desc: '플래시카드 모드로 1,000개의 카드를 학습 (다음/이전 1,000회)', icon: '✨', tier: 'hidden', points: 200 },
+  stt_50: { id: 'stt_50', name: '말터디 에이스', desc: '음성 입력(STT) 기능으로 50개의 답안을 성공적으로 제출', icon: '🗣️', tier: 'hidden', points: 100 },
+  data_backup_1: { id: 'data_backup_1', name: '보험 가입', desc: "'데이터 내보내기' 기능으로 첫 학습 데이터 백업", icon: '🛡️', tier: 'hidden', points: 50 },
+  new_year_dedication: { id: 'new_year_dedication', name: '신정의 각오', desc: '1월 1일 신정에 30문제 이상 풀이', icon: '🎆', tier: 'hidden', points: 150 },
+  christmas_studier: { id: 'christmas_studier', name: '메리 크리스마스', desc: '12월 25일 크리스마스에 30문제 이상 풀이', icon: '🎄', tier: 'hidden', points: 150 },
+  lunar_new_year: { id: 'lunar_new_year', name: '설날의 다짐', desc: '음력 설날 당일에 30문제 이상 풀이', icon: '🧧', tier: 'hidden', points: 150 }
 };
 
 // ========================================
