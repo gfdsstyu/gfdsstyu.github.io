@@ -25,7 +25,7 @@
  * - 수동 실행도 가능 (Firebase Console에서)
  */
 
-const functions = require('firebase-functions');
+const functions = require('firebase-functions/v1');
 const admin = require('firebase-admin');
 
 admin.initializeApp();
