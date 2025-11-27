@@ -476,7 +476,7 @@ async function openProfileModal() {
   try {
     // 현재 상태 메시지 가져오기
     const statusResult = await getStatusMessage();
-    if (statusResult.success && statusResult.statusMessage) {
+    if (statusResult && statusResult.success && statusResult.statusMessage) {
       const statusInput = document.getElementById('status-message-input');
       const charCount = document.getElementById('status-char-count');
       if (statusInput) {
