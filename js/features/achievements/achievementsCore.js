@@ -225,11 +225,22 @@ export function checkAchievements() {
     if (maxScore === 100) unlockAchievement('first_100');
   }
 
-  // Check problem count
-  const totalProblems = Object.keys(questionScores).length;
-  if (totalProblems >= 100) unlockAchievement('problems_100');
-  if (totalProblems >= 1000) unlockAchievement('problems_1000');
-  if (totalProblems >= 5000) unlockAchievement('problems_5000');
+  // Check problem count (누적 풀이 횟수 기반 - Achievement System 2.0)
+  // 기존: 고유 문제 수 (Object.keys().length)
+  // 변경: 누적 풀이 횟수 (solveHistory.length 총합)
+  let totalSolveCount = 0;
+  Object.values(questionScores).forEach(record => {
+    if (record.solveHistory && Array.isArray(record.solveHistory)) {
+      totalSolveCount += record.solveHistory.length;
+    }
+  });
+
+  if (totalSolveCount >= 100) unlockAchievement('problems_100');
+  if (totalSolveCount >= 300) unlockAchievement('problems_300');
+  if (totalSolveCount >= 1000) unlockAchievement('problems_1000');
+  if (totalSolveCount >= 3000) unlockAchievement('problems_3000');
+  if (totalSolveCount >= 5000) unlockAchievement('problems_5000');
+  if (totalSolveCount >= 10000) unlockAchievement('problems_10000');
 
   // Check average score
   if (scores.length > 0) {
@@ -294,6 +305,9 @@ export function checkAchievements() {
 
   // Check all chapter mastery
   checkAllChapterMastery();
+
+  // Check N회독 (Rotation) achievements - Achievement System 2.0
+  checkRotationAchievements();
 
   // Check flashcard navigation achievements
   checkFlashcardAchievements();
@@ -2291,6 +2305,72 @@ export function checkHolidayAchievements() {
       }
     });
   } catch {}
+}
+
+/**
+ * Check N-Rotation achievements (회독 수 체크) - Achievement System 2.0
+ * 전체 DB 문제 중 95% 이상을 N번 이상 풀었는지 확인
+ */
+export function checkRotationAchievements() {
+  try {
+    const questionScores = window.questionScores || {};
+    const allData = window.allData || [];
+
+    if (!allData || allData.length === 0) return;
+
+    // 전체 문제 수 (예: 690)
+    const totalDBCount = allData.length;
+
+    // 유효성 기준 (전체 문제의 95% 이상을 건드렸을 때 회독 인정)
+    // 이유: 신규 문제가 추가되거나, 1~2개 빼먹은 것 때문에 달성 안 되면 스트레스 받음
+    const threshold = Math.floor(totalDBCount * 0.95);
+
+    console.log(`🔍 [Rotation] 전체 문제 수: ${totalDBCount}, 95% 기준: ${threshold}`);
+
+    // 각 회독수별 달성 문제 수 카운트
+    let rotation1 = 0;
+    let rotation3 = 0;
+    let rotation5 = 0;
+    let rotation7 = 0;
+
+    allData.forEach(q => {
+      const record = questionScores[normId(q.고유ID)];
+      const solveCount = (record && record.solveHistory) ? record.solveHistory.length : 0;
+
+      if (solveCount >= 1) rotation1++;
+      if (solveCount >= 3) rotation3++;
+      if (solveCount >= 5) rotation5++;
+      if (solveCount >= 7) rotation7++;
+    });
+
+    console.log(`🔍 [Rotation] 회독 현황:`, {
+      '1회 이상': rotation1,
+      '3회 이상': rotation3,
+      '5회 이상': rotation5,
+      '7회 이상': rotation7
+    });
+
+    // 업적 해금
+    if (rotation1 >= threshold) {
+      console.log(`✅ [Rotation] 1회독 달성! (${rotation1}/${totalDBCount})`);
+      unlockAchievement('rotation_1');
+    }
+    if (rotation3 >= threshold) {
+      console.log(`✅ [Rotation] 3회독 달성! (${rotation3}/${totalDBCount})`);
+      unlockAchievement('rotation_3');
+    }
+    if (rotation5 >= threshold) {
+      console.log(`✅ [Rotation] 5회독 달성! (${rotation5}/${totalDBCount})`);
+      unlockAchievement('rotation_5');
+    }
+    if (rotation7 >= threshold) {
+      console.log(`✅ [Rotation] 7회독 달성! (${rotation7}/${totalDBCount})`);
+      unlockAchievement('rotation_7');
+    }
+
+  } catch (e) {
+    console.error('❌ [Rotation] 회독 체크 중 오류:', e);
+  }
 }
 
 /**

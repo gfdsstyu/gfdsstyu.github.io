@@ -9,7 +9,7 @@ import {
 
 import { db } from '../../app.js';
 import { getCurrentUser, getNickname } from '../auth/authCore.js';
-import { getMyRanking, getGroupRankings, getIntraGroupRankings } from './rankingCore.js';
+import { getMyRanking, getGroupRankings, getIntraGroupRankings, calculateTier } from './rankingCore.js';
 import { getMyGroups, updateGroupDescription, getGroupMembers, kickMember, deleteGroup, delegateGroupOwner } from '../group/groupCore.js';
 import { handleLeaveGroup } from '../group/groupUI.js';
 import { getMyUniversity, getUniversityRankings, getIntraUniversityRankings } from '../university/universityCore.js';
@@ -1291,7 +1291,10 @@ async function fetchRankings(period, criteria) {
       nickname: user.nickname || '익명',
       totalScore: periodData.totalScore || 0,
       problems: periodData.problems || 0,
-      avgScore: periodData.avgScore || 0
+      avgScore: periodData.avgScore || 0,
+      // [Achievement System 2.0] 스냅샷에서 가져온 티어 정보 (없으면 나중에 계산)
+      totalAccumulatedRP: user.totalAccumulatedRP || null,
+      tier: user.tier || null
     });
   });
 
@@ -1302,7 +1305,36 @@ async function fetchRankings(period, criteria) {
     return bValue - aValue;
   });
 
-  console.log(`✅ [Ranking] ${rankings.length}명의 랭킹 데이터 처리 완료 (서버 읽기: 0회)`);
+  // 5. [Achievement System 2.0] 티어 정보가 없는 경우, 상위 50명에 대해 개별 조회
+  const TOP_USERS_FOR_TIER_FETCH = 50;
+  const usersNeedingTierInfo = rankings.slice(0, TOP_USERS_FOR_TIER_FETCH).filter(user => !user.tier);
+
+  if (usersNeedingTierInfo.length > 0) {
+    console.log(`🎯 [Ranking] 티어 정보 없는 상위 ${usersNeedingTierInfo.length}명에 대해 개별 조회 중...`);
+
+    // 병렬로 티어 정보 가져오기
+    await Promise.all(usersNeedingTierInfo.map(async (user) => {
+      try {
+        const userDocRef = doc(db, 'users', user.userId);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          const totalAccumulatedRP = userData.ranking?.totalAccumulatedRP || 0;
+          const tierInfo = calculateTier(totalAccumulatedRP);
+
+          user.totalAccumulatedRP = totalAccumulatedRP;
+          user.tier = tierInfo.tier;
+          user.tierName = tierInfo.name;
+          user.tierColor = tierInfo.color;
+        }
+      } catch (error) {
+        console.error(`❌ [Ranking] ${user.userId} 티어 조회 실패:`, error);
+      }
+    }));
+  }
+
+  console.log(`✅ [Ranking] ${rankings.length}명의 랭킹 데이터 처리 완료 (티어 정보 포함)`);
 
   return rankings;
 }
@@ -1453,6 +1485,30 @@ function renderRankingList(rankings) {
       `;
     };
 
+    // [Achievement System 2.0] 티어 배지 생성
+    let tierBadge = '';
+    if (user.tier && user.tier !== 'unranked') {
+      const tierIcons = {
+        bronze: '🥉',
+        silver: '🥈',
+        gold: '🥇',
+        platinum: '🔷',
+        diamond: '💎',
+        master: '👑'
+      };
+      const tierIcon = tierIcons[user.tier] || '⭐';
+      const tierName = user.tierName || user.tier.toUpperCase();
+      const tierColor = user.tierColor || '#71717a';
+
+      tierBadge = `
+        <span class="tier-badge-${user.tier} ml-1.5 px-2 py-0.5 rounded-full text-xs font-bold inline-flex items-center gap-1"
+              style="background: ${tierColor}22; color: ${tierColor}; border: 1px solid ${tierColor}44;">
+          <span>${tierIcon}</span>
+          <span>${tierName}</span>
+        </span>
+      `;
+    }
+
     // 통계를 한 줄로 간략히
     const totalScoreStr = typeof user.totalScore === 'number' ? user.totalScore.toLocaleString() : user.totalScore;
     const problemsStr = typeof user.problems === 'number' ? user.problems.toLocaleString() : user.problems;
@@ -1465,10 +1521,10 @@ function renderRankingList(rankings) {
           <div class="flex items-center justify-center w-12 flex-shrink-0">
             ${rankDisplay.replace('text-4xl', 'text-3xl').replace('w-12 h-12', 'w-10 h-10').replace('text-lg', 'text-base').replace('text-xl', 'text-lg')}
           </div>
-          <!-- 닉네임 -->
+          <!-- 닉네임 + 티어 -->
           <div class="flex-1 min-w-0">
             <div class="${isMe ? 'text-gray-900 dark:text-gray-900' : 'text-gray-900 dark:text-gray-100'} font-bold text-base truncate flex items-center">
-              ${user.nickname}${myBadge}
+              ${user.nickname}${tierBadge}${myBadge}
             </div>
           </div>
           <!-- 통계 (한 줄) -->
