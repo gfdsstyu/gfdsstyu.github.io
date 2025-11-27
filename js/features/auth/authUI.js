@@ -587,10 +587,17 @@ async function updateProfileTierUI(userId) {
     }
 
     const userData = userDocSnap.data();
+
+    // [디버깅] 사용자 데이터 구조 확인
+    console.log('🔍 [Profile Debug] userId:', userId);
+    console.log('🔍 [Profile Debug] userData.ranking:', userData.ranking);
+
     const totalAccumulatedRP = userData.ranking?.totalAccumulatedRP || 0;
+    console.log('🔍 [Profile Debug] totalAccumulatedRP:', totalAccumulatedRP);
 
     // 티어 계산
     const tierInfo = calculateTier(totalAccumulatedRP);
+    console.log('✅ [Profile Debug] tierInfo:', tierInfo);
 
     // 티어 아이콘 매핑
     const tierIcons = {
