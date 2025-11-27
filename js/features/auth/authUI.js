@@ -465,20 +465,29 @@ async function openProfileModal() {
     return;
   }
 
-  // 사용자 정보 표시 (티어 정보 포함)
-  await updateProfileModalUI(user);
+  try {
+    // 사용자 정보 표시 (티어 정보 포함)
+    await updateProfileModalUI(user);
+  } catch (error) {
+    console.error('❌ [Profile] 프로필 정보 로드 실패:', error);
+    // 에러가 발생해도 모달은 열리도록 계속 진행
+  }
 
-  // 현재 상태 메시지 가져오기
-  const statusResult = await getStatusMessage();
-  if (statusResult.success && statusResult.statusMessage) {
-    const statusInput = document.getElementById('status-message-input');
-    const charCount = document.getElementById('status-char-count');
-    if (statusInput) {
-      statusInput.value = statusResult.statusMessage;
-      if (charCount) {
-        charCount.textContent = statusResult.statusMessage.length;
+  try {
+    // 현재 상태 메시지 가져오기
+    const statusResult = await getStatusMessage();
+    if (statusResult.success && statusResult.statusMessage) {
+      const statusInput = document.getElementById('status-message-input');
+      const charCount = document.getElementById('status-char-count');
+      if (statusInput) {
+        statusInput.value = statusResult.statusMessage;
+        if (charCount) {
+          charCount.textContent = statusResult.statusMessage.length;
+        }
       }
     }
+  } catch (error) {
+    console.error('❌ [Profile] 상태 메시지 로드 실패:', error);
   }
 
   // 이메일 로그인 사용자인지 확인하여 비밀번호 섹션 표시 여부 결정
