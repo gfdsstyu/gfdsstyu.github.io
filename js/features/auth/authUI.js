@@ -22,7 +22,7 @@ import {
 import { showToast } from '../../ui/domUtils.js';
 
 // [Achievement System 2.0] 티어 시스템
-import { calculateTier } from '../ranking/rankingCore.js';
+import { calculateTier, migrateAchievementPointsToAP } from '../ranking/rankingCore.js';
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 import { db } from '../../app.js';
 
@@ -463,6 +463,16 @@ async function openProfileModal() {
   if (!user) {
     showToast('❌ 로그인이 필요합니다.', 'error');
     return;
+  }
+
+  // [Achievement System 2.0] 기존 업적 포인트 마이그레이션 (최초 1회만 실행)
+  try {
+    const migrationResult = await migrateAchievementPointsToAP();
+    if (migrationResult.success && migrationResult.migratedAP > 0) {
+      showToast(`✨ ${migrationResult.migratedAP} AP 적용 완료!`, 'success');
+    }
+  } catch (error) {
+    console.error('❌ [Profile] AP 마이그레이션 실패:', error);
   }
 
   try {

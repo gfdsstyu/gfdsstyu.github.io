@@ -681,6 +681,91 @@ export async function applyDecayForUser(userId) {
 }
 
 // ============================================
+// [Achievement System 2.0] 기존 업적 포인트 마이그레이션
+// ============================================
+
+/**
+ * 기존 업적 포인트를 AP로 소급 적용
+ * @returns {Promise<{success: boolean, message: string, migratedAP: number}>}
+ */
+export async function migrateAchievementPointsToAP() {
+  const user = getCurrentUser();
+  if (!user) {
+    return { success: false, message: '로그인이 필요합니다.', migratedAP: 0 };
+  }
+
+  try {
+    console.log('🔄 [Migration] 기존 업적 포인트 마이그레이션 시작...');
+
+    // 1. 사용자 문서 가져오기
+    const userDocRef = doc(db, 'users', user.uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (!userDocSnap.exists()) {
+      return { success: false, message: '사용자 문서 없음', migratedAP: 0 };
+    }
+
+    const userData = userDocSnap.data();
+
+    // 이미 마이그레이션했는지 체크
+    if (userData.ranking?.apMigrated) {
+      console.log('✅ [Migration] 이미 마이그레이션 완료됨');
+      return { success: true, message: '이미 마이그레이션 완료', migratedAP: 0 };
+    }
+
+    // 2. localStorage에서 업적 데이터 가져오기
+    const achievements = JSON.parse(localStorage.getItem('achievements') || '{}');
+
+    // 3. ACHIEVEMENTS config 가져오기 (동적 import)
+    const { ACHIEVEMENTS } = await import('../../config/config.js');
+
+    // 4. 획득한 업적의 총 포인트 계산
+    let totalAchievementPoints = 0;
+    const unlockedAchievements = [];
+
+    Object.keys(achievements).forEach(achievementId => {
+      if (achievements[achievementId] && ACHIEVEMENTS[achievementId]) {
+        const points = ACHIEVEMENTS[achievementId].points || 0;
+        totalAchievementPoints += points;
+        unlockedAchievements.push({
+          id: achievementId,
+          name: ACHIEVEMENTS[achievementId].name,
+          points: points
+        });
+      }
+    });
+
+    console.log(`📊 [Migration] 발견된 업적: ${unlockedAchievements.length}개`);
+    console.log(`💰 [Migration] 총 업적 포인트: ${totalAchievementPoints} AP`);
+
+    // 5. Firestore에 AP 추가
+    const currentAP = userData.ranking?.totalAccumulatedRP || 0;
+    const newTotalAP = currentAP + totalAchievementPoints;
+
+    await updateDoc(userDocRef, {
+      'ranking.currentRP': newTotalAP,
+      'ranking.totalAccumulatedRP': newTotalAP,
+      'ranking.apMigrated': true,
+      'ranking.apMigratedAt': serverTimestamp(),
+      'ranking.migratedAchievements': unlockedAchievements
+    });
+
+    console.log(`✅ [Migration] 마이그레이션 완료: ${totalAchievementPoints} AP 추가`);
+    console.log(`📈 [Migration] 총 AP: ${currentAP} → ${newTotalAP}`);
+
+    return {
+      success: true,
+      message: `${totalAchievementPoints} AP 마이그레이션 완료`,
+      migratedAP: totalAchievementPoints
+    };
+
+  } catch (error) {
+    console.error('❌ [Migration] 마이그레이션 실패:', error);
+    return { success: false, message: `마이그레이션 실패: ${error.message}`, migratedAP: 0 };
+  }
+}
+
+// ============================================
 // 전역 노출 (디버깅용)
 // ============================================
 
@@ -694,6 +779,7 @@ if (typeof window !== 'undefined') {
     getGroupRankings,
     getIntraGroupRankings,
     calculateTier,
-    applyDecayForUser
+    applyDecayForUser,
+    migrateAchievementPointsToAP
   };
 }
