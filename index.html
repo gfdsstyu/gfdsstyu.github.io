@@ -756,7 +756,10 @@
           <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-200" data-tier="bronze">🥉 브론즈</button>
           <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-300 text-gray-800 dark:bg-gray-600 dark:text-gray-200 hover:bg-gray-400" data-tier="silver">🥈 실버</button>
           <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 hover:bg-yellow-200" data-tier="gold">🥇 골드</button>
-          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 hover:bg-purple-200" data-tier="hidden">🤫 히든</button>
+          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400 hover:bg-cyan-200" data-tier="platinum">🔷 플래티넘</button>
+          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200" data-tier="diamond">💎 다이아몬드</button>
+          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 hover:bg-purple-200" data-tier="master">👑 마스터</button>
+          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400 hover:bg-pink-200" data-tier="hidden">🤫 히든</button>
         </div>
 
         <!-- 업적 리스트 -->
@@ -2311,6 +2314,41 @@
             <div class="flex-1">
               <div id="profile-display-name" class="font-semibold text-gray-900 dark:text-gray-100"></div>
               <div id="profile-email" class="text-sm text-gray-500 dark:text-gray-400"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- [Achievement System 2.0] AP 티어 정보 -->
+        <div class="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-700 dark:to-gray-800 rounded-lg p-4 border border-purple-200 dark:border-gray-600">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl" id="profile-tier-icon">⭐</span>
+              <div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">현재 티어</div>
+                <div class="font-bold text-lg" id="profile-tier-name" style="color: #9333ea;">Unranked</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs text-gray-600 dark:text-gray-400">Total AP</div>
+              <div class="font-bold text-xl text-purple-600 dark:text-purple-400" id="profile-total-ap">0</div>
+            </div>
+          </div>
+
+          <!-- 진행률 바 -->
+          <div class="space-y-2">
+            <div class="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+              <span id="profile-tier-progress-text">다음 티어까지</span>
+              <span><span id="profile-current-ap">0</span> / <span id="profile-next-tier-ap">500</span> AP</span>
+            </div>
+            <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-3 overflow-hidden">
+              <div
+                id="profile-tier-progress-bar"
+                class="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full transition-all duration-500 ease-out"
+                style="width: 0%"
+              ></div>
+            </div>
+            <div class="text-xs text-center text-gray-600 dark:text-gray-400">
+              <span id="profile-next-tier-text">Bronze 티어까지 500 AP 남음</span>
             </div>
           </div>
         </div>

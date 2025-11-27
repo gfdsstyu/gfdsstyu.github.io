@@ -18,6 +18,11 @@ import {
 
 import { showToast } from '../../ui/domUtils.js';
 
+// [Achievement System 2.0] 티어 시스템
+import { calculateTier } from '../ranking/rankingCore.js';
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+import { db } from '../../app.js';
+
 // ============================================
 // DOM 요소
 // ============================================
@@ -409,8 +414,8 @@ async function openProfileModal() {
     return;
   }
 
-  // 사용자 정보 표시
-  updateProfileModalUI(user);
+  // 사용자 정보 표시 (티어 정보 포함)
+  await updateProfileModalUI(user);
 
   // 현재 상태 메시지 가져오기
   const statusResult = await getStatusMessage();
@@ -471,7 +476,7 @@ function closeProfileModal() {
 /**
  * 프로필 모달 UI 업데이트
  */
-function updateProfileModalUI(user) {
+async function updateProfileModalUI(user) {
   // 사용자 이름
   const displayNameEl = document.getElementById('profile-display-name');
   if (displayNameEl) {
@@ -497,6 +502,102 @@ function updateProfileModalUI(user) {
       avatarEl.style.backgroundSize = 'cover';
       avatarEl.textContent = '';
     }
+  }
+
+  // [Achievement System 2.0] 티어 정보 표시
+  await updateProfileTierUI(user.uid);
+}
+
+/**
+ * [Achievement System 2.0] 프로필 모달의 티어 정보 업데이트
+ * @param {string} userId - 사용자 UID
+ */
+async function updateProfileTierUI(userId) {
+  try {
+    // Firestore에서 사용자 데이터 가져오기
+    const userDocRef = doc(db, 'users', userId);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (!userDocSnap.exists()) {
+      console.warn('[Profile] 사용자 문서를 찾을 수 없습니다.');
+      return;
+    }
+
+    const userData = userDocSnap.data();
+    const totalAccumulatedRP = userData.ranking?.totalAccumulatedRP || 0;
+
+    // 티어 계산
+    const tierInfo = calculateTier(totalAccumulatedRP);
+
+    // 티어 아이콘 매핑
+    const tierIcons = {
+      bronze: '🥉',
+      silver: '🥈',
+      gold: '🥇',
+      platinum: '🔷',
+      diamond: '💎',
+      master: '👑',
+      unranked: '⭐'
+    };
+
+    // UI 업데이트
+    const tierIconEl = document.getElementById('profile-tier-icon');
+    const tierNameEl = document.getElementById('profile-tier-name');
+    const totalApEl = document.getElementById('profile-total-ap');
+    const currentApEl = document.getElementById('profile-current-ap');
+    const nextTierApEl = document.getElementById('profile-next-tier-ap');
+    const progressBarEl = document.getElementById('profile-tier-progress-bar');
+    const nextTierTextEl = document.getElementById('profile-next-tier-text');
+    const progressTextEl = document.getElementById('profile-tier-progress-text');
+
+    if (tierIconEl) tierIconEl.textContent = tierIcons[tierInfo.tier] || '⭐';
+    if (tierNameEl) {
+      tierNameEl.textContent = tierInfo.name;
+      tierNameEl.style.color = tierInfo.color;
+    }
+    if (totalApEl) totalApEl.textContent = totalAccumulatedRP.toLocaleString();
+
+    // 진행률 계산
+    if (tierInfo.nextTier && tierInfo.nextMinAP) {
+      const currentTierMin = tierInfo.minAP;
+      const nextTierMin = tierInfo.nextMinAP;
+      const apInCurrentTier = totalAccumulatedRP - currentTierMin;
+      const apNeededForNextTier = nextTierMin - currentTierMin;
+      const progressPercent = Math.min(100, (apInCurrentTier / apNeededForNextTier) * 100);
+
+      if (currentApEl) currentApEl.textContent = apInCurrentTier.toLocaleString();
+      if (nextTierApEl) nextTierApEl.textContent = apNeededForNextTier.toLocaleString();
+      if (progressBarEl) progressBarEl.style.width = `${progressPercent}%`;
+
+      if (nextTierTextEl) {
+        const apRemaining = nextTierMin - totalAccumulatedRP;
+        const nextTierNames = {
+          bronze: 'Bronze',
+          silver: 'Silver',
+          gold: 'Gold',
+          platinum: 'Platinum',
+          diamond: 'Diamond',
+          master: 'Master'
+        };
+        nextTierTextEl.textContent = `${nextTierNames[tierInfo.nextTier]} 티어까지 ${apRemaining.toLocaleString()} AP 남음`;
+      }
+
+      if (progressTextEl) {
+        progressTextEl.textContent = '다음 티어까지';
+      }
+    } else {
+      // 최고 티어 도달
+      if (currentApEl) currentApEl.textContent = totalAccumulatedRP.toLocaleString();
+      if (nextTierApEl) nextTierApEl.textContent = totalAccumulatedRP.toLocaleString();
+      if (progressBarEl) progressBarEl.style.width = '100%';
+      if (nextTierTextEl) nextTierTextEl.textContent = '🎉 최고 티어 달성!';
+      if (progressTextEl) progressTextEl.textContent = '최고 티어';
+    }
+
+    console.log(`✅ [Profile] 티어 정보 표시: ${tierInfo.name} (${totalAccumulatedRP} AP)`);
+
+  } catch (error) {
+    console.error('❌ [Profile] 티어 정보 표시 실패:', error);
   }
 }
 
