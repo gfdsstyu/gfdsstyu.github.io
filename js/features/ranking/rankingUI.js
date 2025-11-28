@@ -444,10 +444,13 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
         }
       }
 
-      // 프로필 데이터 로드 (상태 메시지, 대표 업적)
+      // 프로필 데이터 로드 (상태 메시지, 대표 업적, 티어)
       let statusMessage = '';
       let achievementPoints = 0;
       let featuredAchievement = null;
+      let currentRP = 0;
+      let totalAccumulatedRP = 0;
+      let tierInfo = null;
 
       try {
         const userDocRef = doc(db, 'users', member.userId);
@@ -458,6 +461,11 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
           console.log(`🔍 [GroupMembers] ${member.userId} 전체 데이터:`, userData);
+
+          // 티어 정보 가져오기
+          currentRP = userData.ranking?.currentRP || 0;
+          totalAccumulatedRP = userData.ranking?.totalAccumulatedRP || 0;
+          tierInfo = calculateTier(totalAccumulatedRP);
 
           statusMessage = userData.profile?.statusMessage || '';
 
@@ -526,7 +534,10 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
         weeklyScore,
         statusMessage,
         achievementPoints,
-        featuredAchievement
+        featuredAchievement,
+        currentRP,
+        totalAccumulatedRP,
+        tierInfo
       };
     }));
 
@@ -601,7 +612,10 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
         dailyProblems: member.dailyProblems,
         weeklyScore: member.weeklyScore,
         weeklyProblems: member.weeklyProblems,
-        achievementPoints: member.achievementPoints
+        achievementPoints: member.achievementPoints,
+        currentRP: member.currentRP || 0,
+        totalAccumulatedRP: member.totalAccumulatedRP || 0,
+        tierInfo: member.tierInfo || { tier: 'unranked', name: 'Unranked', color: '#52525b' }
       }).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
       html += `
@@ -633,7 +647,7 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
             <div class="flex flex-col items-center text-center">
               <div class="text-lg font-bold mb-1">${member.dailyScore}<span class="text-xs">점</span></div>
               <div class="text-xs font-medium truncate w-full">
-                ${memberIsOwner ? '👑' : ''}${member.nickname}
+                ${memberIsOwner ? '👑' : ''}<span style="color: ${member.tierInfo?.color || '#52525b'}">${member.nickname}</span>
               </div>
             </div>
           </div>
@@ -721,15 +735,23 @@ function showMemberTooltip(e) {
   // z-index를 인라인 스타일로 명시적 설정 (Tailwind z-[99999]가 안 먹혀서)
   tooltip.style.zIndex = '99999';
 
+  const tierColor = memberData.tierInfo?.color || '#52525b';
+  const tierName = memberData.tierInfo?.name || 'Unranked';
+  const currentRP = memberData.currentRP || 0;
+
   tooltip.innerHTML = `
     <div class="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg p-3 shadow-2xl min-w-max max-w-xs">
-      <div class="font-bold mb-2 text-center">${memberData.nickname} ${memberData.isOwner ? '👑' : ''}</div>
+      <div class="font-bold mb-2 text-center">
+        <span style="color: ${tierColor}">${memberData.nickname}</span> ${memberData.isOwner ? '👑' : ''}
+      </div>
+      <div class="text-center mb-2 px-2 py-1 rounded font-bold" style="background-color: ${tierColor}20; border: 1px solid ${tierColor}; color: ${tierColor}">
+        ${tierName} - ${currentRP} AP
+      </div>
       ${memberData.statusMessage ? `<div class="text-center mb-2 px-2 py-1 bg-white/10 dark:bg-gray-900/10 rounded italic">💬 "${memberData.statusMessage}"</div>` : ''}
       ${memberData.featuredAchievement ? `<div class="text-center mb-2 px-2 py-1 bg-blue-500/20 dark:bg-blue-500/30 rounded font-medium">⭐ ${memberData.featuredAchievement.icon} ${memberData.featuredAchievement.name}</div>` : ''}
       <div class="space-y-1">
         <div>📅 일: ${memberData.dailyScore}점 (${memberData.dailyProblems}문제)</div>
         <div>📊 주: ${memberData.weeklyScore}점 (${memberData.weeklyProblems}문제)</div>
-        <div>🏆 업적: ${memberData.achievementPoints}점</div>
       </div>
       <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
         <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-100"></div>
