@@ -743,22 +743,31 @@ export async function migrateAchievementPointsToAP(force = false) {
       console.log('🔄 [Migration] 강제 재마이그레이션 모드');
     }
 
-    // 2. localStorage에서 업적 데이터 가져오기 (오류 방지 처리)
+    // 2. 업적 데이터 가져오기 (Firestore 우선, localStorage fallback)
     let achievements = {};
-    try {
-      const stored = localStorage.getItem('achievements');
-      console.log('🔍 [Migration Debug] localStorage achievements raw:', stored);
-      if (stored) {
-        achievements = JSON.parse(stored);
-        console.log('🔍 [Migration Debug] localStorage achievements parsed:', achievements);
-        console.log('🔍 [Migration Debug] Unlocked achievements count:', Object.keys(achievements).filter(k => achievements[k]).length);
-      } else {
-        console.warn('⚠️ [Migration] localStorage에 업적 데이터가 없습니다!');
+
+    // 2-1. Firestore에서 업적 데이터 확인
+    if (userData.achievements) {
+      achievements = userData.achievements;
+      console.log('🔍 [Migration Debug] Firestore achievements:', achievements);
+      console.log('🔍 [Migration Debug] Unlocked achievements count (Firestore):', Object.keys(achievements).filter(k => achievements[k]).length);
+    } else {
+      // 2-2. Firestore에 없으면 localStorage 확인
+      try {
+        const stored = localStorage.getItem('achievements');
+        console.log('🔍 [Migration Debug] localStorage achievements raw:', stored);
+        if (stored) {
+          achievements = JSON.parse(stored);
+          console.log('🔍 [Migration Debug] localStorage achievements parsed:', achievements);
+          console.log('🔍 [Migration Debug] Unlocked achievements count (localStorage):', Object.keys(achievements).filter(k => achievements[k]).length);
+        } else {
+          console.warn('⚠️ [Migration] localStorage와 Firestore 모두에 업적 데이터가 없습니다!');
+          // 업적이 없어도 마이그레이션 완료로 표시 (0 AP)
+        }
+      } catch (storageError) {
+        console.warn('⚠️ [Migration] localStorage 접근 차단됨 (Tracking Prevention):', storageError);
+        // localStorage 접근 실패해도 Firestore에 업적이 없으면 계속 진행 (0 AP로)
       }
-    } catch (storageError) {
-      console.warn('⚠️ [Migration] localStorage 접근 차단됨 (Tracking Prevention):', storageError);
-      // 스토리지를 읽을 수 없으면 업적 마이그레이션을 건너뛰거나 기본값 처리
-      return { success: false, message: '브라우저 보안 설정으로 로컬 데이터에 접근할 수 없습니다.', migratedAP: 0 };
     }
 
     // 3. ACHIEVEMENTS config 가져오기 (동적 import)
