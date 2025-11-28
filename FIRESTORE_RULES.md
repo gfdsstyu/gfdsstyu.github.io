@@ -84,9 +84,10 @@ service cloud.firestore {
 
       // 멤버 서브컬렉션
       match /members/{userId} {
-        // 읽기: 같은 그룹 멤버만
+        // 읽기: 본인 멤버십 상태는 누구나 확인 가능 (가입 전 중복 체크용), 다른 멤버는 같은 그룹 멤버만
         allow read: if isAuthenticated()
-          && exists(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid));
+          && (request.auth.uid == userId
+              || exists(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid)));
         // 생성: 본인 또는 그룹장
         allow create: if isAuthenticated()
           && (request.auth.uid == userId
