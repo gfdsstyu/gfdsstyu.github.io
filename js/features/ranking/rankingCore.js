@@ -711,9 +711,10 @@ async function checkAndMigrateAP(userId) {
 
 /**
  * 기존 업적 포인트를 AP로 소급 적용
+ * @param {boolean} force - 강제 재마이그레이션 여부
  * @returns {Promise<{success: boolean, message: string, migratedAP: number}>}
  */
-export async function migrateAchievementPointsToAP() {
+export async function migrateAchievementPointsToAP(force = false) {
   const user = getCurrentUser();
   if (!user) {
     return { success: false, message: '로그인이 필요합니다.', migratedAP: 0 };
@@ -732,18 +733,27 @@ export async function migrateAchievementPointsToAP() {
 
     const userData = userDocSnap.data();
 
-    // 이미 마이그레이션했는지 체크
-    if (userData.ranking?.apMigrated) {
+    // 이미 마이그레이션했는지 체크 (force=true면 무시)
+    if (userData.ranking?.apMigrated && !force) {
       console.log('✅ [Migration] 이미 마이그레이션 완료됨');
       return { success: true, message: '이미 마이그레이션 완료', migratedAP: 0 };
+    }
+
+    if (force) {
+      console.log('🔄 [Migration] 강제 재마이그레이션 모드');
     }
 
     // 2. localStorage에서 업적 데이터 가져오기 (오류 방지 처리)
     let achievements = {};
     try {
       const stored = localStorage.getItem('achievements');
+      console.log('🔍 [Migration Debug] localStorage achievements raw:', stored);
       if (stored) {
         achievements = JSON.parse(stored);
+        console.log('🔍 [Migration Debug] localStorage achievements parsed:', achievements);
+        console.log('🔍 [Migration Debug] Unlocked achievements count:', Object.keys(achievements).filter(k => achievements[k]).length);
+      } else {
+        console.warn('⚠️ [Migration] localStorage에 업적 데이터가 없습니다!');
       }
     } catch (storageError) {
       console.warn('⚠️ [Migration] localStorage 접근 차단됨 (Tracking Prevention):', storageError);
@@ -784,15 +794,25 @@ export async function migrateAchievementPointsToAP() {
     const currentRP = userData.ranking?.currentRP || 0;
     const currentTotal = userData.ranking?.totalAccumulatedRP || 0;
 
+    // 강제 재마이그레이션인 경우, 기존 마이그레이션 포인트를 빼고 새로 계산
+    let previousMigratedAP = 0;
+    if (force && userData.ranking?.migratedAchievements) {
+      previousMigratedAP = userData.ranking.migratedAchievements.reduce((sum, ach) => sum + (ach.points || 0), 0);
+      console.log(`🔄 [Migration] 기존 마이그레이션 AP 차감: ${previousMigratedAP} AP`);
+    }
+
+    const newRP = currentRP - previousMigratedAP + totalAchievementPoints;
+    const newTotal = currentTotal - previousMigratedAP + totalAchievementPoints;
+
     await updateDoc(userDocRef, {
-      'ranking.currentRP': currentRP + totalAchievementPoints,
-      'ranking.totalAccumulatedRP': currentTotal + totalAchievementPoints,
+      'ranking.currentRP': newRP,
+      'ranking.totalAccumulatedRP': newTotal,
       'ranking.apMigrated': true,
       'ranking.apMigratedAt': serverTimestamp(),
       'ranking.migratedAchievements': unlockedAchievements
     });
 
-    console.log(`✅ [Migration] 마이그레이션 성공! (+${totalAchievementPoints} AP)`);
+    console.log(`✅ [Migration] 마이그레이션 성공! (+${totalAchievementPoints} AP)${force ? ` [재마이그레이션: ${previousMigratedAP} → ${totalAchievementPoints}]` : ''}`);
 
     return {
       success: true,
