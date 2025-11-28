@@ -339,7 +339,7 @@ function getWeekKey(date) {
   const firstDayOfYear = new Date(year, 0, 1);
   const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
   const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-  return `${year}-${String(weekNumber).padStart(2, '0')}`;
+  return `${year}-W${String(weekNumber).padStart(2, '0')}`; // 'W' 접두사 추가 (rankingCore 포맷과 일치)
 }
 
 /**
