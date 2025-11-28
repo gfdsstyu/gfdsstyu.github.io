@@ -718,10 +718,30 @@ async function checkAndMigrateAP(userId) {
 
     if (userDocSnap.exists()) {
       const data = userDocSnap.data();
-      // 아직 마이그레이션 안 된 경우 실행
+
+      // 1. 아직 마이그레이션 안 된 경우 실행
       if (!data.ranking?.apMigrated) {
         console.log('🔄 [Auto Migration] 미마이그레이션 유저 감지, 마이그레이션 시작...');
         await migrateAchievementPointsToAP();
+        return;
+      }
+
+      // 2. 마이그레이션 완료되었지만, 새 업적이 추가된 경우 재마이그레이션
+      const currentAchievements = data.achievements || {};
+      const migratedAchievements = data.ranking?.migratedAchievements || [];
+
+      // 현재 잠금 해제된 업적 수
+      const currentUnlockedCount = Object.keys(currentAchievements).filter(
+        k => currentAchievements[k]?.unlockedAt
+      ).length;
+
+      // 이전 마이그레이션된 업적 수
+      const previousMigratedCount = migratedAchievements.length;
+
+      // 새 업적이 추가되었으면 재마이그레이션
+      if (currentUnlockedCount > previousMigratedCount) {
+        console.log(`🔄 [Auto Migration] 새 업적 감지! (${previousMigratedCount} → ${currentUnlockedCount}), 재마이그레이션 시작...`);
+        await migrateAchievementPointsToAP(true); // force=true로 재마이그레이션
       }
     }
   } catch (e) {
