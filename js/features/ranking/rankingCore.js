@@ -17,7 +17,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
 import { db } from '../../app.js';
-import { getCurrentUser, getNickname } from '../auth/authCore.js';
+import { getCurrentUser, getNickname, addAuthStateListener } from '../auth/authCore.js';
 
 // ============================================
 // Helper Functions
@@ -68,6 +68,10 @@ export async function updateUserStats(userId, score) {
   }
 
   try {
+    // [Safety Check] 점수 업데이트 전 마이그레이션 확인
+    // 기존 사용자가 로그인 없이 바로 문제를 풀 경우를 대비해 여기서도 체크합니다.
+    await checkAndMigrateAP(userId);
+
     console.log(`📊 [Ranking] 사용자 통계 업데이트 시작... (userId: ${userId}, score: ${score})`);
 
     const userDocRef = doc(db, 'users', userId);
@@ -685,6 +689,27 @@ export async function applyDecayForUser(userId) {
 // ============================================
 
 /**
+ * 마이그레이션 여부 체크 및 실행 (내부 호출용)
+ */
+async function checkAndMigrateAP(userId) {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (userDocSnap.exists()) {
+      const data = userDocSnap.data();
+      // 아직 마이그레이션 안 된 경우 실행
+      if (!data.ranking?.apMigrated) {
+        console.log('🔄 [Auto Migration] 미마이그레이션 유저 감지, 마이그레이션 시작...');
+        await migrateAchievementPointsToAP();
+      }
+    }
+  } catch (e) {
+    console.warn('⚠️ 마이그레이션 체크 중 오류 (무시됨):', e);
+  }
+}
+
+/**
  * 기존 업적 포인트를 AP로 소급 적용
  * @returns {Promise<{success: boolean, message: string, migratedAP: number}>}
  */
@@ -713,45 +738,61 @@ export async function migrateAchievementPointsToAP() {
       return { success: true, message: '이미 마이그레이션 완료', migratedAP: 0 };
     }
 
-    // 2. localStorage에서 업적 데이터 가져오기
-    const achievements = JSON.parse(localStorage.getItem('achievements') || '{}');
+    // 2. localStorage에서 업적 데이터 가져오기 (오류 방지 처리)
+    let achievements = {};
+    try {
+      const stored = localStorage.getItem('achievements');
+      if (stored) {
+        achievements = JSON.parse(stored);
+      }
+    } catch (storageError) {
+      console.warn('⚠️ [Migration] localStorage 접근 차단됨 (Tracking Prevention):', storageError);
+      // 스토리지를 읽을 수 없으면 업적 마이그레이션을 건너뛰거나 기본값 처리
+      return { success: false, message: '브라우저 보안 설정으로 로컬 데이터에 접근할 수 없습니다.', migratedAP: 0 };
+    }
 
     // 3. ACHIEVEMENTS config 가져오기 (동적 import)
-    const { ACHIEVEMENTS } = await import('../../config/config.js');
+    let ACHIEVEMENTS;
+    try {
+      const configModule = await import('../../config/config.js');
+      ACHIEVEMENTS = configModule.ACHIEVEMENTS;
+    } catch (err) {
+      console.error('❌ [Migration] config 로드 실패:', err);
+      return { success: false, message: '설정 파일 로드 실패', migratedAP: 0 };
+    }
 
-    // 4. 획득한 업적의 총 포인트 계산
+    // 4. 포인트 계산
     let totalAchievementPoints = 0;
     const unlockedAchievements = [];
 
     Object.keys(achievements).forEach(achievementId => {
-      if (achievements[achievementId] && ACHIEVEMENTS[achievementId]) {
+      if (achievements[achievementId] && ACHIEVEMENTS && ACHIEVEMENTS[achievementId]) {
         const points = ACHIEVEMENTS[achievementId].points || 0;
         totalAchievementPoints += points;
         unlockedAchievements.push({
           id: achievementId,
           name: ACHIEVEMENTS[achievementId].name,
-          points: points
+          points: points,
+          unlockedAt: new Date().toISOString() // 기록용
         });
       }
     });
 
-    console.log(`📊 [Migration] 발견된 업적: ${unlockedAchievements.length}개`);
-    console.log(`💰 [Migration] 총 업적 포인트: ${totalAchievementPoints} AP`);
+    console.log(`📊 [Migration] 발견된 업적: ${unlockedAchievements.length}개, 총 ${totalAchievementPoints} AP`);
 
-    // 5. Firestore에 AP 추가
-    const currentAP = userData.ranking?.totalAccumulatedRP || 0;
-    const newTotalAP = currentAP + totalAchievementPoints;
+    // 5. Firestore 업데이트
+    const currentRP = userData.ranking?.currentRP || 0;
+    const currentTotal = userData.ranking?.totalAccumulatedRP || 0;
 
     await updateDoc(userDocRef, {
-      'ranking.currentRP': newTotalAP,
-      'ranking.totalAccumulatedRP': newTotalAP,
+      'ranking.currentRP': currentRP + totalAchievementPoints,
+      'ranking.totalAccumulatedRP': currentTotal + totalAchievementPoints,
       'ranking.apMigrated': true,
       'ranking.apMigratedAt': serverTimestamp(),
       'ranking.migratedAchievements': unlockedAchievements
     });
 
-    console.log(`✅ [Migration] 마이그레이션 완료: ${totalAchievementPoints} AP 추가`);
-    console.log(`📈 [Migration] 총 AP: ${currentAP} → ${newTotalAP}`);
+    console.log(`✅ [Migration] 마이그레이션 성공! (+${totalAchievementPoints} AP)`);
 
     return {
       success: true,
@@ -783,3 +824,24 @@ if (typeof window !== 'undefined') {
     migrateAchievementPointsToAP
   };
 }
+
+// ============================================
+// ✨ [Fix] 순환 참조 방지 및 자동 실행 로직
+// ============================================
+
+// authCore.js의 변수 초기화가 완료된 후 실행되도록 setTimeout으로 지연시킵니다.
+// 이것이 "Uncaught ReferenceError: Cannot access 'authStateListeners' before initialization" 에러를 방지합니다.
+setTimeout(() => {
+  console.log('🔌 [Ranking] Auth Listener 연결 시도...');
+  try {
+    addAuthStateListener(async (user) => {
+      if (user) {
+        // 로그인 시 마이그레이션 자동 실행
+        await checkAndMigrateAP(user.uid);
+      }
+    });
+    console.log('✅ [Ranking] 자동 마이그레이션 리스너 등록 완료');
+  } catch (err) {
+    console.error('❌ [Ranking] 리스너 등록 실패:', err);
+  }
+}, 0);
