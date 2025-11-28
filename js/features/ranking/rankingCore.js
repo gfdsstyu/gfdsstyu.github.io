@@ -36,12 +36,13 @@ export function getPeriodKey(period = 'daily') {
   }
 
   if (period === 'weekly') {
-    // ISO 8601 week number
-    const year = now.getFullYear();
-    const firstDayOfYear = new Date(year, 0, 1);
-    const pastDaysOfYear = (now - firstDayOfYear) / 86400000;
-    const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-    return `${year}-W${String(weekNum).padStart(2, '0')}`; // '2025-W03'
+    // ISO 8601 week number (월요일 시작, 월-일)
+    const target = new Date(now.valueOf());
+    const dayNr = (now.getDay() + 6) % 7; // 월요일 = 0, 일요일 = 6
+    target.setDate(target.getDate() - dayNr + 3); // 가장 가까운 목요일로 이동
+    const yearStart = new Date(target.getFullYear(), 0, 1);
+    const weekNo = Math.ceil((((target - yearStart) / 86400000) + 1) / 7);
+    return `${target.getFullYear()}-W${String(weekNo).padStart(2, '0')}`; // '2025-W03'
   }
 
   if (period === 'monthly') {

@@ -1058,10 +1058,13 @@ export function checkWeekendWarrior() {
         const day = d.getDay(); // 0=일, 6=토
         if (day !== 0 && day !== 6) return;
 
-        // Get week key
-        const weekStart = new Date(d);
-        weekStart.setDate(d.getDate() - d.getDay()); // Start of week (Sunday)
-        const weekKey = `${weekStart.getFullYear()}-${weekStart.getMonth()}-${weekStart.getDate()}`;
+        // Get week key (ISO 8601: 월요일 시작)
+        const target = new Date(d.valueOf());
+        const dayNr = (d.getDay() + 6) % 7; // 월요일 = 0, 일요일 = 6
+        target.setDate(target.getDate() - dayNr + 3); // 가장 가까운 목요일로 이동
+        const yearStart = new Date(target.getFullYear(), 0, 1);
+        const weekNo = Math.ceil((((target - yearStart) / 86400000) + 1) / 7);
+        const weekKey = `${target.getFullYear()}-W${String(weekNo).padStart(2, '0')}`;
 
         if (!weekendCounts[weekKey]) {
           weekendCounts[weekKey] = { sat: 0, sun: 0 };

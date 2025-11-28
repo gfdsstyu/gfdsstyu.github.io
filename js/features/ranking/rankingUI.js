@@ -332,14 +332,16 @@ async function toggleGroupExpansion(groupId, isOwner) {
 }
 
 /**
- * 주차 키 생성 (YYYY-WW 형식)
+ * 주차 키 생성 (ISO 8601 형식: YYYY-WW, 월요일 시작)
  */
 function getWeekKey(date) {
-  const year = date.getFullYear();
-  const firstDayOfYear = new Date(year, 0, 1);
-  const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
-  const weekNumber = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-  return `${year}-W${String(weekNumber).padStart(2, '0')}`; // 'W' 접두사 추가 (rankingCore 포맷과 일치)
+  // ISO 8601 week number (월요일 시작, 월-일)
+  const target = new Date(date.valueOf());
+  const dayNr = (date.getDay() + 6) % 7; // 월요일 = 0, 일요일 = 6
+  target.setDate(target.getDate() - dayNr + 3); // 가장 가까운 목요일로 이동
+  const yearStart = new Date(target.getFullYear(), 0, 1);
+  const weekNo = Math.ceil((((target - yearStart) / 86400000) + 1) / 7);
+  return `${target.getFullYear()}-W${String(weekNo).padStart(2, '0')}`; // '2025-W03'
 }
 
 /**
