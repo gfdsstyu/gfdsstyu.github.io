@@ -508,30 +508,48 @@ export async function getIntraGroupRankings(groupId, period, criteria) {
 // ============================================
 
 /**
- * 총 누적 AP 기반 티어 계산
+ * 총 누적 AP 기반 티어 계산 (세부 티어 포함)
  * @param {number} totalAccumulatedRP - 총 누적 랭크 포인트
- * @returns {Object} { tier: string, name: string, minAP: number, nextTier: string|null, nextMinAP: number|null }
+ * @returns {Object} { tier: string, name: string, minAP: number, nextTier: string|null, nextMinAP: number|null, division: number|null }
  */
 export function calculateTier(totalAccumulatedRP) {
   const tiers = [
-    { tier: 'master', name: 'Master', minAP: 30000, color: '#9333ea', decayRate: 300 },
-    { tier: 'diamond', name: 'Diamond', minAP: 20000, color: '#3b82f6', decayRate: 150 },
-    { tier: 'platinum', name: 'Platinum', minAP: 10000, color: '#06b6d4', decayRate: 50 },
-    { tier: 'gold', name: 'Gold', minAP: 5000, color: '#eab308', decayRate: 20 },
-    { tier: 'silver', name: 'Silver', minAP: 2000, color: '#71717a', decayRate: 0 },
-    { tier: 'bronze', name: 'Bronze', minAP: 500, color: '#a3725f', decayRate: 0 }
+    { tier: 'master', name: 'Master', minAP: 30000, color: '#9333ea', decayRate: 300, hasDivisions: false },
+    { tier: 'diamond', name: 'Diamond', minAP: 20000, color: '#3b82f6', decayRate: 150, hasDivisions: false },
+    // Platinum 세부 티어 (16,000 / 13,000 / 10,000)
+    { tier: 'platinum', name: 'Platinum I', minAP: 16000, color: '#06d6f4', decayRate: 50, division: 1, baseTier: 'platinum' },
+    { tier: 'platinum', name: 'Platinum II', minAP: 13000, color: '#06c6e4', decayRate: 50, division: 2, baseTier: 'platinum' },
+    { tier: 'platinum', name: 'Platinum III', minAP: 10000, color: '#06b6d4', decayRate: 50, division: 3, baseTier: 'platinum' },
+    // Gold 세부 티어 (8,000 / 6,500 / 5,000)
+    { tier: 'gold', name: 'Gold I', minAP: 8000, color: '#ffd700', decayRate: 20, division: 1, baseTier: 'gold' },
+    { tier: 'gold', name: 'Gold II', minAP: 6500, color: '#f0c000', decayRate: 20, division: 2, baseTier: 'gold' },
+    { tier: 'gold', name: 'Gold III', minAP: 5000, color: '#eab308', decayRate: 20, division: 3, baseTier: 'gold' },
+    { tier: 'silver', name: 'Silver', minAP: 2000, color: '#c0c0c0', decayRate: 0, hasDivisions: false },
+    { tier: 'bronze', name: 'Bronze', minAP: 500, color: '#cd7f32', decayRate: 0, hasDivisions: false }
   ];
 
   for (let i = 0; i < tiers.length; i++) {
     if (totalAccumulatedRP >= tiers[i].minAP) {
+      const currentTier = tiers[i];
+
+      // 다음 티어 찾기
+      let nextTier = null;
+      let nextMinAP = null;
+      if (i > 0) {
+        nextTier = tiers[i - 1].tier;
+        nextMinAP = tiers[i - 1].minAP;
+      }
+
       return {
-        tier: tiers[i].tier,
-        name: tiers[i].name,
-        minAP: tiers[i].minAP,
-        color: tiers[i].color,
-        decayRate: tiers[i].decayRate,
-        nextTier: i > 0 ? tiers[i - 1].tier : null,
-        nextMinAP: i > 0 ? tiers[i - 1].minAP : null
+        tier: currentTier.tier,
+        name: currentTier.name,
+        minAP: currentTier.minAP,
+        color: currentTier.color,
+        decayRate: currentTier.decayRate,
+        division: currentTier.division || null,
+        baseTier: currentTier.baseTier || currentTier.tier,
+        nextTier,
+        nextMinAP
       };
     }
   }
@@ -543,6 +561,8 @@ export function calculateTier(totalAccumulatedRP) {
     minAP: 0,
     color: '#52525b',
     decayRate: 0,
+    division: null,
+    baseTier: 'unranked',
     nextTier: 'bronze',
     nextMinAP: 500
   };
