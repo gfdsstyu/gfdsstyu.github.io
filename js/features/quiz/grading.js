@@ -518,7 +518,10 @@ export async function handleMemoryTip(q, forceRegenerate = false) {
 
     // questionScores에 저장 (기존 데이터와 병합)
     if (!questionScores[qKey]) {
-      questionScores[qKey] = {};
+      questionScores[qKey] = {
+        solveHistory: [],  // 빈 배열로 초기화 (0회독 상태)
+        isSolved: false
+      };
     }
     questionScores[qKey].memoryTip = response;
     setQuestionScores(questionScores);

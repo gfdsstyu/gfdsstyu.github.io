@@ -448,7 +448,10 @@ export function initQuizListeners() {
     // 로컬 저장
     const questionScores = getQuestionScores();
     if (!questionScores[qKey]) {
-      questionScores[qKey] = {};
+      questionScores[qKey] = {
+        solveHistory: [],  // 빈 배열로 초기화 (0회독 상태)
+        isSolved: false
+      };
     }
     questionScores[qKey].userMemo = memoContent;
     setQuestionScores(questionScores);
