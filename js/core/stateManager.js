@@ -191,6 +191,41 @@ export function saveQuestionScores() {
 }
 
 /**
+ * 🔧 [Migration] questionScores 데이터 구조 정리
+ * - memoryTip/userMemo만 있고 solveHistory가 없는 엔트리 수정
+ * - 0점 문제 등 불완전한 데이터 구조 수정
+ */
+export function migrateQuestionScoresStructure() {
+  let fixedCount = 0;
+  const questionScores = getQuestionScores();
+
+  for (const [qid, data] of Object.entries(questionScores)) {
+    // solveHistory가 없거나 배열이 아닌 경우
+    if (!data.solveHistory || !Array.isArray(data.solveHistory)) {
+      data.solveHistory = [];
+      fixedCount++;
+    }
+
+    // isSolved가 없는 경우 (solveHistory 길이로 판단)
+    if (data.isSolved === undefined) {
+      data.isSolved = data.solveHistory.length > 0;
+      fixedCount++;
+    }
+  }
+
+  if (fixedCount > 0) {
+    console.log(`✅ [Migration] ${fixedCount}개 항목의 questionScores 구조 수정 완료`);
+    setQuestionScores(questionScores);
+    saveQuestionScores();
+  } else {
+    console.log('✅ [Migration] questionScores 구조 정상 - 수정 불필요');
+  }
+
+  return fixedCount;
+}
+
+
+/**
  * STT 설정 저장
  */
 export function saveSttSettings() {

@@ -512,6 +512,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // 1. StateManager 초기화 (localStorage에서 데이터 로드)
   StateManager.initializeState();
 
+  // 1-1. 🔧 [Migration] questionScores 데이터 구조 정리 (암기팁/메모만 있고 solveHistory 없는 엔트리 수정)
+  StateManager.migrateQuestionScoresStructure();
+
   // 2. Firebase 인증 초기화
   console.log('🔐 Firebase 인증 초기화 시작...');
   AuthCore.initAuthStateObserver(); // 인증 상태 관찰 시작
