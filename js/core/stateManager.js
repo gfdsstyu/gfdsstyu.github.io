@@ -194,22 +194,48 @@ export function saveQuestionScores() {
  * 🔧 [Migration] questionScores 데이터 구조 정리
  * - memoryTip/userMemo만 있고 solveHistory가 없는 엔트리 수정
  * - 0점 문제 등 불완전한 데이터 구조 수정
+ * - 실제로 풀지 않은 문제의 잘못된 score 필드 제거
  */
 export function migrateQuestionScoresStructure() {
   let fixedCount = 0;
   const questionScores = getQuestionScores();
 
   for (const [qid, data] of Object.entries(questionScores)) {
-    // solveHistory가 없거나 배열이 아닌 경우
+    let entryModified = false;
+
+    // 1. solveHistory가 없거나 배열이 아닌 경우
     if (!data.solveHistory || !Array.isArray(data.solveHistory)) {
       data.solveHistory = [];
       fixedCount++;
+      entryModified = true;
     }
 
-    // isSolved가 없는 경우 (solveHistory 길이로 판단)
+    // 2. isSolved가 없는 경우 (solveHistory 길이로 판단)
     if (data.isSolved === undefined) {
       data.isSolved = data.solveHistory.length > 0;
       fixedCount++;
+      entryModified = true;
+    }
+
+    // 3. 🆕 실제로 풀지 않은 문제인데 score가 있는 경우 제거
+    //    (암기팁/메모만 있고 solveHistory가 비어있는 경우)
+    if (data.solveHistory.length === 0 && data.score !== undefined) {
+      delete data.score;
+      delete data.feedback;
+      delete data.user_answer;
+      delete data.hintUsed;
+      delete data.memoryTipUsed;
+      delete data.lastSolvedDate;
+      data.isSolved = false;
+      fixedCount++;
+      entryModified = true;
+    }
+
+    // 4. solveHistory가 있는데 isSolved가 false인 경우 수정
+    if (data.solveHistory.length > 0 && !data.isSolved) {
+      data.isSolved = true;
+      fixedCount++;
+      entryModified = true;
     }
   }
 
