@@ -126,7 +126,7 @@ export async function updateUserStats(userId, score) {
     // ============================================================
 
     // 1. 기본 풀이 점수 (채굴형 점수 Grinding)
-    const earnedAP = score >= 80 ? 3 : 1; // 80점 이상: 3 AP, 미만: 1 AP
+    const earnedAP = score >= 75 ? 3 : 1; // 75점 이상: 3 AP, 미만: 1 AP
 
     // 2. 데일리 미션 보너스
     let bonusAP = 0;
@@ -138,10 +138,16 @@ export async function updateUserStats(userId, score) {
       console.log(`🎉 [Ranking AP] 데일리 미션 달성: 10문제 (+30 AP)`);
     }
 
-    // 50문제 첫 달성 시 +100 AP 보너스
+    // 30문제 첫 달성 시 +40 AP 보너스
+    if (todayProblems === 30) {
+      bonusAP += 40;
+      console.log(`🎉 [Ranking AP] 데일리 미션 달성: 30문제 (+40 AP)`);
+    }
+
+    // 50문제 첫 달성 시 +50 AP 보너스
     if (todayProblems === 50) {
-      bonusAP += 100;
-      console.log(`🎉 [Ranking AP] 데일리 미션 달성: 50문제 (+100 AP)`);
+      bonusAP += 50;
+      console.log(`🎉 [Ranking AP] 데일리 미션 달성: 50문제 (+50 AP)`);
     }
 
     const totalGainedAP = earnedAP + bonusAP;
