@@ -258,6 +258,11 @@ export function checkAchievements() {
       }
     }
 
+    // avg_92 (예비 회계사 - Platinum): 평균 92점 이상
+    if (avgScore >= 92) {
+      unlockAchievement('avg_92');
+    }
+
     // avg_95 (기준서 프린터): 모든 문제 전부 풀이 + 평균 95점 이상
     if (avgScore >= 95) {
       const allProblemsSolved = allData.length > 0 && allData.every(q => questionScores[normId(q.고유ID)]);
@@ -266,6 +271,10 @@ export function checkAchievements() {
       }
     }
   }
+
+  // Check platinum_mastery & diamond_perfect
+  checkPlatinumMastery();
+  checkDiamondPerfect();
 
   // Check streaks
   checkStreakAchievements();
@@ -280,9 +289,6 @@ export function checkAchievements() {
   const flagCount = Object.values(questionScores).filter(s => s.userReviewFlag && !s.userReviewExclude).length;
   if (flagCount >= 20) unlockAchievement('flagged_20');
   if (flagCount >= 50) unlockAchievement('flagged_50');
-
-  // Check overcome weakness
-  checkOvercomeWeakness();
 
   // Check comeback achievement
   checkComeback();
@@ -325,33 +331,23 @@ export function checkAchievements() {
   checkComebackMaster();
   checkLucky777();
   checkExtremePerfectionist();
-  checkTimeTraveler();
   checkFullCourse();
   checkPerfectCollector();
   checkPersistenceMaster();
   checkMidnightLearner();
-  checkRushHourAvoider();
+  checkPerfectStraight10();
 
   // Check phase 2 achievements
-  checkMorningRoutine();
   checkRetryNextDay();
   checkMemoryTest();
-  checkNonstopLearning();
   checkWeaknessAnalyzer();
   checkConsistencyBasic();
   checkSpeedHands();
   checkMemoryGod();
   checkMonthlyMaster();
-  checkRetention99();
   checkFlashLearning();
-  checkLongTermMemory();
-  checkPhotographicMemory();
   checkScoreStairs();
-  checkDejaVu();
-  checkMirroring();
   checkMemoryGarden();
-  checkPatternBreaker();
-  checkDaySpecificAchievements();
   checkTimeSlotAchievements();
   checkHolidayAchievements();
 }
@@ -397,10 +393,13 @@ export function checkStreakAchievements() {
 
     if (maxStreak >= 3) unlockAchievement('streak_3');
     if (maxStreak >= 7) unlockAchievement('streak_7');
+    if (maxStreak >= 14) unlockAchievement('streak_14');
     if (maxStreak >= 30) unlockAchievement('streak_30');
     if (maxStreak >= 60) unlockAchievement('streak_60');
     if (maxStreak >= 90) unlockAchievement('streak_90');
+    if (maxStreak >= 100) unlockAchievement('streak_100');
     if (maxStreak >= 120) unlockAchievement('streak_120');
+    if (maxStreak >= 180) unlockAchievement('streak_180');
   } catch {}
 }
 
@@ -436,8 +435,12 @@ export function checkVolumeAchievements() {
 
     // Daily achievements
     if (todayCount >= 20) unlockAchievement('daily_20');
+    if (todayCount >= 40) unlockAchievement('daily_40');
     if (todayCount >= 50) unlockAchievement('daily_50');
+    if (todayCount >= 70) unlockAchievement('daily_70');
     if (todayCount >= 100) unlockAchievement('daily_100');
+    if (todayCount >= 120) unlockAchievement('daily_120');
+    if (todayCount >= 150) unlockAchievement('daily_150');
 
     // Weekly achievements
     if (weekCount >= 100) unlockAchievement('weekly_100');
@@ -1078,6 +1081,12 @@ export function checkWeekendWarrior() {
     const validWeekends = Object.values(weekendCounts).filter(w => w.sat >= 10 && w.sun >= 10).length;
     if (validWeekends >= 4) {
       unlockAchievement('weekend_warrior');
+    }
+
+    // Check weekend_warrior_hidden (주말 반납: 주말 양일 모두 30문제 이상, 1회 이상)
+    const hiddenWeekends = Object.values(weekendCounts).filter(w => w.sat >= 30 && w.sun >= 30).length;
+    if (hiddenWeekends >= 1) {
+      unlockAchievement('weekend_warrior_hidden');
     }
   } catch {}
 }
@@ -2255,7 +2264,7 @@ export function checkTimeSlotAchievements() {
 
     if (lunchCount >= 100) unlockAchievement('lunch_learner');
     if (afterWorkCount >= 200) unlockAchievement('after_work_warrior');
-    if (morningCount >= 100) unlockAchievement('morning_warmup');
+    if (morningCount >= 100) unlockAchievement('morning_learner');
   } catch {}
 }
 
@@ -2374,6 +2383,116 @@ export function checkRotationAchievements() {
   } catch (e) {
     console.error('❌ [Rotation] 회독 체크 중 오류:', e);
   }
+}
+
+/**
+ * Check platinum mastery (전 단원 평균 88점 달성)
+ */
+export function checkPlatinumMastery() {
+  try {
+    const questionScores = window.questionScores || {};
+    const allData = window.allData || [];
+    if (!allData || !allData.length) return;
+
+    const chapters = [1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20];
+    let allAbove88 = true;
+
+    for (const chNum of chapters) {
+      const chStr = String(chNum);
+      const chapterProblems = allData.filter(q => String(q.단원).trim() === chStr);
+      const solvedWithScores = chapterProblems.filter(q => {
+        const record = questionScores[normId(q.고유ID)];
+        return record && record.score !== undefined;
+      }).map(q => questionScores[normId(q.고유ID)].score);
+
+      if (solvedWithScores.length === 0) {
+        allAbove88 = false;
+        break;
+      }
+
+      const avgScore = solvedWithScores.reduce((sum, score) => sum + score, 0) / solvedWithScores.length;
+      if (avgScore < 88) {
+        allAbove88 = false;
+        break;
+      }
+    }
+
+    if (allAbove88) {
+      unlockAchievement('platinum_mastery');
+    }
+  } catch {}
+}
+
+/**
+ * Check diamond perfect (전 단원 평균 92점 이상)
+ */
+export function checkDiamondPerfect() {
+  try {
+    const questionScores = window.questionScores || {};
+    const allData = window.allData || [];
+    if (!allData || !allData.length) return;
+
+    const chapters = [1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20];
+    let allAbove92 = true;
+
+    for (const chNum of chapters) {
+      const chStr = String(chNum);
+      const chapterProblems = allData.filter(q => String(q.단원).trim() === chStr);
+      const solvedWithScores = chapterProblems.filter(q => {
+        const record = questionScores[normId(q.고유ID)];
+        return record && record.score !== undefined;
+      }).map(q => questionScores[normId(q.고유ID)].score);
+
+      if (solvedWithScores.length === 0) {
+        allAbove92 = false;
+        break;
+      }
+
+      const avgScore = solvedWithScores.reduce((sum, score) => sum + score, 0) / solvedWithScores.length;
+      if (avgScore < 92) {
+        allAbove92 = false;
+        break;
+      }
+    }
+
+    if (allAbove92) {
+      unlockAchievement('diamond_perfect');
+    }
+  } catch {}
+}
+
+/**
+ * Check perfect straight 10 (10개의 새로운 문제를 연속으로 100점 달성)
+ */
+export function checkPerfectStraight10() {
+  try {
+    const questionScores = window.questionScores || {};
+
+    // Get all first attempts sorted by date
+    const firstAttempts = [];
+    Object.values(questionScores).forEach(record => {
+      if (record.solveHistory && record.solveHistory.length > 0) {
+        const firstAttempt = record.solveHistory[0];
+        firstAttempts.push({ date: firstAttempt.date, score: firstAttempt.score });
+      }
+    });
+
+    firstAttempts.sort((a, b) => a.date - b.date);
+
+    // Check for 10 consecutive 100-point first attempts
+    let consecutivePerfects = 0;
+    for (const attempt of firstAttempts) {
+      if (attempt.score === 100) {
+        consecutivePerfects++;
+        if (consecutivePerfects >= 10) {
+          unlockAchievement('perfect_straight_10');
+          return;
+        }
+      } else {
+        consecutivePerfects = 0;
+      }
+    }
+  } catch {}
 }
 
 /**
