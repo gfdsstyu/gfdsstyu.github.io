@@ -160,17 +160,34 @@ export function migrateData() {
         ? ov.solveHistory
         : (ov.score != null ? [{ date: Date.now(), score: +ov.score || 0 }] : []);
 
-      newScores[nk] = {
-        score: +(ov.score ?? 0),
-        feedback: String(ov.feedback ?? ''),
-        user_answer: String(ov.user_answer ?? ''),
-        hintUsed: !!ov.hintUsed,
-        isSolved: !!(ov.isSolved || (ov.score != null)),
-        lastSolvedDate: +(ov.lastSolvedDate ?? (hist.at(-1)?.date || Date.now())),
+      // 기본 엔트리 구조
+      const entry = {
         solveHistory: hist,
+        isSolved: !!(ov.isSolved || (ov.score != null)),
         userReviewFlag: !!ov.userReviewFlag,
         userReviewExclude: !!ov.userReviewExclude
       };
+
+      // score가 실제로 존재하는 경우에만 추가 (undefined/null이면 추가하지 않음)
+      if (ov.score != null) {
+        entry.score = +ov.score;
+        entry.feedback = String(ov.feedback ?? '');
+        entry.user_answer = String(ov.user_answer ?? '');
+        entry.hintUsed = !!ov.hintUsed;
+        entry.lastSolvedDate = +(ov.lastSolvedDate ?? (hist.at(-1)?.date || Date.now()));
+      }
+
+      // memoryTip이 있으면 보존
+      if (ov.memoryTip) {
+        entry.memoryTip = ov.memoryTip;
+      }
+
+      // userMemo가 있으면 보존
+      if (ov.userMemo) {
+        entry.userMemo = ov.userMemo;
+      }
+
+      newScores[nk] = entry;
     });
 
     localStorage.setItem('auditQuizScores', JSON.stringify(newScores));
