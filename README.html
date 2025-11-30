@@ -97,191 +97,7 @@
             </div>
         </section>
         
-        <section id="getting-started" class="mb-20">
-            <h2 class="text-3xl font-bold mb-6 border-b pb-3">🚀 시작하기: 3분이면 충분합니다</h2>
-
-             <h3 class="text-xl font-bold mb-4">Step 1. 웹사이트 접속</h3>
-             <p class="text-gray-600 leading-relaxed mb-8">
-                별도의 설치 없이 <a href="https://gfdsstyu.github.io/" target="_blank" rel="noopener noreferrer" class="font-medium hover:underline text-blue-600">감린이 웹사이트</a>에 접속하면 바로 시작할 수 있습니다.
-            </p>
-
-            <h3 class="text-xl font-bold mb-4">Step 2. [필수] Gemini API 키 발급 (AI 채점/힌트용)</h3>
-            <p class="text-gray-600 leading-relaxed mb-6">
-                AI 채점/힌트 기능을 사용하려면 사용자 개인의 **Gemini API 키**가 반드시 필요합니다. 무료로 간단히 만들 수 있습니다.
-            </p>
-            <ol class="list-decimal list-outside pl-6 space-y-4 bg-slate-100 p-6 rounded-lg mb-6 ring-1 ring-gray-200">
-                <li><a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" class="font-medium hover:underline text-blue-600">[**Google AI Studio**]</a>에 접속하여 Google 계정으로 로그인합니다. (약관 동의)</li>
-                <li>좌측 메뉴에서 **<span class="font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded">Get API key</span> (API 키 받기)**를 클릭합니다.</li>
-                <li>
-                    파란색 **"Create API key" (API 키 만들기)** 버튼을 클릭합니다.
-                </li>
-                 <li class="font-medium">
-                    "Create API key in new project" 또는 "Create API key in existing project" 팝업이 나타납니다.
-                     <ul class="list-disc list-outside pl-5 mt-2 font-normal text-slate-500">
-                         <li>**처음이라면:** <span class="font-semibold text-gray-800">"Create API key in new project"</span>를 클릭하세요. 자동으로 새 프로젝트가 만들어집니다.</li>
-                         <li>**기존 사용자라면:** 목록에서 원하는 프로젝트를 선택합니다.</li>
-                     </ul>
-                </li>
-                <li>생성된 API 키 (`AIzaSy...` 로 시작하는 긴 문자열) 우측의 복사 아이콘을 눌러 복사합니다. (이것이 **Gemini 키**입니다.)</li>
-            </ol>
-            
-            <h3 class="text-xl font-bold mb-4 mt-12">Step 3. '감린이' 앱에 API 키 입력하기</h3>
-            <p class="text-gray-600 leading-relaxed mb-6">
-                발급받은 키를 '감린이' 앱에 등록하면 모든 준비가 끝납니다.
-            </p>
-            <ul class="list-disc list-outside pl-6 space-y-2 text-gray-600">
-                <li>앱 접속 시 나타나는 최초 인증 팝업에 **Step 2에서 발급받은 Gemini API 키**를 붙여넣습니다.</li>
-                <li>(팝업을 껐다면) 우측 상단 '설정(⚙️)' > 'API 키 변경/설정'에서 입력할 수 있습니다.</li>
-            </ul>
-            
-             <div class="callout-danger bg-red-50 border-l-4 border-red-400 text-red-800 p-5 rounded-r-lg mt-8" role="alert">
-                <h3 class="text-xl font-bold mb-3"><span class="mr-2">⚠️</span>API 키는 당신의 비밀번호입니다</h3>
-                <ul class="list-disc list-outside pl-5 space-y-2">
-                    <li><strong>공유 금지:</strong> API 키를 타인과 공유하거나, GitHub, 블로그 등 공개된 장소에 절대 업로드하지 마세요.</li>
-                    <li><strong>무료 한도:</strong> 무료 API는 1분당 요청 횟수가 제한됩니다. 채점/힌트 버튼을 너무 빠르게 연타하면 일시적으로 오류가 발생할 수 있습니다. 1분 후 다시 시도하세요.</li>
-                </ul>
-            </div>
-        </section>
-
-     
-        <section class="mb-10">
-            <h2 class="text-3xl font-bold mb-6 border-b pb-3"><span class="mr-2">📖</span>사용 흐름 가이드</h2>
-            <ol class="list-decimal list-outside pl-6 space-y-4">
-                <li>
-                    <strong>범위 선택:</strong> '단원 선택'과 '문제 필터'(예: '오늘의 복습', '80점 미만', '60점 미만')를 조합하여 학습할 범위를 정합니다.
-                </li>
-                <li>
-                    <strong>시작 방식:</strong> '학습 시작', '랜덤 문제', 또는 '플래시카드' 버튼으로 원하는 학습 모드를 시작합니다.
-                </li>
-                <li>
-                    <strong>문제 풀이:</strong> 답안을 입력합니다. 키보드로 타이핑하거나, 스마트폰 키보드의 음성 입력 기능을 활용하여 말로 답안을 입력할 수 있습니다.
-                </li>
-                <li>
-                    <strong>보조 기능:</strong> 막히면 '힌트(단축키: H)' 버튼을 활용하고, 이전에 썼던 답안은 '이전 답안 불러오기(L)' 버튼으로 참고하거나 지울 수 있습니다.
-                </li>
-                <li>
-                    <strong>채점 및 확인:</strong> '채점하기(단축키: Enter/G)' 버튼을 눌러 AI의 점수와 피드백, 모범 답안을 확인합니다.
-                </li>
-                <li>
-                    <strong>복습 관리:</strong> '복습 추가(★)' 또는 '복습 제외(➖)' 버튼으로 문제의 복습 상태를 관리합니다. (두 버튼은 상호 배타적으로 작동합니다)
-                </li>
-                 <li>
-                    <strong>탐색:</strong> '이전(Ctrl+←)'/'다음(Ctrl+→)' 버튼으로 문제를 넘기거나, 하단 현황판의 번호 버튼, 또는 우측 '문제 목록'을 클릭하여 특정 문제로 바로 이동합니다.
-                </li>
-                <li>
-                    <strong>설정 및 기타:</strong> 우측 상단 '설정(⚙️)', '업적(🏆)', '리포트(📊)' 아이콘을 통해 AI 모델 변경, 학습 성과 확인 등 고급 기능을 이용하세요.
-                </li>
-            </ol>
-        </section>
-
-        <section class="mb-20">
-            <h2 class="text-3xl font-bold mb-6 border-b pb-3"><span class="mr-2">🎙️</span>말터디 음성 입력 활용법 (권장)</h2>
-
-            <p class="text-gray-600 leading-relaxed mb-6">
-                타이핑이 불편하거나 시간이 오래 걸리는 서술형 답안은 <strong>음성으로 입력</strong>하면 훨씬 빠르고 편리합니다.
-                별도의 API 키 없이도 <strong>스마트폰 키보드의 기본 음성 입력 기능</strong>을 사용하면 됩니다.
-            </p>
-
-            <h3 class="text-xl font-bold mb-4">📱 모바일 키보드 음성 입력 사용법</h3>
-
-            <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-5 rounded-r-lg mb-6">
-                <p class="font-bold text-blue-800 dark:text-blue-300 mb-2">💡 가장 쉽고 빠른 방법</p>
-                <ol class="list-decimal list-outside pl-6 space-y-2 text-gray-700 dark:text-gray-300">
-                    <li>답안 입력 영역을 터치하여 키보드를 띄웁니다.</li>
-                    <li>키보드 하단의 <strong>마이크(🎤) 아이콘</strong>을 탭합니다.</li>
-                    <li>음성 인식 모드가 시작되면 답안을 또박또박 말합니다.</li>
-                    <li>말이 끝나면 자동으로 텍스트로 변환되어 입력됩니다.</li>
-                </ol>
-            </div>
-
-            <h3 class="text-xl font-bold mb-4 mt-8">🎯 Gboard에 회계감사 전문용어 등록하기 (강력 추천!)</h3>
-
-            <p class="text-gray-600 leading-relaxed mb-4">
-                안드로이드 기기에서 <strong>구글 Gboard</strong>를 사용한다면,
-                회계감사 전문 용어를 <strong>개인 사전에 미리 등록</strong>해두는 것이 음성 인식률을 크게 높이는 가장 효과적인 방법입니다.
-            </p>
-
-            <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-5 rounded-r-lg mb-6">
-                <p class="font-bold text-blue-800 dark:text-blue-300 mb-2">⚡ 빠른 방법: 파일로 한 번에 가져오기</p>
-                <p class="text-gray-700 dark:text-gray-300 text-sm mb-3">
-                    전문 용어를 하나씩 입력하기 번거롭다면, <strong>미리 준비된 사전 파일</strong>을 다운로드하여 한 번에 가져올 수 있습니다!
-                </p>
-                <ol class="list-decimal list-outside pl-6 space-y-2 text-gray-700 dark:text-gray-300 text-sm">
-                    <li><a href="https://raw.githubusercontent.com/gfdsstyu/gfdsstyu.github.io/main/dictionary.txt" target="_blank" class="font-medium hover:underline text-blue-600 dark:text-blue-400">dictionary.txt 파일</a>을 다운로드합니다. (우클릭 > 다른 이름으로 링크 저장)</li>
-                    <li>Gboard 설정 > 사전 > 개인 사전 > 한국어로 이동합니다.</li>
-                    <li>우측 상단 메뉴(⋮)를 탭하고 <strong>"가져오기"</strong>를 선택합니다.</li>
-                    <li>다운로드한 <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">dictionary.txt</code> 파일을 선택합니다.</li>
-                    <li>40개 이상의 회계감사 전문용어가 자동으로 등록됩니다! 🎉</li>
-                </ol>
-            </div>
-
-            <div class="bg-slate-100 dark:bg-slate-800 p-6 rounded-lg mb-6">
-                <h4 class="font-bold text-lg mb-3">개별 등록 방법 (수동)</h4>
-                <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">파일 가져오기가 안 되는 경우, 아래 방법으로 수동 등록할 수 있습니다.</p>
-                <ol class="list-decimal list-outside pl-6 space-y-3 text-gray-700 dark:text-gray-300">
-                    <li>
-                        <strong>설정 앱 열기:</strong> 안드로이드 기기의 '설정' 앱을 엽니다.
-                    </li>
-                    <li>
-                        <strong>Gboard 설정 찾기:</strong>
-                        <ul class="list-disc list-outside pl-5 mt-1 text-slate-600 dark:text-slate-400">
-                            <li>'시스템' > '언어 및 입력' > 'Gboard' 또는</li>
-                            <li>'일반 관리' > '언어 및 입력' > '화상 키보드' > 'Gboard'로 이동</li>
-                        </ul>
-                    </li>
-                    <li>
-                        <strong>개인 사전 진입:</strong> 'Gboard 설정' 화면에서 <strong>'사전' > '개인 사전'</strong>을 선택합니다.
-                    </li>
-                    <li>
-                        <strong>언어 선택:</strong> '한국어' 또는 사용 중인 언어를 선택합니다.
-                    </li>
-                    <li>
-                        <strong>단어 추가:</strong> 우측 상단의 <strong>'+' (플러스) 버튼</strong>을 탭합니다.
-                    </li>
-                    <li>
-                        <strong>단어 입력:</strong>
-                        <ul class="list-disc list-outside pl-5 mt-1 text-slate-600 dark:text-slate-400">
-                            <li><strong>단어:</strong> 등록할 전문 용어를 입력 (예: <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">중요왜곡표시위험</code>)</li>
-                            <li><strong>단축키:</strong> 선택 사항 (비워두거나, 짧은 단축어 입력 가능)</li>
-                        </ul>
-                    </li>
-                    <li>
-                        <strong>저장:</strong> 완료 또는 체크 표시를 눌러 저장합니다.
-                    </li>
-                </ol>
-            </div>
-
-            <div class="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-400 p-5 rounded-r-lg mb-6">
-                <p class="font-bold text-green-800 dark:text-green-300 mb-2">✅ 등록 추천 전문 용어 예시</p>
-                <ul class="list-disc list-outside pl-6 space-y-1 text-gray-700 dark:text-gray-300 text-sm">
-                    <li>중요왜곡표시위험</li>
-                    <li>통제위험</li>
-                    <li>고유위험</li>
-                    <li>발견위험</li>
-                    <li>표본감사</li>
-                    <li>분석적절차</li>
-                    <li>실증절차</li>
-                    <li>통제테스트</li>
-                    <li>재무제표</li>
-                    <li>감사증거</li>
-                    <li>추가감사절차</li>
-                    <li>중요성</li>
-                    <li>계속기업</li>
-                    <li>부정위험</li>
-                </ul>
-                <p class="text-slate-600 dark:text-slate-400 mt-3 text-sm">
-                    * 자주 나오는 용어를 미리 등록해두면, 음성 입력 시 해당 단어의 인식률이 크게 향상됩니다!
-                </p>
-            </div>
-
-            <h3 class="text-xl font-bold mb-4 mt-8">📝 기타 음성 입력 팁</h3>
-            <ul class="list-disc list-outside pl-6 space-y-2 text-gray-600">
-                <li><strong>또박또박 발음:</strong> 빠르게 말하기보다는 명확하게 발음하는 것이 인식률을 높입니다.</li>
-                <li><strong>조용한 환경:</strong> 주변 소음이 적을수록 인식 정확도가 높아집니다.</li>
-                <li><strong>문장 단위 입력:</strong> 너무 긴 답안은 여러 문장으로 나눠서 입력하는 것이 좋습니다.</li>
-                <li><strong>인식 오류 수정:</strong> 음성 인식 후 잘못 입력된 부분은 키보드로 직접 수정하세요.</li>
-            </ul>
-        </section>
+       
         <section id="ranking-system" class="mb-16">
     <div class="flex items-center gap-3 mb-6">
         <span class="text-4xl">🏆</span>
@@ -701,7 +517,191 @@
                 </ul>
             </div>
         </section>
+         <section id="getting-started" class="mb-20">
+            <h2 class="text-3xl font-bold mb-6 border-b pb-3">🚀 시작하기: 3분이면 충분합니다</h2>
 
+             <h3 class="text-xl font-bold mb-4">Step 1. 웹사이트 접속</h3>
+             <p class="text-gray-600 leading-relaxed mb-8">
+                별도의 설치 없이 <a href="https://gfdsstyu.github.io/" target="_blank" rel="noopener noreferrer" class="font-medium hover:underline text-blue-600">감린이 웹사이트</a>에 접속하면 바로 시작할 수 있습니다.
+            </p>
+
+            <h3 class="text-xl font-bold mb-4">Step 2. [필수] Gemini API 키 발급 (AI 채점/힌트용)</h3>
+            <p class="text-gray-600 leading-relaxed mb-6">
+                AI 채점/힌트 기능을 사용하려면 사용자 개인의 **Gemini API 키**가 반드시 필요합니다. 무료로 간단히 만들 수 있습니다.
+            </p>
+            <ol class="list-decimal list-outside pl-6 space-y-4 bg-slate-100 p-6 rounded-lg mb-6 ring-1 ring-gray-200">
+                <li><a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" class="font-medium hover:underline text-blue-600">[**Google AI Studio**]</a>에 접속하여 Google 계정으로 로그인합니다. (약관 동의)</li>
+                <li>좌측 메뉴에서 **<span class="font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded">Get API key</span> (API 키 받기)**를 클릭합니다.</li>
+                <li>
+                    파란색 **"Create API key" (API 키 만들기)** 버튼을 클릭합니다.
+                </li>
+                 <li class="font-medium">
+                    "Create API key in new project" 또는 "Create API key in existing project" 팝업이 나타납니다.
+                     <ul class="list-disc list-outside pl-5 mt-2 font-normal text-slate-500">
+                         <li>**처음이라면:** <span class="font-semibold text-gray-800">"Create API key in new project"</span>를 클릭하세요. 자동으로 새 프로젝트가 만들어집니다.</li>
+                         <li>**기존 사용자라면:** 목록에서 원하는 프로젝트를 선택합니다.</li>
+                     </ul>
+                </li>
+                <li>생성된 API 키 (`AIzaSy...` 로 시작하는 긴 문자열) 우측의 복사 아이콘을 눌러 복사합니다. (이것이 **Gemini 키**입니다.)</li>
+            </ol>
+            
+            <h3 class="text-xl font-bold mb-4 mt-12">Step 3. '감린이' 앱에 API 키 입력하기</h3>
+            <p class="text-gray-600 leading-relaxed mb-6">
+                발급받은 키를 '감린이' 앱에 등록하면 모든 준비가 끝납니다.
+            </p>
+            <ul class="list-disc list-outside pl-6 space-y-2 text-gray-600">
+                <li>앱 접속 시 나타나는 최초 인증 팝업에 **Step 2에서 발급받은 Gemini API 키**를 붙여넣습니다.</li>
+                <li>(팝업을 껐다면) 우측 상단 '설정(⚙️)' > 'API 키 변경/설정'에서 입력할 수 있습니다.</li>
+            </ul>
+            
+             <div class="callout-danger bg-red-50 border-l-4 border-red-400 text-red-800 p-5 rounded-r-lg mt-8" role="alert">
+                <h3 class="text-xl font-bold mb-3"><span class="mr-2">⚠️</span>API 키는 당신의 비밀번호입니다</h3>
+                <ul class="list-disc list-outside pl-5 space-y-2">
+                    <li><strong>공유 금지:</strong> API 키를 타인과 공유하거나, GitHub, 블로그 등 공개된 장소에 절대 업로드하지 마세요.</li>
+                    <li><strong>무료 한도:</strong> 무료 API는 1분당 요청 횟수가 제한됩니다. 채점/힌트 버튼을 너무 빠르게 연타하면 일시적으로 오류가 발생할 수 있습니다. 1분 후 다시 시도하세요.</li>
+                </ul>
+            </div>
+        </section>
+
+     
+        <section class="mb-10">
+            <h2 class="text-3xl font-bold mb-6 border-b pb-3"><span class="mr-2">📖</span>사용 흐름 가이드</h2>
+            <ol class="list-decimal list-outside pl-6 space-y-4">
+                <li>
+                    <strong>범위 선택:</strong> '단원 선택'과 '문제 필터'(예: '오늘의 복습', '80점 미만', '60점 미만')를 조합하여 학습할 범위를 정합니다.
+                </li>
+                <li>
+                    <strong>시작 방식:</strong> '학습 시작', '랜덤 문제', 또는 '플래시카드' 버튼으로 원하는 학습 모드를 시작합니다.
+                </li>
+                <li>
+                    <strong>문제 풀이:</strong> 답안을 입력합니다. 키보드로 타이핑하거나, 스마트폰 키보드의 음성 입력 기능을 활용하여 말로 답안을 입력할 수 있습니다.
+                </li>
+                <li>
+                    <strong>보조 기능:</strong> 막히면 '힌트(단축키: H)' 버튼을 활용하고, 이전에 썼던 답안은 '이전 답안 불러오기(L)' 버튼으로 참고하거나 지울 수 있습니다.
+                </li>
+                <li>
+                    <strong>채점 및 확인:</strong> '채점하기(단축키: Enter/G)' 버튼을 눌러 AI의 점수와 피드백, 모범 답안을 확인합니다.
+                </li>
+                <li>
+                    <strong>복습 관리:</strong> '복습 추가(★)' 또는 '복습 제외(➖)' 버튼으로 문제의 복습 상태를 관리합니다. (두 버튼은 상호 배타적으로 작동합니다)
+                </li>
+                 <li>
+                    <strong>탐색:</strong> '이전(Ctrl+←)'/'다음(Ctrl+→)' 버튼으로 문제를 넘기거나, 하단 현황판의 번호 버튼, 또는 우측 '문제 목록'을 클릭하여 특정 문제로 바로 이동합니다.
+                </li>
+                <li>
+                    <strong>설정 및 기타:</strong> 우측 상단 '설정(⚙️)', '업적(🏆)', '리포트(📊)' 아이콘을 통해 AI 모델 변경, 학습 성과 확인 등 고급 기능을 이용하세요.
+                </li>
+            </ol>
+        </section>
+
+        <section class="mb-20">
+            <h2 class="text-3xl font-bold mb-6 border-b pb-3"><span class="mr-2">🎙️</span>말터디 음성 입력 활용법 (권장)</h2>
+
+            <p class="text-gray-600 leading-relaxed mb-6">
+                타이핑이 불편하거나 시간이 오래 걸리는 서술형 답안은 <strong>음성으로 입력</strong>하면 훨씬 빠르고 편리합니다.
+                별도의 API 키 없이도 <strong>스마트폰 키보드의 기본 음성 입력 기능</strong>을 사용하면 됩니다.
+            </p>
+
+            <h3 class="text-xl font-bold mb-4">📱 모바일 키보드 음성 입력 사용법</h3>
+
+            <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-5 rounded-r-lg mb-6">
+                <p class="font-bold text-blue-800 dark:text-blue-300 mb-2">💡 가장 쉽고 빠른 방법</p>
+                <ol class="list-decimal list-outside pl-6 space-y-2 text-gray-700 dark:text-gray-300">
+                    <li>답안 입력 영역을 터치하여 키보드를 띄웁니다.</li>
+                    <li>키보드 하단의 <strong>마이크(🎤) 아이콘</strong>을 탭합니다.</li>
+                    <li>음성 인식 모드가 시작되면 답안을 또박또박 말합니다.</li>
+                    <li>말이 끝나면 자동으로 텍스트로 변환되어 입력됩니다.</li>
+                </ol>
+            </div>
+
+            <h3 class="text-xl font-bold mb-4 mt-8">🎯 Gboard에 회계감사 전문용어 등록하기 (강력 추천!)</h3>
+
+            <p class="text-gray-600 leading-relaxed mb-4">
+                안드로이드 기기에서 <strong>구글 Gboard</strong>를 사용한다면,
+                회계감사 전문 용어를 <strong>개인 사전에 미리 등록</strong>해두는 것이 음성 인식률을 크게 높이는 가장 효과적인 방법입니다.
+            </p>
+
+            <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-5 rounded-r-lg mb-6">
+                <p class="font-bold text-blue-800 dark:text-blue-300 mb-2">⚡ 빠른 방법: 파일로 한 번에 가져오기</p>
+                <p class="text-gray-700 dark:text-gray-300 text-sm mb-3">
+                    전문 용어를 하나씩 입력하기 번거롭다면, <strong>미리 준비된 사전 파일</strong>을 다운로드하여 한 번에 가져올 수 있습니다!
+                </p>
+                <ol class="list-decimal list-outside pl-6 space-y-2 text-gray-700 dark:text-gray-300 text-sm">
+                    <li><a href="https://raw.githubusercontent.com/gfdsstyu/gfdsstyu.github.io/main/dictionary.txt" target="_blank" class="font-medium hover:underline text-blue-600 dark:text-blue-400">dictionary.txt 파일</a>을 다운로드합니다. (우클릭 > 다른 이름으로 링크 저장)</li>
+                    <li>Gboard 설정 > 사전 > 개인 사전 > 한국어로 이동합니다.</li>
+                    <li>우측 상단 메뉴(⋮)를 탭하고 <strong>"가져오기"</strong>를 선택합니다.</li>
+                    <li>다운로드한 <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">dictionary.txt</code> 파일을 선택합니다.</li>
+                    <li>40개 이상의 회계감사 전문용어가 자동으로 등록됩니다! 🎉</li>
+                </ol>
+            </div>
+
+            <div class="bg-slate-100 dark:bg-slate-800 p-6 rounded-lg mb-6">
+                <h4 class="font-bold text-lg mb-3">개별 등록 방법 (수동)</h4>
+                <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">파일 가져오기가 안 되는 경우, 아래 방법으로 수동 등록할 수 있습니다.</p>
+                <ol class="list-decimal list-outside pl-6 space-y-3 text-gray-700 dark:text-gray-300">
+                    <li>
+                        <strong>설정 앱 열기:</strong> 안드로이드 기기의 '설정' 앱을 엽니다.
+                    </li>
+                    <li>
+                        <strong>Gboard 설정 찾기:</strong>
+                        <ul class="list-disc list-outside pl-5 mt-1 text-slate-600 dark:text-slate-400">
+                            <li>'시스템' > '언어 및 입력' > 'Gboard' 또는</li>
+                            <li>'일반 관리' > '언어 및 입력' > '화상 키보드' > 'Gboard'로 이동</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <strong>개인 사전 진입:</strong> 'Gboard 설정' 화면에서 <strong>'사전' > '개인 사전'</strong>을 선택합니다.
+                    </li>
+                    <li>
+                        <strong>언어 선택:</strong> '한국어' 또는 사용 중인 언어를 선택합니다.
+                    </li>
+                    <li>
+                        <strong>단어 추가:</strong> 우측 상단의 <strong>'+' (플러스) 버튼</strong>을 탭합니다.
+                    </li>
+                    <li>
+                        <strong>단어 입력:</strong>
+                        <ul class="list-disc list-outside pl-5 mt-1 text-slate-600 dark:text-slate-400">
+                            <li><strong>단어:</strong> 등록할 전문 용어를 입력 (예: <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">중요왜곡표시위험</code>)</li>
+                            <li><strong>단축키:</strong> 선택 사항 (비워두거나, 짧은 단축어 입력 가능)</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <strong>저장:</strong> 완료 또는 체크 표시를 눌러 저장합니다.
+                    </li>
+                </ol>
+            </div>
+
+            <div class="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-400 p-5 rounded-r-lg mb-6">
+                <p class="font-bold text-green-800 dark:text-green-300 mb-2">✅ 등록 추천 전문 용어 예시</p>
+                <ul class="list-disc list-outside pl-6 space-y-1 text-gray-700 dark:text-gray-300 text-sm">
+                    <li>중요왜곡표시위험</li>
+                    <li>통제위험</li>
+                    <li>고유위험</li>
+                    <li>발견위험</li>
+                    <li>표본감사</li>
+                    <li>분석적절차</li>
+                    <li>실증절차</li>
+                    <li>통제테스트</li>
+                    <li>재무제표</li>
+                    <li>감사증거</li>
+                    <li>추가감사절차</li>
+                    <li>중요성</li>
+                    <li>계속기업</li>
+                    <li>부정위험</li>
+                </ul>
+                <p class="text-slate-600 dark:text-slate-400 mt-3 text-sm">
+                    * 자주 나오는 용어를 미리 등록해두면, 음성 입력 시 해당 단어의 인식률이 크게 향상됩니다!
+                </p>
+            </div>
+
+            <h3 class="text-xl font-bold mb-4 mt-8">📝 기타 음성 입력 팁</h3>
+            <ul class="list-disc list-outside pl-6 space-y-2 text-gray-600">
+                <li><strong>또박또박 발음:</strong> 빠르게 말하기보다는 명확하게 발음하는 것이 인식률을 높입니다.</li>
+                <li><strong>조용한 환경:</strong> 주변 소음이 적을수록 인식 정확도가 높아집니다.</li>
+                <li><strong>문장 단위 입력:</strong> 너무 긴 답안은 여러 문장으로 나눠서 입력하는 것이 좋습니다.</li>
+                <li><strong>인식 오류 수정:</strong> 음성 인식 후 잘못 입력된 부분은 키보드로 직접 수정하세요.</li>
+            </ul>
+        </section>
         <section id="roadmap" class="mb-20">
              <h2 class="text-3xl font-bold text-center mb-12">Coming Soon<br><span class="text-lg text-blue-500 font-medium">더 스마트한 학습 경험을 만나보세요</span></h2>
              <div class="space-y-8">
@@ -780,7 +780,7 @@
                 </div>
             </div>
         </section>
-
+        
         <section class="mb-10">
             <h2 class="text-3xl font-bold mb-6 border-b pb-3"><span class="mr-2">💡</span>FAQ</h2>
             <div class="space-y-4" id="faq-container">
@@ -919,6 +919,7 @@
     </script>
 </body>
 </html>
+
 
 
 
