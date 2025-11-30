@@ -7,7 +7,7 @@
 
 import { el } from '../../ui/elements.js';
 import { showToast } from '../../ui/domUtils.js';
-import { ACHIEVEMENTS, ACHIEVEMENTS_LS_KEY } from '../../config/config.js';
+import { ACHIEVEMENTS, ACHIEVEMENTS_LS_KEY, AUDIT_FLOW_MAP } from '../../config/config.js';
 import { normId } from '../../utils/helpers.js';
 import { getCurrentUser } from '../auth/authCore.js';
 import { syncAchievementsToFirestore } from '../sync/syncCore.js';
@@ -299,9 +299,6 @@ export function checkAchievements() {
   // Check chapter master
   checkChapterMaster();
 
-  // Check 1회독 완료
-  check1stCompletion();
-
   // Check time-based achievements
   checkTimeBased();
 
@@ -324,7 +321,7 @@ export function checkAchievements() {
   checkPerfectionist();
   checkWeekendWarrior();
   checkRapidGrowth();
-  checkChapterHopping();
+  checkFlowLearner();
   checkReviewKing();
   checkLegendaryStart();
   checkConsistencyMaster();
@@ -1112,34 +1109,36 @@ export function checkRapidGrowth() {
 }
 
 /**
- * Check chapter hopping (챕터 호핑: 하루 5개 이상 다른 단원)
+ * Check flow learner (흐름의 이해자: 한 플로우 내 모든 단원에서 각각 10문제 이상 풀이)
  */
-export function checkChapterHopping() {
+export function checkFlowLearner() {
   try {
     const questionScores = window.questionScores || {};
     const allData = window.allData || [];
     if (!allData || !allData.length) return;
 
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const todayTime = today.getTime();
-    const todayChapters = new Set();
-
+    // Count solved problems per chapter
+    const chapterCounts = {};
     Object.entries(questionScores).forEach(([id, record]) => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        const hDate = new Date(h.date);
-        hDate.setHours(0, 0, 0, 0);
-        if (hDate.getTime() === todayTime) {
-          const q = allData.find(item => normId(item.고유ID) === id);
-          if (q) {
-            todayChapters.add(String(q.단원).trim());
-          }
-        }
-      });
+      if (!record.solveHistory || record.solveHistory.length === 0) return;
+      const q = allData.find(item => normId(item.고유ID) === id);
+      if (q) {
+        const chapter = String(q.단원).trim();
+        chapterCounts[chapter] = (chapterCounts[chapter] || 0) + 1;
+      }
     });
 
-    if (todayChapters.size >= 5) {
-      unlockAchievement('chapter_hopping');
+    // Check each flow to see if all chapters have 10+ problems
+    for (const flow of Object.values(AUDIT_FLOW_MAP)) {
+      const allChaptersComplete = flow.chapters.every(ch => {
+        const count = chapterCounts[String(ch)] || 0;
+        return count >= 10;
+      });
+
+      if (allChaptersComplete) {
+        unlockAchievement('flow_learner');
+        return;
+      }
     }
   } catch {}
 }
@@ -1671,7 +1670,7 @@ export function checkWeaknessAnalyzer() {
 }
 
 /**
- * Check consistency basic (꾸준함의 정석: 30일 연속 최소 5문제)
+ * Check consistency basic (꾸준함의 정석: 30일 연속 최소 20문제)
  */
 export function checkConsistencyBasic() {
   try {
@@ -1689,7 +1688,7 @@ export function checkConsistencyBasic() {
       });
     });
 
-    // Check for 30 consecutive days with at least 5 problems
+    // Check for 30 consecutive days with at least 20 problems
     const sortedDates = Object.keys(dailyCounts).sort((a, b) => new Date(a) - new Date(b));
     let streak = 0;
     let prevDate = null;
@@ -1698,7 +1697,7 @@ export function checkConsistencyBasic() {
       const count = dailyCounts[dateStr];
       const d = new Date(dateStr);
 
-      if (count >= 5) {
+      if (count >= 20) {
         if (prevDate) {
           const diff = Math.floor((d - prevDate) / (1000 * 60 * 60 * 24));
           if (diff === 1) {
@@ -1715,7 +1714,7 @@ export function checkConsistencyBasic() {
         streak = 0;
       }
 
-      prevDate = count >= 5 ? d : null;
+      prevDate = count >= 20 ? d : null;
     }
   } catch {}
 }
