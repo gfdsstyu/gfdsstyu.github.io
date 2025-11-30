@@ -264,8 +264,8 @@
                     <li>통제테스트</li>
                     <li>재무제표</li>
                     <li>감사증거</li>
-                    <li>직접검증절차</li>
-                    <li>중요성수준</li>
+                    <li>추가감사절차</li>
+                    <li>중요성</li>
                     <li>계속기업</li>
                     <li>부정위험</li>
                 </ul>
@@ -282,7 +282,167 @@
                 <li><strong>인식 오류 수정:</strong> 음성 인식 후 잘못 입력된 부분은 키보드로 직접 수정하세요.</li>
             </ul>
         </section>
+        <section id="ranking-system" class="mb-16">
+    <div class="flex items-center gap-3 mb-6">
+        <span class="text-4xl">🏆</span>
+        <h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100">랭크 시스템 : The Audit Ladder</h2>
+    </div>
+    
+    <div class="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 mb-8">
+        <p>
+            감린이의 랭크 시스템은 단순히 문제를 많이 푸는 것을 넘어, 
+            <strong>"매일 꾸준히 학습하는 성실함"</strong>과 <strong>"극한의 학습량에 도전하는 열정"</strong>을 측정합니다.
+            <br>
+            업적 점수(AP)를 모아 상위 티어로 승급하고, 수험 생활의 러닝메이트가 되어보세요.
+        </p>
+    </div>
 
+    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 mb-8">
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <span>💰</span> 점수 획득 (AP Mining)
+        </h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            랭크 포인트(RP)는 '업적 달성(목돈)'과 '매일의 활동(월급)'으로 획득합니다.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
+                <h4 class="font-bold text-blue-600 dark:text-blue-400 mb-2">기본 활동 (채굴)</h4>
+                <ul class="space-y-2 text-sm">
+                    <li class="flex justify-between">
+                        <span>문제 정답 (80점↑)</span>
+                        <span class="font-bold text-green-500">+3 AP</span>
+                    </li>
+                    <li class="flex justify-between">
+                        <span>문제 풀이 (오답)</span>
+                        <span class="font-bold text-gray-500">+1 AP</span>
+                    </li>
+                    <li class="flex justify-between">
+                        <span>매일 출석</span>
+                        <span class="font-bold text-blue-500">+10 AP</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-4 border border-indigo-100 dark:border-indigo-800">
+                <h4 class="font-bold text-indigo-600 dark:text-indigo-400 mb-2">🔥 데일리 미션 (매일 초기화)</h4>
+                <ul class="space-y-2 text-sm">
+                    <li class="flex justify-between items-center">
+                        <span>일일 30문제 달성</span>
+                        <span class="badge badge-indigo">+40 AP</span>
+                    </li>
+                    <li class="flex justify-between items-center">
+                        <span>일일 50문제 달성</span>
+                        <span class="badge badge-purple">+50 AP</span>
+                    </li>
+                    <li class="mt-2 pt-2 border-t border-indigo-200 dark:border-indigo-800 text-xs text-indigo-500 text-center">
+                        하루 최대 <strong>+90 AP</strong> 보너스 획득 가능!
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm mb-8">
+        <table class="w-full text-sm text-left">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-6 py-3">티어 (Tier)</th>
+                    <th scope="col" class="px-6 py-3">필요 점수 (AP)</th>
+                    <th scope="col" class="px-6 py-3">일일 유지비 (Decay)</th>
+                    <th scope="col" class="px-6 py-3">특징</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-6 py-4 font-bold text-amber-700">Bronze</td>
+                    <td class="px-6 py-4">500+</td>
+                    <td class="px-6 py-4 text-gray-400">-</td>
+                    <td class="px-6 py-4">입문자 단계</td>
+                </tr>
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-6 py-4 font-bold text-gray-400">Silver</td>
+                    <td class="px-6 py-4">2,000+</td>
+                    <td class="px-6 py-4 text-gray-400">-</td>
+                    <td class="px-6 py-4">숙련자 (기본강의 완강)</td>
+                </tr>
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-6 py-4 font-bold text-yellow-500">Gold</td>
+                    <td class="px-6 py-4">5,000+</td>
+                    <td class="px-6 py-4 text-red-400">-20 AP</td>
+                    <td class="px-6 py-4"><strong>1회독 완료</strong> (성실함의 증명)</td>
+                </tr>
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-6 py-4 font-bold text-cyan-500">Platinum</td>
+                    <td class="px-6 py-4">10,000+</td>
+                    <td class="px-6 py-4 text-red-500 font-medium">-50 AP</td>
+                    <td class="px-6 py-4">N회독 러너 (합격권 진입)</td>
+                </tr>
+                <tr class="bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                    <td class="px-6 py-4 font-bold text-blue-500 flex items-center gap-2">
+                        Diamond 💎
+                    </td>
+                    <td class="px-6 py-4 font-medium">20,000+</td>
+                    <td class="px-6 py-4 text-red-600 font-bold">-100 AP</td>
+                    <td class="px-6 py-4 text-blue-600 dark:text-blue-400">
+                        <strong>감사 기계</strong> (일 30문제 이상 필수)
+                    </td>
+                </tr>
+                <tr class="bg-purple-50/50 dark:bg-purple-900/10 hover:bg-purple-50 dark:hover:bg-purple-900/20 border-l-4 border-l-purple-500">
+                    <td class="px-6 py-4 font-bold text-purple-600 flex items-center gap-2">
+                        Master 👑
+                    </td>
+                    <td class="px-6 py-4 font-medium">30,000+</td>
+                    <td class="px-6 py-4 text-red-700 font-black">-300 AP</td>
+                    <td class="px-6 py-4 text-purple-600 dark:text-purple-400">
+                        <strong>신의 경지</strong> (전업 수험생 전용)
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="bg-red-50 dark:bg-red-900/20 rounded-xl p-5 border border-red-100 dark:border-red-800">
+        <h4 class="font-bold text-red-600 dark:text-red-400 mb-2 flex items-center gap-2">
+            ⚠️ 강등 시스템 (Decay System)
+        </h4>
+        <p class="text-sm text-gray-700 dark:text-gray-300 mb-3">
+            상위 티어(Gold 이상)는 유지비가 듭니다. 매일 접속하여 문제를 풀지 않으면 점수가 차감되어 티어가 떨어질 수 있습니다.
+        </p>
+        <ul class="text-xs text-gray-600 dark:text-gray-400 list-disc list-inside space-y-1">
+            <li><strong>Gold:</strong> 하루 10문제만 풀어도 유지 가능 (가벼운 복습)</li>
+            <li><strong>Platinum:</strong> 하루 20문제 이상 권장 (본격적인 회독)</li>
+            <li><strong>Diamond:</strong> 하루 30문제 + 미션 달성 필수 (막판 스퍼트)</li>
+            <li><strong>Master:</strong> 하루라도 쉬면 유지가 불가능한 명예의 전당</li>
+        </ul>
+    </div>
+</section>
+
+<style>
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.125rem 0.625rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+    .badge-indigo {
+        background-color: #e0e7ff;
+        color: #4338ca;
+    }
+    .dark .badge-indigo {
+        background-color: rgba(67, 56, 202, 0.2);
+        color: #a5b4fc;
+    }
+    .badge-purple {
+        background-color: #f3e8ff;
+        color: #7e22ce;
+    }
+    .dark .badge-purple {
+        background-color: rgba(126, 34, 206, 0.2);
+        color: #d8b4fe;
+    }
+</style>
         <section class="mb-20">
             <h2 class="text-3xl font-bold mb-6 border-b pb-3"><span class="mr-2">📊</span>AI 학습 리포트 기능</h2>
 
@@ -759,6 +919,7 @@
     </script>
 </body>
 </html>
+
 
 
 
