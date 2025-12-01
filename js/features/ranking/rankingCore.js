@@ -522,7 +522,7 @@ export async function getIntraGroupRankings(groupId, period, criteria) {
 export function calculateTier(totalAccumulatedRP) {
   const tiers = [
     { tier: 'master', name: 'Master', minAP: 30000, color: '#9333ea', decayRate: 300, hasDivisions: false },
-    { tier: 'diamond', name: 'Diamond', minAP: 20000, color: '#3b82f6', decayRate: 150, hasDivisions: false },
+    { tier: 'diamond', name: 'Diamond', minAP: 20000, color: '#3b82f6', decayRate: 120, hasDivisions: false },
     // Platinum 세부 티어 (16,000 / 13,000 / 10,000)
     { tier: 'platinum', name: 'Platinum I', minAP: 16000, color: '#06d6f4', decayRate: 50, division: 1, baseTier: 'platinum' },
     { tier: 'platinum', name: 'Platinum II', minAP: 13000, color: '#06c6e4', decayRate: 50, division: 2, baseTier: 'platinum' },
