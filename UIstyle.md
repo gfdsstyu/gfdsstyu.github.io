@@ -118,7 +118,7 @@ js/
 
 #### Day 1: 타이포그래피 & 컬러 시스템 재정립
 
-  * **폰트:** 본문 가독성을 위해 `이롭게 바탕체` 또는 `리디바탕`(Serif) 도입, UI는 `Pretendard`(Sans) 적용.
+  * **폰트:** 본문 가독성을 위해 `이롭게 바탕체`(Serif) 도입, UI는 `Pretendard`(Sans) 적용.
   * **컬러:** 차가운 Blue/Gray 대신 따뜻한 `Stone`, `Slate` 계열의 뉴트럴 톤 적용.
 
 #### Day 2: 플랫 디자인 (Flat Design) 전환
