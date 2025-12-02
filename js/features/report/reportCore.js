@@ -1084,22 +1084,22 @@ export function generateSummaryBook() {
     const excludeIcon = record.userReviewExclude ? '<span class="text-gray-400">➖</span>' : '';
 
    // ... 기존 코드 ...
-
-    // 문제 카드 HTML 생성 부분
+ 
+ // 문제 카드 생성 부분
     html += `
       <div class="problem-card mb-6 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600 break-inside-avoid">
         <div class="flex justify-between items-start mb-2">
-          <h4 class="font-bold font-serif text-base text-gray-900 dark:text-white pr-2">
+          <h4 class="font-bold font-serif text-base text-gray-900 dark:text-white pr-2" style="font-family: 'Iropke Batang', serif;">
             ${flagIcon}${excludeIcon} [${q.출처 || ''}] ${q.problemTitle || '문항 ' + (q.표시번호 || q.고유ID)}
           </h4>
           ${showMyScore ? `<span class="text-sm font-bold ${scoreBadgeColor}">${record.score || 0}점</span>` : ''}
         </div>
 
-        <div class="question-text text-sm text-gray-700 dark:text-gray-300 mb-3 font-medium font-serif">
+        <div class="question-text text-sm text-gray-700 dark:text-gray-300 mb-3 font-medium font-serif" style="font-family: 'Iropke Batang', serif;">
           Q. ${q.물음 || ''}
         </div>
         
-        ${showModelAnswer ? `<pre class="model-answer text-sm bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-600 text-blue-900 dark:text-blue-100 whitespace-pre-wrap overflow-x-auto font-serif">${(q.정답 || '').trimEnd()}</pre>` : ''}
+        ${showModelAnswer ? `<pre class="model-answer text-sm bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-600 text-blue-900 dark:text-blue-100 whitespace-pre-wrap overflow-x-auto font-serif" style="font-family: 'Iropke Batang', serif;">${(q.정답 || '').trimEnd()}</pre>` : ''}
         
         ${showMemoryTip && record.memoryTip ? `<div class="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-sm text-gray-800 dark:text-gray-200">
             <span class="font-bold text-xs text-yellow-600 dark:text-yellow-400 block mb-1">💡 암기팁</span>
@@ -1111,7 +1111,6 @@ export function generateSummaryBook() {
           </div>` : ''}
       </div>
     `;
-  });
 
 // ... 기존 코드 ...
   resultContainer.innerHTML = html;
