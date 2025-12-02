@@ -87,8 +87,8 @@ async function handleCreateGroupSubmit(e) {
       showToast(result.message, 'success');
       closeCreateGroupModal();
 
-      // 그룹 목록 새로고침 (TODO: 이벤트 발행)
-      window.location.reload();
+      // 그룹 목록 새로고침 - 커스텀 이벤트 발행
+      window.dispatchEvent(new CustomEvent('groupListChanged'));
     } else {
       showToast(result.message, 'error');
     }
@@ -282,8 +282,8 @@ async function handleJoinGroup(groupId, password) {
       showToast(result.message, 'success');
       closeSearchGroupModal();
 
-      // 그룹 목록 새로고침
-      window.location.reload();
+      // 그룹 목록 새로고침 - 커스텀 이벤트 발행
+      window.dispatchEvent(new CustomEvent('groupListChanged'));
     } else {
       showToast(result.message, 'error');
     }
@@ -325,8 +325,8 @@ export async function handleLeaveGroup(groupId, groupName) {
     if (result.success) {
       showToast(result.message, 'success');
 
-      // 그룹 목록 새로고침
-      window.location.reload();
+      // 그룹 목록 새로고침 - 커스텀 이벤트 발행
+      window.dispatchEvent(new CustomEvent('groupListChanged'));
     } else {
       showToast(result.message, 'error');
     }
