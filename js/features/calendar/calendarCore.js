@@ -143,11 +143,11 @@ export function renderStatsDateNav() {
 
   nav.innerHTML = `
     <div class="flex items-center gap-2">
-      <button id="stats-prev-day" class="w-7 h-7 flex items-center justify-center rounded border hover:bg-gray-100 text-sm" title="이전 날">◀</button>
-      <input id="stats-date-input" type="date" class="px-2 py-1 border rounded text-sm" value="${displayStr}">
-      <button id="stats-next-day" class="w-7 h-7 flex items-center justify-center rounded border hover:bg-gray-100 text-sm" title="다음 날">▶</button>
+      <button id="stats-prev-day" class="w-7 h-7 flex items-center justify-center rounded border hover:bg-gray-100 text-sm text-gray-900 dark:text-gray-100" title="이전 날">◀</button>
+      <input id="stats-date-input" type="date" class="px-2 py-1 border rounded text-sm text-gray-900 dark:text-gray-100" value="${displayStr}">
+      <button id="stats-next-day" class="w-7 h-7 flex items-center justify-center rounded border hover:bg-gray-100 text-sm text-gray-900 dark:text-gray-100" title="다음 날">▶</button>
     </div>
-    <button id="stats-today-btn" class="text-xs px-2 py-1 border rounded hover:bg-gray-100">오늘</button>
+    <button id="stats-today-btn" class="text-xs px-2 py-1 border rounded hover:bg-gray-100 text-gray-900 dark:text-gray-100">오늘</button>
   `;
 
   el.statsOverview.insertBefore(nav, el.statsOverview.firstChild);
