@@ -2,6 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================ */
+/* Phase 4.0 Day 1: 버튼 스타일 시스템 */
+/* ============================================ */
+
+@layer components {
+  /* Ghost 버튼: 배경 없이 텍스트만, 호버 시 은은한 배경 */
+  .btn-ghost {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply text-gray-700 dark:text-gray-300;
+    @apply hover:bg-gray-100 dark:hover:bg-gray-800;
+    @apply border border-transparent;
+  }
+
+  /* Outline 버튼: 얇은 테두리, 호버 시 배경 채워짐 */
+  .btn-outline {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply text-gray-700 dark:text-gray-300;
+    @apply border border-gray-300 dark:border-gray-600;
+    @apply hover:bg-gray-50 dark:hover:bg-gray-800;
+  }
+
+  /* Soft 버튼: 부드러운 배경, 그림자 없음 */
+  .btn-soft {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply bg-gray-100 dark:bg-gray-800;
+    @apply text-gray-700 dark:text-gray-300;
+    @apply hover:bg-gray-200 dark:hover:bg-gray-700;
+    @apply border-0;
+  }
+
+  /* Primary 버튼: 주요 액션용, 차분한 Slate 톤 */
+  .btn-primary {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply bg-slate-700 dark:bg-slate-600;
+    @apply text-white;
+    @apply hover:bg-slate-800 dark:hover:bg-slate-700;
+    @apply border-0;
+  }
+
+  /* Icon 버튼: 작고 정사각형, 최소한의 스타일 */
+  .btn-icon {
+    @apply w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200;
+    @apply text-gray-600 dark:text-gray-400;
+    @apply hover:bg-gray-100 dark:hover:bg-gray-800;
+  }
+}
+
 /* Custom styles */
 .cal-cell {
   @apply aspect-square flex flex-col items-center justify-center text-xs font-semibold rounded;
