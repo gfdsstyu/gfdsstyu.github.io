@@ -13,6 +13,11 @@ module.exports = {
     'btn-soft',
     'btn-primary',
     'btn-icon',
+    // Phase 4.0: 난이도 버튼 색상 구분
+    'btn-difficulty-easy',
+    'btn-difficulty-medium',
+    'btn-difficulty-hard',
+    'btn-difficulty-skip',
   ],
   theme: {
     extend: {

@@ -47,6 +47,35 @@
     @apply text-gray-600 dark:text-gray-400;
     @apply hover:bg-gray-100 dark:hover:bg-gray-800;
   }
+
+  /* Difficulty 버튼: 난이도 평가용 색상 구분 (Stone/Slate 톤과 조화) */
+  .btn-difficulty-easy {
+    @apply bg-emerald-100 dark:bg-emerald-900/30;
+    @apply text-emerald-700 dark:text-emerald-300;
+    @apply border border-emerald-200 dark:border-emerald-800;
+    @apply hover:bg-emerald-200 dark:hover:bg-emerald-900/50;
+  }
+
+  .btn-difficulty-medium {
+    @apply bg-gray-100 dark:bg-gray-800;
+    @apply text-gray-700 dark:text-gray-300;
+    @apply border border-gray-200 dark:border-gray-700;
+    @apply hover:bg-gray-200 dark:hover:bg-gray-700;
+  }
+
+  .btn-difficulty-hard {
+    @apply bg-rose-100 dark:bg-rose-900/30;
+    @apply text-rose-700 dark:text-rose-300;
+    @apply border border-rose-200 dark:border-rose-800;
+    @apply hover:bg-rose-200 dark:hover:bg-rose-900/50;
+  }
+
+  .btn-difficulty-skip {
+    @apply bg-gray-100 dark:bg-gray-800;
+    @apply text-gray-600 dark:text-gray-400;
+    @apply border border-gray-200 dark:border-gray-700;
+    @apply hover:bg-gray-200 dark:hover:bg-gray-700;
+  }
 }
 
 /* Custom styles */
