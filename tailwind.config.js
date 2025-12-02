@@ -21,15 +21,14 @@ module.exports = {
   ],
   theme: {
     extend: {
-      // Phase 4.0 Day 1: 타이포그래피 시스템
+      // 타이포그래피 시스템
       fontFamily: {
         sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
         serif: ['Iropke Batang', 'IropkeBatang', 'Merriweather', 'serif'],
       },
-      // Phase 4.0 Day 1: 컬러 시스템 - 원래 Gray 유지 (가독성 최우선)
+      // Warm & Neutral 컬러 시스템 (Notion/Claude 스타일)
       colors: {
-        // Slate를 Primary 색상으로 사용
-        primary: colors.slate,
+        primary: colors.slate, // 차분한 Slate 톤
       },
     },
   },
