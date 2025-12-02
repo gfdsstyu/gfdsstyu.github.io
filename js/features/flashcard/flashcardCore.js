@@ -212,26 +212,26 @@ function addDifficultyRatingUI() {
 
   const difficultyHTML = `
     <div id="flashcard-difficulty" class="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
-      <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium">이 문제를 기억하기 어려웠나요?</p>
+      <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium hidden md:block">이 문제를 기억하기 어려웠나요?</p>
       <div class="flex gap-2 justify-center flex-wrap">
-        <button class="diff-btn px-4 py-2 bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 text-green-800 dark:text-green-100 rounded-lg font-medium transition-colors duration-200"
+        <button class="diff-btn btn-difficulty-easy px-4 py-2 rounded-lg font-medium transition-colors duration-200 whitespace-nowrap text-sm md:text-base"
                 data-difficulty="easy">
-          😊 쉬움
+          😊<span class="hidden md:inline"> 쉬움</span>
         </button>
-        <button class="diff-btn px-4 py-2 bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900 dark:hover:bg-yellow-800 text-yellow-800 dark:text-yellow-100 rounded-lg font-medium transition-colors duration-200"
+        <button class="diff-btn btn-difficulty-medium px-4 py-2 rounded-lg font-medium transition-colors duration-200 whitespace-nowrap text-sm md:text-base"
                 data-difficulty="medium">
-          🤔 보통
+          🤔<span class="hidden md:inline"> 보통</span>
         </button>
-        <button class="diff-btn px-4 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-800 dark:text-red-100 rounded-lg font-medium transition-colors duration-200"
+        <button class="diff-btn btn-difficulty-hard px-4 py-2 rounded-lg font-medium transition-colors duration-200 whitespace-nowrap text-sm md:text-base"
                 data-difficulty="hard">
-          😰 어려움
+          😰<span class="hidden md:inline"> 어려움</span>
         </button>
-        <button class="diff-btn px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors duration-200"
+        <button class="diff-btn btn-difficulty-skip px-4 py-2 rounded-lg font-medium transition-colors duration-200 whitespace-nowrap text-sm md:text-base"
                 data-difficulty="skip">
-          ⏭️ 건너뛰기
+          ⏭️<span class="hidden md:inline"> 건너뛰기</span>
         </button>
       </div>
-      <p class="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
+      <p class="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center hidden md:block">
         키보드: 1(쉬움) 2(보통) 3(어려움) 0(건너뛰기)
       </p>
     </div>
