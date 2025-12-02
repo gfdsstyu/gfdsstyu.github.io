@@ -26,9 +26,9 @@ module.exports = {
         sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
         serif: ['Iropke Batang', 'IropkeBatang', 'Merriweather', 'serif'],
       },
-      // Modern SaaS 컬러 시스템: Blue-600 포인트 컬러
+      // Warm & Neutral 컬러 시스템 (Notion/Claude 스타일)
       colors: {
-        primary: colors.blue,
+        primary: colors.slate, // 차분한 Slate 톤
       },
     },
   },
