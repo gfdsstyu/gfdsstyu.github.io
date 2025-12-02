@@ -37,15 +37,15 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
   <!-- Phase 3.6: Firebase Extensions를 사용하여 이메일 발송 (EmailJS 제거됨) -->
-  <!-- Phase 4.0 Day 1: 타이포그래피 시스템 -->
+  <!-- Phase 4.0 Day 1: 타이포그래피 시스템 - Dynamic Subset for better performance -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-  <link href="https://cdn.jsdelivr.net/npm/font-ridibatang@2.0.0/RIDIBatang.min.css" rel="stylesheet" />
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css" />
+  <link href="https://cdn.jsdelivr.net/npm/ridibatang@1.0.0/dist/web/static/ridibatang.min.css" rel="stylesheet">
   <style>
-    /* UI는 Pretendard (Sans), 본문은 RIDIBatang (Serif) */
+    /* UI는 Pretendard (Sans), 본문은 Ridibatang (Serif) */
     body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
-    #question-text, #result-box, #user-answer, textarea { font-family: 'RIDIBatang', 'KoPubWorld Batang', serif; }
+    #question-text, #result-box, #user-answer, textarea { font-family: 'Ridibatang', Merriweather, serif; }
     .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .summary-btn{ width:38px;height:38px;font-size:.8rem;line-height:1;display:flex;align-items:center;justify-content:center;padding:0 2px;transition:.2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis }
@@ -474,7 +474,7 @@
                     <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400">물음</h3>
                   </button>
                   <div id="flashcard-question-box" class="hidden">
-                    <p id="flashcard-question" class="text-base text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">-</p>
+                    <p id="flashcard-question" class="font-serif text-base text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">-</p>
                   </div>
                 </div>
 
@@ -486,7 +486,7 @@
                     </button>
                   </div>
                   <div id="flashcard-answer-box" class="hidden">
-                    <p id="flashcard-answer" class="text-base text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">-</p>
+                    <p id="flashcard-answer" class="font-serif text-base text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">-</p>
                   </div>
                   <div id="flashcard-answer-hidden" class="text-center py-8 text-gray-400">
                     <p>답변이 숨겨져 있습니다</p>
@@ -520,7 +520,7 @@
               </div>
               <div id="db-question-id" class="text-xs text-gray-500 hidden">ID: -</div>
 
-              <p id="question-text" class="text-gray-800 text-base md:text-lg leading-relaxed mt-2">문제를 불러오는 중입니다...</p>
+              <p id="question-text" class="font-serif text-gray-800 text-base md:text-lg leading-relaxed mt-2">문제를 불러오는 중입니다...</p>
 
               <!-- 힌트/복습 버튼 영역 -->
               <div class="mt-3 flex items-center justify-between gap-2">
@@ -588,7 +588,7 @@
 
             <!-- 답안 입력 영역: 음성입력 버튼 포함 -->
             <div class="relative">
-              <textarea id="user-answer" name="user-answer" class="w-full p-4 pb-12 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=포커스/현황판)"></textarea>
+              <textarea id="user-answer" name="user-answer" class="font-serif w-full p-4 pb-12 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=포커스/현황판)"></textarea>
 
               <!-- 음성입력 버튼: textarea 오른쪽 하단에 floating -->
               <button id="record-btn" class="absolute bottom-2 right-2 p-2 min-w-[36px] bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md flex items-center justify-center gap-0.5" data-state="idle" title="음성 입력 (STT)">
@@ -613,7 +613,7 @@
           </div>
 
           <!-- 채점 결과 -->
-          <div id="result-box" class="hidden bg-gray-50 border border-gray-200 rounded-lg p-6 mt-6 dark:bg-gray-800 dark:border-gray-700" aria-live="polite">
+          <div id="result-box" class="font-serif hidden bg-gray-50 border border-gray-200 rounded-lg p-6 mt-6 dark:bg-gray-800 dark:border-gray-700" aria-live="polite">
             <h3 class="text-2xl font-bold text-gray-900 mb-2 dark:text-gray-100">채점 결과</h3>
             <div id="score-display" class="mb-5">
               <p class="text-lg font-medium text-gray-900 dark:text-gray-100">
