@@ -2274,6 +2274,12 @@ export function initRankingUI() {
     changePeriod(e.target.value);
   });
 
+  // 그룹 목록 변경 이벤트 리스너
+  window.addEventListener('groupListChanged', () => {
+    console.log('🔄 [RankingUI] 그룹 목록 변경 이벤트 수신, 목록 새로고침');
+    loadMyGroupsList();
+  });
+
   console.log('✅ Ranking UI 모듈 초기화 완료 (Phase 3.5.1: 탭 구조 포함)');
 }
 
