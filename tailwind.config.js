@@ -26,11 +26,9 @@ module.exports = {
         sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
         serif: ['Iropke Batang', 'IropkeBatang', 'Merriweather', 'serif'],
       },
-      // Phase 4.0 Day 1: 컬러 시스템 - 따뜻한 Stone/Slate 뉴트럴 톤
+      // Phase 4.0 Day 1: 컬러 시스템 - 원래 Gray 유지 (가독성 최우선)
       colors: {
-        // Gray를 Stone으로 매핑 (따뜻한 회색)
-        gray: colors.stone,
-        // Blue를 Slate로 매핑 (차분한 블루그레이)
+        // Slate를 Primary 색상으로 사용
         primary: colors.slate,
       },
     },
