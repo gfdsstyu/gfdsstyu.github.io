@@ -144,7 +144,7 @@ export function renderStatsDateNav() {
   nav.innerHTML = `
     <div class="flex items-center gap-2">
       <button id="stats-prev-day" class="w-7 h-7 flex items-center justify-center rounded border hover:bg-gray-100 text-sm text-gray-900 dark:text-gray-100" title="이전 날">◀</button>
-      <input id="stats-date-input" type="date" class="px-2 py-1 border rounded text-sm text-gray-900 dark:text-gray-100" value="${displayStr}">
+      <input id="stats-date-input" type="date" class="px-2 py-1 border rounded text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" value="${displayStr}">
       <button id="stats-next-day" class="w-7 h-7 flex items-center justify-center rounded border hover:bg-gray-100 text-sm text-gray-900 dark:text-gray-100" title="다음 날">▶</button>
     </div>
     <button id="stats-today-btn" class="text-xs px-2 py-1 border rounded hover:bg-gray-100 text-gray-900 dark:text-gray-100">오늘</button>
@@ -419,8 +419,8 @@ export function renderStats() {
         <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden"><div class="h-2 ${pct < 60 ? 'bg-red-500' : (pct < 100 ? 'bg-yellow-500' : 'bg-green-600')}" style="width:${pct}%"></div></div>
         <div class="flex items-center gap-2 mt-2">
           <label for="stats-target-input" class="text-xs text-gray-500">목표:</label>
-          <input id="stats-target-input" type="number" min="1" class="w-20 px-2 py-1 text-xs border rounded" value="${targetVal}">
-          <button id="apply-stats-target" class="text-xs px-2 py-1 border rounded hover:bg-gray-50">적용</button>
+          <input id="stats-target-input" type="number" min="1" class="w-20 px-2 py-1 text-xs border rounded text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700" value="${targetVal}">
+          <button id="apply-stats-target" class="text-xs px-2 py-1 border rounded hover:bg-gray-50 text-gray-900 dark:text-gray-100">적용</button>
         </div>
       </div>
 
