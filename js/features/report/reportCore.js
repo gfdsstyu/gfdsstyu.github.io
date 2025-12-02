@@ -1111,6 +1111,7 @@ export function generateSummaryBook() {
           </div>` : ''}
       </div>
     `;
+    });
 
 // ... 기존 코드 ...
   resultContainer.innerHTML = html;
