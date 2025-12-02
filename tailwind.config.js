@@ -24,7 +24,7 @@ module.exports = {
       // Phase 4.0 Day 1: 타이포그래피 시스템
       fontFamily: {
         sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
-        serif: ['Ridibatang', 'Merriweather', 'serif'],
+        serif: ['Iropke Batang', 'IropkeBatang', 'Merriweather', 'serif'],
       },
       // Phase 4.0 Day 1: 컬러 시스템 - 따뜻한 Stone/Slate 뉴트럴 톤
       colors: {
