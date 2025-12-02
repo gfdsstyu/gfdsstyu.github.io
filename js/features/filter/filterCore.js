@@ -33,13 +33,13 @@ export function buildSourceFilterUI() {
 
   el.sourceGroupFilter.innerHTML = `
     <div class="rounded-xl border p-3">
-      <div class="text-sm font-semibold mb-2">출처별 필터</div>
+      <div class="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-100">출처별 필터</div>
       <div class="flex flex-wrap gap-3">
-        <label class="text-sm flex items-center gap-1"><input type="checkbox" id="source-filter-basic" name="source-filter-basic" value="basic" class="source-filter"> 기본(S/H/HS)</label>
-        <label class="text-sm flex items-center gap-1"><input type="checkbox" id="source-filter-advanced" name="source-filter-advanced" value="advanced" class="source-filter"> 심화(SS/P)</label>
-        <label class="text-sm flex items-center gap-1"><input type="checkbox" id="source-filter-other" name="source-filter-other" value="other" class="source-filter"> 기타</label>
-        <button id="source-filter-all" class="ml-auto text-xs px-2 py-1 border rounded">전체</button>
-        <button id="source-filter-none" class="text-xs px-2 py-1 border rounded">해제</button>
+        <label class="text-sm flex items-center gap-1 text-gray-900 dark:text-gray-100"><input type="checkbox" id="source-filter-basic" name="source-filter-basic" value="basic" class="source-filter"> 기본(S/H/HS)</label>
+        <label class="text-sm flex items-center gap-1 text-gray-900 dark:text-gray-100"><input type="checkbox" id="source-filter-advanced" name="source-filter-advanced" value="advanced" class="source-filter"> 심화(SS/P)</label>
+        <label class="text-sm flex items-center gap-1 text-gray-900 dark:text-gray-100"><input type="checkbox" id="source-filter-other" name="source-filter-other" value="other" class="source-filter"> 기타</label>
+        <button id="source-filter-all" class="ml-auto text-xs px-2 py-1 border rounded text-gray-900 dark:text-gray-100">전체</button>
+        <button id="source-filter-none" class="text-xs px-2 py-1 border rounded text-gray-900 dark:text-gray-100">해제</button>
       </div>
     </div>`;
 
