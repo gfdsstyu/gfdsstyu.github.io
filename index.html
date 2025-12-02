@@ -521,22 +521,25 @@
               <p id="question-text" class="font-serif text-gray-800 text-base md:text-lg leading-relaxed mt-2">문제를 불러오는 중입니다...</p>
 
               <!-- 힌트/복습 버튼 영역 -->
-              <div class="mt-3 flex flex-wrap items-center gap-2">
-                <button id="hint-btn" class="btn-ghost text-sm whitespace-nowrap">💡<span class="hidden md:inline"> 힌트</span></button>
-                <button id="memory-tip-btn" class="btn-ghost text-sm whitespace-nowrap">📌<span class="hidden md:inline"> 암기팁</span></button>
-                <button id="user-memo-btn" class="btn-ghost text-sm whitespace-nowrap flex items-center gap-1">
-                  <span>📝</span><span id="user-memo-btn-text" class="hidden md:inline"> 메모</span>
-                </button>
+              <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+                <!-- 왼쪽: 힌트/암기팁/메모 -->
+                <div class="flex flex-wrap items-center gap-2">
+                  <button id="hint-btn" class="btn-ghost text-sm whitespace-nowrap">💡<span class="hidden md:inline"> 힌트</span></button>
+                  <button id="memory-tip-btn" class="btn-ghost text-sm whitespace-nowrap">📌<span class="hidden md:inline"> 암기팁</span></button>
+                  <button id="user-memo-btn" class="btn-ghost text-sm whitespace-nowrap flex items-center gap-1">
+                    <span>📝</span><span id="user-memo-btn-text" class="hidden md:inline"> 메모</span>
+                  </button>
+                </div>
 
-                <!-- 복습추가(★) -->
-                <button id="review-flag-toggle" class="btn-ghost text-sm whitespace-nowrap flex items-center gap-1" aria-pressed="false" title="복습 필요 토글">
-                  <span class="text-yellow-500">☆</span><span class="hidden md:inline"> 복습 추가</span>
-                </button>
-
-                <!-- 복습 제외(➖) -->
-                <button id="review-exclude-toggle" class="btn-ghost text-sm whitespace-nowrap flex items-center gap-1" aria-pressed="false" title="오늘의 복습에서 제외/해제">
-                  <span class="text-gray-600">➖</span><span class="hidden md:inline"> 복습 제외</span>
-                </button>
+                <!-- 오른쪽: 복습 추가/제외 -->
+                <div class="flex flex-wrap items-center gap-2">
+                  <button id="review-flag-toggle" class="btn-ghost text-sm whitespace-nowrap flex items-center gap-1" aria-pressed="false" title="복습 필요 토글">
+                    <span class="text-yellow-500">☆</span><span class="hidden md:inline"> 복습 추가</span>
+                  </button>
+                  <button id="review-exclude-toggle" class="btn-ghost text-sm whitespace-nowrap flex items-center gap-1" aria-pressed="false" title="오늘의 복습에서 제외/해제">
+                    <span class="text-gray-600">➖</span><span class="hidden md:inline"> 복습 제외</span>
+                  </button>
+                </div>
               </div>
 
               <div id="hint-container" class="hidden mt-3 text-sm bg-purple-50 border border-purple-200 text-purple-800 rounded-lg p-3 dark:bg-indigo-900 dark:border-indigo-700 dark:text-indigo-100"></div>
