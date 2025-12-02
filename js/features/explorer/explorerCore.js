@@ -47,7 +47,7 @@ export function renderExplorer() {
 
   chapters.forEach(ch => {
     const btn = document.createElement('button');
-    btn.className = 'w-full text-left px-3 py-2 rounded border hover:bg-gray-50 explorer-chapter-btn';
+    btn.className = 'w-full text-left px-3 py-2 rounded border hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-150 explorer-chapter-btn';
     btn.textContent = chapterLabelText(ch);
 
     // Phase 1.5: Event delegation을 위한 데이터 속성
@@ -96,7 +96,7 @@ export function renderExplorer() {
       const flagged = !!rec.userReviewFlag && !excluded; // 제외 우선
 
       const row = document.createElement('button');
-      row.className = 'w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded hover:bg-gray-50 border text-left explorer-problem-row';
+      row.className = 'w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 border text-left transition-colors duration-150 explorer-problem-row';
 
       const left = document.createElement('div');
       left.className = 'flex items-center gap-2 text-sm';
