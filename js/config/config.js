@@ -429,9 +429,9 @@ export const ACHIEVEMENTS = {
 
   // Legacy achievements (유지)
   retry_next_day: { id: 'retry_next_day', name: '재도전의 미학', desc: '하루 전 틀린 문제를 다음날 바로 복습 (누적 20회)', icon: '🔁', tier: 'hidden', points: 80 },
-  flashcard_100: { id: 'flashcard_100', name: '전광석화', desc: '플래시카드 모드로 100개의 카드를 학습 (다음/이전 100회)', icon: '⚡️', tier: 'hidden', points: 50 },
-  flashcard_500: { id: 'flashcard_500', name: '삐깨삐갯피캐쮸', desc: '플래시카드 모드로 500개의 카드를 학습 (다음/이전 500회)', icon: '⚡️', tier: 'hidden', points: 120 },
-  flashcard_1000: { id: 'flashcard_1000', name: '무아지경', desc: '플래시카드 모드로 1,000개의 카드를 학습 (다음/이전 1,000회)', icon: '✨', tier: 'hidden', points: 200 },
+  flashcard_100: { id: 'flashcard_100', name: '전광석화', desc: '플래시카드 모드로 100개의 카드를 학습 (난이도 선택 100회)', icon: '⚡️', tier: 'hidden', points: 50 },
+  flashcard_500: { id: 'flashcard_500', name: '삐깨삐갯피캐쮸', desc: '플래시카드 모드로 500개의 카드를 학습 (난이도 선택 500회)', icon: '⚡️', tier: 'hidden', points: 120 },
+  flashcard_1000: { id: 'flashcard_1000', name: '무아지경', desc: '플래시카드 모드로 1,000개의 카드를 학습 (난이도 선택 1,000회)', icon: '✨', tier: 'hidden', points: 200 },
   new_year_dedication: { id: 'new_year_dedication', name: '새해의 각오', desc: '1월 1일 신정에 30문제 이상 풀이', icon: '🎆', tier: 'hidden', points: 150 },
   christmas_studier: { id: 'christmas_studier', name: '메리 크리스마스', desc: '12월 25일 크리스마스에 30문제 이상 풀이', icon: '🎄', tier: 'hidden', points: 150 },
   lunar_new_year: { id: 'lunar_new_year', name: '설날의 다짐', desc: '음력 설날 당일에 30문제 이상 풀이', icon: '🧧', tier: 'hidden', points: 150 }

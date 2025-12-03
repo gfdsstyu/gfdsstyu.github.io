@@ -287,7 +287,10 @@ export function handleDifficultyRating(difficulty) {
   // 3. 저장
   saveReadStoreToLocal();
 
-  // 4. UI 피드백
+  // 4. 플래시카드 학습 카운터 증가 (업적용)
+  incrementFlashcardCounter();
+
+  // 5. UI 피드백
   const emojiMap = { easy: '😊', medium: '🤔', hard: '😰', skip: '⏭️' };
   const labelMap = { easy: '쉬움', medium: '보통', hard: '어려움', skip: '건너뛰기' };
   const emoji = emojiMap[difficulty];
@@ -299,10 +302,10 @@ export function handleDifficultyRating(difficulty) {
     showToast(`${emoji} ${label}`, 'info');
   }
 
-  // 5. 난이도 평가 UI 제거 (중복 평가 방지)
+  // 6. 난이도 평가 UI 제거 (중복 평가 방지)
   removeDifficultyRatingUI();
 
-  // 6. 다음 카드 자동 진행 (skip 제외)
+  // 7. 다음 카드 자동 진행 (skip 제외)
   if (difficulty !== 'skip' && flashcardIndex < flashcardData.length - 1) {
     setTimeout(() => {
       flashcardNext();
@@ -332,7 +335,6 @@ export function flashcardPrev() {
   if (flashcardIndex > 0) {
     flashcardIndex--;
     displayFlashcard();
-    incrementFlashcardCounter();
   }
 }
 
@@ -343,7 +345,6 @@ export function flashcardNext() {
   if (flashcardIndex < flashcardData.length - 1) {
     flashcardIndex++;
     displayFlashcard();
-    incrementFlashcardCounter();
   }
 }
 
