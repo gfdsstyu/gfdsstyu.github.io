@@ -401,7 +401,7 @@ export const ACHIEVEMENTS = {
   rotation_7: { id: 'rotation_7', name: '해탈의 경지', desc: '전체 문제 7회독 완료', icon: '🥇', tier: 'master', points: 3000 },
   streak_180: { id: 'streak_180', name: '구도자', desc: '180일 연속 학습', icon: '🛐', tier: 'master', points: 4000 },
   problems_10000: { id: 'problems_10000', name: '전설', desc: '누적 풀이 10,000문제 돌파', icon: '👑', tier: 'master', points: 5000 },
-  perfect_collector: { id: 'perfect_collector', name: '백점 수집가', desc: '100점 100회 달성', icon: '💯', tier: 'master', points: 3000 },
+  perfect_collector: { id: 'perfect_collector', name: '백점 수집가', desc: '100점 100회 달성', icon: '💯', tier: 'master', points: 800 },
 
   // ============================================================
   // [HIDDEN] 특수 & 이벤트 (50~500 AP)
