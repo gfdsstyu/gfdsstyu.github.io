@@ -99,7 +99,7 @@ export const AUDIT_FLOW_MAP = {
   },
   2: {
     id: 2,
-    name: "기초 지식",
+    name: "기초지식",
     nameEn: "Understand",
     meaning: "[기업 이해] 감사 대상(기업)을 알아야 시작한다",
     chapters: [6],
@@ -113,7 +113,7 @@ export const AUDIT_FLOW_MAP = {
   },
   3: {
     id: 3,
-    name: "위험 평가",
+    name: "위험평가",
     nameEn: "Assess",
     meaning: "[설계도 그리기] 어디가 얼마나 위험한가? (가장 중요)",
     chapters: [7],
@@ -127,7 +127,7 @@ export const AUDIT_FLOW_MAP = {
   },
   4: {
     id: 4,
-    name: "내부통제",
+    name: "위험대응",
     nameEn: "Strategy",
     meaning: "[관문] 회사 통제를 믿을 것인가? (전략적 분기점)",
     chapters: [8, 9],
@@ -155,7 +155,7 @@ export const AUDIT_FLOW_MAP = {
   },
   6: {
     id: 6,
-    name: "보고",
+    name: "감사완결",
     nameEn: "Report",
     meaning: "[성적표 작성] 결과를 모아 최종 의견을 낸다",
     chapters: [15, 16],
