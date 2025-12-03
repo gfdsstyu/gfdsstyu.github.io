@@ -358,7 +358,7 @@ export const ACHIEVEMENTS = {
   daily_70: { id: 'daily_70', name: '몰입의 시간', desc: '하루 70문제 이상 풀이', icon: '🔥', tier: 'gold', points: 150 },
   daily_100: { id: 'daily_100', name: '벼락치기 모드', desc: '하루에 100문제 이상 풀이 완료', icon: '⚡', tier: 'gold', points: 200 },
   problems_1000: { id: 'problems_1000', name: '천리길 정복', desc: '누적 풀이 1,000문제 돌파', icon: '🌟', tier: 'gold', points: 300 },
-  avg_90: { id: 'avg_90', name: '칭호: 예비 회계사', desc: '기본문제(H, S, HS) 전부 풀이 완료 + 전체 문제 누적 평균 점수 90점 돌파', icon: '🏆', tier: 'gold', points: 250 },
+  avg_90: { id: 'avg_90', name: '예비 회계사', desc: '기본문제(H, S, HS) 전부 풀이 완료 + 전체 문제 누적 평균 점수 90점 돌파', icon: '🏆', tier: 'gold', points: 250 },
   first_100: { id: 'first_100', name: '완벽주의', desc: '최초 100점 달성', icon: '💯', tier: 'gold', points: 200 },
   monthly_600: { id: 'monthly_600', name: '월간 우수생', desc: '월간 600문제 돌파', icon: '📆', tier: 'gold', points: 250 },
   streak_90: { id: 'streak_90', name: '세 달의 경지', desc: '90일 연속 학습', icon: '🔥', tier: 'gold', points: 300 },
@@ -380,9 +380,9 @@ export const ACHIEVEMENTS = {
   // ============================================================
   rotation_3: { id: 'rotation_3', name: '3회독 달성', desc: '전체 문제 3회독 완료', icon: '🥉', tier: 'platinum', points: 800 },
   streak_60: { id: 'streak_60', name: '두 달의 집념', desc: '60일 연속 학습', icon: '🧘', tier: 'platinum', points: 600 },
-  daily_120: { id: 'daily_120', name: '집중 폭발', desc: '하루 120문제 돌파', icon: '💥', tier: 'platinum', points: 500 },
-  daily_150: { id: 'daily_150', name: '인간 지능 초월', desc: '하루 150문제 돌파', icon: '🤖', tier: 'diamond', points: 1000 },
-  problems_3000: { id: 'problems_3000', name: '감사 전문가', desc: '누적 풀이 3,000문제 돌파', icon: '🏔️', tier: 'platinum', points: 700 },
+  daily_120: { id: 'daily_120', name: '집중력 폭발', desc: '하루 120문제 돌파', icon: '💥', tier: 'platinum', points: 500 },
+  daily_150: { id: 'daily_150', name: '감사DAY', desc: '하루 150문제 돌파', icon: '📚', tier: 'diamond', points: 1000 },
+  problems_3000: { id: 'problems_3000', name: '태산이 높다하되', desc: '누적 풀이 3,000문제 돌파', icon: '🏔️', tier: 'platinum', points: 700 },
   avg_92: { id: 'avg_92', name: '예비 회계사', desc: '누적 평균 92점 돌파', icon: '🎓', tier: 'platinum', points: 600 },
   platinum_mastery: { id: 'platinum_mastery', name: '플래티넘 정복', desc: '전 단원 평균 88점 달성', icon: '💠', tier: 'platinum', points: 700 },
 
@@ -430,9 +430,9 @@ export const ACHIEVEMENTS = {
   // Legacy achievements (유지)
   retry_next_day: { id: 'retry_next_day', name: '재도전의 미학', desc: '하루 전 틀린 문제를 다음날 바로 복습 (누적 20회)', icon: '🔁', tier: 'hidden', points: 80 },
   flashcard_100: { id: 'flashcard_100', name: '전광석화', desc: '플래시카드 모드로 100개의 카드를 학습 (다음/이전 100회)', icon: '⚡️', tier: 'hidden', points: 50 },
-  flashcard_500: { id: 'flashcard_500', name: '삐깨삐갯피캐쮸', desc: '플래시카드 모드로 500개의 카드를 학습 (다음/이전 500회)', icon: '🚀', tier: 'hidden', points: 120 },
+  flashcard_500: { id: 'flashcard_500', name: '삐깨삐갯피캐쮸', desc: '플래시카드 모드로 500개의 카드를 학습 (다음/이전 500회)', icon: '⚡️', tier: 'hidden', points: 120 },
   flashcard_1000: { id: 'flashcard_1000', name: '무아지경', desc: '플래시카드 모드로 1,000개의 카드를 학습 (다음/이전 1,000회)', icon: '✨', tier: 'hidden', points: 200 },
-  new_year_dedication: { id: 'new_year_dedication', name: '신정의 각오', desc: '1월 1일 신정에 30문제 이상 풀이', icon: '🎆', tier: 'hidden', points: 150 },
+  new_year_dedication: { id: 'new_year_dedication', name: '새해의 각오', desc: '1월 1일 신정에 30문제 이상 풀이', icon: '🎆', tier: 'hidden', points: 150 },
   christmas_studier: { id: 'christmas_studier', name: '메리 크리스마스', desc: '12월 25일 크리스마스에 30문제 이상 풀이', icon: '🎄', tier: 'hidden', points: 150 },
   lunar_new_year: { id: 'lunar_new_year', name: '설날의 다짐', desc: '음력 설날 당일에 30문제 이상 풀이', icon: '🧧', tier: 'hidden', points: 150 }
 };
