@@ -519,9 +519,9 @@
               <p id="question-text" class="font-serif text-gray-800 text-base md:text-lg leading-relaxed mt-2">문제를 불러오는 중입니다...</p>
 
               <!-- 힌트/복습 버튼 영역 -->
-              <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <div class="mt-3 flex items-center justify-between gap-1 md:gap-2">
                 <!-- 왼쪽: 힌트/암기팁/메모 -->
-                <div class="flex flex-wrap items-center gap-2">
+                <div class="flex items-center gap-1 md:gap-2">
                   <button id="hint-btn" class="btn-ghost text-sm whitespace-nowrap">💡<span class="hidden md:inline"> 힌트</span></button>
                   <button id="memory-tip-btn" class="btn-ghost text-sm whitespace-nowrap">📌<span class="hidden md:inline"> 암기팁</span></button>
                   <button id="user-memo-btn" class="btn-ghost text-sm whitespace-nowrap flex items-center gap-1">
@@ -530,7 +530,7 @@
                 </div>
 
                 <!-- 오른쪽: 복습 추가/제외 -->
-                <div class="flex flex-wrap items-center gap-2">
+                <div class="flex items-center gap-1 md:gap-2">
                   <button id="review-flag-toggle" class="btn-ghost text-sm whitespace-nowrap flex items-center gap-1" aria-pressed="false" title="복습 필요 토글">
                     <span class="text-yellow-500">☆</span><span class="hidden md:inline"> 복습 추가</span>
                   </button>
@@ -1305,8 +1305,9 @@
           <option value="gemini-2.5-flash-lite">⚡ Gemini 2.5 Flash-Lite (최고 속도)</option>
           <option value="gemini-2.0-flash">⚖️ Gemini 2.0 Flash (속도/품질 균형)</option>
           <option value="gemini-2.5-flash">🧠 Gemini 2.5 Flash (최고 품질)</option>
+          <option value="gemini-3.0-pro-preview">💎 Gemini 3.0 Pro Preview (최신 모델, 유료 - 25.12 출시)</option>
         </select>
-        <p class="text-xs text-gray-500 mt-2">💡 일관된 채점 기준을 위해 성향에 맞는 모델 하나를 선택하세요. 속도 중시: Lite / 균형: 2.0 / 정확도 중시: 2.5</p>
+        <p class="text-xs text-gray-500 mt-2">💡 일관된 채점 기준을 위해 성향에 맞는 모델 하나를 선택하세요. 속도 중시: Lite / 균형: 2.0 / 정확도 중시: 2.5 / 최신: 3.0 Pro (유료)</p>
       </div>
 
       <div class="mb-6 pb-6 border-b">
