@@ -410,9 +410,9 @@ export const ACHIEVEMENTS = {
 
   // Time-slot achievements (5개로 정리)
   dawn_learner: { id: 'dawn_learner', name: '새벽의 감린이', desc: '새벽 5~7시 사이 10문제 풀이', icon: '🌅', tier: 'hidden', points: 100 },
-  morning_learner: { id: 'morning_learner', name: '아침 학습러', desc: '아침 7~9시 사이 100문제 풀이', icon: '☀️', tier: 'hidden', points: 80 },
-  lunch_learner: { id: 'lunch_learner', name: '점심시간 활용', desc: '점심 12~13시 사이 100문제 풀이', icon: '🍱', tier: 'hidden', points: 80 },
-  after_work_warrior: { id: 'after_work_warrior', name: '퇴근 후 전사', desc: '저녁 18~20시 사이 200문제 풀이', icon: '🌆', tier: 'hidden', points: 100 },
+  morning_learner: { id: 'morning_learner', name: '아침 학습러', desc: '아침 7~9시 사이 20문제 풀이', icon: '☀️', tier: 'hidden', points: 60 },
+  lunch_learner: { id: 'lunch_learner', name: '점심시간 활용', desc: '점심 12~13시 사이 10문제 풀이', icon: '🍱', tier: 'hidden', points: 60 },
+  after_work_warrior: { id: 'after_work_warrior', name: '퇴근 후 전사', desc: '저녁 18~20시 사이 20문제 풀이', icon: '🌆', tier: 'hidden', points: 80 },
   midnight_learner: { id: 'midnight_learner', name: '심야 학습러', desc: '새벽 2~4시 사이에 연속 3일 동안 학습 기록', icon: '🌙', tier: 'hidden', points: 120 },
 
   lucky_777: { id: 'lucky_777', name: '잭팟', desc: '누적 풀이 문제 수 777개 달성', icon: '🎰', tier: 'hidden', points: 777 },

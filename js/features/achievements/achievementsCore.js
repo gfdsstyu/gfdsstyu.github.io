@@ -2261,9 +2261,9 @@ export function checkTimeSlotAchievements() {
       });
     });
 
-    if (lunchCount >= 100) unlockAchievement('lunch_learner');
-    if (afterWorkCount >= 200) unlockAchievement('after_work_warrior');
-    if (morningCount >= 100) unlockAchievement('morning_learner');
+    if (lunchCount >= 10) unlockAchievement('lunch_learner');
+    if (afterWorkCount >= 20) unlockAchievement('after_work_warrior');
+    if (morningCount >= 20) unlockAchievement('morning_learner');
   } catch {}
 }
 
