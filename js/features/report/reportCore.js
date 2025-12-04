@@ -823,35 +823,84 @@ function executePdfExport() {
     });
   }
 
-  // 약간의 지연을 두어 차트가 완전히 렌더링되도록 함
-  setTimeout(() => {
-    // 인쇄 실행
-    window.print();
+  // 인쇄 후 정리 함수
+  let cleanupExecuted = false;
+  const cleanup = () => {
+    if (cleanupExecuted) return;
+    cleanupExecuted = true;
 
-    // 인쇄 후 정리 (브라우저 호환성 대응)
-    const cleanup = () => {
-      contents.forEach(({ element }) => {
-        if (element) element.classList.remove('print-hidden');
+    contents.forEach(({ element }) => {
+      if (element) element.classList.remove('print-hidden');
+    });
+
+    // 차트 animation 복원
+    if (window.Chart && reportCharts) {
+      Object.values(reportCharts).forEach(chart => {
+        if (chart && chart.options) {
+          chart.options.animation = true;
+        }
       });
+    }
+  };
 
-      // 차트 animation 복원
-      if (window.Chart && reportCharts) {
-        Object.values(reportCharts).forEach(chart => {
-          if (chart && chart.options) {
-            chart.options.animation = true;
+  // 충분한 지연을 두어 차트 렌더링 및 브라우저 준비 보장
+  setTimeout(() => {
+    // matchMedia API로 인쇄 상태 모니터링 (최신 브라우저)
+    let printMediaQuery;
+    try {
+      printMediaQuery = window.matchMedia('print');
+      if (printMediaQuery && printMediaQuery.addEventListener) {
+        printMediaQuery.addEventListener('change', (e) => {
+          if (!e.matches) {
+            // 인쇄 모드 종료 시 cleanup
+            setTimeout(cleanup, 500);
           }
         });
       }
-    };
+    } catch (e) {
+      // matchMedia 미지원 브라우저는 무시
+    }
 
-    // 표준 이벤트
+    // beforeprint 이벤트 리스너 (인쇄 시작 감지)
+    let printStarted = false;
+    const onBeforePrint = () => {
+      printStarted = true;
+    };
+    window.addEventListener('beforeprint', onBeforePrint, { once: true });
+
+    // 인쇄 실행
+    window.print();
+
+    // afterprint 이벤트 (표준)
     window.addEventListener('afterprint', cleanup, { once: true });
 
-    // Safari/iOS 대응: 포커스 복귀 시 정리
-    window.addEventListener('focus', () => {
-      setTimeout(cleanup, 100);
+    // 백업 cleanup 전략 (브라우저 호환성 대응)
+    // 1. focus 이벤트 - 인쇄 다이얼로그 닫힌 후 발생 가능
+    const onFocus = () => {
+      // printStarted가 true일 때만 cleanup 실행 (인쇄 전 focus는 무시)
+      if (printStarted) {
+        setTimeout(cleanup, 500);
+      }
+    };
+    window.addEventListener('focus', onFocus, { once: true });
+
+    // 2. blur 이벤트 후 복귀 감지
+    window.addEventListener('blur', () => {
+      // blur 후 focus 복귀 시 cleanup
+      const blurCleanup = () => {
+        if (printStarted) {
+          setTimeout(cleanup, 500);
+        }
+      };
+      window.addEventListener('focus', blurCleanup, { once: true });
     }, { once: true });
-  }, 100); // 100ms 지연으로 차트 렌더링 보장
+
+    // 3. 최후의 타이머 기반 cleanup (5초 후)
+    // 어떤 이벤트도 발생하지 않는 경우를 대비
+    setTimeout(() => {
+      cleanup();
+    }, 5000);
+  }, 300); // 300ms 지연으로 차트/DOM 렌더링 충분히 보장
 }
 
 /**

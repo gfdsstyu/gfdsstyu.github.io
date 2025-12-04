@@ -229,10 +229,27 @@
         border: none !important;
       }
 
-      /* 4. 선택 해제된 탭 숨김 (우선순위 최상위) */
+      /* 4. 선택 해제된 탭 숨김 (우선순위 최상위, 다중 브라우저 호환성) */
       .report-content.print-hidden,
-      .print-hidden {
+      .print-hidden,
+      #report-content-1.print-hidden,
+      #report-content-2.print-hidden,
+      #report-content-3.print-hidden,
+      #report-content-4.print-hidden,
+      #report-content-5.print-hidden {
         display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        height: 0 !important;
+        width: 0 !important;
+        overflow: hidden !important;
+        position: absolute !important;
+        left: -9999px !important;
+        max-height: 0 !important;
+        max-width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
       }
 
       /* 5. 모든 탭 컨텐츠를 순차적으로 표시 */
