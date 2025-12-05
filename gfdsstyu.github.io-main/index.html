@@ -1,0 +1,2463 @@
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-20Q61B31CM"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-20Q61B31CM');
+</script>
+  <!-- Google Tag Manager -->
+<script>(function (w, d, s, l, i) {
+    w[l] = w[l] || []; w[l].push({
+        'gtm.start':
+        new Date().getTime(), event: 'gtm.js'
+    }); var f = d.getElementsByTagName(s)[0],
+    j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+})(window, document, 'script', 'dataLayer', 'GTM-TC8G7NJD');</script>
+<!-- End Google Tag Manager -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="referrer" content="same-origin" />
+  <title>감린이 - 회계감사 학습 도우미</title>
+
+  <!-- Favicon - 404 에러 방지 -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%236D28D9'/><rect x='20' y='20' width='60' height='60' rx='10' fill='white'/><circle cx='36' cy='43' r='9' fill='%238B5CF6'/><text x='36' y='46' font-size='14' fill='white' font-family='-apple-system,BlinkMacSystemFont,sans-serif' font-weight='900' text-anchor='middle' dominant-baseline='central'>ㄱ</text><g transform='translate(64, 43)'><path d='M0 0 L 4 10 L 14 14 L 4 18 L 0 28 L -4 18 L -14 14 L -4 10 Z' fill='%23FACC15' transform='scale(0.8) translate(0, -14)'/></g><path d='M30 60 H 70 V 72 H 30 Z M35 60 V 72 M 40 60 V 72 M 45 60 V 72 M 50 60 V 72 M 55 60 V 72 M 60 60 V 72 M 65 60 V 72' fill='none' stroke='%234F46E5' stroke-width='2'/></svg>">
+
+  <!-- Phase 3: Tailwind CSS (Built & Optimized) -->
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+
+  <!-- Phase 3.6: Firebase Extensions를 사용하여 이메일 발송 (EmailJS 제거됨) -->
+  <!-- Phase 4.0 Day 1: 타이포그래피 시스템 - Dynamic Subset for better performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css" />
+  <link href="https://cdn.jsdelivr.net/gh/iropke/font-iropke-batang@1.2/font-iropke-batang.css" rel="stylesheet">
+  <style>
+    /* UI는 Pretendard (Sans), 본문은 이롭게 바탕 (Serif) */
+    body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+    #question-text, #result-box, #user-answer, textarea { font-family: 'Iropke Batang', 'IropkeBatang', Merriweather, serif; }
+    .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .summary-btn{ width:38px;height:38px;font-size:.8rem;line-height:1;display:flex;align-items:center;justify-content:center;padding:0 2px;transition:.2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis }
+    .summary-btn:hover{ transform:scale(1.1) }
+    pre{ white-space:pre-wrap; word-wrap:break-word }
+    #toast{ position:fixed; top:16px; right:16px; z-index:9999 }
+    .no-kr-break{ word-break:keep-all }
+
+    /* Phase 4.0 Day 1: Stone 계열 다크 모드 */
+    .dark{ background-color:#1c1917; color:#e7e5e4 }
+    .dark .bg-white{ background-color:#292524 }
+    .dark .bg-gray-100{ background-color:#1c1917 }
+    .dark .bg-gray-50{ background-color:#292524 }
+    .dark .text-gray-800{ color:#e7e5e4 }
+    .dark .text-gray-700{ color:#d6d3d1 }
+    .dark .text-gray-600{ color:#a8a29e }
+    .dark .border-gray-200{ border-color:#44403c }
+    .dark .border-gray-300{ border-color:#44403c }
+  </style>
+
+  <style id="dark-a11y-20251026">
+    /* Phase 4.0 Day 1: Stone 계열 다크 모드 */
+    html.dark { color-scheme: dark; }
+    html.dark input, html.dark textarea, html.dark select { background-color:#292524; color:#e7e5e4; border-color:#57534e }
+    html.dark ::placeholder { color:#a8a29e }
+    html.dark :is(button,a,input,textarea,select):focus-visible { outline:2px solid #78716c; outline-offset:2px }
+    html.dark .progress-track{ background-color:#44403c }
+    html.dark #result-box{ background-color:#292524; border-color:#44403c }
+    html.dark #quiz-area .bg-gray-50{ background-color:#1c1917 }
+    html.dark #quiz-area .border-gray-200{ border-color:#44403c }
+    html.dark #hint-container{ background-color:#334155; border-color:#475569; color:#e2e8f0 }
+    html.dark #summary-area .border{ border-color:#44403c }
+    html.dark #summary-area .bg-gray-50{ background-color:#1c1917 }
+    html.dark .summary-btn.bg-gray-100{ background-color:#1c1917; color:#d6d3d1; border-color:#44403c }
+    html.dark .summary-btn.bg-red-100{ background-color:#7f1d1d; color:#fecaca; border-color:#991b1b }
+    html.dark .summary-btn.bg-yellow-100{ background-color:#78350f; color:#fde68a; border-color:#92400e }
+    html.dark .summary-btn.bg-green-100{ background-color:#14532d; color:#bbf7d0; border-color:#166534 }
+    html.dark .summary-btn.bg-blue-100{ background-color:#334155; color:#cbd5e1; border-color:#475569 }
+  </style>
+
+  <style id="focus-mode-css">
+    html.focus-mode { scroll-behavior: smooth; }
+    html.focus-mode #result-box { max-height:none!important; overflow:visible!important; }
+  </style>
+
+  <style id="layout-css">
+    .heatmap-cell{ width:14px; height:14px; border-radius:3px }
+    .drawer-open{ overflow:hidden }
+    .cal-cell { height: 32px; border-radius: 6px; position: relative; display: grid; place-items: center; font-size: 12px; border: 1px solid rgba(0,0,0,0.06); }
+    .cal-cell .cal-day { position: absolute; top: 4px; right: 6px; font-size: 10px; opacity: 0.85; font-weight: 600; }
+    .cal-cell.muted { opacity: 0.35; }
+  </style>
+
+  <style id="header-scroll-css">
+    /* 헤더 스크롤 애니메이션 */
+    #fixed-header {
+      transition: transform 0.3s ease-in-out;
+    }
+
+    #fixed-header.header-visible {
+      transform: translateY(0);
+    }
+
+    #fixed-header.header-hidden {
+      transform: translateY(-100%);
+    }
+  </style>
+
+  <style id="report-css">
+    /* Chart container heights */
+    #chart-daily-volume { min-height: 250px; max-height: 300px; }
+    #chart-score-trend { min-height: 250px; max-height: 300px; }
+    #chart-chapter-weakness { min-height: 300px; }
+    #chart-chapter-detail { min-height: 250px; max-height: 300px; }
+
+    /* 모바일 세로모드: 차트 높이 증가 (압축 방지) */
+    @media (max-width: 768px) {
+      #chart-daily-volume,
+      #chart-score-trend,
+      #chart-chapter-detail {
+        min-height: 350px !important;
+        max-height: 400px !important;
+      }
+      #chart-chapter-weakness {
+        min-height: 350px !important;
+      }
+    }
+
+    /* Prose styles for AI analysis */
+    .prose { font-size: 0.875rem; line-height: 1.5; }
+    .prose h1 { font-size: 1.5rem; font-weight: bold; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+    .prose h2 { font-size: 1.25rem; font-weight: bold; margin-top: 1.25rem; margin-bottom: 0.5rem; }
+    .prose h3 { font-size: 1.125rem; font-weight: 600; margin-top: 1rem; margin-bottom: 0.5rem; }
+    .prose p { margin-top: 0.75rem; margin-bottom: 0.75rem; }
+    .prose ul, .prose ol { margin-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+    .prose li { margin-top: 0.25rem; margin-bottom: 0.25rem; }
+    .prose strong { font-weight: 600; color: inherit; }
+    .prose code { background: rgba(0,0,0,0.05); padding: 0.125rem 0.25rem; border-radius: 0.25rem; font-size: 0.875em; }
+    .prose.dark\:prose-invert { color: #e5e7eb; }
+    html.dark .prose h1, html.dark .prose h2, html.dark .prose h3 { color: #f3f4f6; }
+    html.dark .prose strong { color: #fbbf24; }
+    html.dark .prose code { background: rgba(255,255,255,0.1); }
+
+    /* ================================================
+       PDF 내보내기 전용 스타일 (Task 2: 선택형 PDF 내보내기)
+       ================================================ */
+    @media print {
+      /* 1. 전체 페이지 초기화 */
+      * {
+        background: white !important;
+        color: black !important;
+        box-shadow: none !important;
+      }
+
+      /* 2. 불필요한 요소 숨김 */
+      body > *:not(#report-modal),
+      nav, aside, header, footer,
+      button, .no-print,
+      #left-dashboard,
+      #drawer-backdrop,
+      .report-tab,
+      #report-close-btn,
+      #report-refresh-btn,
+      #report-save-snapshot-btn,
+      #report-load-snapshot-btn,
+      #report-print-btn,
+      #pdf-options-modal,
+      .border-b.border-gray-200 {
+        display: none !important;
+      }
+
+      /* 탭 네비게이션 숨기기 */
+      #report-modal .border-b.border-gray-200.dark\\:border-gray-700.px-6,
+      #report-modal nav[role="tablist"] {
+        display: none !important;
+      }
+
+      /* 2-1. 리포트 헤더 최적화 (최소화) */
+      #report-modal .sticky {
+        position: static !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+      }
+
+      #report-title {
+        font-size: 0.75rem !important;
+        margin: 0 0 0.125rem 0 !important;
+        padding: 0 !important;
+        line-height: 1 !important;
+        font-weight: 600 !important;
+      }
+
+      /* 헤더 내부 모든 컨테이너 압축 */
+      #report-modal .sticky * {
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      /* 데이터 범위/분석 대상 영역 완전 숨기기 */
+      #report-modal .sticky .flex.flex-col,
+      #report-modal .sticky .flex.items-center {
+        display: none !important;
+      }
+
+      /* 3. 리포트 모달만 표시 */
+      #report-modal {
+        display: block !important;
+        position: static !important;
+        background: white !important;
+        overflow: visible !important;
+        max-height: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      #report-modal > div {
+        max-height: none !important;
+        overflow: visible !important;
+        box-shadow: none !important;
+        border: none !important;
+      }
+
+      /* 4. 선택 해제된 탭 숨김 (우선순위 최상위) */
+      .report-content.print-hidden,
+      .print-hidden {
+        display: none !important;
+      }
+
+      /* 5. 모든 탭 컨텐츠를 순차적으로 표시 */
+      .report-content:not(.print-hidden) {
+        display: block !important;
+        page-break-after: auto;
+        page-break-inside: avoid;
+        margin-bottom: 8px;
+        padding: 0.5rem !important;
+      }
+
+      .report-content:last-child {
+        page-break-after: auto;
+      }
+
+      /* 6. 차트 최적화 */
+      canvas {
+        display: block !important;
+        max-width: 100% !important;
+        max-height: 200px !important;
+        height: auto !important;
+        page-break-inside: avoid;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      /* 7. 페이지 헤더/푸터 */
+      @page {
+        margin: 1cm;
+        size: A4;
+      }
+
+      /* 8. 제목 스타일 */
+      h1, h2, h3 {
+        page-break-after: avoid;
+        color: black !important;
+        margin-top: 0.25rem !important;
+        margin-bottom: 0.25rem !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+      }
+
+      /* 9. 리포트 내부 요소 여백 최소화 */
+      .report-content div,
+      .report-content section,
+      .report-content p {
+        margin-top: 0.125rem !important;
+        margin-bottom: 0.125rem !important;
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+      }
+
+      .report-content table {
+        margin-top: 0.25rem !important;
+        margin-bottom: 0.25rem !important;
+      }
+
+      /* 10. 다크모드 비활성화 */
+      .dark {
+        color: black !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+  <div id="toast" class="hidden"></div>
+
+  <!-- 상단 네비 -->
+  <header id="fixed-header" class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200 dark:bg-gray-900/80 dark:border-gray-800">
+    <div class="mx-auto max-w-[1400px] 2xl:max-w-[1600px] px-4 lg:px-6 xl:px-8 py-2 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-xl font-extrabold tracking-tight text-blue-700 dark:text-blue-400">감린이</span>
+        <span class="hidden sm:inline text-xs text-gray-500 dark:text-gray-400">Beta</span>
+      </div>
+      <nav class="flex items-center gap-2">
+        <a href="https://docs.google.com/spreadsheets/d/1PEZHUUHIveVD91eZma8MiW2j7_B197o597YjpTY1CRc/edit?usp=sharing" target="_blank" class="hidden sm:inline btn-soft text-sm" title="문제DB 구성을 위한 구글 스프레드시트">문제DB구성에 참여</a>
+        <span id="dday-display" class="hidden sm:inline text-sm font-semibold px-3 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-900/50 transition" title="시험날짜 설정은 설정 메뉴에서">D-DAY</span>
+        <button id="open-ranking-btn" class="btn-soft inline-flex items-center gap-1 text-sm" title="소셜">
+          <span class="hidden sm:inline">소셜</span><span>📊</span>
+        </button>
+        <a id="help-button" href="README.html" target="_blank" class="btn-ghost hidden sm:inline text-sm">도움말</a>
+
+        <!-- Firebase 인증 버튼 -->
+        <button id="login-btn" class="btn-primary inline-flex items-center gap-1 text-sm">
+          <span>로그인</span>
+        </button>
+
+        <!-- 사용자 메뉴 (로그인 후 표시) -->
+        <div id="user-menu-container" class="relative">
+          <button id="user-menu-btn" class="btn-soft hidden inline-flex items-center gap-2 text-sm">
+            <span>사용자</span>
+            <span>▼</span>
+          </button>
+
+          <!-- 드롭다운 메뉴 -->
+          <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+            <button id="my-profile-btn" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+              내 프로필
+            </button>
+            <button id="my-stats-btn" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+              내 학습 기록
+            </button>
+            <button id="open-achievements-btn" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 relative">
+              <span class="inline-flex items-center gap-2">
+                <span>🏆</span>
+                <span>나의 업적</span>
+              </span>
+              <span id="new-achievement-badge" class="hidden absolute top-2 right-4 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+            </button>
+            <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+            <button id="logout-btn" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+              로그아웃
+            </button>
+            <button id="withdraw-btn" class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 font-medium">
+              회원 탈퇴
+            </button>
+          </div>
+        </div>
+
+        <button id="settings-btn" class="ml-1 inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600" aria-haspopup="dialog">
+          <span>설정</span><span aria-hidden>⚙️</span>
+        </button>
+        <button id="hamburger" class="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600" aria-label="메뉴">≡</button>
+      </nav>
+    </div>
+  </header>
+  <div class="h-14"></div>
+
+  <div id="drawer-backdrop" class="fixed inset-0 bg-black/40 hidden z-[1099]"></div>
+
+  <div id="layout-root" class="pt-2 flex-1 px-4 lg:px-6 xl:px-8">
+    <div class="mx-auto max-w-[1400px] 2xl:max-w-[1600px] grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6 2xl:gap-8">
+      <!-- LEFT -->
+      <aside id="left-dashboard" class="hidden lg:block lg:col-span-3 xl:col-span-3 2xl:col-span-3 space-y-4">
+        <button id="drawer-close" class="hidden lg:hidden absolute top-2 right-2 z-[1101] inline-flex items-center justify-center w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700" aria-label="닫기">✕</button>
+
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-bold text-lg text-gray-900 dark:text-gray-100">학습 캘린더</h3>
+            <div class="flex items-center gap-2">
+              <button id="cal-prev" class="w-8 h-8 grid place-items-center rounded-md border hover:bg-gray-50 text-gray-900 dark:text-gray-100" aria-label="이전 달">◀</button>
+              <div id="cal-title" class="min-w-[96px] text-sm font-semibold text-center text-gray-900 dark:text-gray-100">YYYY.MM</div>
+              <button id="cal-next" class="w-8 h-8 grid place-items-center rounded-md border hover:bg-gray-50 text-gray-900 dark:text-gray-100" aria-label="다음 달">▶</button>
+            </div>
+          </div>
+          <div id="calendar-weekdays" class="grid grid-cols-7 text-center text-xs text-gray-500 mb-1">
+            <div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div><div>일</div>
+          </div>
+          <div id="calendar-grid" class="grid grid-cols-7 gap-x-0.5 gap-y-2"></div>
+          <div class="mt-2 text-[11px] text-gray-500">색 = 해당일 풀이량 (노랑→초록→파랑)</div>
+        </div>
+
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+          <button id="open-report-btn" class="btn-primary w-full flex items-center justify-center gap-2">
+            <span>📊</span>
+            <span>학습 리포트 생성</span>
+          </button>
+        </div>
+
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+          <div class="flex items-center justify-between mb-2 cursor-pointer" id="stats-overview-toggle">
+            <h3 class="font-bold text-lg text-gray-900 dark:text-gray-100">오늘의 통계</h3>
+            <svg class="w-5 h-5 transition-transform duration-200 text-gray-900 dark:text-gray-100" id="stats-overview-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
+          <div id="stats-overview" class="text-sm space-y-1 transition-all duration-200 text-gray-900 dark:text-gray-100"></div>
+        </div>
+
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+          <div class="flex items-center justify-between mb-2 cursor-pointer" id="review-toggle">
+            <h3 class="font-bold text-lg text-gray-900 dark:text-gray-100">오늘의 복습</h3>
+            <svg class="w-5 h-5 transition-transform duration-200 text-gray-900 dark:text-gray-100" id="review-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
+
+          <div id="review-content" class="transition-all duration-200">
+            <label for="review-strategy-select" class="text-sm block mb-2 text-gray-900 dark:text-gray-100">우선순위</label>
+            <select id="review-strategy-select" name="review-strategy" class="w-full p-2 border rounded">
+              <option value="smart">지능형 추천 (기본)</option>
+              <option value="hlr">HLR 기반 (회상 확률)</option>
+              <option value="low">점수 낮은 순</option>
+              <option value="recentWrong">최근 틀린 순</option>
+              <option value="oldWrong">오래전 틀린 순</option>
+              <option value="flag">사용자 지정 복습 목록</option>
+            </select>
+            <button id="start-review-btn" class="btn-primary mt-3 w-full">오늘의 복습 시작</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CENTER -->
+      <main id="center-core" class="lg:col-span-6 xl:col-span-6 2xl:col-span-6">
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm w-full p-6 md:p-8">
+          <div class="flex flex-col md:flex-row gap-4 mb-6 items-center">
+            <div class="flex-1 w-full">
+              <select id="chapter-select" name="chapter" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
+                <option value="">-- 전체 단원 --</option>
+              </select>
+            </div>
+            <div class="flex-1 w-full">
+              <select id="filter-select" name="filter" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 transition dark:bg-gray-700 dark:text-gray-100 dark:border-gray-700">
+                <option value="all">모든 문제 풀기</option>
+                <option value="unanswered">아직 안 푼 문제</option>
+                <option value="today-review">오늘의 복습 (추천)</option>
+                <option value="80">80점 미만 문제</option>
+                <option value="60">60점 미만 문제</option>
+              </select>
+            </div>
+            <div class="w-full md:w-auto md:self-end flex flex-col sm:flex-row gap-2">
+              <button id="load-quiz-btn" class="btn-primary flex-1 whitespace-nowrap">기준</button>
+              <button id="kam-mode-btn" class="btn-primary flex-1 whitespace-nowrap">
+                <span id="kam-mode-btn-text">사례</span>
+              </button>
+              <button id="random-quiz-btn" class="btn-outline flex-1 whitespace-nowrap">랜덤 문제</button>
+              <button id="flashcard-mode-btn" class="btn-outline flex-1 whitespace-nowrap">플래시카드</button>
+            </div>
+          </div>
+
+          <div id="source-group-filter" class="mb-6"></div>
+
+          <!-- 플래시카드 영역 -->
+          <div id="flashcard-area" class="hidden">
+            <div class="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 border-2 border-blue-200 dark:border-gray-600 rounded-2xl p-4 md:p-8 mb-6 min-h-[400px] flex flex-col">
+              <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
+                <h2 class="text-lg md:text-xl font-bold text-blue-700 dark:text-blue-300">플래시카드 모드</h2>
+                <span id="flashcard-counter" class="text-sm md:text-base text-gray-600 dark:text-gray-300 font-medium">0 / 0</span>
+              </div>
+
+              <div class="flex-1 flex flex-col justify-center space-y-4 md:space-y-6">
+                <div class="bg-white dark:bg-gray-900 rounded-xl p-4 md:p-6 shadow-md">
+                  <h3 class="text-xs md:text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2">문제 제목</h3>
+                  <p id="flashcard-title" class="text-base md:text-lg font-bold text-gray-800 dark:text-gray-100">-</p>
+                </div>
+
+                <div class="bg-white dark:bg-gray-900 rounded-xl p-4 md:p-6 shadow-md">
+                  <button id="flashcard-toggle-question" class="w-full flex items-center gap-2 mb-3 hover:opacity-70 transition">
+                    <span id="flashcard-question-arrow" class="text-gray-500 dark:text-gray-400 text-lg">▶</span>
+                    <h3 class="text-xs md:text-sm font-semibold text-gray-500 dark:text-gray-400">물음</h3>
+                  </button>
+                  <div id="flashcard-question-box" class="hidden">
+                    <p id="flashcard-question" class="font-serif text-sm md:text-base text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">-</p>
+                  </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-900 rounded-xl p-4 md:p-6 shadow-md">
+                  <div class="flex flex-wrap justify-between items-center mb-3 gap-2">
+                    <h3 class="text-xs md:text-sm font-semibold text-gray-500 dark:text-gray-400">답변 (스페이스바로 토글)</h3>
+                    <button id="flashcard-toggle-answer" class="btn-soft text-xs md:text-sm whitespace-nowrap">
+                      답변 보기 👁️
+                    </button>
+                  </div>
+                  <div id="flashcard-answer-box" class="hidden">
+                    <p id="flashcard-answer" class="font-serif text-sm md:text-base text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">-</p>
+                  </div>
+                  <div id="flashcard-answer-hidden" class="text-center py-8 text-gray-400">
+                    <p class="text-sm">답변이 숨겨져 있습니다</p>
+                    <p class="text-xs mt-2">위 버튼 또는 스페이스바를 눌러 확인하세요</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="space-y-3 mt-6">
+                <div class="flex flex-wrap justify-center items-center gap-2 md:gap-4">
+                  <button id="flashcard-prev-btn" class="btn-soft whitespace-nowrap text-sm md:text-base">←<span class="hidden md:inline"> 이전</span></button>
+                  <button id="flashcard-random-btn" class="btn-outline whitespace-nowrap text-sm md:text-base">🎲<span class="hidden md:inline"> 랜덤</span></button>
+                  <button id="flashcard-exit-btn" class="btn-outline whitespace-nowrap text-sm md:text-base"><span class="hidden md:inline">종료</span>✕</button>
+                  <button id="flashcard-next-btn" class="btn-soft whitespace-nowrap text-sm md:text-base"><span class="hidden md:inline">다음 </span>→</button>
+                </div>
+                <div class="text-center text-xs text-gray-500 dark:text-gray-400 hidden md:block">
+                  단축키: ← 이전 | → 다음 | Q 물음토글 | Space 답변토글 | 1(쉬움) 2(보통) 3(어려움) 0(건너뛰기) | Esc 종료
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 문제 영역 -->
+          <div id="quiz-area" class="hidden">
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-4">
+              <div class="flex justify-between items-center mb-2">
+                <h2 id="question-number" class="text-xl font-bold text-blue-700 bg-blue-100 px-3 py-1 rounded-md">문항</h2>
+                <span id="question-counter" class="text-gray-500 font-medium">0 / 0</span>
+              </div>
+              <div id="db-question-id" class="text-xs text-gray-500 hidden">ID: -</div>
+
+              <p id="question-text" class="font-serif text-gray-800 text-base md:text-lg leading-relaxed mt-2">문제를 불러오는 중입니다...</p>
+
+              <!-- 힌트/복습 버튼 영역 -->
+              <div class="mt-3 flex items-center justify-between gap-1 md:gap-2">
+                <!-- 왼쪽: 힌트/암기팁/메모 -->
+                <div class="flex items-center gap-1 md:gap-2">
+                  <button id="hint-btn" class="btn-ghost text-sm whitespace-nowrap">💡<span class="hidden md:inline"> 힌트</span></button>
+                  <button id="memory-tip-btn" class="btn-ghost text-sm whitespace-nowrap">📌<span class="hidden md:inline"> 암기팁</span></button>
+                  <button id="user-memo-btn" class="btn-ghost text-sm whitespace-nowrap flex items-center gap-1">
+                    <span>📝</span><span id="user-memo-btn-text" class="hidden md:inline"> 메모</span>
+                  </button>
+                </div>
+
+                <!-- 오른쪽: 복습 추가/제외 -->
+                <div class="flex items-center gap-1 md:gap-2">
+                  <button id="review-flag-toggle" class="btn-ghost text-sm whitespace-nowrap flex items-center gap-1" aria-pressed="false" title="복습 필요 토글">
+                    <span class="text-yellow-500">☆</span><span class="hidden md:inline"> 복습 추가</span>
+                  </button>
+                  <button id="review-exclude-toggle" class="btn-ghost text-sm whitespace-nowrap flex items-center gap-1" aria-pressed="false" title="오늘의 복습에서 제외/해제">
+                    <span class="text-gray-600">➖</span><span class="hidden md:inline"> 복습 제외</span>
+                  </button>
+                </div>
+              </div>
+
+              <div id="hint-container" class="hidden mt-3 text-sm bg-purple-50 border border-purple-200 text-purple-800 rounded-lg p-3 dark:bg-indigo-900 dark:border-indigo-700 dark:text-indigo-100"></div>
+
+              <!-- 암기팁 컨테이너 -->
+              <div id="memory-tip-container" class="hidden mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div class="flex justify-between items-start mb-2">
+                  <p class="text-sm font-bold text-gray-900">💡 암기 팁</p>
+                  <div class="flex gap-2">
+                    <button id="memory-tip-regen-btn" class="text-xs px-2 py-1 rounded bg-orange-100 text-gray-900 hover:bg-orange-200 transition">
+                      🔄 새로 생성
+                    </button>
+                    <button id="memory-tip-copy-btn" class="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition">
+                      📋 복사
+                    </button>
+                  </div>
+                </div>
+                <pre id="memory-tip-content" class="whitespace-pre-wrap text-sm font-sans leading-relaxed" style="color: #111827 !important;"></pre>
+              </div>
+
+              <!-- 메모 컨테이너 -->
+              <div id="user-memo-container" class="hidden mt-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg relative">
+                <div class="flex justify-between items-center mb-2">
+                  <label class="text-sm font-bold text-yellow-800">📝 나만의 핵심 요약</label>
+                  <button id="save-memo-btn" class="text-xs px-3 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300 font-bold">저장</button>
+                </div>
+                <textarea
+                  id="user-memo-input"
+                  class="w-full p-2 text-sm border border-yellow-300 rounded bg-white focus:ring-1 focus:ring-yellow-500"
+                  rows="2"
+                  maxlength="50"
+                  placeholder="예: 성.시.범 (AI 암기팁에 반영됨)"></textarea>
+                <div class="text-right text-xs text-gray-400 mt-1">
+                  <span id="memo-char-count">0</span>/50자
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between mb-2">
+              <label for="user-answer" class="text-sm font-medium text-gray-700">답안 입력</label>
+              <button id="load-prev-answer-btn" class="text-xs text-blue-600 hover:underline">이전 답안 불러오기</button>
+            </div>
+
+            <!-- 답안 입력 영역: 음성입력 버튼 포함 -->
+            <div class="relative">
+              <textarea id="user-answer" name="user-answer" class="font-serif w-full p-4 pb-12 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" rows="8" placeholder="여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=포커스/현황판)"></textarea>
+
+              <!-- 음성입력 버튼: textarea 오른쪽 하단에 floating -->
+              <button id="record-btn" class="absolute bottom-2 right-2 p-2 min-w-[36px] bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md flex items-center justify-center gap-0.5" data-state="idle" title="음성 입력 (STT)">
+                <svg id="record-icon-mic" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 10-2 0 7.001 7.001 0 006 6.93V17H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.07z" clip-rule="evenodd" /></svg>
+              </button>
+            </div>
+
+            <p id="error-message" class="text-red-500 text-sm mt-2 hidden">답안을 입력해주세요.</p>
+            <p id="hotkey-guide" class="text-xs text-gray-500 mt-2">
+              단축키: Ctrl+←/→ 이전/다음 · Enter/G 채점 · H 힌트 · L 이전답안 · R 랜덤 · X 복습제외 · S 현황판 · Ctrl+[ 이전위치 · Ctrl+] 포커스
+            </p>
+
+            <!-- 이전/채점하기/다음 버튼 (한 줄) -->
+            <div class="flex justify-between items-center my-5">
+              <button id="prev-btn" class="btn-soft disabled:opacity-50 disabled:cursor-not-allowed">←<span class="hidden md:inline"> 이전</span></button>
+              <button id="grade-btn" class="btn-primary px-8 relative min-w-[120px]">
+                <span id="grade-btn-text">채점하기</span>
+                <div id="grade-loader" class="loader absolute inset-0 m-auto hidden" aria-hidden="true"></div>
+              </button>
+              <button id="next-btn" class="btn-soft disabled:opacity-50 disabled:cursor-not-allowed"><span class="hidden md:inline">다음 </span>→</button>
+            </div>
+          </div>
+
+          <!-- 채점 결과 -->
+          <div id="result-box" class="hidden bg-gray-50 border border-gray-200 rounded-lg p-6 mt-6 dark:bg-gray-800 dark:border-gray-700" aria-live="polite">
+            <h3 class="font-sans text-2xl font-bold text-gray-900 mb-2 dark:text-gray-100">채점 결과</h3>
+            <div id="score-display" class="mb-5">
+              <p class="font-sans text-lg font-medium text-gray-900 dark:text-gray-100">
+                유사도 점수: <span id="score" class="font-bold text-blue-600 text-2xl">0</span><span class="text-gray-600 dark:text-gray-400 text-lg">점</span>
+              </p>
+              <div class="w-full bg-gray-200 progress-track rounded-full h-4 mt-2 overflow-hidden shadow-inner">
+                <div id="progress-bar" class="h-4 rounded-full transition-all duration-500 ease-out" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width: 0%"></div>
+              </div>
+            </div>
+            <div>
+              <h4 class="font-sans text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-6 h-6 inline-block"><rect width="100" height="100" rx="20" fill="#6D28D9"/><rect x="20" y="20" width="60" height="60" rx="10" fill="white"/><circle cx="36" cy="43" r="9" fill="#8B5CF6"/><text x="36" y="46" font-size="14" fill="white" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="900" text-anchor="middle" dominant-baseline="central">ㄱ</text><g transform="translate(64, 43)"><path d="M0 0 L 4 10 L 14 14 L 4 18 L 0 28 L -4 18 L -14 14 L -4 10 Z" fill="#FACC15" transform="scale(0.8) translate(0, -14)"/></g><path d="M30 60 H 70 V 72 H 30 Z M35 60 V 72 M 40 60 V 72 M 45 60 V 72 M 50 60 V 72 M 55 60 V 72 M 60 60 V 72 M 65 60 V 72" fill="none" stroke="#4F46E5" stroke-width="2"/></svg>
+                AI 총평
+              </h4>
+              <div id="ai-feedback" class="font-serif bg-white dark:bg-gray-700 p-4 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 leading-relaxed min-h-[50px]"></div>
+            </div>
+          </div>
+
+          <!-- 모범 답안 -->
+          <div id="model-answer-box" class="hidden bg-gray-50 border border-gray-200 rounded-lg p-6 mt-6 dark:bg-gray-800 dark:border-gray-700">
+            <h4 class="font-sans text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">📘 모범 답안</h4>
+            <pre id="correct-answer" class="font-serif bg-white dark:bg-gray-700 p-4 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 text-sm leading-relaxed"></pre>
+          </div>
+
+          <!-- 학습 현황판 -->
+          <div id="summary-area" class="mt-8 pt-6 border-t hidden">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3">
+              <h3 class="text-xl font-bold text-gray-800">학습 현황판 (클릭하여 이동)</h3>
+              <div class="flex flex-wrap gap-3 items-center">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm text-gray-600">보기:</span>
+                  <button id="summary-view-all" class="px-3 py-1.5 text-sm border rounded bg-gray-100 hover:bg-gray-200">모든 단원보기</button>
+                  <button id="summary-view-current" class="px-3 py-1.5 text-sm border rounded">현재 학습단원보기</button>
+                </div>
+                <div class="flex gap-4">
+                  <button id="clear-filter-btn" class="text-sm text-blue-700 hover:underline dark:text-blue-300">필터 해제</button>
+                  <button id="reset-scores-btn" class="text-sm text-red-600 hover:underline dark:text-red-300">학습 기록 초기화</button>
+                </div>
+              </div>
+            </div>
+            <div id="score-summary" class="flex flex-wrap gap-2"></div>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT -->
+      <aside id="right-explorer" class="lg:col-span-3 xl:col-span-3 2xl:col-span-3 space-y-4">
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+          <div class="flex items-center justify-between mb-2 cursor-pointer" id="source-filter-toggle">
+            <h3 class="font-bold text-lg text-gray-900 dark:text-gray-100">학습 범위 필터</h3>
+            <svg class="w-5 h-5 transition-transform duration-200 text-gray-900 dark:text-gray-100" id="source-filter-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
+          <div id="source-filter-side" class="transition-all duration-200"></div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+          <div class="flex items-center justify-between mb-2 cursor-pointer" id="chapter-nav-toggle">
+            <h3 class="font-bold text-lg text-gray-900 dark:text-gray-100">단원 네비게이터</h3>
+            <svg class="w-5 h-5 transition-transform duration-200 text-gray-900 dark:text-gray-100" id="chapter-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
+          <div id="explorer-chapters" class="space-y-2 transition-all duration-200 text-gray-900 dark:text-gray-100"></div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+          <div class="flex items-center justify-between mb-2 cursor-pointer" id="problem-list-toggle">
+            <h3 class="font-bold text-lg whitespace-nowrap no-kr-break text-gray-900 dark:text-gray-100">문제 목록</h3>
+            <svg class="w-5 h-5 transition-transform duration-200 text-gray-900 dark:text-gray-100" id="problem-list-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
+
+          <div id="problem-list-content" class="transition-all duration-200">
+            <div class="mb-2">
+              <input id="explorer-search" name="explorer-search" class="w-full border rounded px-2 py-1 text-sm" placeholder="검색..." aria-label="문제 검색">
+            </div>
+            <div id="explorer-problems" class="space-y-1 max-h-[60vh] overflow-y-auto pr-1 text-gray-900 dark:text-gray-100"></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- API 키 모달 -->
+  <div id="api-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1000]">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
+      <h2 class="text-xl font-bold text-gray-800">Gemini API 키 인증</h2>
+      <p class="text-sm text-gray-600 mt-1">최초 1회만 입력합니다. 로컬 저장을 체크하면 다음부터는 팝업이 뜨지 않습니다.</p>
+      <p class="text-sm mt-2">처음 사용하시나요?
+        <a href="README.html" target="_blank" rel="noopener" class="underline text-blue-600 dark:text-blue-300">도움말(README)</a>를 확인하세요.
+      </p>
+
+      <form id="api-key-form">
+        <label for="api-modal-input" class="block text-sm font-medium text-gray-700 mt-4">🔑 API Key</label>
+        <input type="password" id="api-modal-input" name="api-key"
+               class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700"
+               placeholder="Google AI Studio API 키" autocomplete="off" spellcheck="false" inputmode="text" />
+
+        <div class="flex items-center gap-2 mt-2">
+          <input type="checkbox" id="modal-remember" name="remember-api-key" class="rounded border-gray-300" />
+          <label for="modal-remember" class="text-sm text-gray-700">이 브라우저에 키 저장</label>
+        </div>
+        <p class="text-xs text-yellow-600 mt-1">⚠️ 공용 PC에서는 체크 해제를 권장합니다.</p>
+
+        <div class="mt-5 flex justify-end gap-2">
+          <button type="button" id="api-cancel-btn" class="px-3 py-2 text-sm text-gray-600 hover:text-gray-900">취소</button>
+          <button type="submit" id="api-save-btn" class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 업적 모달 -->
+  <div id="achievements-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1002] p-4 overflow-y-auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="achievements-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-4xl shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+        <h2 id="achievements-title" class="text-2xl font-bold">🏆 나의 업적</h2>
+        <button id="achievements-close-btn" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl leading-none" aria-label="닫기">×</button>
+      </div>
+
+      <div class="p-6">
+        <!-- 업적 통계 -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div class="bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-gray-800 dark:to-gray-700 rounded-lg p-4 text-center border border-yellow-200 dark:border-gray-600">
+            <div class="text-3xl font-bold text-yellow-600 dark:text-yellow-400"><span id="achievement-count-total">0</span></div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">전체 업적</div>
+          </div>
+          <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-700 rounded-lg p-4 text-center border border-green-200 dark:border-gray-600">
+            <div class="text-3xl font-bold text-green-600 dark:text-green-400"><span id="achievement-count-unlocked">0</span></div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">달성 완료</div>
+          </div>
+          <div class="bg-gradient-to-br from-blue-50 to-sky-50 dark:from-gray-800 dark:to-gray-700 rounded-lg p-4 text-center border border-blue-200 dark:border-gray-600">
+            <div class="text-3xl font-bold text-blue-600 dark:text-blue-400"><span id="achievement-progress-percent">0</span>%</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">달성률</div>
+          </div>
+          <div class="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-gray-800 dark:to-gray-700 rounded-lg p-4 text-center border border-purple-200 dark:border-gray-600">
+            <div class="text-3xl font-bold text-purple-600 dark:text-purple-400"><span id="achievement-points">0</span>P</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">업적 포인트</div>
+          </div>
+        </div>
+
+        <!-- 티어 필터 -->
+        <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" data-tier="all">전체</button>
+          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-200" data-tier="bronze">🥉 브론즈</button>
+          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-300 text-gray-800 dark:bg-gray-600 dark:text-gray-200 hover:bg-gray-400" data-tier="silver">🥈 실버</button>
+          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 hover:bg-yellow-200" data-tier="gold">🥇 골드</button>
+          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400 hover:bg-cyan-200" data-tier="platinum">🔷 플래티넘</button>
+          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-200" data-tier="diamond">💎 다이아몬드</button>
+          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 hover:bg-purple-200" data-tier="master">👑 마스터</button>
+          <button class="achievement-tier-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400 hover:bg-pink-200" data-tier="hidden">🤫 히든</button>
+        </div>
+
+        <!-- 업적 리스트 -->
+        <div id="achievements-list" class="space-y-3"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 3.3: 소셜 모달 (랭킹 & 그룹) -->
+  <div id="ranking-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1002] p-4 overflow-y-auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="ranking-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-5xl shadow-xl max-h-[90vh] overflow-y-auto">
+      <!-- 헤더 -->
+      <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
+        <h2 id="ranking-title" class="text-2xl font-bold">📊 소셜</h2>
+        <button id="ranking-close-btn" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl leading-none" aria-label="닫기">×</button>
+      </div>
+
+      <!-- 메인 탭 -->
+      <div class="sticky top-[73px] bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-3 z-10">
+        <div class="flex gap-2 overflow-x-auto pb-1">
+          <button class="ranking-main-tab px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap bg-blue-600 dark:bg-blue-500 text-white" data-tab="global">
+            🌍 전체
+          </button>
+          <button class="ranking-main-tab px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-tab="all-groups">
+            📊 전체 그룹
+          </button>
+          <button class="ranking-main-tab px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-tab="all-classes">
+            📚 전체 고시반
+          </button>
+          <button class="ranking-main-tab px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-tab="my-groups">
+            👥 내 그룹
+          </button>
+          <button class="ranking-main-tab px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-tab="my-classes">
+            🏛️ 내 고시반
+          </button>
+        </div>
+      </div>
+
+      <div class="p-6">
+        <!-- ======================================== -->
+        <!-- 🌍 전체 탭 콘텐츠 (개인 전체 랭킹) -->
+        <!-- ======================================== -->
+        <div id="ranking-tab-global" class="ranking-tab-content">
+          <!-- 필터: 기준 + 기간 (한 줄) -->
+          <div class="flex items-center justify-between gap-4 mb-6">
+            <!-- 왼쪽: 기준 선택 버튼 + 업데이트 시간 -->
+            <div class="flex gap-2 items-center overflow-x-auto pb-2">
+              <button class="ranking-criteria-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-blue-500 text-white" data-criteria="totalScore">📊 총점수</button>
+              <button class="ranking-criteria-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600" data-criteria="problems">✍️ 문풀횟수</button>
+              <button class="ranking-criteria-filter px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600" data-criteria="avgScore">⭐ 평균점수</button>
+              <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">데이터 업데이트: 매일 8시, 13시, 18시, 23시</span>
+            </div>
+
+            <!-- 오른쪽: 기간 드롭다운 -->
+            <select id="global-period-select" class="px-4 py-2 rounded-lg text-sm font-medium bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+              <option value="daily">📅 일간</option>
+              <option value="weekly">📊 주간</option>
+              <option value="monthly">📆 월간</option>
+            </select>
+          </div>
+
+          <!-- 랭킹 리스트 -->
+          <div id="ranking-list" class="space-y-2">
+            <!-- 로그인 필요 안내 -->
+            <div id="ranking-login-required" class="text-center py-12 text-gray-500 dark:text-gray-400">
+              <p class="text-lg mb-2">🔒 로그인이 필요합니다</p>
+              <p class="text-sm">로그인하여 소셜 기능을 이용하세요!</p>
+            </div>
+            <!-- 랭킹 항목들이 여기에 동적으로 추가됨 -->
+          </div>
+        </div>
+
+        <!-- ======================================== -->
+        <!-- 📊 전체 그룹 탭 콘텐츠 -->
+        <!-- ======================================== -->
+        <div id="ranking-tab-all-groups" class="ranking-tab-content hidden">
+          <!-- 로그인 필요 안내 -->
+          <div id="groups-login-required" class="hidden text-center py-12 text-gray-500 dark:text-gray-400">
+            <p class="text-lg mb-2">🔒 로그인이 필요합니다</p>
+            <p class="text-sm">로그인하여 그룹 기능을 이용하세요!</p>
+          </div>
+
+          <!-- 그룹 가입 시 표시될 콘텐츠 -->
+          <div id="groups-content" class="hidden">
+            <!-- 서브 탭 + 정렬 기준 필터 -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+              <!-- 서브 탭 버튼 -->
+              <div class="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+                <button class="ranking-group-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-green-600 dark:bg-green-500 text-white" data-subtab="group-level">
+                  🏆 그룹별 랭킹
+                </button>
+                <button class="ranking-group-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-subtab="intra-group">
+                  👤 그룹 내 랭킹
+                </button>
+              </div>
+
+              <!-- 정렬 기준 + 기간 필터 -->
+              <div class="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+                <button class="ranking-criteria-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-blue-500 text-white" data-criteria="totalScore">
+                  📊 총점수
+                </button>
+                <button class="ranking-criteria-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-criteria="problems">
+                  ✍️ 문풀횟수
+                </button>
+                <button class="ranking-criteria-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-criteria="avgScore">
+                  ⭐ 평균점수
+                </button>
+                <!-- 구분선 -->
+                <div class="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-1 self-center"></div>
+                <!-- 기간 선택 -->
+                <button class="ranking-period-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-blue-500 text-white" data-period="daily">
+                  일
+                </button>
+                <button class="ranking-period-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-period="weekly">
+                  주
+                </button>
+                <button class="ranking-period-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-period="monthly">
+                  월
+                </button>
+              </div>
+            </div>
+
+            <!-- 그룹별 랭킹 콘텐츠 -->
+            <div id="group-level-content" class="ranking-group-subtab-content">
+              <!-- 기간/기준 필터 버튼은 전체 탭과 공유 -->
+              <div id="group-level-list" class="mt-4">
+                <p class="text-center text-gray-500 dark:text-gray-400 py-8">로딩 중...</p>
+              </div>
+            </div>
+
+            <!-- 그룹 내 랭킹 콘텐츠 -->
+            <div id="intra-group-content" class="ranking-group-subtab-content hidden">
+              <p class="text-center text-gray-500 dark:text-gray-400 py-8">그룹 내 랭킹 (구현 예정)</p>
+            </div>
+          </div>
+
+          <!-- 빈 상태 (그룹 미가입) -->
+          <div id="groups-empty-state" class="text-center py-16">
+            <div class="text-6xl mb-4">📭</div>
+            <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">가입한 그룹이 없습니다</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">스터디 그룹에 가입하여 함께 공부하세요!</p>
+            <div class="flex gap-3 justify-center">
+              <button onclick="window.GroupUI?.openCreateGroupModal()" class="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+                ➕ 그룹 만들기
+              </button>
+              <button onclick="window.GroupUI?.openSearchGroupModal()" class="px-6 py-3 bg-green-600 dark:bg-green-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+                🔍 그룹 찾기
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================================== -->
+        <!-- 📚 전체 고시반 탭 콘텐츠 -->
+        <!-- ======================================== -->
+        <div id="ranking-tab-all-classes" class="ranking-tab-content hidden">
+          <!-- 로그인 필요 안내 -->
+          <div id="classes-login-required" class="hidden text-center py-12 text-gray-500 dark:text-gray-400">
+            <p class="text-lg mb-2">🔒 로그인이 필요합니다</p>
+            <p class="text-sm">로그인하여 고시반 기능을 이용하세요!</p>
+          </div>
+
+          <!-- 대학 이메일 인증 필요 안내 -->
+          <div id="classes-verify-required" class="hidden text-center py-12">
+            <div class="text-6xl mb-4">🎓</div>
+            <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">대학교 이메일 인증이 필요합니다</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">대학교 이메일을 인증하여 고시반 랭킹에 참여하세요!</p>
+            <button onclick="window.UniversityUI?.openVerifyModal()" class="px-6 py-3 bg-purple-600 dark:bg-purple-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+              ✉️ 이메일 인증하기
+            </button>
+          </div>
+
+          <!-- 고시반 콘텐츠 (인증 완료 후) -->
+          <div id="classes-content" class="hidden">
+            <!-- 서브 탭 + 정렬 기준 필터 -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+              <!-- 서브 탭 버튼 -->
+              <div class="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+                <button class="ranking-class-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-purple-600 dark:bg-purple-500 text-white" data-subtab="class-level">
+                  🏆 반별 랭킹
+                </button>
+                <button class="ranking-class-subtab px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-subtab="intra-class">
+                  👤 반 내 랭킹
+                </button>
+              </div>
+
+              <!-- 정렬 기준 + 기간 필터 -->
+              <div class="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+                <button class="ranking-criteria-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-blue-500 text-white" data-criteria="totalScore">
+                  📊 총점수
+                </button>
+                <button class="ranking-criteria-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-criteria="problems">
+                  ✍️ 문풀횟수
+                </button>
+                <button class="ranking-criteria-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-criteria="avgScore">
+                  ⭐ 평균점수
+                </button>
+                <!-- 구분선 -->
+                <div class="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-1 self-center"></div>
+                <!-- 기간 선택 -->
+                <button class="ranking-period-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-blue-500 text-white" data-period="daily">
+                  일
+                </button>
+                <button class="ranking-period-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-period="weekly">
+                  주
+                </button>
+                <button class="ranking-period-filter px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200" data-period="monthly">
+                  월
+                </button>
+              </div>
+            </div>
+
+            <!-- 반별 랭킹 콘텐츠 (대학교별) -->
+            <div id="class-level-content" class="ranking-class-subtab-content">
+              <div id="university-level-list" class="mt-4">
+                <p class="text-center text-gray-500 dark:text-gray-400 py-8">로딩 중...</p>
+              </div>
+            </div>
+
+            <!-- 반 내 랭킹 콘텐츠 (대학 내 개인) -->
+            <div id="intra-class-content" class="ranking-class-subtab-content hidden">
+              <div id="intra-university-list" class="mt-4">
+                <p class="text-center text-gray-500 dark:text-gray-400 py-8">로딩 중...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================================== -->
+        <!-- 👥 내 그룹 탭 콘텐츠 (그룹 관리) -->
+        <!-- ======================================== -->
+        <div id="ranking-tab-my-groups" class="ranking-tab-content hidden">
+          <!-- 로그인 필요 안내 -->
+          <div id="my-groups-login-required" class="hidden text-center py-12 text-gray-500 dark:text-gray-400">
+            <p class="text-lg mb-2">🔒 로그인이 필요합니다</p>
+            <p class="text-sm">로그인하여 그룹을 관리하세요!</p>
+          </div>
+
+          <!-- 내 그룹 관리 콘텐츠 -->
+          <div id="my-groups-content" class="hidden">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">📋 내가 가입한 그룹 <span id="my-groups-count" class="text-sm font-normal text-gray-500 dark:text-gray-400">(0/3)</span></h3>
+              <div class="flex gap-2">
+                <button onclick="window.GroupUI?.openCreateGroupModal()" class="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white font-bold text-sm rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition">
+                  ➕ 그룹 만들기
+                </button>
+                <button onclick="window.GroupUI?.openSearchGroupModal()" class="px-4 py-2 bg-green-600 dark:bg-green-500 text-white font-bold text-sm rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition">
+                  🔍 그룹 찾기
+                </button>
+              </div>
+            </div>
+
+            <!-- 내 그룹 리스트 -->
+            <div id="my-groups-list" class="space-y-3">
+              <p class="text-center py-8 text-gray-500">로딩 중...</p>
+            </div>
+          </div>
+
+          <!-- 빈 상태 (그룹 미가입) -->
+          <div id="my-groups-empty-state" class="hidden text-center py-16">
+            <div class="text-6xl mb-4">📭</div>
+            <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">가입한 그룹이 없습니다</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">스터디 그룹에 가입하여 함께 공부하세요!</p>
+            <div class="flex gap-3 justify-center">
+              <button onclick="window.GroupUI?.openCreateGroupModal()" class="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+                ➕ 그룹 만들기
+              </button>
+              <button onclick="window.GroupUI?.openSearchGroupModal()" class="px-6 py-3 bg-green-600 dark:bg-green-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition-all">
+                🔍 그룹 찾기
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================================== -->
+        <!-- 🏛️ 내 고시반 탭 콘텐츠 (고시반 관리) -->
+        <!-- ======================================== -->
+        <div id="ranking-tab-my-classes" class="ranking-tab-content hidden">
+          <div class="text-center py-16">
+            <div class="text-6xl mb-4">🏛️</div>
+            <h3 class="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">내 고시반 관리</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">준비 중입니다...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 3.5.2: 그룹 생성 모달 -->
+  <div id="create-group-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1100] p-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="create-group-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+        <h2 id="create-group-title" class="text-2xl font-bold">➕ 그룹 만들기</h2>
+        <button id="create-group-close-btn" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl leading-none" aria-label="닫기">×</button>
+      </div>
+
+      <form id="create-group-form" class="p-6 space-y-4">
+        <!-- 그룹 이름 -->
+        <div>
+          <label for="create-group-name" class="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
+            그룹 이름 <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            id="create-group-name"
+            required
+            minlength="2"
+            maxlength="30"
+            class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+            placeholder="예: 2025 감사 1차 대비반"
+          />
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">2-30자</p>
+        </div>
+
+        <!-- 그룹 설명 -->
+        <div>
+          <label for="create-group-description" class="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
+            그룹 설명
+          </label>
+          <textarea
+            id="create-group-description"
+            rows="3"
+            maxlength="200"
+            class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+            placeholder="그룹에 대한 간단한 설명을 입력하세요"
+          ></textarea>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">최대 200자</p>
+        </div>
+
+        <!-- 비밀번호 -->
+        <div>
+          <label for="create-group-password" class="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
+            그룹 비밀번호 <span class="text-gray-400 text-xs">(선택)</span>
+          </label>
+          <input
+            type="password"
+            id="create-group-password"
+            minlength="4"
+            class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+            placeholder="비밀번호 없이 공개 그룹으로 만들 수 있습니다"
+          />
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">입력 시 가입 시 비밀번호 필요 (최소 4자)</p>
+        </div>
+
+        <!-- 최대 인원 -->
+        <div>
+          <label for="create-group-max-members" class="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
+            최대 인원 <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="number"
+            id="create-group-max-members"
+            required
+            min="2"
+            max="100"
+            value="50"
+            class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+          />
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">2-100명</p>
+        </div>
+
+        <!-- 공개 여부 (자동 결정: 비밀번호 없으면 공개, 있으면 비공개) -->
+        <div class="text-sm text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+          💡 <strong>공개/비공개는 자동 결정됩니다:</strong><br>
+          • 비밀번호 입력 안 함 → 🌍 공개 그룹 (검색 가능)<br>
+          • 비밀번호 입력함 → 🔒 비공개 그룹 (비밀번호 필요)
+        </div>
+
+        <!-- 제출 버튼 -->
+        <div class="flex gap-3 pt-4">
+          <button
+            type="button"
+            id="create-group-cancel-btn"
+            class="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+            onclick="document.getElementById('create-group-close-btn').click()"
+          >
+            취소
+          </button>
+          <button
+            type="submit"
+            id="create-group-submit-btn"
+            class="flex-1 px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600"
+          >
+            그룹 생성
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Phase 3.5.2: 그룹 검색/가입 모달 -->
+  <div id="search-group-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1100] p-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="search-group-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-3xl shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+        <h2 id="search-group-title" class="text-2xl font-bold">🔍 그룹 찾기</h2>
+        <button id="search-group-close-btn" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl leading-none" aria-label="닫기">×</button>
+      </div>
+
+      <div class="p-6">
+        <!-- 검색 폼 -->
+        <form id="search-group-form" class="mb-6">
+          <div class="flex gap-2">
+            <input
+              type="text"
+              id="search-group-input"
+              class="flex-1 p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
+              placeholder="그룹 이름이나 설명 검색..."
+            />
+            <button
+              type="submit"
+              class="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600"
+            >
+              검색
+            </button>
+          </div>
+        </form>
+
+        <!-- 그룹 리스트 -->
+        <div id="search-group-list" class="space-y-3">
+          <div class="text-center py-8 text-gray-500">로딩 중...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================== -->
+  <!-- Phase 3.6: 대학교 이메일 인증 모달 -->
+  <!-- ======================================== -->
+  <div id="university-verify-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[9999] p-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="university-verify-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+      <!-- 헤더 -->
+      <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <h2 id="university-verify-title" class="text-2xl font-bold">🎓 대학교 이메일 인증</h2>
+        <button id="university-verify-close-btn" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl leading-none" aria-label="닫기">×</button>
+      </div>
+
+      <!-- 콘텐츠 -->
+      <div class="p-6">
+        <!-- 인증 안내 -->
+        <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+          <p class="text-sm text-blue-900 dark:text-blue-100 font-medium mb-2">📌 인증 안내</p>
+          <ul class="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
+            <li>대학교 이메일(@ac.kr 등)로 인증합니다</li>
+            <li>인증은 한 번만 가능하며 변경 불가합니다</li>
+            <li>인증 후 고시반 랭킹에 참여할 수 있습니다</li>
+          </ul>
+        </div>
+
+        <!-- 인증 폼 -->
+        <form id="university-verify-form" class="space-y-4">
+          <div>
+            <label for="university-email" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">대학교 이메일</label>
+            <input
+              type="email"
+              id="university-email"
+              class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="example@university.ac.kr"
+              required
+            />
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">학교 이메일 주소를 입력하세요</p>
+          </div>
+
+          <div class="flex gap-3">
+            <button
+              type="submit"
+              id="university-verify-submit-btn"
+              class="flex-1 px-6 py-3 bg-purple-600 dark:bg-purple-500 text-white font-bold rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition"
+            >
+              ✉️ 인증 메일 발송
+            </button>
+            <button
+              type="button"
+              onclick="window.UniversityUI?.closeVerifyModal();"
+              class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+            >
+              취소
+            </button>
+          </div>
+        </form>
+
+        <!-- 인증 코드 입력 (메일 발송 후 표시) -->
+        <div id="verification-code-section" class="hidden mt-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
+          <p class="text-sm text-green-900 dark:text-green-100 font-medium mb-4">✅ 인증 메일이 발송되었습니다!</p>
+          <form id="verification-code-form" class="space-y-3">
+            <div>
+              <label for="verification-code" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">인증 코드</label>
+              <input
+                type="text"
+                id="verification-code"
+                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="6자리 인증 코드 입력"
+                maxlength="6"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              id="verification-code-submit-btn"
+              class="w-full px-6 py-3 bg-green-600 dark:bg-green-500 text-white font-bold rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition"
+            >
+              인증 완료
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 설정 모달 -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1001]">
+    <div role="dialog" aria-modal="true" aria-labelledby="settings-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-2xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-2">
+        <h2 id="settings-title" class="text-2xl font-bold">설정 ⚙️</h2>
+        <button id="settings-close-btn" class="text-gray-500 hover:text-gray-800 dark:hover:text-white" aria-label="닫기">✕</button>
+      </div>
+
+      <div class="mb-6 pb-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">API 키 설정</h3>
+        <button id="open-api-key-modal-btn" class="w-full bg-blue-50 border border-blue-300 text-blue-700 font-medium py-2 px-4 rounded-lg hover:bg-blue-100 transition">API 키 변경/설정</button>
+      </div>
+
+      <!-- Phase 3.6: Firebase Extensions를 통한 이메일 발송 (EmailJS 설정 제거됨) -->
+      <!-- 대학교 이메일 인증은 Firebase Console에서 Extensions 설정 필요 -->
+      <!-- 자세한 내용은 FIRESTORE_RULES.md 참고 -->
+
+      <div class="mb-6 pb-6 border-b">
+        <button id="dday-settings-toggle" class="w-full flex items-center justify-between mb-3 hover:opacity-70 transition text-left">
+          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">📅 시험 날짜 (D-DAY)</h3>
+          <span id="dday-settings-arrow" class="text-gray-500 dark:text-gray-400 text-lg">▶</span>
+        </button>
+
+        <div id="dday-settings-content" class="hidden">
+          <input type="date" id="exam-date-input" name="exam-date" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100" aria-label="시험 날짜 (D-DAY)" />
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">시험 날짜를 설정하면 상단바에 D-DAY가 표시됩니다.</p>
+          <button id="save-exam-date-btn" class="mt-3 w-full bg-red-50 border border-red-300 text-red-700 font-medium py-2 px-4 rounded-lg hover:bg-red-100 transition">D-DAY 저장</button>
+        </div>
+      </div>
+
+      <div class="mb-6 pb-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">AI 모델 선택</h3>
+        <select id="ai-model-select" name="ai-model" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700" aria-label="AI 모델 선택">
+          <option value="gemini-2.5-flash-lite">⚡ Gemini 2.5 Flash-Lite (속도 우선) ✅ 추천</option>
+          <option value="gemini-2.0-flash">⚖️ Gemini 2.0 Flash (구형 모델, 속도 우선)</option>
+          <option value="gemini-2.5-flash">🧠 Gemini 2.5 Flash (품질 우선) ✅ 추천</option>
+          <option value="gemini-flash-latest">🔄 Gemini Flash Latest (항상 최신 Flash, 실험실)</option>
+          <option value="gemini-3-pro-preview">💎 Gemini 3 Pro Preview (최고 성능, 유료 - 25.11 출시)</option>
+        </select>
+        <p class="text-xs text-gray-500 mt-2">💡 일관된 채점 기준을 위해 성향에 맞는 모델 하나를 선택하세요. 속도 중시: 2.5 Lite (추천) / 품질 중시: 2.5 Flash (추천) / 실험적: Latest / 최고 성능: 3 Pro (유료)</p>
+      </div>
+
+      <div class="mb-6 pb-6 border-b">
+        <button id="stt-settings-toggle" class="w-full flex items-center justify-between mb-3 hover:opacity-70 transition text-left">
+          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">🎙️ 음성 인식 (STT) 설정 <span class="text-sm text-yellow-600 dark:text-yellow-400">(실험실)</span></h3>
+          <span id="stt-settings-arrow" class="text-gray-500 dark:text-gray-400 text-lg">▶</span>
+        </button>
+
+        <div id="stt-settings-content" class="hidden">
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            💡 <strong>권장:</strong> 모바일에서는 키보드의 기본 음성 입력 기능 사용을 추천합니다. (별도 설정 불필요)
+          </p>
+
+          <label for="stt-provider-select" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">공급자 선택</label>
+          <select id="stt-provider-select" name="stt-provider" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700" aria-label="STT 공급자 선택">
+            <option value="webspeech">Web Speech API (무료, 실시간) ⚡</option>
+            <option value="google">Google Cloud STT (고정확도, 유료)</option>
+            <option value="none">사용 안 함</option>
+          </select>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            <strong>Web Speech:</strong> 브라우저 내장, 무료, 실시간 (Chrome/Edge 권장)<br>
+            <strong>Google STT:</strong> 고정확도, API 키 필요, 처리 시간 있음
+          </p>
+          <p class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">⚠️ STT API 사용에 따른 비용은 사용자 개인에게 청구됩니다.</p>
+
+          <div id="stt-google-settings" class="mt-4 hidden">
+            <form id="google-stt-form">
+              <label for="google-stt-key" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Google STT API Key</label>
+              <input type="password" id="google-stt-key" name="google-stt-key" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" placeholder="Google STT API 키" autocomplete="off">
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-6 pb-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">다크 모드</h3>
+        <select id="dark-mode-select" name="dark-mode" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700" aria-label="다크 모드">
+          <option value="system">시스템 설정 (기본)</option>
+          <option value="light">라이트 모드</option>
+          <option value="dark">다크 모드</option>
+        </select>
+      </div>
+
+      <!-- Task 3: 복습 기준 설정 -->
+      <div class="mb-6 pb-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">복습 기준 설정</h3>
+        <select id="review-mode-select" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+          <option value="hlr">HLR 기반 (추천) - 망각 곡선 기반 지능형 복습</option>
+          <option value="time">시간 기반 (기존) - 3일/10일 기준 단순 분류</option>
+        </select>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          HLR(망각 곡선) 기반은 개인별 학습 패턴을 분석하여 최적의 복습 시기를 제안합니다.
+        </p>
+      </div>
+
+      <!-- 암기팁 스타일 설정 -->
+      <div class="mb-6 pb-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">💡 암기팁 스타일</h3>
+        <select id="memory-tip-mode-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
+          <option value="mild">Mild 버전 (권장)</option>
+          <option value="stimulating">⚠️ 자극적인 버전 (주의)</option>
+        </select>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          <strong>Mild:</strong> 일반적이고 온건한 암기 기법 사용<br>
+          <strong>자극적인 버전:</strong> 선정적이고 강렬한 표현을 포함할 수 있습니다.
+        </p>
+      </div>
+
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">데이터 관리</h3>
+        <div class="flex gap-3 mb-2">
+          <button id="export-data-btn" class="flex-1 bg-green-50 border border-green-300 text-green-700 font-medium py-2 px-4 rounded-lg hover:bg-green-100 transition">📥 데이터 내보내기</button>
+          <button id="import-data-btn" class="flex-1 bg-yellow-50 border border-yellow-300 text-yellow-700 font-medium py-2 px-4 rounded-lg hover:bg-yellow-100 transition">📤 데이터 가져오기</button>
+        </div>
+        <div class="flex gap-3">
+          <button id="merge-data-btn" class="flex-1 bg-blue-50 border border-blue-300 text-blue-700 font-medium py-2 px-4 rounded-lg hover:bg-blue-100 transition">🔀 데이터 병합 가져오기</button>
+        </div>
+        <input type="file" id="import-file-input" name="import-data-file" accept=".json" class="hidden" aria-label="데이터 가져오기 파일 선택" />
+        <input type="file" id="merge-file-input" name="merge-data-file" accept=".json" class="hidden" aria-label="데이터 병합 파일 선택" />
+        <p class="text-xs text-gray-500 mt-2">학습 기록 및 설정을 백업하거나 복원할 수 있습니다. 병합 가져오기는 기존 데이터와 새 데이터를 합칩니다.</p>
+      </div>
+
+      <div class="flex justify-end">
+        <button id="settings-close-btn-bottom" class="px-6 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 border dark:border-gray-600">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 학습 리포트 모달 -->
+  <div id="report-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[1002] p-4 overflow-y-auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="report-title" class="bg-white dark:bg-gray-900 dark:text-gray-100 rounded-2xl w-full max-w-5xl shadow-xl max-h-[90vh] overflow-y-auto" style="-webkit-overflow-scrolling: touch;">
+      <!-- 헤더 -->
+      <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-6 z-10">
+  <div class="flex items-center justify-between mb-4">
+
+    <h2 id="report-title" class="text-2xl font-bold text-gray-900 dark:text-white">📊 학습 리포트</h2>
+
+    <button id="report-close-btn" class="text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl" aria-label="닫기">✕</button>
+  </div>
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+          <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+            <div class="flex items-center gap-2">
+              <label for="report-period-select" class="text-sm font-medium whitespace-nowrap">데이터 범위:</label>
+              <select id="report-period-select" name="report-period" class="px-3 py-1.5 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700">
+                <option value="30">최근 30일</option>
+                <option value="60">최근 60일</option>
+                <option value="90">최근 90일</option>
+                <option value="all">전체 기간</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2">
+              <label for="report-threshold-select" class="text-sm font-medium whitespace-nowrap">분석 대상:</label>
+              <select id="report-threshold-select" name="report-threshold" class="px-3 py-1.5 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700">
+                <option value="60">60점 미만</option>
+                <option value="70">70점 미만</option>
+                <option value="80">80점 미만</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button id="report-refresh-btn" class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap">새로고침</button>
+            <button id="report-save-snapshot-btn" class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap">💾 저장</button>
+            <button id="report-load-snapshot-btn" class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap">📂 불러오기</button>
+            <input type="file" id="report-load-snapshot-input" name="report-load-snapshot" accept=".json" style="display: none;" aria-label="리포트 스냅샷 파일 선택">
+            <button id="report-print-btn" class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap">📤 내보내기/공유</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 탭 네비게이션 -->
+      <div class="border-b border-gray-200 dark:border-gray-700 px-6">
+        <nav class="flex gap-4" role="tablist">
+          <button id="report-tab-1" class="report-tab py-3 px-4 font-medium border-b-2 border-blue-600 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" role="tab" aria-selected="true" data-tab="1">1. 요약 및 차트</button>
+          <button id="report-tab-2" class="report-tab py-3 px-4 font-medium border-b-2 border-transparent text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" role="tab" aria-selected="false" data-tab="2">2. AI 심층 분석</button>
+          <button id="report-tab-3" class="report-tab py-3 px-4 font-medium border-b-2 border-transparent text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" role="tab" aria-selected="false" data-tab="3">3. 액션 플랜</button>
+          <button id="report-tab-4" class="report-tab py-3 px-4 font-medium border-b-2 border-transparent text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" role="tab" aria-selected="false" data-tab="4">4. 일일 학습 기록</button>
+          <button id="report-tab-5" class="report-tab py-3 px-4 font-medium border-b-2 border-transparent text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" role="tab" aria-selected="false" data-tab="5">5. 나만의 요약서</button>
+        </nav>
+      </div>
+
+      <!-- 탭 콘텐츠 -->
+      <div class="p-6">
+        <!-- 탭 1: 요약 및 차트 -->
+        <div id="report-content-1" class="report-content">
+          <div class="space-y-6">
+
+            <!-- 🌲 Audit Flow Map (숲 시각화) -->
+            <div id="audit-flowmap-container" class="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-6 border-2 border-blue-200 dark:border-blue-800">
+              <div class="flex justify-between items-center mb-4">
+                <div>
+                  <h3 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    🌲 Audit Flow Map
+                    <span class="text-sm font-normal text-gray-600 dark:text-gray-400">숲을 보는 감사, 흐름을 타는 암기</span>
+                  </h3>
+                  <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">감사 프로세스의 6단계 흐름 속에서 현재 위치를 파악하세요</p>
+                </div>
+                <button id="flowmap-help-btn" class="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                  Flow 가이드
+                </button>
+              </div>
+
+              <!-- Flow 단계들 (가로 스크롤) -->
+              <div class="overflow-x-auto pb-4">
+                <div class="flex gap-4 min-w-max">
+
+                  <!-- FLOW 1: 감사 준비 -->
+                  <div class="flow-step" data-flow-id="1">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-blue-500 shadow-lg hover:shadow-xl transition-all cursor-pointer min-w-[220px] h-[180px] flex flex-col">
+                      <div class="flex items-center gap-2 mb-2">
+                        <span class="text-3xl">📋</span>
+                        <div>
+                          <div class="text-xs text-blue-600 dark:text-blue-400 font-bold">FLOW 1</div>
+                          <h4 class="font-bold text-gray-900 dark:text-white">감사 준비</h4>
+                        </div>
+                      </div>
+                      <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">[자격&계약] 누가, 무엇을, 어떻게 계약하나?</p>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">Ch 1-5</span>
+                        <div class="flow-status-indicator w-6 h-6 rounded-full bg-gray-300" title="상태 계산 중..."></div>
+                      </div>
+                      <div class="mt-2 text-xs text-gray-500">
+                        <span class="font-semibold">전략:</span> 기본기 100% 암기
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 화살표 -->
+                  <div class="flex items-center text-3xl text-gray-400">→</div>
+
+                  <!-- FLOW 2: 기초 지식 -->
+                  <div class="flow-step" data-flow-id="2">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-green-500 shadow-lg hover:shadow-xl transition-all cursor-pointer min-w-[220px] h-[180px] flex flex-col">
+                      <div class="flex items-center gap-2 mb-2">
+                        <span class="text-3xl">🏢</span>
+                        <div>
+                          <div class="text-xs text-green-600 dark:text-green-400 font-bold">FLOW 2</div>
+                          <h4 class="font-bold text-gray-900 dark:text-white">기초지식</h4>
+                        </div>
+                      </div>
+                      <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">[기업 이해] 감사 대상을 알아야 시작한다</p>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">Ch 6</span>
+                        <div class="flow-status-indicator w-6 h-6 rounded-full bg-gray-300" title="상태 계산 중..."></div>
+                      </div>
+                      <div class="mt-2 text-xs text-gray-500">
+                        <span class="font-semibold">전략:</span> 위험평가의 관문
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center text-3xl text-gray-400">→</div>
+
+                  <!-- FLOW 3: 위험 평가 -->
+                  <div class="flow-step" data-flow-id="3">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-amber-500 shadow-lg hover:shadow-xl transition-all cursor-pointer min-w-[220px] h-[180px] flex flex-col">
+                      <div class="flex items-center gap-2 mb-2">
+                        <span class="text-3xl">⚠️</span>
+                        <div>
+                          <div class="text-xs text-amber-600 dark:text-amber-400 font-bold">FLOW 3 🔥</div>
+                          <h4 class="font-bold text-gray-900 dark:text-white">위험평가</h4>
+                        </div>
+                      </div>
+                      <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">[설계도] 어디가 얼마나 위험한가?</p>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">Ch 7</span>
+                        <div class="flow-status-indicator w-6 h-6 rounded-full bg-gray-300" title="상태 계산 중..."></div>
+                      </div>
+                      <div class="mt-2 text-xs text-gray-500">
+                        <span class="font-semibold">핵심:</span> 논리적 기반 (가장 중요!)
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center text-3xl text-gray-400">→</div>
+
+                  <!-- FLOW 4: 내부통제 (v2.0 신규) -->
+                  <div class="flow-step" data-flow-id="4">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-purple-500 shadow-lg hover:shadow-xl transition-all cursor-pointer min-w-[220px] h-[180px] flex flex-col">
+                      <div class="flex items-center gap-2 mb-2">
+                        <span class="text-3xl">🛡️</span>
+                        <div>
+                          <div class="text-xs text-purple-600 dark:text-purple-400 font-bold">FLOW 4 🚪</div>
+                          <h4 class="font-bold text-gray-900 dark:text-white">위험대응</h4>
+                        </div>
+                      </div>
+                      <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">[관문] 회사 통제를 믿을 것인가?</p>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">Ch 8-9</span>
+                        <div class="flow-status-indicator w-6 h-6 rounded-full bg-gray-300" title="상태 계산 중..."></div>
+                      </div>
+                      <div class="mt-2 text-xs text-gray-500">
+                        <span class="font-semibold">전략:</span> 대응 전략 수립 (Gateway)
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center text-3xl text-gray-400">→</div>
+
+                  <!-- FLOW 5: 실증절차 (v2.0 범위 축소) -->
+                  <div class="flow-step" data-flow-id="5">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-red-500 shadow-lg hover:shadow-xl transition-all cursor-pointer min-w-[220px] h-[180px] flex flex-col">
+                      <div class="flex items-center gap-2 mb-2">
+                        <span class="text-3xl">🔍</span>
+                        <div>
+                          <div class="text-xs text-red-600 dark:text-red-400 font-bold">FLOW 5</div>
+                          <h4 class="font-bold text-gray-900 dark:text-white">실증절차</h4>
+                        </div>
+                      </div>
+                      <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">[증거 수집] 위험·통제에 맞춰 증거 수집!</p>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">Ch 10-14</span>
+                        <div class="flow-status-indicator w-6 h-6 rounded-full bg-gray-300" title="상태 계산 중..."></div>
+                      </div>
+                      <div class="mt-2 text-xs text-gray-500">
+                        <span class="font-semibold">주의:</span> 계정별/특정상황별 실증절차, 실증절차 마무리 기준서제목까지 완벽히 암기
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center text-3xl text-gray-400">→</div>
+
+                  <!-- FLOW 6: 보고 -->
+                  <div class="flow-step" data-flow-id="6">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-green-500 shadow-lg hover:shadow-xl transition-all cursor-pointer min-w-[220px] h-[180px] flex flex-col">
+                      <div class="flex items-center gap-2 mb-2">
+                        <span class="text-3xl">📊</span>
+                        <div>
+                          <div class="text-xs text-green-600 dark:text-green-400 font-bold">FLOW 6</div>
+                          <h4 class="font-bold text-gray-900 dark:text-white">감사완결</h4>
+                        </div>
+                      </div>
+                      <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">[성적표] 최종 의견을 낸다</p>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">Ch 15-16</span>
+                        <div class="flow-status-indicator w-6 h-6 rounded-full bg-gray-300" title="상태 계산 중..."></div>
+                      </div>
+                      <div class="mt-2 text-xs text-gray-500">
+                        <span class="font-semibold">대비:</span> 의견종류별 감사보고서 암기
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center text-3xl text-gray-400">→</div>
+
+                  <!-- FLOW 7: 확장 -->
+                  <div class="flow-step" data-flow-id="7">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-500 shadow-lg hover:shadow-xl transition-all cursor-pointer min-w-[220px] h-[180px] flex flex-col">
+                      <div class="flex items-center gap-2 mb-2">
+                        <span class="text-3xl">🌐</span>
+                        <div>
+                          <div class="text-xs text-gray-600 dark:text-gray-400 font-bold">FLOW 7</div>
+                          <h4 class="font-bold text-gray-900 dark:text-white">확장</h4>
+                        </div>
+                      </div>
+                      <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">[특수 상황] 일반 감사 외 변수들</p>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-500">Ch 17-20</span>
+                        <div class="flow-status-indicator w-6 h-6 rounded-full bg-gray-300" title="상태 계산 중..."></div>
+                      </div>
+                      <div class="mt-2 text-xs text-gray-500">
+                        <span class="font-semibold">전략:</span> 내회관, 그룹감사 집중
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- 범례 -->
+              <div class="mt-4 flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
+                <div class="flex items-center gap-1">
+                  <div class="w-4 h-4 rounded-full bg-green-500"></div>
+                  <span>안전 (80점 이상)</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <div class="w-4 h-4 rounded-full bg-yellow-500"></div>
+                  <span>주의 (60-79점)</span>
+                </div>
+                <div class="flex items-center gap-1">
+                  <div class="w-4 h-4 rounded-full bg-red-500"></div>
+                  <span>위험 (60점 미만)</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center mb-3">
+                <h3 class="text-lg font-bold">학습 성과 추이</h3>
+                <div class="flex items-center gap-2">
+                  <label for="chart-scope-select" class="text-sm text-gray-600 dark:text-gray-400">차트 스코프:</label>
+                  <select id="chart-scope-select" name="chart-scope" class="px-2 py-1 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-700">
+                    <option value="daily">일간</option>
+                    <option value="weekly">주간</option>
+                    <option value="monthly">월간</option>
+                  </select>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="border rounded-lg p-4">
+                  <h4 class="text-sm font-semibold mb-2">일일 학습량</h4>
+                  <canvas id="chart-daily-volume"></canvas>
+                </div>
+                <div class="border rounded-lg p-4">
+                  <div class="flex justify-between items-center mb-2">
+                    <h4 class="text-sm font-semibold">전체 점수 추이</h4>
+                    <a href="trendhelp.html" target="_blank" class="text-xs text-blue-600 hover:underline dark:text-blue-400">도움말</a>
+                  </div>
+                  <canvas id="chart-score-trend"></canvas>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 class="text-lg font-bold mb-3">단원별 취약점 분석</h3>
+              <div class="border rounded-lg p-4 overflow-x-auto">
+                <canvas id="chart-chapter-weakness"></canvas>
+              </div>
+              <div id="chapter-detail-chart" class="hidden border rounded-lg p-4 mt-4">
+                <h4 class="text-sm font-semibold mb-2">선택한 단원의 점수 추이</h4>
+                <canvas id="chart-chapter-detail"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 탭 2: AI 심층 분석 -->
+        <div id="report-content-2" class="report-content hidden">
+          <div class="text-center py-8">
+            <button id="ai-analysis-start-btn" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium flex items-center gap-2 mx-auto">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-5 h-5 inline-block"><rect width="100" height="100" rx="20" fill="#8B5CF6"/><rect x="20" y="20" width="60" height="60" rx="10" fill="white"/><circle cx="36" cy="43" r="9" fill="#A78BFA"/><text x="36" y="46" font-size="14" fill="white" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="900" text-anchor="middle" dominant-baseline="central">ㄱ</text><g transform="translate(64, 43)"><path d="M0 0 L 4 10 L 14 14 L 4 18 L 0 28 L -4 18 L -14 14 L -4 10 Z" fill="#FDE047" transform="scale(0.8) translate(0, -14)"/></g><path d="M30 60 H 70 V 72 H 30 Z M35 60 V 72 M 40 60 V 72 M 45 60 V 72 M 50 60 V 72 M 55 60 V 72 M 60 60 V 72 M 65 60 V 72" fill="none" stroke="#7C3AED" stroke-width="2"/></svg>
+              Gemini Pro로 심층 분석 시작
+            </button>
+            <p class="text-sm text-gray-700 dark:text-gray-300 mt-2">AI가 오답 패턴과 개념 약점을 분석합니다</p>
+          </div>
+          <div id="ai-analysis-result" class="hidden">
+            <div class="flex justify-end mb-4">
+              <button id="ai-analysis-copy-btn" class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">📋 분석 내용 복사</button>
+            </div>
+            <div class="border rounded-lg p-6 bg-white dark:bg-gray-800">
+              <div id="ai-error-pattern" class="prose max-w-none dark:prose-invert !text-black dark:!text-white whitespace-pre-wrap"></div>
+            </div>
+          </div>
+          <div id="ai-analysis-loading" class="hidden text-center py-12">
+            <div class="loader mx-auto mb-4"></div>
+            <p class="text-gray-600">AI가 데이터를 분석하고 있습니다...</p>
+          </div>
+        </div>
+
+        <!-- 탭 3: 액션 플랜 -->
+        <div id="report-content-3" class="report-content hidden">
+          <div class="space-y-6">
+            <div class="border rounded-lg p-6">
+              <h3 class="text-lg font-bold mb-3">망각 곡선 기반 복습 플래너</h3>
+              <div class="space-y-4">
+                <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <h4 class="font-semibold text-red-700 dark:text-red-400 mb-2">🚨 긴급 복습 (오늘 즉시)</h4>
+                  <div id="action-urgent-list" class="space-y-1"></div>
+                </div>
+                <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                  <h4 class="font-semibold text-yellow-700 dark:text-yellow-400 mb-2">⚠️ 주기적 복습 (이번 주 내)</h4>
+                  <div id="action-weekly-list" class="space-y-1"></div>
+                </div>
+                <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <h4 class="font-semibold text-green-700 dark:text-green-400 mb-2">🧠 장기 기억화 (다음 주)</h4>
+                  <div id="action-longterm-list" class="space-y-1"></div>
+                </div>
+              </div>
+            </div>
+            <div class="border rounded-lg p-6">
+              <h3 class="text-lg font-bold mb-3">인터랙티브 오답노트</h3>
+              <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">클릭하여 모범 답안과 AI 총평을 확인하세요</p>
+              <div id="action-wrong-answers" class="space-y-3"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 탭 4: 일일 학습 기록 -->
+        <div id="report-content-4" class="report-content hidden">
+          <div class="space-y-6">
+            <div class="border rounded-lg p-6">
+              <div id="daily-record-nav" class="flex items-center justify-between mb-4 pb-4 border-b">
+                <button id="daily-prev-btn" class="text-xl px-3 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="이전 날짜">◀</button>
+                <div class="relative">
+                  <h3 id="daily-record-date" class="text-lg font-bold text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition" title="날짜를 클릭하여 선택"></h3>
+                  <input type="date" id="daily-date-picker" class="absolute opacity-0 pointer-events-none" aria-label="날짜 선택">
+                </div>
+                <button id="daily-next-btn" class="text-xl px-3 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="다음 날짜">▶</button>
+              </div>
+              <div id="daily-problem-list" class="space-y-3">
+                <!-- 일일 학습 기록이 여기에 동적으로 렌더링됩니다 -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 탭 5: 나만의 요약서 -->
+        <div id="report-content-5" class="report-content hidden">
+          <div class="space-y-6">
+
+            <!-- 요약서 생성 옵션 -->
+            <div class="bg-gray-50 dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 print-hidden">
+              <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
+                🖨️ 요약서 생성 옵션
+                <span class="text-xs font-normal text-gray-500 bg-white dark:bg-gray-700 px-2 py-0.5 rounded border">원하는 조건으로 필터링하여 인쇄용 요약집을 만듭니다</span>
+              </h3>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- ① 단원 선택 -->
+                <div>
+                  <h4 class="text-sm font-semibold mb-2 text-blue-700 dark:text-blue-400">① 단원 선택</h4>
+                  <div class="flex flex-wrap gap-2" id="summary-chapter-filters">
+                    <!-- 챕터 체크박스들이 동적으로 생성됩니다 -->
+                  </div>
+                </div>
+
+                <!-- ② 문제 조건 -->
+                <div>
+                  <h4 class="text-sm font-semibold mb-2 text-blue-700 dark:text-blue-400">② 문제 조건 (OR 조건) <span class="text-xs font-normal text-gray-500">※ 체크 안 하면 전체 문제 표시</span></h4>
+                  <div class="grid grid-cols-2 gap-2 text-sm">
+                    <label class="flex items-center space-x-1"><input type="checkbox" class="chk-condition rounded" value="score60"> <span>60점 미만 (위험)</span></label>
+                    <label class="flex items-center space-x-1"><input type="checkbox" class="chk-condition rounded" value="score70"> <span>70점 미만</span></label>
+                    <label class="flex items-center space-x-1"><input type="checkbox" class="chk-condition rounded" value="score80"> <span>80점 미만 (주의)</span></label>
+                    <label class="flex items-center space-x-1"><input type="checkbox" class="chk-condition rounded" value="score90"> <span>90점 미만</span></label>
+                    <label class="flex items-center space-x-1"><input type="checkbox" class="chk-condition rounded" value="flagged"> <span>복습 추가(★)한 문제</span></label>
+                    <label class="flex items-center space-x-1 text-red-500"><input type="checkbox" class="chk-condition rounded" value="excluded"> <span>복습 제외(➖) 포함</span></label>
+                  </div>
+                </div>
+
+                <!-- ③ 출처 필터 -->
+                <div>
+                  <h4 class="text-sm font-semibold mb-2 text-blue-700 dark:text-blue-400">③ 출처 필터</h4>
+                  <div class="flex gap-4 text-sm">
+                    <label class="flex items-center space-x-1"><input type="checkbox" class="chk-source rounded" value="basic" checked> <span>기본 (S/H/HS)</span></label>
+                    <label class="flex items-center space-x-1"><input type="checkbox" class="chk-source rounded" value="advanced"> <span>심화 (SS/P)</span></label>
+                    <label class="flex items-center space-x-1"><input type="checkbox" class="chk-source rounded" value="other" checked> <span>기타</span></label>
+                  </div>
+                </div>
+
+                <!-- ④ 포함할 내용 -->
+                <div>
+                  <h4 class="text-sm font-semibold mb-2 text-blue-700 dark:text-blue-400">④ 포함할 내용</h4>
+                  <div class="flex flex-wrap gap-3 text-sm">
+                    <label class="flex items-center space-x-1"><input type="checkbox" id="show-model-answer" class="rounded" checked> <span>모범 답안</span></label>
+                    <label class="flex items-center space-x-1"><input type="checkbox" id="show-my-score" class="rounded" checked> <span>내 점수</span></label>
+                    <label class="flex items-center space-x-1"><input type="checkbox" id="show-memory-tip" class="rounded"> <span>💡 암기팁/처방</span></label>
+                    <label class="flex items-center space-x-1"><input type="checkbox" id="show-ai-feedback" class="rounded"> <span>🤖 AI 총평</span></label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-6 flex justify-center">
+                <button id="generate-summary-book-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg shadow-md transition flex items-center gap-2">
+                  <span>📑 요약서 생성하기</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 요약서 결과 영역 -->
+            <div id="summary-book-result" class="bg-white dark:bg-gray-800 min-h-[500px] p-8 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg">
+              <div class="text-center text-gray-500 dark:text-gray-400 py-20">
+                위 옵션을 선택하고 '요약서 생성하기' 버튼을 눌러주세요.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PDF 옵션 선택 모달 (Task 2: 선택형 PDF 내보내기) -->
+  <div id="pdf-options-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" style="z-index: 99999;">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+      <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">📤 내보내기 옵션 선택</h3>
+
+      <!-- 전체 선택/해제 -->
+      <div class="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="pdf-check-all" class="w-4 h-4 rounded" checked>
+          <span class="font-semibold text-gray-700 dark:text-gray-300">전체 선택</span>
+        </label>
+      </div>
+
+      <!-- 개별 탭 선택 -->
+      <div class="space-y-3 mb-6">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="pdf-check-tab1" class="pdf-tab-checkbox w-4 h-4 rounded" checked>
+          <span class="text-gray-700 dark:text-gray-300">📊 차트 분석</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="pdf-check-tab2" class="pdf-tab-checkbox w-4 h-4 rounded" checked>
+          <span class="text-gray-700 dark:text-gray-300">🧠 AI 심층 분석</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="pdf-check-tab3" class="pdf-tab-checkbox w-4 h-4 rounded" checked>
+          <span class="text-gray-700 dark:text-gray-300">📝 액션 플랜 & 오답노트</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="pdf-check-tab4" class="pdf-tab-checkbox w-4 h-4 rounded" checked>
+          <span class="text-gray-700 dark:text-gray-300">📅 일일 학습 기록</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="pdf-check-tab5" class="pdf-tab-checkbox w-4 h-4 rounded" checked>
+          <span class="text-gray-700 dark:text-gray-300">📑 나만의 요약서</span>
+        </label>
+      </div>
+
+      <!-- 버튼 -->
+      <div class="flex gap-3">
+        <button id="pdf-options-cancel-btn" class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+          취소
+        </button>
+        <button id="pdf-options-execute-btn" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          실행
+        </button>
+      </div>
+
+      <p class="text-xs text-gray-500 dark:text-gray-400 mt-4">
+        ℹ️ 선택한 탭만 PDF로 내보냅니다. 브라우저의 인쇄 대화상자에서 "PDF로 저장"을 선택하세요.
+      </p>
+    </div>
+  </div>
+
+  <!-- 내장 데이터(JSON) - Phase 0: localStorage 백업 시스템 도입으로 주석 처리 -->
+  <!--
+    안전성 확보를 위해 제거하지 않고 주석 처리
+    3단계 폴백 시스템: 외부 JSON → localStorage 백업 → 내장 데이터(비활성화)
+  -->
+  <!--
+  <script id="dataset-json" type="application/json">[
+    {"고유ID":"q_001","표시번호":"1","출처":"S","problemTitle":"회계감사의 고유한계 원인 세 가지","단원":1,"물음번호":1,"물음":"회계감사에는 고유한계가 존재한다. 그 원인을 세 가지 쓰시오.","정답":"ISA 200-A47 ① 재무보고의 성격 ② 감사절차의 성격 ③ 합리적 시간·비용 제약"},
+    {"고유ID":"q_002","표시번호":"2","출처":"H","problemTitle":"적시성과 비용-효익 고려 시 채택하는 절차","단원":1,"물음번호":2,"물음":"감사인은 적시성과 비용-효익 균형을 고려한다. 이에 따라 채택하는 절차 세 가지는?","정답":"ISA 200-A51 ① 효과적 계획 ② 위험 높은 분야 집중 ③ 테스트 등 표본 사용"},
+    {"고유ID":"q_003","표시번호":"3","출처":"SS","problemTitle":"샘플 문제","단원":1,"물음번호":3,"물음":"…","정답":"…"}
+  ]</script>
+  -->
+
+  <!-- ========================================
+       감린이 v4.0 리팩토링 모듈 로드 (먼저 로드됨)
+       ======================================== -->
+  <script type="module" src="js/app.js"></script>
+
+  <script type="module">
+    // ========================================
+    // Phase 5.2: 모듈 직접 import (전역 브릿지 제거)
+    // ========================================
+    // app.js는 StateManager 초기화를 위해 여전히 필요
+    import './js/app.js';
+
+    // 직접 모듈 import (window.* 의존성 제거)
+    import { $ } from './js/ui/elements.js';
+    import { showToast, applyDarkMode, initUIListeners } from './js/ui/domUtils.js';
+    import { loadData } from './js/core/dataManager.js';
+    import { getAllData, getSelectedAiModel } from './js/core/stateManager.js';
+    import {
+      initStatsDate,
+      updateDDayDisplay,
+      migrateData,
+      enforceExclusiveFlagsOnAll,
+      backfillReadStoreFromScores
+    } from './js/core/storageManager.js';
+    import { initSettings, ensureApiKeyGate, initSettingsListeners } from './js/features/settings/settingsCore.js';
+    // Phase 2: dataImportExport.js는 lazy loading
+    import { initReportListeners } from './js/features/report/reportCore.js';
+    // Phase 2: analysis.js는 lazy loading
+    // Phase 2: flashcardCore.js는 lazy loading
+    import { buildSourceFilterUI, initFilterListeners } from './js/features/filter/filterCore.js';
+    import { moveSourceFilterToSide, initExplorerListeners, renderExplorer } from './js/features/explorer/explorerCore.js';
+    import { initQuizListeners } from './js/features/quiz/quizCore.js';
+    import { initCalendarListeners, renderCalendarMonth, renderStats } from './js/features/calendar/calendarCore.js';
+    import { initKeyboardShortcuts } from './js/features/quiz/navigation.js';
+    import {
+      initAchievementListeners,
+      loadAchievements,
+      checkAchievements,
+      updateAchievementBadge
+    } from './js/features/achievements/achievementsCore.js';
+    import { initRankingUI, openRankingModal } from './js/features/ranking/rankingUI.js';
+    import { initReviewListeners } from './js/features/review/reviewCore.js';
+    import { initSttListeners } from './js/features/stt/sttHandler.js';
+
+    // Phase 2: Lazy Loading 모듈 관리
+    let aiAnalysisModule = null;
+    let flashcardModule = null;
+    let dataImportExportModule = null;
+
+    /**
+     * Phase 2: AI 분석 모듈 Lazy Loading
+     */
+    async function loadAIAnalysisModule() {
+      if (aiAnalysisModule) return aiAnalysisModule;
+
+      try {
+        aiAnalysisModule = await import('./js/features/report/analysis.js');
+        aiAnalysisModule.initAIAnalysisListeners();
+        console.log('✅ [Lazy] AI 분석 모듈 로드 완료');
+        return aiAnalysisModule;
+      } catch (err) {
+        console.error('❌ [Lazy] AI 분석 모듈 로드 실패:', err);
+        showToast('AI 분석 모듈 로드 실패', 'error');
+        throw err;
+      }
+    }
+
+    /**
+     * Phase 2: 플래시카드 모듈 Lazy Loading
+     */
+    async function loadFlashcardModule() {
+      if (flashcardModule) return flashcardModule;
+
+      try {
+        flashcardModule = await import('./js/features/flashcard/flashcardCore.js');
+        flashcardModule.initFlashcardListeners();
+        console.log('✅ [Lazy] 플래시카드 모듈 로드 완료');
+        return flashcardModule;
+      } catch (err) {
+        console.error('❌ [Lazy] 플래시카드 모듈 로드 실패:', err);
+        showToast('플래시카드 모듈 로드 실패', 'error');
+        throw err;
+      }
+    }
+
+    /**
+     * Phase 2: 데이터 Import/Export 모듈 Lazy Loading
+     */
+    async function loadDataImportExportModule() {
+      if (dataImportExportModule) return dataImportExportModule;
+
+      try {
+        dataImportExportModule = await import('./js/services/dataImportExport.js');
+        dataImportExportModule.initDataImportExport();
+        console.log('✅ [Lazy] 데이터 Import/Export 모듈 로드 완료');
+        return dataImportExportModule;
+      } catch (err) {
+        console.error('❌ [Lazy] 데이터 Import/Export 모듈 로드 실패:', err);
+        showToast('데이터 Import/Export 모듈 로드 실패', 'error');
+        throw err;
+      }
+    }
+
+    // Phase 5.3: 모든 로직은 모듈로 이동됨
+    // Helper functions
+    function loadSettings(){
+      if(window.el.aiModelSelect) window.el.aiModelSelect.value = getSelectedAiModel();
+    }
+    const refreshPanels=()=>{ renderCalendarMonth(); renderStats(); renderExplorer(); };
+    window.refreshPanels = refreshPanels; // TODO: Remove after quizCore.js direct import
+    document.addEventListener('DOMContentLoaded', async ()=>{
+      try{
+        await loadData();
+        console.log('✅ 데이터 로드 완료:', getAllData()?.length || 0, '문제');
+      }catch(err){
+        console.error(err);
+        $('question-text').textContent='문제 데이터 로드 실패';
+        showToast(`데이터 로드 실패: ${err.message}`,'error');
+      }
+
+      loadSettings();
+      initStatsDate();
+      updateDDayDisplay();
+      applyDarkMode();
+      migrateData();
+      // Phase 6.2: calRefDate moved to storageManager
+      enforceExclusiveFlagsOnAll();
+      backfillReadStoreFromScores(false);
+
+      initSettings();
+      // Phase 2: 데이터 Import/Export 모듈은 lazy loading (버튼 클릭 시 로드)
+      window.el.exportDataBtn?.addEventListener('click', loadDataImportExportModule, { once: true });
+      window.el.importDataBtn?.addEventListener('click', loadDataImportExportModule, { once: true });
+      window.el.mergeDataBtn?.addEventListener('click', loadDataImportExportModule, { once: true });
+      initReportListeners();
+      // Phase 2: AI 분석 모듈은 lazy loading (버튼 클릭 시 로드)
+      window.el.aiAnalysisStartBtn?.addEventListener('click', loadAIAnalysisModule, { once: true });
+      // Phase 2: 플래시카드 모듈은 lazy loading (버튼 클릭 시 로드)
+      window.el.flashcardModeBtn?.addEventListener('click', loadFlashcardModule, { once: true });
+      ensureApiKeyGate();
+      buildSourceFilterUI();
+      moveSourceFilterToSide();
+
+      // 메모 버튼 요소들을 window.el에 추가 (initQuizListeners보다 먼저 실행)
+      if (window.el) {
+        window.el.userMemoBtn = $('user-memo-btn');
+        window.el.userMemoBtnText = $('user-memo-btn-text');
+        window.el.userMemoContainer = $('user-memo-container');
+        window.el.userMemoInput = $('user-memo-input');
+        window.el.saveMemoBtn = $('save-memo-btn');
+        window.el.memoCharCount = $('memo-char-count');
+
+        // StateManager에도 동일하게 설정
+        import('./js/core/stateManager.js').then(({ setElements }) => {
+          setElements(window.el);
+          console.log('✅ 메모 버튼 요소들 StateManager에 동기화됨');
+        });
+
+        console.log('✅ 메모 버튼 요소들 window.el에 추가됨');
+      }
+
+      initQuizListeners();
+      initQuizEventListeners(); // EventBus 리스너 초기화 (순환 의존성 해결)
+      initFilterListeners();
+      initSummaryListeners();
+      initSettingsListeners();
+      initCalendarListeners();
+      initExplorerListeners();
+      initUIListeners();
+      initKeyboardShortcuts();
+      refreshPanels();
+
+      initAchievementListeners();
+      loadAchievements();
+      checkAchievements();
+      updateAchievementBadge();
+
+      // Phase 3.3: 랭킹 시스템 초기화
+      initRankingUI();
+
+      // 랭킹 버튼 클릭 이벤트
+      document.getElementById('open-ranking-btn')?.addEventListener('click', () => {
+        openRankingModal();
+      });
+
+      initReviewListeners();
+
+      // STT 리스너 초기화
+      initSttListeners();
+    });
+  </script>
+
+  <!-- ============================================ -->
+  <!-- Firebase 로그인 모달 -->
+  <!-- ============================================ -->
+  <div id="login-modal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center">
+    <!-- 배경 (Backdrop) -->
+    <div id="login-modal-backdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+
+    <!-- 모달 컨텐츠 -->
+    <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+      <!-- 헤더 -->
+      <div class="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 flex items-center justify-between">
+        <h2 class="text-xl font-bold text-white">감린이 로그인</h2>
+        <button id="login-modal-close" class="text-white hover:text-gray-200 text-2xl leading-none" aria-label="닫기">×</button>
+      </div>
+
+      <!-- 탭 네비게이션 -->
+      <div class="flex border-b border-gray-200 dark:border-gray-700">
+        <button id="login-tab" class="flex-1 py-3 text-sm font-medium border-b-2 border-blue-600 text-blue-600 transition">
+          로그인
+        </button>
+        <button id="signup-tab" class="flex-1 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition">
+          회원가입
+        </button>
+      </div>
+
+      <!-- 탭 컨텐츠 -->
+      <div class="p-6">
+        <!-- 로그인 패널 -->
+        <div id="login-panel">
+          <!-- Google 로그인 -->
+          <button id="google-login-btn" class="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition shadow-sm mb-4">
+            <svg class="w-5 h-5" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Google로 계속하기
+          </button>
+
+          <div class="relative my-4">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+              <span class="px-2 bg-white dark:bg-gray-800 text-gray-500">또는</span>
+            </div>
+          </div>
+
+          <!-- 이메일 로그인 폼 -->
+          <form id="email-login-form" class="space-y-4">
+            <div>
+              <label for="login-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">이메일</label>
+              <input
+                type="email"
+                id="login-email"
+                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                placeholder="example@email.com"
+                required
+              />
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label for="login-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">비밀번호</label>
+                <button type="button" id="forgot-password-btn" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                  비밀번호를 잊으셨나요?
+                </button>
+              </div>
+              <input
+                type="password"
+                id="login-password"
+                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition shadow-md">
+              로그인
+            </button>
+          </form>
+        </div>
+
+        <!-- 회원가입 패널 -->
+        <div id="signup-panel" class="hidden">
+          <!-- Google 회원가입 -->
+          <button id="google-signup-btn" class="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition shadow-sm mb-4">
+            <svg class="w-5 h-5" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Google로 계속하기
+          </button>
+
+          <div class="relative my-4">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+              <span class="px-2 bg-white dark:bg-gray-800 text-gray-500">또는</span>
+            </div>
+          </div>
+
+          <!-- 이메일 회원가입 폼 -->
+          <form id="email-signup-form" class="space-y-4">
+            <div>
+              <label for="signup-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">이름</label>
+              <input
+                type="text"
+                id="signup-name"
+                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                placeholder="홍길동"
+                required
+              />
+            </div>
+            <div>
+              <label for="signup-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">이메일</label>
+              <input
+                type="email"
+                id="signup-email"
+                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                placeholder="example@email.com"
+                required
+              />
+            </div>
+            <div>
+              <label for="signup-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">비밀번호</label>
+              <input
+                type="password"
+                id="signup-password"
+                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+            <div>
+              <label for="signup-password-confirm" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">비밀번호 확인</label>
+              <input
+                type="password"
+                id="signup-password-confirm"
+                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+            <!-- 개인정보 수집 및 이용 동의 (필수) -->
+            <div class="flex items-start gap-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <input
+                type="checkbox"
+                id="privacy-consent"
+                class="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                required
+              />
+              <label for="privacy-consent" class="text-sm text-gray-700 dark:text-gray-300">
+                <span class="font-medium text-blue-600 dark:text-blue-400 cursor-pointer hover:underline" onclick="window.open('docs/privacy_policy.html', '_blank')">개인정보 수집 및 이용</span>에 동의합니다 <span class="text-red-500">*</span>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  수집 항목: 이메일, 이름, 학습 기록 | 이용 목적: 회원 식별, 학습 관리 | 보유 기간: 회원 탈퇴 시까지
+                </p>
+              </label>
+            </div>
+            <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 rounded-lg transition shadow-md">
+              회원가입
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 프로필 관리 모달 -->
+  <div id="profile-modal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center">
+    <!-- 배경 (Backdrop) -->
+    <div id="profile-modal-backdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+
+    <!-- 모달 컨텐츠 -->
+    <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+      <!-- 헤더 -->
+      <div class="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-4 flex items-center justify-between">
+        <h2 class="text-xl font-bold text-white">⚙️ 내 정보 관리</h2>
+        <button id="profile-modal-close" class="text-white hover:text-gray-200 text-2xl leading-none" aria-label="닫기">×</button>
+      </div>
+
+      <!-- 모달 본문 -->
+      <div class="p-6 space-y-6">
+        <!-- 기본 정보 표시 -->
+        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-2">
+          <div class="flex items-center gap-3">
+            <div id="profile-avatar" class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg"></div>
+            <div class="flex-1">
+              <div id="profile-display-name" class="font-semibold text-gray-900 dark:text-gray-100"></div>
+              <div id="profile-email" class="text-sm text-gray-500 dark:text-gray-400"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- [Achievement System 2.0] AP 티어 정보 -->
+        <div class="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-700 dark:to-gray-800 rounded-lg p-4 border border-purple-200 dark:border-gray-600">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl" id="profile-tier-icon">⭐</span>
+              <div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">현재 티어</div>
+                <div class="font-bold text-lg" id="profile-tier-name" style="color: #9333ea;">Unranked</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs text-gray-600 dark:text-gray-400">Total AP</div>
+              <div class="font-bold text-xl text-purple-600 dark:text-purple-400" id="profile-total-ap">0</div>
+            </div>
+          </div>
+
+          <!-- 진행률 바 -->
+          <div class="space-y-2">
+            <div class="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+              <span id="profile-tier-progress-text">다음 티어까지</span>
+              <span><span id="profile-current-ap">0</span> / <span id="profile-next-tier-ap">500</span> AP</span>
+            </div>
+            <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-3 overflow-hidden">
+              <div
+                id="profile-tier-progress-bar"
+                class="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full transition-all duration-500 ease-out"
+                style="width: 0%"
+              ></div>
+            </div>
+            <div class="text-xs text-center text-gray-600 dark:text-gray-400">
+              <span id="profile-next-tier-text">Bronze 티어까지 500 AP 남음</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 닉네임 설정 -->
+        <div>
+          <label for="profile-nickname-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            👤 닉네임
+          </label>
+          <div class="space-y-2">
+            <div class="relative">
+              <input
+                type="text"
+                id="profile-nickname-input"
+                maxlength="20"
+                minlength="2"
+                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-gray-100"
+                placeholder="닉네임을 입력하세요 (2-20자)"
+              />
+              <div class="absolute right-3 top-2 text-xs text-gray-400 dark:text-gray-500">
+                <span id="nickname-char-count">0</span>/20
+              </div>
+            </div>
+            <div id="nickname-validation-message" class="text-xs hidden"></div>
+            <button
+              id="save-profile-nickname-btn"
+              class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              닉네임 저장
+            </button>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            💡 닉네임은 소셜 기능(랭킹, 스터디 그룹)에서 표시됩니다.
+          </p>
+        </div>
+
+        <!-- 상태 메시지 설정 -->
+        <div>
+          <label for="status-message-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            💬 상태 메시지
+          </label>
+          <div class="relative">
+            <input
+              type="text"
+              id="status-message-input"
+              maxlength="20"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
+              placeholder="나를 표현하는 한 마디 (최대 20자)"
+            />
+            <div class="absolute right-3 top-2 text-xs text-gray-400 dark:text-gray-500">
+              <span id="status-char-count">0</span>/20
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            그룹원들이 내 타일에 마우스를 올리면 상태 메시지를 볼 수 있습니다.
+          </p>
+        </div>
+
+        <!-- 저장 버튼 -->
+        <button
+          id="save-status-btn"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition shadow-md flex items-center justify-center gap-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          저장
+        </button>
+
+        <!-- 구분선 -->
+        <div class="border-t border-gray-200 dark:border-gray-700"></div>
+
+        <!-- 회원 탈퇴 영역 -->
+        <details class="bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+          <summary class="px-4 py-3 cursor-pointer text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            회원 탈퇴
+          </summary>
+          <div class="px-4 pb-4 space-y-3">
+            <div class="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+              <p>⚠️ 회원 탈퇴 시 다음 정보가 삭제됩니다:</p>
+              <ul class="list-disc list-inside ml-2 space-y-1">
+                <li>프로필 정보 (이름, 이메일, 상태 메시지)</li>
+                <li>학습 기록 및 통계</li>
+                <li>그룹 가입 정보</li>
+                <li>업적 달성 기록</li>
+              </ul>
+              <p class="mt-2 font-medium text-red-600 dark:text-red-400">이 작업은 되돌릴 수 없습니다.</p>
+            </div>
+
+            <!-- 이메일 로그인 사용자를 위한 비밀번호 입력 -->
+            <div id="delete-password-section" class="hidden">
+              <label for="delete-password-input" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                본인 확인을 위해 비밀번호를 입력하세요
+              </label>
+              <input
+                type="password"
+                id="delete-password-input"
+                class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-gray-100"
+                placeholder="비밀번호"
+              />
+            </div>
+
+            <button
+              id="delete-account-btn"
+              class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg transition text-sm"
+            >
+              탈퇴하기
+            </button>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+</body>
+  <!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TC8G7NJD"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+

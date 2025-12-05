@@ -1,0 +1,274 @@
+/**
+ * @fileoverview 문제 탐색기(Explorer) - 단원별/검색별 문제 목록
+ * - 단원별 버튼 렌더링
+ * - 문제 검색 및 정렬
+ * - 문제 클릭 시 퀴즈/플래시카드 이동
+ */
+
+import { el } from '../../ui/elements.js';
+import { showToast } from '../../ui/domUtils.js';
+import { chapterLabelText } from '../../config/config.js';
+import { getScopeFilteredData } from '../../features/filter/filterCore.js';
+import { updateSummaryHighlight } from '../../features/summary/summaryCore.js';
+import { displayQuestion } from '../../features/quiz/quizCore.js';
+
+/**
+ * Render explorer: chapter buttons and problem list
+ * Phase 1: DocumentFragment로 DOM 조작 최적화
+ */
+export function renderExplorer() {
+  if (!el.explorerChapters || !el.explorerProblems) return;
+
+  // Access global state via window (NEVER import from stateManager)
+  const questionScores = window.questionScores || {};
+
+  const base = getScopeFilteredData();
+  const group = new Map();
+
+  // Group by chapter
+  for (const q of base) {
+    const ch = String(q.단원).trim();
+    if (!group.has(ch)) group.set(ch, []);
+    group.get(ch).push(q);
+  }
+
+  // Sort chapters
+  const chapters = [...group.keys()].sort((a, b) => {
+    const na = +a, nb = +b;
+    if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+    if (Number.isFinite(na)) return -1;
+    if (Number.isFinite(nb)) return 1;
+    return a.localeCompare(b, 'ko');
+  });
+
+  // Phase 1: Render chapter buttons with DocumentFragment
+  el.explorerChapters.innerHTML = '';
+  const chaptersFragment = document.createDocumentFragment();
+
+  chapters.forEach(ch => {
+    const btn = document.createElement('button');
+    btn.className = 'w-full text-left px-3 py-2 rounded border hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-150 explorer-chapter-btn';
+    btn.textContent = chapterLabelText(ch);
+
+    // Phase 1.5: Event delegation을 위한 데이터 속성
+    btn.dataset.chapter = ch;
+
+    chaptersFragment.appendChild(btn);
+  });
+
+  // Phase 1: 한 번에 DOM에 모든 챕터 버튼 추가
+  el.explorerChapters.appendChild(chaptersFragment);
+
+  // Phase 1.5: 챕터 버튼 Event Delegation 설정
+  setupChapterEventDelegation(group);
+
+  // Filter and render problem list
+  const q = (el.explorerSearch?.value || '').trim().toLowerCase();
+  const filtered = base.filter(it =>
+    (it.problemTitle || '').toLowerCase().includes(q) ||
+    (it.물음 || '').toLowerCase().includes(q)
+  );
+
+  el.explorerProblems.innerHTML = '';
+
+  // Phase 1: Render problem list with DocumentFragment
+  const problemsFragment = document.createDocumentFragment();
+
+  filtered.sort((a, b) => {
+    // 1순위: 단원 정렬
+    const chA = +a.단원, chB = +b.단원;
+    if (Number.isFinite(chA) && Number.isFinite(chB) && chA !== chB) return chA - chB;
+    if (Number.isFinite(chA) && !Number.isFinite(chB)) return -1;
+    if (!Number.isFinite(chA) && Number.isFinite(chB)) return 1;
+    if (!Number.isFinite(chA) && !Number.isFinite(chB)) {
+      const chCmp = String(a.단원).localeCompare(String(b.단원), 'ko');
+      if (chCmp !== 0) return chCmp;
+    }
+    // 2순위: 표시번호 정렬
+    const na = +(a.표시번호 || a.물음번호), nb = +(b.표시번호 || b.물음번호);
+    if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+    return String(a.표시번호 || a.물음번호).localeCompare(String(b.표시번호 || b.물음번호), 'ko');
+  })
+    .forEach(it => {
+      const rec = questionScores[String(it.고유ID).trim()] || {};
+      const score = Number.isFinite(+rec?.score) ? +rec.score : null;
+      const excluded = !!rec.userReviewExclude;
+      const flagged = !!rec.userReviewFlag && !excluded; // 제외 우선
+
+      const row = document.createElement('button');
+      row.className = 'w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 border text-left transition-colors duration-150 explorer-problem-row';
+
+      const left = document.createElement('div');
+      left.className = 'flex items-center gap-2 text-sm';
+
+      if (flagged) {
+        const star = document.createElement('span');
+        star.textContent = '★';
+        star.className = 'text-purple-500';
+        left.appendChild(star);
+      }
+
+      if (excluded) {
+        const minus = document.createElement('span');
+        minus.textContent = '➖';
+        minus.className = 'text-gray-500';
+        left.appendChild(minus);
+      }
+
+      const title = document.createElement('span');
+      const label = (it.problemTitle && String(it.problemTitle).trim()) || `문항 ${it.표시번호 || it.물음번호 || it.고유ID}`;
+      title.textContent = label;
+      title.className = 'block max-w-[18rem] xl:max-w-[22rem] line-clamp-2 overflow-hidden';
+      title.style.display = '-webkit-box';
+      title.style.webkitLineClamp = '2';
+      title.style.webkitBoxOrient = 'vertical';
+      left.appendChild(title);
+
+      const right = document.createElement('div');
+      right.className = 'text-xs';
+      const badge = document.createElement('span');
+      badge.className = 'px-2 py-0.5 rounded-full border ' + (score == null ? 'text-gray-600 border-gray-300' : 'text-blue-700 border-blue-300');
+      badge.textContent = score == null ? 'X' : `${score}`;
+      right.appendChild(badge);
+
+      row.appendChild(left);
+      row.appendChild(right);
+      row.title = `출처:${it.출처 || '-'} | ID:${it.고유ID}`;
+
+      // Phase 1.5: Event delegation을 위한 데이터 속성
+      row.dataset.qid = String(it.고유ID).trim();
+      row.dataset.chapter = String(it.단원).trim();
+      row.dataset.label = label;
+
+      problemsFragment.appendChild(row);
+    });
+
+  // Phase 1: 한 번에 DOM에 모든 문제 행 추가
+  el.explorerProblems.appendChild(problemsFragment);
+
+  // Phase 1.5: 문제 행 Event Delegation 설정
+  setupProblemEventDelegation(base);
+}
+
+/**
+ * Phase 1.5: 챕터 버튼 Event Delegation 설정
+ * @param {Map} group - 챕터별 문제 그룹
+ */
+function setupChapterEventDelegation(group) {
+  // 기존 리스너 제거 (중복 방지)
+  const oldHandler = el.explorerChapters._chapterClickHandler;
+  if (oldHandler) {
+    el.explorerChapters.removeEventListener('click', oldHandler);
+  }
+
+  // 새 리스너 생성
+  const clickHandler = (e) => {
+    const target = e.target;
+
+    if (target.classList.contains('explorer-chapter-btn')) {
+      const ch = target.dataset.chapter;
+      if (!ch) return;
+
+      const list = group.get(ch) || [];
+      if (!list.length) return;
+
+      if (window.isFlashcardMode) {
+        // Flashcard mode: use module function
+        if (typeof window.jumpToFlashcard === 'function') {
+          window.jumpToFlashcard(list, list[0].고유ID, chapterLabelText(ch));
+        }
+      } else {
+        // Quiz mode: update quiz data
+        window.currentQuizData = list;
+        window.currentQuestionIndex = 0;
+        el.quizArea.classList.remove('hidden');
+        el.summaryArea.classList.remove('hidden');
+        displayQuestion();
+        updateSummaryHighlight();
+        showToast(`${chapterLabelText(ch)} 로 이동`);
+      }
+    }
+  };
+
+  // 리스너 추가 및 참조 저장
+  el.explorerChapters.addEventListener('click', clickHandler);
+  el.explorerChapters._chapterClickHandler = clickHandler;
+}
+
+/**
+ * Phase 1.5: 문제 행 Event Delegation 설정
+ * @param {Array} base - 필터된 데이터
+ */
+function setupProblemEventDelegation(base) {
+  // 기존 리스너 제거 (중복 방지)
+  const oldHandler = el.explorerProblems._problemClickHandler;
+  if (oldHandler) {
+    el.explorerProblems.removeEventListener('click', oldHandler);
+  }
+
+  // 새 리스너 생성
+  const clickHandler = (e) => {
+    const target = e.target.closest('.explorer-problem-row');
+    if (!target) return;
+
+    const qid = target.dataset.qid;
+    const ch = target.dataset.chapter;
+    const label = target.dataset.label;
+
+    if (!qid || !ch) return;
+
+    const list = base.filter(x => String(x.단원).trim() === ch);
+
+    if (window.isFlashcardMode) {
+      // Flashcard mode - use module function
+      const dataList = list.length ? list : base.filter(x => String(x.고유ID).trim() === qid);
+      if (typeof window.jumpToFlashcard === 'function') {
+        window.jumpToFlashcard(dataList, qid, label);
+      }
+    } else {
+      // Quiz mode
+      window.currentQuizData = list.length ? list : base.filter(x => String(x.고유ID).trim() === qid);
+      window.currentQuestionIndex = list.findIndex(x => String(x.고유ID).trim() === qid);
+      if (window.currentQuestionIndex < 0) window.currentQuestionIndex = 0;
+      el.quizArea.classList.remove('hidden');
+      el.summaryArea.classList.remove('hidden');
+      displayQuestion();
+      updateSummaryHighlight();
+      showToast(`'${label}' 로 이동`);
+    }
+  };
+
+  // 리스너 추가 및 참조 저장
+  el.explorerProblems.addEventListener('click', clickHandler);
+  el.explorerProblems._problemClickHandler = clickHandler;
+}
+
+/**
+ * Move source filter UI to side panel
+ */
+export function moveSourceFilterToSide() {
+  if (!el.sourceFilterSide || !el.sourceGroupFilter) return;
+  el.sourceFilterSide.innerHTML = '';
+  el.sourceGroupFilter.classList.remove('mb-6');
+  el.sourceFilterSide.appendChild(el.sourceGroupFilter);
+}
+
+// ============================================
+// 이벤트 리스너 초기화 (Phase 5.1)
+// ============================================
+
+/**
+ * 문제 탐색기 이벤트 리스너 초기화
+ */
+export function initExplorerListeners() {
+  // Access global state via window (NEVER import from stateManager)
+  const el = window.el;
+  if (!el) return;
+
+  // Explorer search input
+  el.explorerSearch?.addEventListener('input', () => {
+    if (typeof window.renderExplorer === 'function') {
+      window.renderExplorer();
+    }
+  });
+}

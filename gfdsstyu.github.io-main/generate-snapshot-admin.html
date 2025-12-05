@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>스냅샷 생성 (관리자 전용)</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      font-family: 'Pretendard', -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #2563eb;
+      margin-bottom: 20px;
+    }
+    .status {
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 5px;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+    .info { background: #dbeafe; border-left: 4px solid #2563eb; }
+    .success { background: #d1fae5; border-left: 4px solid #10b981; }
+    .error { background: #fee2e2; border-left: 4px solid #ef4444; }
+    .warning { background: #fef3c7; border-left: 4px solid #f59e0b; }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    .steps {
+      background: #f9fafb;
+      padding: 20px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    .steps ol {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    .steps li {
+      margin: 8px 0;
+    }
+    code {
+      background: #e5e7eb;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 랭킹 스냅샷 생성 (관리자 전용)</h1>
+
+    <div class="status info">
+<strong>⚠️ 주의: 이 페이지는 최초 1회 스냅샷 생성용입니다</strong>
+
+이 작업은 Firebase 규칙을 임시로 수정해야 합니다.
+작업 완료 후 반드시 규칙을 원래대로 복원하세요!
+    </div>
+
+    <div class="steps">
+      <h3>📋 실행 전 준비사항</h3>
+      <ol>
+        <li><strong>Firebase Console 접속</strong>: <a href="https://console.firebase.google.com/" target="_blank">console.firebase.google.com</a></li>
+        <li><strong>프로젝트 선택</strong>: gamrini-24b1f</li>
+        <li><strong>Firestore Database → 규칙(Rules) 탭</strong> 클릭</li>
+        <li><strong>임시 규칙으로 변경</strong>: 아래 코드를 복사하여 붙여넣기</li>
+      </ol>
+
+      <h4>임시 규칙 (복사하세요):</h4>
+      <pre style="background: #1f2937; color: #f3f4f6; padding: 15px; border-radius: 5px; overflow-x: auto;">// ranking_cache 부분만 수정
+match /ranking_cache/{document} {
+  // 임시로 모든 인증된 사용자 쓰기 허용
+  allow read, write: if isAuthenticated();
+}</pre>
+
+      <ol start="5">
+        <li><strong>게시(Publish)</strong> 클릭</li>
+        <li>아래 <strong>"스냅샷 생성"</strong> 버튼 클릭</li>
+        <li>완료 후 <strong>규칙을 원래대로 복원</strong></li>
+      </ol>
+
+      <h4>원래 규칙 (복원용):</h4>
+      <pre style="background: #1f2937; color: #f3f4f6; padding: 15px; border-radius: 5px; overflow-x: auto;">// 원래 규칙
+match /ranking_cache/{document} {
+  allow read: if isAuthenticated();
+  allow write: if false; // Cloud Functions만 가능
+}</pre>
+    </div>
+
+    <button id="loginBtn" onclick="login()">1. 로그인</button>
+    <button id="generateBtn" onclick="generateSnapshot()" disabled>2. 스냅샷 생성</button>
+
+    <div id="log"></div>
+  </div>
+
+  <script>
+    // Firebase 설정 (app.js와 동일)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDS_tGZbWF3bUN3qKhg1ASPhYmiPZPQ8Bo",
+      authDomain: "gamrini-24b1f.firebaseapp.com",
+      projectId: "gamrini-24b1f",
+      storageBucket: "gamrini-24b1f.firebasestorage.app",
+      messagingSenderId: "789315789234",
+      appId: "1:789315789234:web:745213c65219149d0b04ab",
+      measurementId: "G-RX2G5VW9Y1"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let currentUser = null;
+
+    // 로그 출력 함수
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const statusDiv = document.createElement('div');
+      statusDiv.className = `status ${type}`;
+      statusDiv.textContent = message;
+      logDiv.appendChild(statusDiv);
+      console.log(message);
+    }
+
+    // 로그인
+    async function login() {
+      try {
+        log('🔐 로그인 중...', 'info');
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const result = await auth.signInWithPopup(provider);
+        currentUser = result.user;
+
+        log(`✅ 로그인 성공: ${currentUser.email}`, 'success');
+        document.getElementById('loginBtn').disabled = true;
+        document.getElementById('generateBtn').disabled = false;
+      } catch (error) {
+        log(`❌ 로그인 실패: ${error.message}`, 'error');
+      }
+    }
+
+    // 스냅샷 생성
+    async function generateSnapshot() {
+      if (!currentUser) {
+        log('❌ 로그인이 필요합니다', 'error');
+        return;
+      }
+
+      try {
+        log('🚀 스냅샷 생성 시작...', 'info');
+        document.getElementById('generateBtn').disabled = true;
+
+        // 1. rankings 컬렉션 읽기
+        log('📖 rankings 컬렉션 읽기 중...', 'info');
+        const rankingsSnapshot = await db.collection('rankings').get();
+        log(`✅ 총 ${rankingsSnapshot.size}명의 사용자 데이터 발견`, 'success');
+
+        // 2. 데이터 추출
+        const users = [];
+        let index = 0;
+        rankingsSnapshot.forEach(doc => {
+          const data = doc.data();
+
+          // 🔧 FIX: Firestore의 "daily.2025-11-26" 형식을 중첩 객체로 변환
+          const daily = {};
+          const weekly = {};
+          const monthly = {};
+
+          Object.keys(data).forEach(key => {
+            if (key.startsWith('daily.')) {
+              const dateKey = key.replace('daily.', '');
+              daily[dateKey] = data[key];
+            } else if (key.startsWith('weekly.')) {
+              const weekKey = key.replace('weekly.', '');
+              weekly[weekKey] = data[key];
+            } else if (key.startsWith('monthly.')) {
+              const monthKey = key.replace('monthly.', '');
+              monthly[monthKey] = data[key];
+            }
+          });
+
+          const user = {
+            userId: data.userId || doc.id,
+            nickname: data.nickname || '익명',
+            university: data.university || null,
+            daily: daily,
+            weekly: weekly,
+            monthly: monthly
+          };
+
+          // 🐛 DEBUG: 첫 번째 문서 변환 후 데이터 출력
+          if (index === 0) {
+            log('🐛 [DEBUG] 변환 후 첫 번째 사용자 데이터:', 'info');
+            log(`  - userId: ${user.userId}`, 'info');
+            log(`  - nickname: ${user.nickname}`, 'info');
+            log(`  - daily 키들: ${Object.keys(user.daily).join(', ') || '(없음)'}`, 'info');
+            log(`  - weekly 키들: ${Object.keys(user.weekly).join(', ') || '(없음)'}`, 'info');
+            log(`  - monthly 키들: ${Object.keys(user.monthly).join(', ') || '(없음)'}`, 'info');
+            console.log('🐛 [DEBUG] 변환 후 daily 객체:', user.daily);
+            console.log('🐛 [DEBUG] 변환 후 전체 user 객체:', user);
+          }
+
+          users.push(user);
+          index++;
+        });
+
+        // 3. 스냅샷 생성
+        const snapshot = {
+          users: users,
+          generatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          totalUsers: users.length,
+          version: '1.0'
+        };
+
+        // 4. ranking_cache에 저장
+        log('💾 ranking_cache에 스냅샷 저장 중...', 'info');
+        await db.collection('ranking_cache').doc('snapshot').set(snapshot);
+
+        // 5. 완료
+        const sizeKB = (JSON.stringify(snapshot).length / 1024).toFixed(2);
+        log(`✅ 스냅샷 생성 완료!`, 'success');
+        log(`   - 사용자 수: ${users.length}명`, 'success');
+        log(`   - 데이터 크기: 약 ${sizeKB} KB`, 'success');
+        log('', 'success');
+        log('🎉 성공! 이제 Firebase Console에서 규칙을 원래대로 복원하세요!', 'warning');
+
+      } catch (error) {
+        log(`❌ 스냅샷 생성 실패: ${error.message}`, 'error');
+
+        if (error.code === 'permission-denied') {
+          log('', 'error');
+          log('⚠️ 권한 오류: Firebase 규칙이 아직 수정되지 않았습니다.', 'warning');
+          log('위의 "임시 규칙"을 Firebase Console에서 적용한 후 다시 시도하세요.', 'warning');
+        }
+
+        document.getElementById('generateBtn').disabled = false;
+      }
+    }
+
+    // 인증 상태 모니터링
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+        log(`✅ 이미 로그인됨: ${user.email}`, 'success');
+        document.getElementById('loginBtn').disabled = true;
+        document.getElementById('generateBtn').disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

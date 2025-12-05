@@ -1,0 +1,15 @@
+{
+  "name": "gamlin-admin-scripts",
+  "version": "1.0.0",
+  "description": "감린이 랭킹 스냅샷 생성 관리자 스크립트",
+  "main": "generate-ranking-snapshot.js",
+  "scripts": {
+    "snapshot": "node generate-ranking-snapshot.js"
+  },
+  "keywords": ["firebase", "ranking", "snapshot"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}
