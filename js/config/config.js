@@ -434,7 +434,31 @@ export const ACHIEVEMENTS = {
   flashcard_1000: { id: 'flashcard_1000', name: '무아지경', desc: '플래시카드 모드로 1,000개의 카드를 학습 (난이도 선택 1,000회)', icon: '✨', tier: 'hidden', points: 200 },
   new_year_dedication: { id: 'new_year_dedication', name: '새해의 각오', desc: '1월 1일 신정에 30문제 이상 풀이', icon: '🎆', tier: 'hidden', points: 150 },
   christmas_studier: { id: 'christmas_studier', name: '메리 크리스마스', desc: '12월 25일 크리스마스에 30문제 이상 풀이', icon: '🎄', tier: 'hidden', points: 150 },
-  lunar_new_year: { id: 'lunar_new_year', name: '설날의 다짐', desc: '음력 설날 당일에 30문제 이상 풀이', icon: '🧧', tier: 'hidden', points: 150 }
+  lunar_new_year: { id: 'lunar_new_year', name: '설날의 다짐', desc: '음력 설날 당일에 30문제 이상 풀이', icon: '🧧', tier: 'hidden', points: 150 },
+
+  // ============================================================
+  // [KAM] 핵심감사사항 사례 학습 (10~300 AP)
+  // 총 획득 가능: 약 600점 (26개 전수 완료 시)
+  // ============================================================
+
+  // 🏁 회독 및 완주 (Rotation) - 100 AP
+  kam_starter: { id: 'kam_starter', name: 'KAM 입문', desc: 'KAM 사례 1개 작성 완료 (Step 1 또는 Step 2)', icon: '📝', tier: 'bronze', points: 10 },
+  kam_rotation_1: { id: 'kam_rotation_1', name: '수습 완료', desc: 'KAM 사례 26개 전수 작성 완료 (1회독)', icon: '🎓', tier: 'gold', points: 100 },
+
+  // 💎 품질 인증 (Quality) - 450 AP
+  kam_rank_incharge: { id: 'kam_rank_incharge', name: '인차지', desc: 'KAM 전수 풀이 + 2회독 + 평균 80점', icon: '📊', tier: 'silver', points: 50 },
+  kam_rank_manager: { id: 'kam_rank_manager', name: '시니어', desc: 'KAM 전수 풀이 + 3회독 + 평균 90점', icon: '👔', tier: 'platinum', points: 100 },
+  kam_rank_partner: { id: 'kam_rank_partner', name: '매니저', desc: 'KAM 전수 풀이 + 5회독 + 평균 95점', icon: '💼', tier: 'diamond', points: 300 },
+
+  // 🏭 산업별 마스터 (Industry) - 100 AP (20 × 5)
+  kam_expert_mfg: { id: 'kam_expert_mfg', name: '제조업 전문가', desc: '제조업 관련 KAM 전체 90점 이상', icon: '🏭', tier: 'silver', points: 20 },
+  kam_expert_cons: { id: 'kam_expert_cons', name: '건설업 전문가', desc: '건설업 관련 KAM 전체 90점 이상', icon: '🏗️', tier: 'silver', points: 20 },
+  kam_expert_bio: { id: 'kam_expert_bio', name: '바이오 전문가', desc: '바이오 관련 KAM 전체 90점 이상', icon: '🧬', tier: 'silver', points: 20 },
+  kam_expert_fin: { id: 'kam_expert_fin', name: '금융업 전문가', desc: '금융업 관련 KAM 전체 90점 이상', icon: '🏦', tier: 'silver', points: 20 },
+  kam_expert_it: { id: 'kam_expert_it', name: 'IT/플랫폼 전문가', desc: 'IT 관련 KAM 전체 90점 이상', icon: '💻', tier: 'silver', points: 20 },
+
+  // 🦅 성장 (Feedback) - 50 AP
+  kam_feedback_pro: { id: 'kam_feedback_pro', name: '환골탈태', desc: 'KAM 70점 미만 → 90점 달성 (5건)', icon: '🦅', tier: 'gold', points: 50 }
 };
 
 // ========================================

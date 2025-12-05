@@ -6,6 +6,16 @@
 import kamEvaluationService from './kamCore.js';
 import ragSearchService from '../../services/ragSearch.js';
 import { exitKAMMode } from './kamIntegration.js';
+import {
+  doc,
+  setDoc,
+  updateDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+import { db, auth } from '../../app.js';
+import { updateUserStats, updateGroupStats } from '../ranking/rankingCore.js';
+import { getMyGroups } from '../group/groupCore.js';
+import { updateUniversityStats } from '../university/universityCore.js';
 
 /**
  * KAM 학습 UI 상태 관리
@@ -67,17 +77,53 @@ class KAMUIState {
   }
 
   /**
-   * 점수 저장
+   * 점수 저장 (로컬 + Firestore)
    */
-  saveScoreToLocal(caseNum, finalScore, whyScore, howScore) {
+  async saveScoreToLocal(caseNum, finalScore, whyScore, howScore) {
     const scores = this.getAllScores();
-    scores[caseNum] = {
+    const scoreData = {
       finalScore,
       whyScore,
       howScore,
       timestamp: Date.now()
     };
+    scores[caseNum] = scoreData;
     localStorage.setItem('kam_scores', JSON.stringify(scores));
+
+    // Firestore에도 저장
+    await this.syncScoreToFirestore(caseNum, scoreData);
+  }
+
+  /**
+   * KAM 점수를 Firestore에 동기화
+   */
+  async syncScoreToFirestore(caseNum, scoreData) {
+    const user = auth.currentUser;
+    if (!user) {
+      console.log('⚠️ [KAM] 로그인되지 않음 - Firestore 동기화 스킵');
+      return { success: false, message: '로그인되지 않음' };
+    }
+
+    try {
+      console.log(`📤 [KAM] 사례 ${caseNum} 점수를 Firestore에 저장 중...`);
+
+      const kamScoreRef = doc(db, 'users', user.uid, 'kamScores', `case_${caseNum}`);
+
+      await setDoc(kamScoreRef, {
+        caseNum,
+        finalScore: scoreData.finalScore,
+        whyScore: scoreData.whyScore,
+        howScore: scoreData.howScore,
+        timestamp: scoreData.timestamp,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+
+      console.log(`✅ [KAM] 사례 ${caseNum} 점수 Firestore 저장 완료`);
+      return { success: true, message: '점수 저장 완료' };
+    } catch (error) {
+      console.error('❌ [KAM] Firestore 저장 실패:', error);
+      return { success: false, message: error.message };
+    }
   }
 
   /**
@@ -139,6 +185,132 @@ class KAMUIState {
 const kamUIState = new KAMUIState();
 
 /**
+ * 우선순위 기반 기준서 검색
+ * @param {Object} ragService - RAG 검색 서비스
+ * @param {string} proceduresText - 모범답안 감사절차 (최우선)
+ * @param {string} reasonText - 모범답안 선정이유 및 KAM 제목
+ * @param {string} userAnswersText - 사용자 답안 (부가적)
+ * @param {string} situationText - 상황 설명 (부가적)
+ * @param {number} limit - 반환할 최대 결과 수
+ * @returns {Array} 관련 기준서 배열
+ */
+function searchWithPriority(ragService, proceduresText, reasonText, userAnswersText, situationText, limit = 5) {
+  if (!ragService.initialized || !ragService.questionsData) {
+    console.warn('RAG Search System not initialized');
+    return [];
+  }
+
+  // 각 텍스트에서 키워드 추출
+  const proceduresKeywords = ragService.extractKeywords(proceduresText);
+  const reasonKeywords = ragService.extractKeywords(reasonText);
+  const userKeywords = ragService.extractKeywords(userAnswersText);
+  const situationKeywords = ragService.extractKeywords(situationText);
+
+  console.log('[KAM Search] 추출된 키워드:', {
+    procedures: proceduresKeywords.slice(0, 10),
+    reason: reasonKeywords.slice(0, 10),
+    user: userKeywords.slice(0, 5),
+    situation: situationKeywords.slice(0, 5)
+  });
+
+  // 각 질문에 대해 우선순위 기반 점수 계산
+  const scoredQuestions = ragService.questionsData.map(question => {
+    let score = 0;
+    const searchableAnswer = (question.정답 || '').toLowerCase();
+    const searchableTitle = (question.problemTitle || '').toLowerCase();
+    const searchableQuestion = (question.물음 || '').toLowerCase();
+
+    // 제목과 물음의 중복 체크를 위한 Set
+    const matchedInTitle = new Set();
+    const matchedInQuestion = new Set();
+
+    // 1. 모범답안 감사절차 키워드 (최고 가중치)
+    proceduresKeywords.forEach(keyword => {
+      const lowerKeyword = keyword.toLowerCase();
+
+      // 정답에서 매칭: +10점 (최우선)
+      if (searchableAnswer.includes(lowerKeyword)) {
+        score += 10;
+      }
+
+      // 제목에서 매칭: +3점 (중복 방지)
+      if (searchableTitle.includes(lowerKeyword) && !matchedInTitle.has(lowerKeyword)) {
+        score += 3;
+        matchedInTitle.add(lowerKeyword);
+      }
+
+      // 물음에서 매칭: +2점 (중복 방지)
+      if (searchableQuestion.includes(lowerKeyword) && !matchedInQuestion.has(lowerKeyword)) {
+        score += 2;
+        matchedInQuestion.add(lowerKeyword);
+      }
+    });
+
+    // 2. 모범답안 선정이유 및 KAM 키워드 (높은 가중치)
+    reasonKeywords.forEach(keyword => {
+      const lowerKeyword = keyword.toLowerCase();
+
+      // 정답에서 매칭: +5점
+      if (searchableAnswer.includes(lowerKeyword)) {
+        score += 5;
+      }
+
+      // 제목에서 매칭: +2점 (중복 방지)
+      if (searchableTitle.includes(lowerKeyword) && !matchedInTitle.has(lowerKeyword)) {
+        score += 2;
+        matchedInTitle.add(lowerKeyword);
+      }
+
+      // 물음에서 매칭: +1점 (중복 방지)
+      if (searchableQuestion.includes(lowerKeyword) && !matchedInQuestion.has(lowerKeyword)) {
+        score += 1;
+        matchedInQuestion.add(lowerKeyword);
+      }
+    });
+
+    // 3. 사용자 답안 키워드 (보조 가중치)
+    userKeywords.forEach(keyword => {
+      const lowerKeyword = keyword.toLowerCase();
+
+      // 정답에서 매칭: +2점
+      if (searchableAnswer.includes(lowerKeyword)) {
+        score += 2;
+      }
+
+      // 제목/물음에서는 중복 방지 위해 점수 주지 않음
+    });
+
+    // 4. 상황 설명 키워드 (최소 가중치)
+    situationKeywords.forEach(keyword => {
+      const lowerKeyword = keyword.toLowerCase();
+
+      // 정답에서 매칭: +1점
+      if (searchableAnswer.includes(lowerKeyword)) {
+        score += 1;
+      }
+    });
+
+    return {
+      ...question,
+      relevanceScore: score
+    };
+  });
+
+  // 점수 기준으로 정렬하고 상위 결과만 반환
+  const results = scoredQuestions
+    .filter(q => q.relevanceScore > 0)
+    .sort((a, b) => b.relevanceScore - a.relevanceScore)
+    .slice(0, limit);
+
+  console.log('[KAM Search] 상위 결과:', results.map(r => ({
+    title: r.problemTitle?.substring(0, 50),
+    score: r.relevanceScore
+  })));
+
+  return results;
+}
+
+/**
  * KAM 단축키 이벤트 리스너
  */
 let kamKeyboardHandler = null;
@@ -190,6 +362,44 @@ function setupKAMKeyboardShortcuts() {
       const loadBtnHow = document.querySelector('#btn-load-saved-how');
       if (loadBtnHow && loadBtnHow.style.display !== 'none') {
         loadBtnHow.click();
+        return;
+      }
+    }
+
+    // Ctrl+ArrowRight 또는 Cmd+ArrowRight: 다음 단계
+    if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowRight') {
+      e.preventDefault();
+
+      // Step 1에서 다음 단계 버튼
+      const skipToHowBtn = document.querySelector('#btn-skip-to-how-nav');
+      if (skipToHowBtn) {
+        skipToHowBtn.click();
+        return;
+      }
+
+      // Step 1 피드백 화면에서 다음 단계 버튼
+      const nextStepBtn = document.querySelector('#btn-next-step');
+      if (nextStepBtn) {
+        nextStepBtn.click();
+        return;
+      }
+    }
+
+    // Ctrl+ArrowLeft 또는 Cmd+ArrowLeft: 이전 단계
+    if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowLeft') {
+      e.preventDefault();
+
+      // Step 2에서 이전 단계 버튼
+      const backBtn = document.querySelector('#btn-back');
+      if (backBtn) {
+        backBtn.click();
+        return;
+      }
+
+      // 최종 결과 화면에서 이전 단계 버튼
+      const backToStep2Btn = document.querySelector('#btn-back-to-step2');
+      if (backToStep2Btn) {
+        backToStep2Btn.click();
         return;
       }
     }
@@ -302,15 +512,15 @@ function renderCaseList(container, apiKey, selectedModel) {
         <div class="case-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-lg transition-shadow cursor-pointer"
              data-case-num="${kamCase.num}">
           <div class="flex items-start justify-between mb-2">
-            <span class="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded font-bold">
+            <span class="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-700 text-purple-700 dark:text-purple-100 rounded font-bold">
               사례 ${kamCase.num}
             </span>
-            <span class="text-xs text-gray-500 dark:text-gray-400">${kamCase.size}</span>
+            <span class="text-xs text-gray-500 dark:text-gray-300">${kamCase.size}</span>
           </div>
-          <h4 class="font-bold text-gray-800 dark:text-gray-200 mb-2 text-sm leading-tight">
+          <h4 class="font-bold text-gray-900 dark:text-gray-100 mb-2 text-sm leading-tight">
             ${kamCase.kam}
           </h4>
-          <p class="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">
+          <p class="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 mb-2">
             ${kamCase.situation.substring(0, 100)}...
           </p>
           <div class="mt-3 flex flex-wrap gap-2 items-center">
@@ -366,10 +576,15 @@ function renderStepWhy(container, apiKey, selectedModel) {
     <div class="kam-step-container space-y-6">
       <!-- 헤더 -->
       <div class="flex items-center justify-between mb-4">
-        <button id="btn-back" class="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400">
+        <button id="btn-back" class="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium">
           ← 목록으로
         </button>
-        <div class="text-sm text-gray-500">Step 1/2</div>
+        <div class="flex items-center gap-4">
+          <div class="text-sm text-gray-500 dark:text-gray-400">Step 1/2</div>
+          <button id="btn-skip-to-how-nav" class="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium">
+            다음 단계 →
+          </button>
+        </div>
       </div>
 
       <!-- 진행 바 -->
@@ -378,20 +593,20 @@ function renderStepWhy(container, apiKey, selectedModel) {
       </div>
 
       <!-- 사례 정보 -->
-      <div class="case-info bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-5">
+      <div class="case-info bg-purple-50 dark:bg-gray-800 border border-purple-200 dark:border-gray-600 rounded-lg p-5">
         <div class="flex items-start gap-3 mb-3">
-          <span class="text-xs px-2 py-1 bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200 rounded font-bold">
+          <span class="text-xs px-2 py-1 bg-purple-200 dark:bg-purple-600 text-purple-800 dark:text-white rounded font-bold">
             사례 ${kamCase.num}
           </span>
-          <span class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
+          <span class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded">
             ${kamCase.industry}
           </span>
-          <span class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
+          <span class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded">
             ${kamCase.size}
           </span>
         </div>
-        <h3 class="font-bold text-lg text-gray-800 dark:text-gray-200 mb-3">${kamCase.kam}</h3>
-        <div class="situation-text bg-white dark:bg-gray-800 rounded-lg p-4 text-sm text-gray-700 dark:text-gray-300 leading-relaxed" style="font-family: 'Iropke Batang', serif;">
+        <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-3 bg-white dark:bg-gray-900 p-3 rounded-lg">${kamCase.kam}</h3>
+        <div class="situation-text bg-white dark:bg-gray-900 rounded-lg p-4 text-sm text-gray-800 dark:text-gray-200 leading-relaxed" style="font-family: 'Iropke Batang', serif;">
           ${kamCase.situation}
         </div>
       </div>
@@ -403,9 +618,14 @@ function renderStepWhy(container, apiKey, selectedModel) {
             <span class="text-2xl">💭</span>
             Step 1: 핵심감사사항 선정 이유 (Why)
           </h4>
-          <button id="btn-load-saved" class="text-xs px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 rounded transition-colors" style="display: none;">
-            📂 이전 답변 불러오기
-          </button>
+          <div class="flex gap-2">
+            <button id="btn-load-saved" class="text-xs px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 rounded transition-colors" style="display: none;">
+              📂 이전 답변 불러오기
+            </button>
+            <button id="btn-view-feedback" class="text-xs px-3 py-1 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded transition-colors" style="display: none;">
+              📋 이전 피드백 보기
+            </button>
+          </div>
         </div>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
           위 상황에서 <strong>핵심감사사항(KAM)은 무엇이며, 왜 선정하였는지</strong> 서술하시오.
@@ -415,7 +635,7 @@ function renderStepWhy(container, apiKey, selectedModel) {
           </span>
           <br>
           <span class="text-xs text-gray-500 dark:text-gray-400 mt-2 inline-block">
-            ⌨️ 단축키: <kbd class="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl+Enter</kbd> 제출 | <kbd class="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl+Shift+L</kbd> 이전 답변 불러오기
+            ⌨️ 단축키: <kbd class="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl+Enter</kbd> 제출 | <kbd class="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl+→</kbd> 다음 단계 | <kbd class="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl+Shift+L</kbd> 이전 답변
           </span>
         </p>
         <textarea id="why-answer"
@@ -428,31 +648,61 @@ function renderStepWhy(container, apiKey, selectedModel) {
         <button id="btn-exit-kam" class="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white font-bold rounded-lg transition-colors">
           ← 사례 종료
         </button>
-        <div class="flex gap-3">
-          <button id="btn-skip-to-how" class="px-6 py-3 bg-gray-400 hover:bg-gray-500 text-white font-bold rounded-lg transition-colors">
-            채점 건너뛰고 다음 단계 →
-          </button>
-          <button id="btn-submit-why" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
-            제출하고 피드백 받기 →
-          </button>
-        </div>
+        <button id="btn-submit-why" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
+          제출하고 피드백 받기 →
+        </button>
       </div>
 
       <div id="feedback-area"></div>
     </div>
   `;
 
-  // 저장된 답변 확인 및 불러오기 버튼 표시
+  // 저장된 답변 및 피드백 확인
   const savedAnswers = kamUIState.loadAnswersFromLocal(kamCase.num);
+  const savedFeedback = kamUIState.loadFeedbackFromLocal(kamCase.num);
   const loadBtn = container.querySelector('#btn-load-saved');
+  const viewFeedbackBtn = container.querySelector('#btn-view-feedback');
   const whyTextarea = container.querySelector('#why-answer');
+  const feedbackArea = container.querySelector('#feedback-area');
 
+  console.log('[KAM Step 1] 저장된 피드백 확인:', {
+    caseNum: kamCase.num,
+    savedFeedback,
+    hasWhyResult: !!(savedFeedback && savedFeedback.whyResult),
+    whyResultScore: savedFeedback?.whyResult?.score
+  });
+
+  // 이전 답변 불러오기
   if (savedAnswers && savedAnswers.whyAnswer && savedAnswers.whyAnswer.trim()) {
     loadBtn.style.display = 'block';
     loadBtn.addEventListener('click', () => {
       whyTextarea.value = savedAnswers.whyAnswer;
       const timestamp = new Date(savedAnswers.timestamp).toLocaleString('ko-KR');
       alert(`이전 답변을 불러왔습니다.\n저장 시간: ${timestamp}`);
+    });
+  }
+
+  // 이전 피드백 보기
+  if (savedFeedback && savedFeedback.whyResult) {
+    viewFeedbackBtn.style.display = 'block';
+    viewFeedbackBtn.addEventListener('click', () => {
+      const result = savedFeedback.whyResult;
+      feedbackArea.innerHTML = `
+        <div class="feedback-result bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 space-y-4 mt-4">
+          <div class="score-header flex items-center justify-between pb-4 border-b border-blue-200 dark:border-blue-700">
+            <h4 class="text-xl font-bold text-blue-800 dark:text-blue-200">저장된 피드백 (Step 1)</h4>
+            <div class="score-badge text-3xl font-bold ${result.score >= 80 ? 'text-green-600' : result.score >= 60 ? 'text-yellow-600' : 'text-red-600'}">
+              ${result.score}점
+            </div>
+          </div>
+          <div class="feedback-text text-gray-700 dark:text-gray-200 leading-relaxed bg-white dark:bg-gray-700 p-4 rounded-lg" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap;">
+            ${result.feedback}
+          </div>
+          <button onclick="this.closest('.feedback-result').remove()" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+            닫기
+          </button>
+        </div>
+      `;
     });
   }
 
@@ -469,15 +719,14 @@ function renderStepWhy(container, apiKey, selectedModel) {
     }
   });
 
-  // 채점 건너뛰고 다음 단계 버튼
-  container.querySelector('#btn-skip-to-how').addEventListener('click', () => {
+  // 네비게이션에서 다음 단계 버튼 (채점 건너뛰기)
+  container.querySelector('#btn-skip-to-how-nav').addEventListener('click', () => {
     const answer = whyTextarea.value.trim();
-    if (!answer) {
-      alert('답안을 작성해주세요.');
-      return;
-    }
+    // 답안이 비어있어도 다음 단계로 진행 가능 (요구사항에 따라)
     kamUIState.whyAnswer = answer;
-    kamUIState.saveAnswersToLocal(kamCase.num);
+    if (answer) {
+      kamUIState.saveAnswersToLocal(kamCase.num);
+    }
     kamUIState.currentStep = 'how';
     renderStepHow(container, apiKey, selectedModel);
   });
@@ -527,6 +776,66 @@ async function evaluateWhy(container, apiKey, selectedModel) {
       kamUIState.saveFeedbackToLocal(caseNum, { whyResult: result });
     }
 
+    // 랭킹 시스템 업데이트 (Step 1 - Why 채점 완료)
+    const user = auth.currentUser;
+    if (user) {
+      console.log('📊 [KAM Step 1] 랭킹 통계 업데이트 시작...');
+
+      // 개인 랭킹 업데이트 (문제 수, 점수, AP)
+      updateUserStats(user.uid, result.score)
+        .then(apResult => {
+          if (apResult.success) {
+            console.log('   - ✅ KAM Step 1 개인 랭킹 업데이트 성공');
+          } else {
+            console.warn('   - ⚠️ KAM Step 1 개인 랭킹 업데이트 실패:', apResult.message);
+          }
+        })
+        .catch(err => {
+          console.error('   - ❌ KAM Step 1 개인 랭킹 업데이트 에러:', err);
+        });
+
+      // 그룹 랭킹 업데이트
+      console.log('📊 [KAM Step 1] 그룹 랭킹 통계 업데이트 시작...');
+      getMyGroups()
+        .then(groups => {
+          if (groups && groups.length > 0) {
+            console.log(`   - 📋 ${groups.length}개 그룹 발견`);
+            groups.forEach(group => {
+              updateGroupStats(group.groupId, user.uid, result.score)
+                .then(result => {
+                  if (result.success) {
+                    console.log(`   - ✅ 그룹 "${group.name}" 통계 업데이트 성공`);
+                  } else {
+                    console.warn(`   - ⚠️ 그룹 "${group.name}" 통계 업데이트 실패:`, result.message);
+                  }
+                })
+                .catch(err => {
+                  console.error(`   - ❌ 그룹 "${group.name}" 통계 업데이트 에러:`, err);
+                });
+            });
+          } else {
+            console.log('   - ℹ️ 가입한 그룹이 없습니다.');
+          }
+        })
+        .catch(err => {
+          console.error('   - ❌ 그룹 목록 조회 에러:', err);
+        });
+
+      // 대학교 랭킹 업데이트
+      console.log('🎓 [KAM Step 1] 대학교 랭킹 통계 업데이트 시작...');
+      updateUniversityStats(user.uid, result.score)
+        .then(result => {
+          if (result.success) {
+            console.log('   - ✅ 대학교 통계 업데이트 성공');
+          } else {
+            console.log(`   - ℹ️ 대학교 통계 업데이트: ${result.message}`);
+          }
+        })
+        .catch(err => {
+          console.error('   - ❌ 대학교 통계 업데이트 에러:', err);
+        });
+    }
+
     // 로딩 스피너 제거
     const loadingSpinner = feedbackArea.querySelector('#loading-spinner');
     if (loadingSpinner) {
@@ -566,8 +875,8 @@ async function evaluateWhy(container, apiKey, selectedModel) {
         ` : ''}
 
         <div class="model-answer bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
-          <h5 class="font-bold text-purple-700 dark:text-purple-400 mb-2">📚 모범 답안</h5>
-          <p class="text-sm text-purple-600 dark:text-purple-300 leading-relaxed" style="font-family: 'Iropke Batang', serif;">
+          <h5 class="font-bold text-purple-700 dark:text-purple-300 mb-2">📚 모범 답안</h5>
+          <p class="text-sm text-purple-700 dark:text-purple-200 leading-relaxed bg-purple-50 dark:bg-purple-900/30 p-3 rounded-lg" style="font-family: 'Iropke Batang', serif;">
             ${kamUIState.currentCase.reason}
           </p>
         </div>
@@ -623,27 +932,27 @@ function renderStepHow(container, apiKey, selectedModel) {
       </div>
 
       <!-- 사례 정보 및 상황 -->
-      <div class="case-info bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-5">
+      <div class="case-info bg-purple-50 dark:bg-gray-800 border border-purple-200 dark:border-gray-600 rounded-lg p-5">
         <div class="flex items-start gap-3 mb-3">
-          <span class="text-xs px-2 py-1 bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200 rounded font-bold">
+          <span class="text-xs px-2 py-1 bg-purple-200 dark:bg-purple-600 text-purple-800 dark:text-white rounded font-bold">
             사례 ${kamCase.num}
           </span>
-          <span class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
+          <span class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded">
             ${kamCase.industry}
           </span>
-          <span class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
+          <span class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded">
             ${kamCase.size}
           </span>
         </div>
-        <h3 class="font-bold text-lg text-gray-800 dark:text-gray-200 mb-3">${kamCase.kam}</h3>
-        <div class="situation-text bg-white dark:bg-gray-800 rounded-lg p-4 text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-4" style="font-family: 'Iropke Batang', serif;">
+        <h3 class="font-bold text-lg text-gray-900 dark:text-white mb-3 bg-white dark:bg-gray-900 p-3 rounded-lg">${kamCase.kam}</h3>
+        <div class="situation-text bg-white dark:bg-gray-900 rounded-lg p-4 text-sm text-gray-800 dark:text-gray-200 leading-relaxed mb-4" style="font-family: 'Iropke Batang', serif;">
           ${kamCase.situation}
         </div>
-        <div class="hint-area border-t border-purple-200 dark:border-purple-700 pt-4">
+        <div class="hint-area border-t border-purple-200 dark:border-gray-600 pt-4">
           <h5 class="font-bold text-purple-700 dark:text-purple-400 mb-2 flex items-center gap-2">
             <span>💡</span> 참고: 선정 이유 (모범 답안)
           </h5>
-          <p class="text-sm text-purple-600 dark:text-purple-300 leading-relaxed" style="font-family: 'Iropke Batang', serif;">
+          <p class="text-sm text-purple-700 dark:text-gray-200 leading-relaxed bg-purple-50 dark:bg-gray-900 p-3 rounded-lg" style="font-family: 'Iropke Batang', serif;">
             ${kamCase.reason}
           </p>
         </div>
@@ -656,9 +965,14 @@ function renderStepHow(container, apiKey, selectedModel) {
             <span class="text-2xl">🔍</span>
             Step 2: 핵심 감사절차 (How)
           </h4>
-          <button id="btn-load-saved-how" class="text-xs px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 rounded transition-colors" style="display: none;">
-            📂 이전 답변 불러오기
-          </button>
+          <div class="flex gap-2">
+            <button id="btn-load-saved-how" class="text-xs px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 rounded transition-colors" style="display: none;">
+              📂 이전 답변 불러오기
+            </button>
+            <button id="btn-view-feedback-how" class="text-xs px-3 py-1 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded transition-colors" style="display: none;">
+              📋 이전 피드백 보기
+            </button>
+          </div>
         </div>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
           위 위험에 대응하기 위한 <strong>핵심 감사절차 3가지 이상</strong>을 서술하시오.
@@ -668,7 +982,7 @@ function renderStepHow(container, apiKey, selectedModel) {
           </span>
           <br>
           <span class="text-xs text-gray-500 dark:text-gray-400 mt-2 inline-block">
-            ⌨️ 단축키: <kbd class="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl+Enter</kbd> 제출 | <kbd class="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl+Shift+L</kbd> 이전 답변 불러오기
+            ⌨️ 단축키: <kbd class="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl+Enter</kbd> 제출 | <kbd class="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl+←</kbd> 이전 단계 | <kbd class="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl+Shift+L</kbd> 이전 답변
           </span>
         </p>
         <textarea id="how-answer"
@@ -694,10 +1008,13 @@ function renderStepHow(container, apiKey, selectedModel) {
     </div>
   `;
 
-  // 저장된 답변 확인 및 불러오기 버튼 표시
+  // 저장된 답변 및 피드백 확인
   const savedAnswers = kamUIState.loadAnswersFromLocal(kamCase.num);
+  const savedFeedback = kamUIState.loadFeedbackFromLocal(kamCase.num);
   const loadBtnHow = container.querySelector('#btn-load-saved-how');
+  const viewFeedbackBtnHow = container.querySelector('#btn-view-feedback-how');
   const howTextarea = container.querySelector('#how-answer');
+  const feedbackArea = container.querySelector('#feedback-area');
 
   console.log('[KAM Step 2] 저장된 답변 확인:', {
     caseNum: kamCase.num,
@@ -707,12 +1024,37 @@ function renderStepHow(container, apiKey, selectedModel) {
     howAnswerValue: savedAnswers?.howAnswer
   });
 
+  // 이전 답변 불러오기
   if (savedAnswers && savedAnswers.howAnswer && savedAnswers.howAnswer.trim()) {
     loadBtnHow.style.display = 'block';
     loadBtnHow.addEventListener('click', () => {
       howTextarea.value = savedAnswers.howAnswer;
       const timestamp = new Date(savedAnswers.timestamp).toLocaleString('ko-KR');
       alert(`이전 답변을 불러왔습니다.\n저장 시간: ${timestamp}`);
+    });
+  }
+
+  // 이전 피드백 보기
+  if (savedFeedback && savedFeedback.howResult) {
+    viewFeedbackBtnHow.style.display = 'block';
+    viewFeedbackBtnHow.addEventListener('click', () => {
+      const result = savedFeedback.howResult;
+      feedbackArea.innerHTML = `
+        <div class="feedback-result bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 space-y-4 mt-4">
+          <div class="score-header flex items-center justify-between pb-4 border-b border-blue-200 dark:border-blue-700">
+            <h4 class="text-xl font-bold text-blue-800 dark:text-blue-200">저장된 피드백 (Step 2)</h4>
+            <div class="score-badge text-3xl font-bold ${result.score >= 80 ? 'text-green-600' : result.score >= 60 ? 'text-yellow-600' : 'text-red-600'}">
+              ${result.score}점
+            </div>
+          </div>
+          <div class="feedback-text text-gray-700 dark:text-gray-200 leading-relaxed bg-white dark:bg-gray-700 p-4 rounded-lg" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap;">
+            ${result.feedback}
+          </div>
+          <button onclick="this.closest('.feedback-result').remove()" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+            닫기
+          </button>
+        </div>
+      `;
     });
   }
 
@@ -780,6 +1122,66 @@ async function evaluateHow(container, apiKey, selectedModel) {
       kamUIState.saveFeedbackToLocal(caseNum, { howResult: result });
     }
 
+    // 랭킹 시스템 업데이트 (Step 2 - How 채점 완료)
+    const user = auth.currentUser;
+    if (user) {
+      console.log('📊 [KAM Step 2] 랭킹 통계 업데이트 시작...');
+
+      // 개인 랭킹 업데이트 (문제 수, 점수, AP)
+      updateUserStats(user.uid, result.score)
+        .then(apResult => {
+          if (apResult.success) {
+            console.log('   - ✅ KAM Step 2 개인 랭킹 업데이트 성공');
+          } else {
+            console.warn('   - ⚠️ KAM Step 2 개인 랭킹 업데이트 실패:', apResult.message);
+          }
+        })
+        .catch(err => {
+          console.error('   - ❌ KAM Step 2 개인 랭킹 업데이트 에러:', err);
+        });
+
+      // 그룹 랭킹 업데이트
+      console.log('📊 [KAM Step 2] 그룹 랭킹 통계 업데이트 시작...');
+      getMyGroups()
+        .then(groups => {
+          if (groups && groups.length > 0) {
+            console.log(`   - 📋 ${groups.length}개 그룹 발견`);
+            groups.forEach(group => {
+              updateGroupStats(group.groupId, user.uid, result.score)
+                .then(result => {
+                  if (result.success) {
+                    console.log(`   - ✅ 그룹 "${group.name}" 통계 업데이트 성공`);
+                  } else {
+                    console.warn(`   - ⚠️ 그룹 "${group.name}" 통계 업데이트 실패:`, result.message);
+                  }
+                })
+                .catch(err => {
+                  console.error(`   - ❌ 그룹 "${group.name}" 통계 업데이트 에러:`, err);
+                });
+            });
+          } else {
+            console.log('   - ℹ️ 가입한 그룹이 없습니다.');
+          }
+        })
+        .catch(err => {
+          console.error('   - ❌ 그룹 목록 조회 에러:', err);
+        });
+
+      // 대학교 랭킹 업데이트
+      console.log('🎓 [KAM Step 2] 대학교 랭킹 통계 업데이트 시작...');
+      updateUniversityStats(user.uid, result.score)
+        .then(result => {
+          if (result.success) {
+            console.log('   - ✅ 대학교 통계 업데이트 성공');
+          } else {
+            console.log(`   - ℹ️ 대학교 통계 업데이트: ${result.message}`);
+          }
+        })
+        .catch(err => {
+          console.error('   - ❌ 대학교 통계 업데이트 에러:', err);
+        });
+    }
+
     // 종합 평가
     const finalScore = kamEvaluationService.calculateFinalScore(
       kamUIState.whyResult,
@@ -814,10 +1216,10 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
   const whyResult = kamUIState.whyResult;
   const howResult = kamUIState.howResult;
 
-  // 점수 저장
+  // 점수 저장 (로컬 + Firestore)
   const whyScore = whyResult ? whyResult.score : 0;
   const howScore = howResult ? howResult.score : 0;
-  kamUIState.saveScoreToLocal(kamCase.num, finalScore.finalScore, whyScore, howScore);
+  await kamUIState.saveScoreToLocal(kamCase.num, finalScore.finalScore, whyScore, howScore);
   kamUIState.saveFeedbackToLocal(kamCase.num, {
     whyResult: whyResult || null,
     howResult: howResult || null,
@@ -829,17 +1231,16 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
     <div class="final-result-container space-y-6">
       <!-- 헤더 -->
       <div class="flex items-center justify-between mb-4">
+        <button id="btn-back-to-step2" class="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium">
+          ← 이전 단계
+        </button>
+        <div class="text-sm text-gray-500 dark:text-gray-400">Step 2/2</div>
+      </div>
+
+      <div class="mb-4">
         <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">
           🎯 종합 평가 결과
         </h2>
-        <div class="flex gap-3">
-          <button id="btn-exit-kam-final" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">
-            사례 모드 종료
-          </button>
-          <button id="btn-restart" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
-            다른 사례 풀기
-          </button>
-        </div>
       </div>
 
       <!-- 종합 점수 -->
@@ -860,18 +1261,18 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
       <div class="feedback-details grid grid-cols-1 ${whyResult ? 'md:grid-cols-2' : ''} gap-6">
         ${whyResult ? `
         <!-- Why 결과 -->
-        <div class="why-feedback bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-5">
-          <h4 class="font-bold text-purple-700 dark:text-purple-400 mb-3 flex items-center gap-2">
+        <div class="why-feedback bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4">
+          <h4 class="font-bold text-purple-700 dark:text-purple-400 mb-2 flex items-center gap-2">
             <span>💭</span> Step 1: 선정 이유 (${whyScore}점)
           </h4>
-          <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed space-y-2" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap;">
+          <div class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap;">
             ${whyResult.feedback}
           </div>
         </div>
         ` : `
         <!-- Why 건너뜀 안내 -->
-        <div class="why-feedback bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-5">
-          <h4 class="font-bold text-yellow-700 dark:text-yellow-400 mb-3 flex items-center gap-2">
+        <div class="why-feedback bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+          <h4 class="font-bold text-yellow-700 dark:text-yellow-400 mb-2 flex items-center gap-2">
             <span>⚠️</span> Step 1: 선정 이유 (채점 건너뜀)
           </h4>
           <div class="text-sm text-yellow-700 dark:text-yellow-300 leading-relaxed">
@@ -881,11 +1282,11 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
         `}
 
         <!-- How 결과 -->
-        <div class="how-feedback bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-5">
-          <h4 class="font-bold text-purple-700 dark:text-purple-400 mb-3 flex items-center gap-2">
+        <div class="how-feedback bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4">
+          <h4 class="font-bold text-purple-700 dark:text-purple-400 mb-2 flex items-center gap-2">
             <span>🔍</span> Step 2: 감사 절차 (${howScore}점)
           </h4>
-          <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed space-y-2" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap;">
+          <div class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap;">
             ${howResult.feedback}
           </div>
         </div>
@@ -893,18 +1294,18 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
 
       <!-- 모범 답안 -->
       <div class="model-answers bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-6 space-y-4">
-        <h4 class="font-bold text-purple-700 dark:text-purple-400 text-lg mb-4">📚 모범 답안</h4>
+        <h4 class="font-bold text-purple-700 dark:text-purple-300 text-lg mb-4">📚 모범 답안</h4>
 
         <div class="model-why">
-          <h5 class="font-bold text-sm text-purple-600 dark:text-purple-300 mb-2">선정 이유 (Why)</h5>
-          <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed" style="font-family: 'Iropke Batang', serif;">
+          <h5 class="font-bold text-sm text-purple-700 dark:text-purple-200 mb-2">선정 이유 (Why)</h5>
+          <p class="text-sm text-gray-800 dark:text-gray-100 leading-relaxed bg-white dark:bg-gray-700 p-4 rounded-lg" style="font-family: 'Iropke Batang', serif;">
             ${kamCase.reason}
           </p>
         </div>
 
         <div class="model-how">
-          <h5 class="font-bold text-sm text-purple-600 dark:text-purple-300 mb-2">감사 절차 (How)</h5>
-          <ol class="list-decimal list-inside space-y-1 text-sm text-gray-700 dark:text-gray-300" style="font-family: 'Iropke Batang', serif;">
+          <h5 class="font-bold text-sm text-purple-700 dark:text-purple-200 mb-2">감사 절차 (How)</h5>
+          <ol class="list-decimal list-inside space-y-1 text-sm text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 p-4 rounded-lg" style="font-family: 'Iropke Batang', serif;">
             ${kamCase.procedures.map(p => `<li>${p}</li>`).join('')}
           </ol>
         </div>
@@ -927,27 +1328,32 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
       </div>
 
       <!-- 액션 버튼 -->
-      <div class="flex justify-center gap-4 pt-4">
-        <button id="btn-retry" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
-          이 사례 다시 풀기
+      <div class="flex justify-between gap-4 pt-4">
+        <button id="btn-exit-kam-final" class="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white font-bold rounded-lg transition-colors">
+          ← 사례 종료
         </button>
-        <button id="btn-list" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-lg transition-colors">
-          사례 목록으로
-        </button>
+        <div class="flex gap-3">
+          <button id="btn-retry" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
+            이 사례 다시 풀기
+          </button>
+          <button id="btn-list" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-lg transition-colors">
+            사례 목록으로
+          </button>
+        </div>
       </div>
     </div>
   `;
 
   // 이벤트 리스너
+  container.querySelector('#btn-back-to-step2').addEventListener('click', () => {
+    kamUIState.currentStep = 'how';
+    renderStepHow(container, apiKey, selectedModel);
+  });
+
   container.querySelector('#btn-exit-kam-final').addEventListener('click', () => {
     if (confirm('사례 모드를 종료하고 퀴즈 모드로 돌아가시겠습니까?')) {
       exitKAMMode();
     }
-  });
-
-  container.querySelector('#btn-restart').addEventListener('click', () => {
-    kamUIState.reset();
-    renderCaseList(container, apiKey, selectedModel);
   });
 
   container.querySelector('#btn-retry').addEventListener('click', () => {
@@ -979,19 +1385,25 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
       `;
 
       try {
-        const searchTextSegments = [
-          kamUIState.whyAnswer,
-          kamUIState.howAnswer,
-          kamCase.reason,
-          kamCase.situation
-        ].filter(Boolean);
+        // 우선순위에 따른 검색 텍스트 구성
+        // 1. 모범답안의 감사절차 (최우선)
+        const proceduresText = kamCase.procedures.join(' ');
+        // 2. 모범답안의 선정 이유 및 KAM 제목
+        const reasonText = `${kamCase.reason} ${kamCase.kam}`;
+        // 3. 사용자 답안 (부가적)
+        const userAnswersText = [kamUIState.whyAnswer, kamUIState.howAnswer].filter(Boolean).join(' ');
+        // 4. 상황 설명 (부가적)
+        const situationText = kamCase.situation;
 
-        let combinedText = searchTextSegments.join(' ').trim();
-        if (!combinedText) {
-          combinedText = `${kamCase.reason} ${kamCase.situation}`;
-        }
-
-        const relatedStandards = ragSearchService.searchByText(combinedText, 5);
+        // 가중치를 적용한 검색을 위해 우선순위별로 검색 수행
+        const relatedStandards = searchWithPriority(
+          ragSearchService,
+          proceduresText,
+          reasonText,
+          userAnswersText,
+          situationText,
+          5
+        );
 
         if (!relatedStandards || relatedStandards.length === 0) {
           standardsResultContainer.innerHTML = `
@@ -1010,15 +1422,15 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
             const title = std?.problemTitle || '제목 없음';
             return `
               <article class="standard-card bg-gray-50 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
-                <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start justify-between gap-2 mb-2">
                   <div>
                     <p class="text-xs text-gray-500 dark:text-gray-400 font-semibold">단원 ${chapter} · 표시번호 ${displayNo}</p>
                     <h5 class="mt-1 font-bold text-sm text-gray-800 dark:text-gray-200">${title}</h5>
                   </div>
-                  <span class="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded font-bold">${idx + 1}</span>
+                  <span class="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded font-bold flex-shrink-0">${idx + 1}</span>
                 </div>
                 ${question}
-                <div class="mt-3 text-sm text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">
+                <div class="mt-2 text-sm text-gray-800 dark:text-gray-100 leading-relaxed bg-white dark:bg-gray-800 p-3 rounded" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap; word-break: keep-all;">
                   ${answer}
                 </div>
               </article>
