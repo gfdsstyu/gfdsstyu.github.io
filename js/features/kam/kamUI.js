@@ -81,6 +81,38 @@ class KAMUIState {
   }
 
   /**
+   * 평가 피드백 저장 (AI 응답)
+   */
+  saveFeedbackToLocal(caseNum, feedback = {}) {
+    const existing = this.loadFeedbackFromLocal(caseNum) || {};
+    const data = {
+      ...existing,
+      ...feedback,
+      timestamp: Date.now()
+    };
+    try {
+      localStorage.setItem(`kam_feedback_${caseNum}`, JSON.stringify(data));
+    } catch (error) {
+      console.error('Failed to save feedback to localStorage:', error);
+    }
+  }
+
+  /**
+   * 평가 피드백 불러오기
+   */
+  loadFeedbackFromLocal(caseNum) {
+    const saved = localStorage.getItem(`kam_feedback_${caseNum}`);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse saved feedback:', e);
+      }
+    }
+    return null;
+  }
+
+  /**
    * 모든 점수 가져오기
    */
   getAllScores() {
@@ -490,6 +522,11 @@ async function evaluateWhy(container, apiKey, selectedModel) {
 
     kamUIState.whyResult = result;
 
+    const caseNum = kamUIState.currentCase?.num;
+    if (caseNum) {
+      kamUIState.saveFeedbackToLocal(caseNum, { whyResult: result });
+    }
+
     // 로딩 스피너 제거
     const loadingSpinner = feedbackArea.querySelector('#loading-spinner');
     if (loadingSpinner) {
@@ -738,6 +775,11 @@ async function evaluateHow(container, apiKey, selectedModel) {
 
     kamUIState.howResult = result;
 
+    const caseNum = kamUIState.currentCase?.num;
+    if (caseNum) {
+      kamUIState.saveFeedbackToLocal(caseNum, { howResult: result });
+    }
+
     // 종합 평가
     const finalScore = kamEvaluationService.calculateFinalScore(
       kamUIState.whyResult,
@@ -776,6 +818,11 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
   const whyScore = whyResult ? whyResult.score : 0;
   const howScore = howResult ? howResult.score : 0;
   kamUIState.saveScoreToLocal(kamCase.num, finalScore.finalScore, whyScore, howScore);
+  kamUIState.saveFeedbackToLocal(kamCase.num, {
+    whyResult: whyResult || null,
+    howResult: howResult || null,
+    finalSummary: finalScore
+  });
 
   // 초기 화면 렌더링 (관련 기준서 없이)
   container.innerHTML = `
@@ -863,15 +910,20 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
         </div>
       </div>
 
-      <!-- 관련 기준서 카드 (비동기 로딩) -->
-      <div id="related-standards-container" class="related-standards-placeholder bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-6">
-        <h4 class="font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-          <span>📖</span> 관련 회계감사기준서
-        </h4>
-        <div class="flex justify-center items-center py-8">
-          <div class="loader"></div>
-          <span class="ml-3 text-gray-600 dark:text-gray-400">관련 기준서를 검색하고 있습니다...</span>
+      <!-- 관련 기준서 카드 (수동 로딩) -->
+      <div id="related-standards-container" class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <h4 class="font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+            <span>📖</span> 관련 회계감사기준서
+          </h4>
+          <button id="btn-load-standards" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors">
+            관련 기준서 불러오기
+          </button>
         </div>
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          버튼을 눌러 관련 기준서를 수동으로 불러오세요. 기준서 전문과 단원/표시번호가 함께 제공됩니다.
+        </p>
+        <div id="related-standards-results" class="mt-4" style="display: none;"></div>
       </div>
 
       <!-- 액션 버튼 -->
@@ -910,51 +962,88 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
     renderCaseList(container, apiKey, selectedModel);
   });
 
-  // 비동기로 관련 기준서 검색 및 렌더링
-  setTimeout(async () => {
-    try {
-      // RAG: 관련 기준서 검색 (사용자 답안 기반)
-      const combinedText = `${kamUIState.whyAnswer} ${kamUIState.howAnswer}`;
-      const relatedStandards = ragSearchService.searchByText(combinedText, 5);
+  const loadStandardsBtn = container.querySelector('#btn-load-standards');
+  const standardsResultContainer = container.querySelector('#related-standards-results');
 
-      const standardsContainer = container.querySelector('#related-standards-container');
-      if (standardsContainer) {
-        if (relatedStandards.length > 0) {
-          standardsContainer.innerHTML = `
-            <h4 class="font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-              <span>📖</span> 관련 회계감사기준서
-            </h4>
-            <div class="standards-grid grid grid-cols-1 gap-3">
-              ${relatedStandards.map(std => `
-                <div class="standard-card bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-                  <h5 class="font-bold text-sm text-gray-800 dark:text-gray-200 mb-2">${std.problemTitle}</h5>
-                  <p class="text-xs text-gray-600 dark:text-gray-400 line-clamp-3">${std.정답?.substring(0, 150)}...</p>
-                </div>
-              `).join('')}
-            </div>
+  if (loadStandardsBtn && standardsResultContainer) {
+    loadStandardsBtn.addEventListener('click', async () => {
+      loadStandardsBtn.disabled = true;
+      loadStandardsBtn.innerHTML = '<div class="loader inline-block mr-2"></div> 불러오는 중...';
+
+      standardsResultContainer.style.display = 'block';
+      standardsResultContainer.innerHTML = `
+        <div class="flex justify-center items-center py-6">
+          <div class="loader"></div>
+          <span class="ml-3 text-gray-600 dark:text-gray-400">관련 기준서를 불러오는 중입니다...</span>
+        </div>
+      `;
+
+      try {
+        const searchTextSegments = [
+          kamUIState.whyAnswer,
+          kamUIState.howAnswer,
+          kamCase.reason,
+          kamCase.situation
+        ].filter(Boolean);
+
+        let combinedText = searchTextSegments.join(' ').trim();
+        if (!combinedText) {
+          combinedText = `${kamCase.reason} ${kamCase.situation}`;
+        }
+
+        const relatedStandards = ragSearchService.searchByText(combinedText, 5);
+
+        if (!relatedStandards || relatedStandards.length === 0) {
+          standardsResultContainer.innerHTML = `
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              관련 기준서를 찾을 수 없습니다. 필요시 다른 키워드로 다시 시도해보세요.
+            </p>
           `;
         } else {
-          standardsContainer.innerHTML = `
-            <h4 class="font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-              <span>📖</span> 관련 회계감사기준서
-            </h4>
-            <p class="text-sm text-gray-600 dark:text-gray-400">관련 기준서를 찾을 수 없습니다.</p>
+          const cardsHtml = relatedStandards.map((std, idx) => {
+            const chapter = std?.['단원'] ?? '-';
+            const displayNo = std?.['표시번호'] ?? '-';
+            const question = std?.물음
+              ? `<p class="mt-3 text-xs text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap">${std.물음}</p>`
+              : '';
+            const answer = std?.정답 ?? '정답 정보가 없습니다.';
+            const title = std?.problemTitle || '제목 없음';
+            return `
+              <article class="standard-card bg-gray-50 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-semibold">단원 ${chapter} · 표시번호 ${displayNo}</p>
+                    <h5 class="mt-1 font-bold text-sm text-gray-800 dark:text-gray-200">${title}</h5>
+                  </div>
+                  <span class="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded font-bold">${idx + 1}</span>
+                </div>
+                ${question}
+                <div class="mt-3 text-sm text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">
+                  ${answer}
+                </div>
+              </article>
+            `;
+          }).join('');
+
+          standardsResultContainer.innerHTML = `
+            <div class="space-y-4">
+              ${cardsHtml}
+            </div>
           `;
         }
-      }
-    } catch (error) {
-      console.error('관련 기준서 검색 실패:', error);
-      const standardsContainer = container.querySelector('#related-standards-container');
-      if (standardsContainer) {
-        standardsContainer.innerHTML = `
-          <h4 class="font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-            <span>📖</span> 관련 회계감사기준서
-          </h4>
-          <p class="text-sm text-red-600 dark:text-red-400">기준서 검색 중 오류가 발생했습니다.</p>
+      } catch (error) {
+        console.error('관련 기준서 검색 실패:', error);
+        standardsResultContainer.innerHTML = `
+          <p class="text-sm text-red-600 dark:text-red-400">
+            기준서 검색 중 오류가 발생했습니다: ${error.message || '알 수 없는 오류'}
+          </p>
         `;
+      } finally {
+        loadStandardsBtn.disabled = false;
+        loadStandardsBtn.innerHTML = '관련 기준서 다시 불러오기';
       }
-    }
-  }, 100); // 약간의 딜레이 후 검색 시작
+    });
+  }
 }
 
 export default {

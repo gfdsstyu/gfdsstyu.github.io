@@ -324,50 +324,100 @@ ${kamCase.procedures.map((p, idx) => `${idx + 1}. ${p}`).join('\n')}
       }
     };
 
-    try {
+    const MAX_RETRIES = 3;
+    const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+    const RETRYABLE_MESSAGE_REGEX = /(model is overloaded|rate limit|please try again later|backend error)/i;
+    const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000); // 60초 타임아웃
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        const msg = body?.error?.message || res.statusText;
-        throw new Error(`Gemini API Error (${res.status}): ${msg}`);
-      }
-
-      const data = await res.json();
-      const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-      const cleaned = sanitizeModelText(raw);
-
       try {
-        return JSON.parse(cleaned);
-      } catch (parseError) {
-        console.error('[KAM] Failed to parse Gemini response:', {
-          raw,
-          cleaned,
-          parseError: parseError.message
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal
         });
-        throw new Error(`Invalid JSON response from Gemini API: ${parseError.message}`);
+
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          const msg = body?.error?.message || res.statusText || 'Unknown error';
+          const shouldRetry = RETRYABLE_STATUS.has(res.status) || RETRYABLE_MESSAGE_REGEX.test(msg);
+
+          if (shouldRetry && attempt < MAX_RETRIES) {
+            const delay = Math.pow(2, attempt - 1) * 1000;
+            console.warn(`[KAM] Gemini API transient error (status: ${res.status}). Retrying in ${delay}ms.`, {
+              attempt,
+              message: msg
+            });
+            await wait(delay);
+            continue;
+          }
+
+          throw new Error(`Gemini API Error (${res.status}): ${msg}`);
+        }
+
+        const data = await res.json();
+        const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+        const cleaned = sanitizeModelText(raw);
+
+        try {
+          return JSON.parse(cleaned);
+        } catch (parseError) {
+          console.error('[KAM] Failed to parse Gemini response:', {
+            raw,
+            cleaned,
+            parseError: parseError.message
+          });
+
+          if (attempt < MAX_RETRIES) {
+            const delay = Math.pow(2, attempt - 1) * 1000;
+            console.warn(`[KAM] Retrying due to JSON parse failure. Next attempt in ${delay}ms.`, {
+              attempt,
+              parseError: parseError.message
+            });
+            await wait(delay);
+            continue;
+          }
+
+          throw new Error(`Invalid JSON response from Gemini API: ${parseError.message}`);
+        }
+      } catch (error) {
+        clearTimeout(timeoutId);
+
+        if (error.name === 'AbortError') {
+          throw new Error('API 요청 시간 초과 (60초)');
+        }
+
+        const shouldRetry = attempt < MAX_RETRIES && (
+          RETRYABLE_MESSAGE_REGEX.test(error.message || '') ||
+          /fetch failed/i.test(error.message || '')
+        );
+
+        if (shouldRetry) {
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          console.warn(`[KAM] Gemini API call failed (attempt ${attempt}). Retrying in ${delay}ms.`, {
+            error: error.message
+          });
+          await wait(delay);
+          continue;
+        }
+
+        console.error('[KAM] Gemini API call failed:', {
+          error: error.message,
+          stack: error.stack,
+          model: modelName,
+          attempt
+        });
+        throw error;
       }
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        throw new Error('API 요청 시간 초과 (60초)');
-      }
-      console.error('[KAM] Gemini API call failed:', {
-        error: error.message,
-        stack: error.stack,
-        model: modelName
-      });
-      throw error;
     }
+
+    throw new Error('Gemini API 호출에 반복적으로 실패했습니다. 잠시 후 다시 시도해주세요.');
   }
 
   /**
@@ -403,19 +453,28 @@ ${kamCase.procedures.map((p, idx) => `${idx + 1}. ${p}`).join('\n')}
     else if (finalScore >= 60) grade = 'D (미흡)';
     else grade = 'F (매우 미흡)';
 
+    const whyScoreText = whyResult ? `${whyResult.score}점` : '채점 건너뜀 (0점)';
+    const whyFeedbackText = whyResult?.feedback || 'Step 1을 채점하지 않았습니다. Step 2 결과만 반영되었습니다.';
+    const howScoreText = howResult ? `${howResult.score}점` : '채점 미실시';
+    const howFeedbackText = howResult?.feedback || 'Step 2 평가가 완료되지 않았습니다. 다시 시도해주세요.';
+
+    const overallMessage = finalScore >= 80
+      ? '전반적으로 우수한 답안입니다. 금감원 모범사례 기준을 잘 충족하고 있습니다.'
+      : finalScore >= 60
+        ? '기본적인 이해는 있으나, 구체성과 실무적 접근이 보완되면 좋겠습니다.'
+        : 'KAM 작성의 핵심 원칙을 다시 학습하시기 바랍니다. 구체성, 연계성, 명확성을 고려해주세요.';
+
     return `
 ## 종합 평가: ${finalScore}점 (${grade})
 
-### Why (선정 이유): ${whyResult.score}점
-${whyResult.feedback}
+### Why (선정 이유): ${whyScoreText}
+${whyFeedbackText}
 
-### How (감사 절차): ${howResult.score}점
-${howResult.feedback}
+### How (감사 절차): ${howScoreText}
+${howFeedbackText}
 
 ### 종합 의견
-${finalScore >= 80 ? '전반적으로 우수한 답안입니다. 금감원 모범사례 기준을 잘 충족하고 있습니다.' :
-  finalScore >= 60 ? '기본적인 이해는 있으나, 구체성과 실무적 접근이 보완되면 좋겠습니다.' :
-  'KAM 작성의 핵심 원칙을 다시 학습하시기 바랍니다. 구체성, 연계성, 명확성을 고려해주세요.'}
+${overallMessage}
 `;
   }
 }
