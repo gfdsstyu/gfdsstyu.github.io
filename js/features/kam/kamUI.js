@@ -13,7 +13,9 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 import { db, auth } from '../../app.js';
-import { updateUserStats } from '../ranking/rankingCore.js';
+import { updateUserStats, updateGroupStats } from '../ranking/rankingCore.js';
+import { getMyGroups } from '../group/groupCore.js';
+import { updateUniversityStats } from '../university/universityCore.js';
 
 /**
  * KAM 학습 UI 상태 관리
@@ -774,20 +776,63 @@ async function evaluateWhy(container, apiKey, selectedModel) {
       kamUIState.saveFeedbackToLocal(caseNum, { whyResult: result });
     }
 
-    // AP 부여 (Step 1 - Why 채점 완료)
+    // 랭킹 시스템 업데이트 (Step 1 - Why 채점 완료)
     const user = auth.currentUser;
     if (user) {
-      console.log('📊 [KAM Step 1] AP 부여 시작...');
+      console.log('📊 [KAM Step 1] 랭킹 통계 업데이트 시작...');
+
+      // 개인 랭킹 업데이트 (문제 수, 점수, AP)
       updateUserStats(user.uid, result.score)
         .then(apResult => {
           if (apResult.success) {
-            console.log('   - ✅ KAM Step 1 AP 부여 성공');
+            console.log('   - ✅ KAM Step 1 개인 랭킹 업데이트 성공');
           } else {
-            console.warn('   - ⚠️ KAM Step 1 AP 부여 실패:', apResult.message);
+            console.warn('   - ⚠️ KAM Step 1 개인 랭킹 업데이트 실패:', apResult.message);
           }
         })
         .catch(err => {
-          console.error('   - ❌ KAM Step 1 AP 부여 에러:', err);
+          console.error('   - ❌ KAM Step 1 개인 랭킹 업데이트 에러:', err);
+        });
+
+      // 그룹 랭킹 업데이트
+      console.log('📊 [KAM Step 1] 그룹 랭킹 통계 업데이트 시작...');
+      getMyGroups()
+        .then(groups => {
+          if (groups && groups.length > 0) {
+            console.log(`   - 📋 ${groups.length}개 그룹 발견`);
+            groups.forEach(group => {
+              updateGroupStats(group.groupId, user.uid, result.score)
+                .then(result => {
+                  if (result.success) {
+                    console.log(`   - ✅ 그룹 "${group.name}" 통계 업데이트 성공`);
+                  } else {
+                    console.warn(`   - ⚠️ 그룹 "${group.name}" 통계 업데이트 실패:`, result.message);
+                  }
+                })
+                .catch(err => {
+                  console.error(`   - ❌ 그룹 "${group.name}" 통계 업데이트 에러:`, err);
+                });
+            });
+          } else {
+            console.log('   - ℹ️ 가입한 그룹이 없습니다.');
+          }
+        })
+        .catch(err => {
+          console.error('   - ❌ 그룹 목록 조회 에러:', err);
+        });
+
+      // 대학교 랭킹 업데이트
+      console.log('🎓 [KAM Step 1] 대학교 랭킹 통계 업데이트 시작...');
+      updateUniversityStats(user.uid, result.score)
+        .then(result => {
+          if (result.success) {
+            console.log('   - ✅ 대학교 통계 업데이트 성공');
+          } else {
+            console.log(`   - ℹ️ 대학교 통계 업데이트: ${result.message}`);
+          }
+        })
+        .catch(err => {
+          console.error('   - ❌ 대학교 통계 업데이트 에러:', err);
         });
     }
 
@@ -1077,20 +1122,63 @@ async function evaluateHow(container, apiKey, selectedModel) {
       kamUIState.saveFeedbackToLocal(caseNum, { howResult: result });
     }
 
-    // AP 부여 (Step 2 - How 채점 완료)
+    // 랭킹 시스템 업데이트 (Step 2 - How 채점 완료)
     const user = auth.currentUser;
     if (user) {
-      console.log('📊 [KAM Step 2] AP 부여 시작...');
+      console.log('📊 [KAM Step 2] 랭킹 통계 업데이트 시작...');
+
+      // 개인 랭킹 업데이트 (문제 수, 점수, AP)
       updateUserStats(user.uid, result.score)
         .then(apResult => {
           if (apResult.success) {
-            console.log('   - ✅ KAM Step 2 AP 부여 성공');
+            console.log('   - ✅ KAM Step 2 개인 랭킹 업데이트 성공');
           } else {
-            console.warn('   - ⚠️ KAM Step 2 AP 부여 실패:', apResult.message);
+            console.warn('   - ⚠️ KAM Step 2 개인 랭킹 업데이트 실패:', apResult.message);
           }
         })
         .catch(err => {
-          console.error('   - ❌ KAM Step 2 AP 부여 에러:', err);
+          console.error('   - ❌ KAM Step 2 개인 랭킹 업데이트 에러:', err);
+        });
+
+      // 그룹 랭킹 업데이트
+      console.log('📊 [KAM Step 2] 그룹 랭킹 통계 업데이트 시작...');
+      getMyGroups()
+        .then(groups => {
+          if (groups && groups.length > 0) {
+            console.log(`   - 📋 ${groups.length}개 그룹 발견`);
+            groups.forEach(group => {
+              updateGroupStats(group.groupId, user.uid, result.score)
+                .then(result => {
+                  if (result.success) {
+                    console.log(`   - ✅ 그룹 "${group.name}" 통계 업데이트 성공`);
+                  } else {
+                    console.warn(`   - ⚠️ 그룹 "${group.name}" 통계 업데이트 실패:`, result.message);
+                  }
+                })
+                .catch(err => {
+                  console.error(`   - ❌ 그룹 "${group.name}" 통계 업데이트 에러:`, err);
+                });
+            });
+          } else {
+            console.log('   - ℹ️ 가입한 그룹이 없습니다.');
+          }
+        })
+        .catch(err => {
+          console.error('   - ❌ 그룹 목록 조회 에러:', err);
+        });
+
+      // 대학교 랭킹 업데이트
+      console.log('🎓 [KAM Step 2] 대학교 랭킹 통계 업데이트 시작...');
+      updateUniversityStats(user.uid, result.score)
+        .then(result => {
+          if (result.success) {
+            console.log('   - ✅ 대학교 통계 업데이트 성공');
+          } else {
+            console.log(`   - ℹ️ 대학교 통계 업데이트: ${result.message}`);
+          }
+        })
+        .catch(err => {
+          console.error('   - ❌ 대학교 통계 업데이트 에러:', err);
         });
     }
 
