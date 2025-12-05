@@ -28,6 +28,10 @@ const state = {
   statsView: 'day',
   isFlashcardMode: false,
 
+  // KAM 모드
+  isKAMMode: false,
+  kamSelectedCase: null,
+
   // STT (음성 인식 설정)
   sttProvider: 'webspeech',
   googleSttKey: '',
@@ -76,6 +80,8 @@ export const getIsFlashcardMode = () => state.isFlashcardMode;
 export const getSttProvider = () => state.sttProvider;
 export const getGoogleSttKey = () => state.googleSttKey;
 export const getElements = () => state.el;
+export const getIsKAMMode = () => state.isKAMMode;
+export const getKAMSelectedCase = () => state.kamSelectedCase;
 
 // ============================================
 // Setter: 상태 변경
@@ -122,6 +128,8 @@ export const setIsFlashcardMode = (mode) => { state.isFlashcardMode = mode; };
 export const setSttProvider = (provider) => { state.sttProvider = provider; };
 export const setGoogleSttKey = (key) => { state.googleSttKey = key; };
 export const setElements = (elements) => { state.el = elements; };
+export const setIsKAMMode = (mode) => { state.isKAMMode = mode; };
+export const setKAMSelectedCase = (caseData) => { state.kamSelectedCase = caseData; };
 
 // ============================================
 // localStorage 통합 관리

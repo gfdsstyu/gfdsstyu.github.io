@@ -262,8 +262,32 @@ export function initFilterListeners() {
     eventBus.emit('quiz:reload');
   });
 
+  // "기준" 버튼 - 기존 학습하기 기능 복원
   el.loadQuizBtn?.addEventListener('click', () => {
+    // KAM 모드에서 기준 버튼 클릭 시 사례 종료
+    if (window.getIsKAMMode && window.getIsKAMMode()) {
+      if (typeof window.exitKAMMode === 'function') {
+        window.exitKAMMode();
+      }
+    }
+    // quiz 문제 불러오기
     eventBus.emit('quiz:reload');
+  });
+
+  // "사례" 버튼 - KAM 모드 전환
+  const kamModeBtn = document.querySelector('#kam-mode-btn');
+  kamModeBtn?.addEventListener('click', () => {
+    if (window.getIsKAMMode && window.getIsKAMMode()) {
+      // KAM 모드 -> 퀴즈 모드로 전환
+      if (typeof window.exitKAMMode === 'function') {
+        window.exitKAMMode();
+      }
+    } else {
+      // 퀴즈 모드 -> KAM 모드로 전환
+      if (typeof window.enterKAMMode === 'function') {
+        window.enterKAMMode();
+      }
+    }
   });
 
   // Random quiz button

@@ -110,6 +110,12 @@ import * as WebSpeechApi from './services/webSpeechApi.js';
 import * as SttHandler from './features/stt/sttHandler.js';
 import * as SttVocabulary from './features/stt/sttVocabulary.js';
 
+// 기능 - KAM 사례형 실전 훈련
+import { renderKAMUI } from './features/kam/kamUI.js';
+import ragSearchService from './services/ragSearch.js';
+import kamEvaluationService from './features/kam/kamCore.js';
+import { enterKAMMode, exitKAMMode, getKAMStats } from './features/kam/kamIntegration.js';
+
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
 // (Phase 3에서 모든 로직이 이전되면 제거 예정)
@@ -145,6 +151,14 @@ window.setLoading = DomUtils.setLoading;
 window.callGeminiAPI = GeminiApi.callGeminiAPI;
 window.callGeminiHintAPI = GeminiApi.callGeminiHintAPI;
 window.callGeminiTextAPI = GeminiApi.callGeminiTextAPI;
+
+// KAM 시스템
+window.renderKAMUI = renderKAMUI;
+window.ragSearchService = ragSearchService;
+window.kamEvaluationService = kamEvaluationService;
+window.enterKAMMode = enterKAMMode;
+window.exitKAMMode = exitKAMMode;
+window.getKAMStats = getKAMStats;
 
 // DataImportExport (데이터 Import/Export)
 window.DataImportExport = DataImportExport;
@@ -233,6 +247,10 @@ Object.defineProperty(window, 'activeHintQuestionKey', {
   configurable: true
 });
 window.getPrevLoaded = StateManager.getPrevLoaded;
+window.getIsKAMMode = StateManager.getIsKAMMode;
+window.setIsKAMMode = StateManager.setIsKAMMode;
+window.getKAMSelectedCase = StateManager.getKAMSelectedCase;
+window.setKAMSelectedCase = StateManager.setKAMSelectedCase;
 window.setPrevLoaded = StateManager.setPrevLoaded;
 // prevLoaded를 전역 변수로도 노출 (하위 호환성)
 Object.defineProperty(window, 'prevLoaded', {
