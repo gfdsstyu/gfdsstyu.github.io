@@ -733,6 +733,8 @@ ${kamCase.procedures.map((p, idx) => `${idx + 1}. ${p}`).join('\n')}
   }
 
   /**
+// ... existing code ...
+  /**
    * 종합 피드백 생성
    * @private
    */
@@ -755,6 +757,30 @@ ${kamCase.procedures.map((p, idx) => `${idx + 1}. ${p}`).join('\n')}
         ? '기본적인 이해는 있으나, 구체성과 실무적 접근이 보완되면 좋겠습니다.'
         : 'KAM 작성의 핵심 원칙을 다시 학습하시기 바랍니다. 구체성, 연계성, 명확성을 고려해주세요.';
 
+    // [v5.0] Step 2 상세 분석 내용 추가 (Gap Analysis 포함)
+    let howDetails = '';
+    if (howResult) {
+      // Gap Analysis (누락된 핵심 절차)
+      if (howResult.gapAnalysis && howResult.gapAnalysis.length > 0) {
+        howDetails += '\n\n#### ⚠️ Gap Analysis (누락된 핵심 절차)\n';
+        howResult.gapAnalysis.forEach(gap => {
+          howDetails += `- ❌ **${gap.missingProcedure}**: ${gap.importance}\n  (제안: ${gap.suggestion})\n`;
+        });
+      }
+
+      // Bad Patterns
+      if (howResult.badPatterns && howResult.badPatterns.length > 0) {
+        howDetails += '\n#### 🚫 감지된 오답 패턴\n';
+        howResult.badPatterns.forEach(bp => howDetails += `- ${bp}\n`);
+      }
+
+      // Improvements
+      if (howResult.improvements && howResult.improvements.length > 0) {
+        howDetails += '\n#### 💡 개선 제안\n';
+        howResult.improvements.forEach(imp => howDetails += `- ${imp}\n`);
+      }
+    }
+
     return `
 ## 종합 평가: ${finalScore}점 (${grade})
 
@@ -763,13 +789,14 @@ ${whyFeedbackText}
 
 ### How (감사 절차): ${howScoreText}
 ${howFeedbackText}
+${howDetails}
 
 ### 종합 의견
 ${overallMessage}
 `;
   }
 }
-
+// ... existing code ...
 // 싱글톤 인스턴스
 const kamEvaluationService = new KAMEvaluationService();
 export default kamEvaluationService;
