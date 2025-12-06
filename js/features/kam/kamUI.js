@@ -1258,8 +1258,9 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
       </div>
 
       <!-- 상세 피드백 -->
-     <div class="feedback-details grid grid-cols-1 ${whyResult ? 'md:grid-cols-2' : ''} gap-6">
+      <div class="feedback-details grid grid-cols-1 ${whyResult ? 'md:grid-cols-2' : ''} gap-6">
         ${whyResult ? `
+        <!-- Why 결과 -->
         <div class="why-feedback bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4">
           <h4 class="font-bold text-purple-700 dark:text-purple-400 mb-2 flex items-center gap-2">
             <span>💭</span> Step 1: 선정 이유 (${whyScore}점)
@@ -1268,6 +1269,7 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
             ${whyResult.feedback}
           </div>
         </div>
+        ` : `
         <!-- Why 건너뜀 안내 -->
         <div class="why-feedback bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
           <h4 class="font-bold text-yellow-700 dark:text-yellow-400 mb-2 flex items-center gap-2">
@@ -1280,59 +1282,15 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
         `}
 
         <!-- How 결과 -->
-      <div class="how-feedback bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4">
+        <div class="how-feedback bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4">
           <h4 class="font-bold text-purple-700 dark:text-purple-400 mb-2 flex items-center gap-2">
             <span>🔍</span> Step 2: 감사 절차 (${howScore}점)
           </h4>
-          <div class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed mb-4" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap;">
+          <div class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap;">
             ${howResult.feedback}
           </div>
-
-          ${howResult.gapAnalysis && howResult.gapAnalysis.length > 0 ? `
-            <div class="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-              <h5 class="font-bold text-sm text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
-                <span>⚠️</span> Gap Analysis (누락된 핵심 절차)
-              </h5>
-              <div class="space-y-3">
-                ${howResult.gapAnalysis.map(gap => `
-                  <div class="text-xs border-l-2 border-red-400 pl-3">
-                    <p class="font-bold text-red-800 dark:text-red-300 mb-0.5">❌ ${gap.missingProcedure}</p>
-                    <p class="text-red-600 dark:text-red-400 mb-0.5">💡 ${gap.importance}</p>
-                    <p class="text-gray-600 dark:text-gray-400">👉 ${gap.suggestion}</p>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          ` : ''}
-
-          ${howResult.strengths && howResult.strengths.length > 0 ? `
-            <div class="mb-3">
-               <p class="font-bold text-xs text-green-600 dark:text-green-400 mb-1">✅ 잘한 점</p>
-               <ul class="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
-                 ${howResult.strengths.map(s => `<li>${s}</li>`).join('')}
-               </ul>
-            </div>
-          ` : ''}
-
-          ${howResult.improvements && howResult.improvements.length > 0 ? `
-            <div class="mb-3">
-               <p class="font-bold text-xs text-yellow-600 dark:text-yellow-400 mb-1">💡 개선할 점</p>
-               <ul class="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
-                 ${howResult.improvements.map(i => `<li>${i}</li>`).join('')}
-               </ul>
-            </div>
-          ` : ''}
-
-          ${howResult.badPatterns && howResult.badPatterns.length > 0 ? `
-            <div>
-               <p class="font-bold text-xs text-gray-500 dark:text-gray-400 mb-1">🚫 감지된 오답 패턴</p>
-               <ul class="list-disc list-inside text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
-                 ${howResult.badPatterns.map(bp => `<li>${bp}</li>`).join('')}
-               </ul>
-            </div>
-          ` : ''}
         </div>
-        </div>
+      </div>
 
       <!-- 모범 답안 -->
       <div class="model-answers bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-6 space-y-4">
