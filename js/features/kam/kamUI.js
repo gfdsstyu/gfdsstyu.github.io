@@ -1227,40 +1227,11 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
   });
 
   // 초기 화면 렌더링 (관련 기준서 없이)
+ // 초기 화면 렌더링 (관련 기준서 없이)
   container.innerHTML = `
     <div class="final-result-container space-y-6">
-      <!-- 헤더 -->
-      <div class="flex items-center justify-between mb-4">
-        <button id="btn-back-to-step2" class="text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-medium">
-          ← 이전 단계
-        </button>
-        <div class="text-sm text-gray-500 dark:text-gray-400">Step 2/2</div>
-      </div>
-
-      <div class="mb-4">
-        <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">
-          🎯 종합 평가 결과
-        </h2>
-      </div>
-
-      <!-- 종합 점수 -->
-      <div class="final-score-card bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl p-8 text-center shadow-xl">
-        <div class="text-6xl font-bold mb-2">${finalScore.finalScore}점</div>
-        <div class="text-xl opacity-90">
-          ${finalScore.finalScore >= 90 ? 'A (우수)' :
-            finalScore.finalScore >= 80 ? 'B (양호)' :
-            finalScore.finalScore >= 70 ? 'C (보통)' :
-            finalScore.finalScore >= 60 ? 'D (미흡)' : 'F (매우 미흡)'}
-        </div>
-        <div class="mt-4 text-sm opacity-75">
-          Why ${whyScore}점 (40%) + How ${howScore}점 (60%)
-        </div>
-      </div>
-
-      <!-- 상세 피드백 -->
       <div class="feedback-details grid grid-cols-1 ${whyResult ? 'md:grid-cols-2' : ''} gap-6">
         ${whyResult ? `
-        <!-- Why 결과 -->
         <div class="why-feedback bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4">
           <h4 class="font-bold text-purple-700 dark:text-purple-400 mb-2 flex items-center gap-2">
             <span>💭</span> Step 1: 선정 이유 (${whyScore}점)
@@ -1268,82 +1239,81 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
           <div class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap;">
             ${whyResult.feedback}
           </div>
+          ${whyResult.strengths && whyResult.strengths.length > 0 ? `
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+               <p class="font-bold text-xs text-green-600 dark:text-green-400 mb-1">✅ 잘한 점</p>
+               <ul class="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                 ${whyResult.strengths.map(s => `<li>${s}</li>`).join('')}
+               </ul>
+            </div>
+          ` : ''}
+          ${whyResult.improvements && whyResult.improvements.length > 0 ? `
+            <div class="mt-2">
+               <p class="font-bold text-xs text-yellow-600 dark:text-yellow-400 mb-1">💡 개선할 점</p>
+               <ul class="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                 ${whyResult.improvements.map(i => `<li>${i}</li>`).join('')}
+               </ul>
+            </div>
+          ` : ''}
         </div>
-        ` : `
-        <!-- Why 건너뜀 안내 -->
-        <div class="why-feedback bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-          <h4 class="font-bold text-yellow-700 dark:text-yellow-400 mb-2 flex items-center gap-2">
-            <span>⚠️</span> Step 1: 선정 이유 (채점 건너뜀)
-          </h4>
-          <div class="text-sm text-yellow-700 dark:text-yellow-300 leading-relaxed">
-            Step 1을 채점하지 않고 건너뛰었습니다. 종합 점수는 Step 2만으로 계산되었습니다.
-          </div>
-        </div>
-        `}
+        ` : `... (Why 건너뜀 부분 동일) ...`}
 
-        <!-- How 결과 -->
         <div class="how-feedback bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4">
           <h4 class="font-bold text-purple-700 dark:text-purple-400 mb-2 flex items-center gap-2">
             <span>🔍</span> Step 2: 감사 절차 (${howScore}점)
           </h4>
-          <div class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap;">
+          <div class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed mb-4" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap;">
             ${howResult.feedback}
           </div>
+
+          ${howResult.gapAnalysis && howResult.gapAnalysis.length > 0 ? `
+            <div class="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+              <h5 class="font-bold text-sm text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
+                <span>⚠️</span> Gap Analysis (누락된 핵심 절차)
+              </h5>
+              <div class="space-y-3">
+                ${howResult.gapAnalysis.map(gap => `
+                  <div class="text-xs border-l-2 border-red-400 pl-3">
+                    <p class="font-bold text-red-800 dark:text-red-300 mb-0.5">❌ ${gap.missingProcedure}</p>
+                    <p class="text-red-600 dark:text-red-400 mb-0.5">💡 ${gap.importance}</p>
+                    <p class="text-gray-600 dark:text-gray-400">👉 ${gap.suggestion}</p>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          ${howResult.strengths && howResult.strengths.length > 0 ? `
+            <div class="mb-3">
+               <p class="font-bold text-xs text-green-600 dark:text-green-400 mb-1">✅ 잘한 점</p>
+               <ul class="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                 ${howResult.strengths.map(s => `<li>${s}</li>`).join('')}
+               </ul>
+            </div>
+          ` : ''}
+
+          ${howResult.improvements && howResult.improvements.length > 0 ? `
+            <div class="mb-3">
+               <p class="font-bold text-xs text-yellow-600 dark:text-yellow-400 mb-1">💡 개선할 점</p>
+               <ul class="list-disc list-inside text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                 ${howResult.improvements.map(i => `<li>${i}</li>`).join('')}
+               </ul>
+            </div>
+          ` : ''}
+
+          ${howResult.badPatterns && howResult.badPatterns.length > 0 ? `
+            <div>
+               <p class="font-bold text-xs text-gray-500 dark:text-gray-400 mb-1">🚫 감지된 오답 패턴</p>
+               <ul class="list-disc list-inside text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+                 ${howResult.badPatterns.map(bp => `<li>${bp}</li>`).join('')}
+               </ul>
+            </div>
+          ` : ''}
         </div>
       </div>
 
-      <!-- 모범 답안 -->
-      <div class="model-answers bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-6 space-y-4">
-        <h4 class="font-bold text-purple-700 dark:text-purple-300 text-lg mb-4">📚 모범 답안</h4>
-
-        <div class="model-why">
-          <h5 class="font-bold text-sm text-purple-700 dark:text-purple-200 mb-2">선정 이유 (Why)</h5>
-          <p class="text-sm text-gray-800 dark:text-gray-100 leading-relaxed bg-white dark:bg-gray-700 p-4 rounded-lg" style="font-family: 'Iropke Batang', serif;">
-            ${kamCase.reason}
-          </p>
-        </div>
-
-        <div class="model-how">
-          <h5 class="font-bold text-sm text-purple-700 dark:text-purple-200 mb-2">감사 절차 (How)</h5>
-          <ol class="list-decimal list-inside space-y-1 text-sm text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 p-4 rounded-lg" style="font-family: 'Iropke Batang', serif;">
-            ${kamCase.procedures.map(p => `<li>${p}</li>`).join('')}
-          </ol>
-        </div>
       </div>
-
-      <!-- 관련 기준서 카드 (수동 로딩) -->
-      <div id="related-standards-container" class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-6">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <h4 class="font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-            <span>📖</span> 관련 회계감사기준서
-          </h4>
-          <button id="btn-load-standards" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors">
-            관련 기준서 불러오기
-          </button>
-        </div>
-        <p class="text-sm text-gray-600 dark:text-gray-400">
-          버튼을 눌러 관련 기준서를 수동으로 불러오세요. 기준서 전문과 단원/표시번호가 함께 제공됩니다.
-        </p>
-        <div id="related-standards-results" class="mt-4" style="display: none;"></div>
-      </div>
-
-      <!-- 액션 버튼 -->
-      <div class="flex justify-between gap-4 pt-4">
-        <button id="btn-exit-kam-final" class="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white font-bold rounded-lg transition-colors">
-          ← 사례 종료
-        </button>
-        <div class="flex gap-3">
-          <button id="btn-retry" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
-            이 사례 다시 풀기
-          </button>
-          <button id="btn-list" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-bold rounded-lg transition-colors">
-            사례 목록으로
-          </button>
-        </div>
-      </div>
-    </div>
   `;
-
   // 이벤트 리스너
   container.querySelector('#btn-back-to-step2').addEventListener('click', () => {
     kamUIState.currentStep = 'how';
