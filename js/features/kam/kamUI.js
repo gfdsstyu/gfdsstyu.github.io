@@ -1436,14 +1436,95 @@ async function evaluateHow(container, apiKey, selectedModel) {
         });
     }
 
-    // 종합 평가
-    const finalScore = kamEvaluationService.calculateFinalScore(
-      kamUIState.whyResult,
-      kamUIState.howResult
-    );
+    // Step 2 평가 결과 먼저 표시
+    const kamCase = kamUIState.currentCase;
+    feedbackArea.innerHTML = `
+      <div class="feedback-result bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-6 space-y-4">
+        <div class="score-header flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-700">
+          <h4 class="text-xl font-bold text-gray-800 dark:text-gray-200">Step 2 평가 결과</h4>
+          <div class="score-badge text-3xl font-bold ${result.score >= 80 ? 'text-green-600' : result.score >= 60 ? 'text-yellow-600' : 'text-red-600'}">
+            ${result.score}점
+          </div>
+        </div>
 
-    // 최종 결과 화면으로 전환
-    renderFinalResult(container, finalScore, apiKey, selectedModel);
+        <div class="feedback-text text-gray-700 dark:text-gray-300 leading-relaxed" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap;">
+          ${result.feedback}
+        </div>
+
+        ${result.gapAnalysis && result.gapAnalysis.length > 0 ? `
+          <div class="gap-analysis bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <h5 class="font-bold text-red-700 dark:text-red-400 mb-2">⚠️ Gap Analysis (누락된 핵심 절차)</h5>
+            <div class="space-y-3">
+              ${result.gapAnalysis.map(gap => `
+                <div class="text-sm">
+                  <p class="font-semibold text-red-600 dark:text-red-300 mb-1">❌ ${gap.missingProcedure}</p>
+                  <p class="text-red-700 dark:text-red-200 mb-1"><strong>중요성:</strong> ${gap.importance}</p>
+                  <p class="text-red-600 dark:text-red-300"><strong>제안:</strong> ${gap.suggestion}</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        ${result.strengths && result.strengths.length > 0 ? `
+          <div class="strengths bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+            <h5 class="font-bold text-green-700 dark:text-green-400 mb-2">✅ 잘한 점</h5>
+            <ul class="list-disc list-inside space-y-1 text-sm text-green-600 dark:text-green-300">
+              ${result.strengths.map(s => `<li>${s}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+
+        ${result.improvements && result.improvements.length > 0 ? `
+          <div class="improvements bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+            <h5 class="font-bold text-yellow-700 dark:text-yellow-400 mb-2">💡 개선할 점</h5>
+            <ul class="list-disc list-inside space-y-1 text-sm text-yellow-600 dark:text-yellow-300">
+              ${result.improvements.map(i => `<li>${i}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+
+        ${result.badPatterns && result.badPatterns.length > 0 ? `
+          <div class="bad-patterns bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+            <h5 class="font-bold text-orange-700 dark:text-orange-400 mb-2">🚫 감지된 오답 패턴</h5>
+            <ul class="list-disc list-inside space-y-1 text-sm text-orange-600 dark:text-orange-300">
+              ${result.badPatterns.map(bp => `<li>${bp}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+
+        <div class="model-answer bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+          <h5 class="font-bold text-purple-700 dark:text-purple-300 mb-2">📚 모범 답안 - 감사 절차</h5>
+          <ol class="list-decimal list-inside space-y-1 text-sm text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 p-4 rounded-lg" style="font-family: 'Iropke Batang', serif;">
+            ${kamCase.procedures.map(p => `<li>${p}</li>`).join('')}
+          </ol>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4">
+          <button id="btn-view-overall-results" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
+            종합 평가 보기 →
+          </button>
+        </div>
+      </div>
+    `;
+
+    // 제출 버튼 복구
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '최종 제출 및 종합 평가 →';
+
+    // 종합 평가 보기 버튼 이벤트
+    const viewOverallBtn = feedbackArea.querySelector('#btn-view-overall-results');
+    if (viewOverallBtn) {
+      viewOverallBtn.addEventListener('click', () => {
+        // 종합 평가 계산
+        const finalScore = kamEvaluationService.calculateFinalScore(
+          kamUIState.whyResult,
+          kamUIState.howResult
+        );
+        // 최종 결과 화면으로 전환
+        renderFinalResult(container, finalScore, apiKey, selectedModel);
+      });
+    }
 
   } catch (error) {
     console.error('[KAM Step 2] 평가 실패:', error);
