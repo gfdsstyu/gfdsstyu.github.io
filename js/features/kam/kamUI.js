@@ -1282,13 +1282,55 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
         `}
 
         <!-- How 결과 -->
-        <div class="how-feedback bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4">
+        <div class="how-feedback bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4 space-y-4">
           <h4 class="font-bold text-purple-700 dark:text-purple-400 mb-2 flex items-center gap-2">
             <span>🔍</span> Step 2: 감사 절차 (${howScore}점)
           </h4>
           <div class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap;">
             ${howResult.feedback}
           </div>
+
+          ${howResult.gapAnalysis && howResult.gapAnalysis.length > 0 ? `
+            <div class="gap-analysis bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <h5 class="font-bold text-red-700 dark:text-red-400 mb-2">⚠️ Gap Analysis (누락된 핵심 절차)</h5>
+              <div class="space-y-3">
+                ${howResult.gapAnalysis.map(gap => `
+                  <div class="text-sm">
+                    <p class="font-semibold text-red-600 dark:text-red-300 mb-1">❌ ${gap.missingProcedure}</p>
+                    <p class="text-red-700 dark:text-red-200 mb-1"><strong>중요성:</strong> ${gap.importance}</p>
+                    <p class="text-red-600 dark:text-red-300"><strong>제안:</strong> ${gap.suggestion}</p>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          ${howResult.strengths && howResult.strengths.length > 0 ? `
+            <div class="strengths bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <h5 class="font-bold text-green-700 dark:text-green-400 mb-2">✅ 잘한 점</h5>
+              <ul class="list-disc list-inside space-y-1 text-sm text-green-600 dark:text-green-300">
+                ${howResult.strengths.map(s => `<li>${s}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+
+          ${howResult.improvements && howResult.improvements.length > 0 ? `
+            <div class="improvements bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+              <h5 class="font-bold text-yellow-700 dark:text-yellow-400 mb-2">💡 개선할 점</h5>
+              <ul class="list-disc list-inside space-y-1 text-sm text-yellow-600 dark:text-yellow-300">
+                ${howResult.improvements.map(i => `<li>${i}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+
+          ${howResult.badPatterns && howResult.badPatterns.length > 0 ? `
+            <div class="bad-patterns bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+              <h5 class="font-bold text-orange-700 dark:text-orange-400 mb-2">🚫 감지된 오답 패턴</h5>
+              <ul class="list-disc list-inside space-y-1 text-sm text-orange-600 dark:text-orange-300">
+                ${howResult.badPatterns.map(bp => `<li>${bp}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
         </div>
       </div>
 
