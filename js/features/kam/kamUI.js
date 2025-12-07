@@ -1726,7 +1726,7 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
                   <span class="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded font-bold flex-shrink-0">${idx + 1}</span>
                 </div>
                 ${question}
-                <div class="mt-2 text-sm text-gray-800 dark:text-gray-100 leading-relaxed bg-white dark:bg-gray-800 p-3 rounded" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap; word-break: keep-all;">
+                <div class="mt-2 text-sm text-gray-800 dark:text-gray-100 leading-relaxed bg-white dark:bg-gray-800 p-3 rounded" style="font-family: 'Iropke Batang', serif; word-break: keep-all;">
                   ${answer}
                 </div>
               </article>
