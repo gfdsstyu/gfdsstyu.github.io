@@ -228,9 +228,9 @@ function searchWithPriority(ragService, proceduresText, reasonText, userAnswersT
     proceduresKeywords.forEach(keyword => {
       const lowerKeyword = keyword.toLowerCase();
 
-      // 정답에서 매칭: +10점 (최우선)
+      // 정답에서 매칭: +20점 (최우선 - 가중치 2배 증가)
       if (searchableAnswer.includes(lowerKeyword)) {
-        score += 10;
+        score += 20;
       }
 
       // 제목에서 매칭: +3점 (중복 방지)
@@ -250,9 +250,9 @@ function searchWithPriority(ragService, proceduresText, reasonText, userAnswersT
     reasonKeywords.forEach(keyword => {
       const lowerKeyword = keyword.toLowerCase();
 
-      // 정답에서 매칭: +5점
+      // 정답에서 매칭: +10점 (가중치 2배 증가)
       if (searchableAnswer.includes(lowerKeyword)) {
-        score += 5;
+        score += 10;
       }
 
       // 제목에서 매칭: +2점 (중복 방지)
@@ -272,9 +272,9 @@ function searchWithPriority(ragService, proceduresText, reasonText, userAnswersT
     userKeywords.forEach(keyword => {
       const lowerKeyword = keyword.toLowerCase();
 
-      // 정답에서 매칭: +2점
+      // 정답에서 매칭: +4점 (가중치 2배 증가)
       if (searchableAnswer.includes(lowerKeyword)) {
-        score += 2;
+        score += 4;
       }
 
       // 제목/물음에서는 중복 방지 위해 점수 주지 않음
@@ -284,9 +284,9 @@ function searchWithPriority(ragService, proceduresText, reasonText, userAnswersT
     situationKeywords.forEach(keyword => {
       const lowerKeyword = keyword.toLowerCase();
 
-      // 정답에서 매칭: +1점
+      // 정답에서 매칭: +2점 (가중치 2배 증가)
       if (searchableAnswer.includes(lowerKeyword)) {
-        score += 1;
+        score += 2;
       }
     });
 
