@@ -14,6 +14,31 @@ export class RAGSearchService {
   constructor() {
     this.questionsData = null;
     this.initialized = false;
+
+    // 유의어/관련어 매핑 (Accounting Ontology)
+    // 회계 용어의 특성상 유사한 의미를 가진 단어들을 연결하여 검색 정확도 향상
+    this.synonymMap = {
+      '매출': ['수익', '수익인식', '기간귀속', '인도기준', '진행기준', '수익기준', '매출액'],
+      '재고': ['재고자산', '저가법', '순실현가능가치', '평가충당금', '재고평가', '재고실사'],
+      '손상': ['손상차손', '회수가능액', '사용가치', '현금창출단위', 'CGU', '손상평가', '손상징후'],
+      '금융상품': ['상각후원가', 'FVPL', 'FVOCI', '공정가치', '금융자산', '금융부채', '파생상품'],
+      '충당부채': ['우발부채', '복구충당부채', '제품보증', '충당금', '우발손실'],
+      '영업권': ['무형자산', '식별가능', '내용연수', '상각', '손상검사'],
+      '유형자산': ['감가상각', '잔존가치', '내용연수', '자본적지출', '수익적지출', '취득원가'],
+      '리스': ['사용권자산', '리스부채', '운용리스', '금융리스', '리스료'],
+      '퇴직급여': ['확정급여제도', '확정기여제도', '보험수리적가정', '제도자산', '퇴직연금'],
+      '법인세': ['이연법인세', '일시적차이', '이월결손금', '세무조정', '유효세율'],
+      '연결': ['연결재무제표', '종속기업', '지배력', '내부거래', '비지배지분', '관계기업', '공동기업'],
+      '현금흐름': ['영업활동', '투자활동', '재무활동', '현금등가물', '현금흐름표'],
+      '특수관계자': ['특수관계자거래', '특수관계자공시', '지배종속관계', '일감몰아주기'],
+      '공시': ['주석', '재무제표공시', '중요한회계정책', '우발상황', '약정사항'],
+      '내부통제': ['통제환경', '위험평가', '통제활동', 'IT통제', '모니터링'],
+      '감사': ['감사절차', '감사증거', '표본추출', '실증절차', '분석적절차', '입증절차'],
+      '위험': ['고유위험', '통제위험', '적발위험', '중요왜곡표시위험', '부정위험'],
+      '추정': ['회계추정', '불확실성', '민감도분석', '가정', '판단', '측정불확실성'],
+      '전문가': ['외부전문가', '내부전문가', '적격성', '객관성', '역량'],
+      '진행률': ['진행기준', '총계약원가', '계약수익', '공사진행률', '원가회수기준']
+    };
   }
 
   /**
@@ -37,7 +62,44 @@ export class RAGSearchService {
   }
 
   /**
-   * 키워드 기반 기준서 검색
+   * 키워드 확장 (Query Expansion)
+   * 원본 키워드 + 유의어를 포함하여 검색 범위 확대
+   * @param {string[]} keywords - 원본 키워드 배열
+   * @returns {string[]} 확장된 키워드 배열
+   */
+  expandKeywords(keywords) {
+    const expandedKeywords = new Set(keywords);
+
+    keywords.forEach(keyword => {
+      const lowerKeyword = keyword.toLowerCase();
+
+      // 유의어 맵에서 해당 키워드가 포함된 그룹 찾기
+      Object.entries(this.synonymMap).forEach(([key, synonyms]) => {
+        const lowerKey = key.toLowerCase();
+        const lowerSynonyms = synonyms.map(s => s.toLowerCase());
+
+        // 현재 키워드가 메인 키워드이거나 유의어 목록에 포함되면
+        if (lowerKeyword === lowerKey || lowerSynonyms.includes(lowerKeyword)) {
+          // 메인 키워드 추가
+          expandedKeywords.add(key);
+          // 모든 유의어 추가
+          synonyms.forEach(s => expandedKeywords.add(s));
+        }
+      });
+    });
+
+    const result = Array.from(expandedKeywords);
+    console.log('[RAG Search] 키워드 확장:', {
+      original: keywords,
+      expanded: result,
+      expandedCount: result.length - keywords.length
+    });
+
+    return result;
+  }
+
+  /**
+   * 키워드 기반 기준서 검색 (Query Expansion 적용)
    * @param {string[]} keywords - 검색할 키워드 배열
    * @param {number} limit - 반환할 최대 결과 수
    * @returns {Array} 관련 기준서 배열
@@ -52,9 +114,12 @@ export class RAGSearchService {
       return [];
     }
 
-    // 각 질문에 대해 유사도 점수 계산
+    // 키워드 확장 (Query Expansion)
+    const expandedKeywords = this.expandKeywords(keywords);
+
+    // 각 질문에 대해 유사도 점수 계산 (확장된 키워드 사용)
     const scoredQuestions = this.questionsData.map(question => {
-      const score = this.calculateRelevanceScore(question, keywords);
+      const score = this.calculateRelevanceScore(question, expandedKeywords);
       return {
         ...question,
         relevanceScore: score
