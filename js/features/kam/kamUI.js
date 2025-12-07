@@ -228,9 +228,9 @@ function searchWithPriority(ragService, proceduresText, reasonText, userAnswersT
     proceduresKeywords.forEach(keyword => {
       const lowerKeyword = keyword.toLowerCase();
 
-      // 정답에서 매칭: +10점 (최우선)
+      // 정답에서 매칭: +20점 (최우선 - 가중치 2배 증가)
       if (searchableAnswer.includes(lowerKeyword)) {
-        score += 10;
+        score += 20;
       }
 
       // 제목에서 매칭: +3점 (중복 방지)
@@ -250,9 +250,9 @@ function searchWithPriority(ragService, proceduresText, reasonText, userAnswersT
     reasonKeywords.forEach(keyword => {
       const lowerKeyword = keyword.toLowerCase();
 
-      // 정답에서 매칭: +5점
+      // 정답에서 매칭: +10점 (가중치 2배 증가)
       if (searchableAnswer.includes(lowerKeyword)) {
-        score += 5;
+        score += 10;
       }
 
       // 제목에서 매칭: +2점 (중복 방지)
@@ -272,9 +272,9 @@ function searchWithPriority(ragService, proceduresText, reasonText, userAnswersT
     userKeywords.forEach(keyword => {
       const lowerKeyword = keyword.toLowerCase();
 
-      // 정답에서 매칭: +2점
+      // 정답에서 매칭: +4점 (가중치 2배 증가)
       if (searchableAnswer.includes(lowerKeyword)) {
-        score += 2;
+        score += 4;
       }
 
       // 제목/물음에서는 중복 방지 위해 점수 주지 않음
@@ -284,9 +284,9 @@ function searchWithPriority(ragService, proceduresText, reasonText, userAnswersT
     situationKeywords.forEach(keyword => {
       const lowerKeyword = keyword.toLowerCase();
 
-      // 정답에서 매칭: +1점
+      // 정답에서 매칭: +2점 (가중치 2배 증가)
       if (searchableAnswer.includes(lowerKeyword)) {
-        score += 1;
+        score += 2;
       }
     });
 
@@ -742,6 +742,65 @@ function renderStepWhy(container, apiKey, selectedModel) {
     kamUIState.saveAnswersToLocal(kamCase.num);
     await evaluateWhy(container, apiKey, selectedModel);
   });
+
+  // 자동으로 저장된 피드백 표시 (이전 단계로 돌아왔을 때)
+  const whyResult = kamUIState.whyResult || savedFeedback?.whyResult;
+  if (whyResult) {
+    feedbackArea.innerHTML = `
+      <div class="feedback-result bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-6 space-y-4">
+        <div class="score-header flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-700">
+          <h4 class="text-xl font-bold text-gray-800 dark:text-gray-200">Step 1 평가 결과</h4>
+          <div class="score-badge text-3xl font-bold ${whyResult.score >= 80 ? 'text-green-600' : whyResult.score >= 60 ? 'text-yellow-600' : 'text-red-600'}">
+            ${whyResult.score}점
+          </div>
+        </div>
+
+        <div class="feedback-text text-gray-700 dark:text-gray-300 leading-relaxed" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap;">
+          ${whyResult.feedback}
+        </div>
+
+        ${whyResult.strengths && whyResult.strengths.length > 0 ? `
+          <div class="strengths bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+            <h5 class="font-bold text-green-700 dark:text-green-400 mb-2">✅ 잘한 점</h5>
+            <ul class="list-disc list-inside space-y-1 text-sm text-green-600 dark:text-green-300">
+              ${whyResult.strengths.map(s => `<li>${s}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+
+        ${whyResult.improvements && whyResult.improvements.length > 0 ? `
+          <div class="improvements bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+            <h5 class="font-bold text-yellow-700 dark:text-yellow-400 mb-2">💡 개선할 점</h5>
+            <ul class="list-disc list-inside space-y-1 text-sm text-yellow-600 dark:text-yellow-300">
+              ${whyResult.improvements.map(i => `<li>${i}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+
+        <div class="model-answer bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+          <h5 class="font-bold text-purple-700 dark:text-purple-300 mb-2">📚 모범 답안</h5>
+          <p class="text-sm text-purple-700 dark:text-purple-200 leading-relaxed bg-purple-50 dark:bg-purple-900/30 p-3 rounded-lg" style="font-family: 'Iropke Batang', serif;">
+            ${kamUIState.currentCase.reason}
+          </p>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4">
+          <button id="btn-next-step" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
+            다음 단계로 (감사 절차 작성) →
+          </button>
+        </div>
+      </div>
+    `;
+
+    // 다음 단계 버튼 이벤트
+    const nextStepBtn = feedbackArea.querySelector('#btn-next-step');
+    if (nextStepBtn) {
+      nextStepBtn.addEventListener('click', () => {
+        kamUIState.currentStep = 'how';
+        renderStepHow(container, apiKey, selectedModel);
+      });
+    }
+  }
 }
 
 /**
@@ -1088,6 +1147,92 @@ function renderStepHow(container, apiKey, selectedModel) {
     console.log('[KAM Step 2] 답변 저장 완료');
     await evaluateHow(container, apiKey, selectedModel);
   });
+
+  // 자동으로 저장된 피드백 표시 (최종 결과에서 돌아왔을 때)
+  const howResult = kamUIState.howResult || savedFeedback?.howResult;
+  if (howResult) {
+    feedbackArea.innerHTML = `
+      <div class="feedback-result bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-6 space-y-4">
+        <div class="score-header flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-700">
+          <h4 class="text-xl font-bold text-gray-800 dark:text-gray-200">Step 2 평가 결과</h4>
+          <div class="score-badge text-3xl font-bold ${howResult.score >= 80 ? 'text-green-600' : howResult.score >= 60 ? 'text-yellow-600' : 'text-red-600'}">
+            ${howResult.score}점
+          </div>
+        </div>
+
+        <div class="feedback-text text-gray-700 dark:text-gray-300 leading-relaxed" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap;">
+          ${howResult.feedback}
+        </div>
+
+        ${howResult.gapAnalysis && howResult.gapAnalysis.length > 0 ? `
+          <div class="gap-analysis bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <h5 class="font-bold text-red-700 dark:text-red-400 mb-2">⚠️ Gap Analysis (누락된 핵심 절차)</h5>
+            <div class="space-y-3">
+              ${howResult.gapAnalysis.map(gap => `
+                <div class="text-sm">
+                  <p class="font-semibold text-red-600 dark:text-red-300 mb-1">❌ ${gap.missingProcedure}</p>
+                  <p class="text-red-700 dark:text-red-200 mb-1"><strong>중요성:</strong> ${gap.importance}</p>
+                  <p class="text-red-600 dark:text-red-300"><strong>제안:</strong> ${gap.suggestion}</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        ${howResult.strengths && howResult.strengths.length > 0 ? `
+          <div class="strengths bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+            <h5 class="font-bold text-green-700 dark:text-green-400 mb-2">✅ 잘한 점</h5>
+            <ul class="list-disc list-inside space-y-1 text-sm text-green-600 dark:text-green-300">
+              ${howResult.strengths.map(s => `<li>${s}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+
+        ${howResult.improvements && howResult.improvements.length > 0 ? `
+          <div class="improvements bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+            <h5 class="font-bold text-yellow-700 dark:text-yellow-400 mb-2">💡 개선할 점</h5>
+            <ul class="list-disc list-inside space-y-1 text-sm text-yellow-600 dark:text-yellow-300">
+              ${howResult.improvements.map(i => `<li>${i}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+
+        ${howResult.badPatterns && howResult.badPatterns.length > 0 ? `
+          <div class="bad-patterns bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+            <h5 class="font-bold text-orange-700 dark:text-orange-400 mb-2">🚫 감지된 오답 패턴</h5>
+            <ul class="list-disc list-inside space-y-1 text-sm text-orange-600 dark:text-orange-300">
+              ${howResult.badPatterns.map(bp => `<li>${bp}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+
+        <div class="model-answer bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+          <h5 class="font-bold text-purple-700 dark:text-purple-300 mb-2">📚 모범 답안 - 감사 절차</h5>
+          <ol class="list-decimal list-inside space-y-1 text-sm text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 p-4 rounded-lg" style="font-family: 'Iropke Batang', serif;">
+            ${kamCase.procedures.map(p => `<li>${p}</li>`).join('')}
+          </ol>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4">
+          <button id="btn-view-final" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
+            종합 평가 보기 →
+          </button>
+        </div>
+      </div>
+    `;
+
+    // 종합 평가 보기 버튼 이벤트
+    const viewFinalBtn = feedbackArea.querySelector('#btn-view-final');
+    if (viewFinalBtn) {
+      viewFinalBtn.addEventListener('click', () => {
+        const finalScore = kamEvaluationService.calculateFinalScore(
+          kamUIState.whyResult,
+          kamUIState.howResult
+        );
+        renderFinalResult(container, finalScore, apiKey, selectedModel);
+      });
+    }
+  }
 }
 
 /**
@@ -1282,13 +1427,55 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
         `}
 
         <!-- How 결과 -->
-        <div class="how-feedback bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4">
+        <div class="how-feedback bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4 space-y-4">
           <h4 class="font-bold text-purple-700 dark:text-purple-400 mb-2 flex items-center gap-2">
             <span>🔍</span> Step 2: 감사 절차 (${howScore}점)
           </h4>
           <div class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap;">
             ${howResult.feedback}
           </div>
+
+          ${howResult.gapAnalysis && howResult.gapAnalysis.length > 0 ? `
+            <div class="gap-analysis bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <h5 class="font-bold text-red-700 dark:text-red-400 mb-2">⚠️ Gap Analysis (누락된 핵심 절차)</h5>
+              <div class="space-y-3">
+                ${howResult.gapAnalysis.map(gap => `
+                  <div class="text-sm">
+                    <p class="font-semibold text-red-600 dark:text-red-300 mb-1">❌ ${gap.missingProcedure}</p>
+                    <p class="text-red-700 dark:text-red-200 mb-1"><strong>중요성:</strong> ${gap.importance}</p>
+                    <p class="text-red-600 dark:text-red-300"><strong>제안:</strong> ${gap.suggestion}</p>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          ${howResult.strengths && howResult.strengths.length > 0 ? `
+            <div class="strengths bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <h5 class="font-bold text-green-700 dark:text-green-400 mb-2">✅ 잘한 점</h5>
+              <ul class="list-disc list-inside space-y-1 text-sm text-green-600 dark:text-green-300">
+                ${howResult.strengths.map(s => `<li>${s}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+
+          ${howResult.improvements && howResult.improvements.length > 0 ? `
+            <div class="improvements bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+              <h5 class="font-bold text-yellow-700 dark:text-yellow-400 mb-2">💡 개선할 점</h5>
+              <ul class="list-disc list-inside space-y-1 text-sm text-yellow-600 dark:text-yellow-300">
+                ${howResult.improvements.map(i => `<li>${i}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+
+          ${howResult.badPatterns && howResult.badPatterns.length > 0 ? `
+            <div class="bad-patterns bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+              <h5 class="font-bold text-orange-700 dark:text-orange-400 mb-2">🚫 감지된 오답 패턴</h5>
+              <ul class="list-disc list-inside space-y-1 text-sm text-orange-600 dark:text-orange-300">
+                ${howResult.badPatterns.map(bp => `<li>${bp}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
         </div>
       </div>
 
