@@ -198,7 +198,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                 <!-- Split View: 지문 (45%) | 물음들 (55%) -->
                 <div class="flex" style="min-height: 400px;">
                   <!-- 좌측: 지문 -->
-                  <div class="w-[45%] bg-gray-50 dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-700 p-6 overflow-y-auto">
+                  <div class="flex-shrink-0 flex-grow-0 w-[45%] bg-gray-50 dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-700 p-6 overflow-y-auto">
                     <div class="mb-3">
                       <span class="inline-block px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-bold rounded-full mb-3">
                         📄 지문 (Scenario)
@@ -213,7 +213,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                   </div>
 
                   <!-- 우측: 물음들 -->
-                  <div class="w-[55%] p-6 overflow-y-auto">
+                  <div class="flex-shrink-0 flex-grow-0 w-[55%] p-6 overflow-y-auto">
                     <div class="space-y-6">
                       ${exam.questions.map((q, qIdx) => {
                         const tempScore = tempSaveData?.results?.[q.id];
@@ -496,13 +496,6 @@ async function submitExam(container, year, apiKey, selectedModel) {
  */
 async function gradeAndShowResults(container, year, apiKey, selectedModel) {
   const userAnswers = examService.getUserAnswers(year);
-
-  // API 키 확인
-  if (!apiKey || apiKey.trim() === '') {
-    alert('⚠️ API 키가 설정되지 않았습니다.\n\n우측 상단 설정 버튼을 클릭하여 Gemini API 키를 입력해주세요.\n\n※ API 키는 https://aistudio.google.com/app/apikey 에서 무료로 발급받을 수 있습니다.');
-    renderYearSelection(container, apiKey, selectedModel);
-    return;
-  }
 
   // 로딩 화면
   container.innerHTML = `
