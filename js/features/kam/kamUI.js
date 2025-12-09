@@ -383,6 +383,20 @@ function setupKAMKeyboardShortcuts() {
         nextStepBtn.click();
         return;
       }
+
+      // Step 1 피드백 화면에서 종합 평가 보기 버튼
+      const viewFinalBtn = document.querySelector('#btn-view-final');
+      if (viewFinalBtn && viewFinalBtn.style.display !== 'none') {
+        viewFinalBtn.click();
+        return;
+      }
+
+      // Step 2 피드백 화면에서 종합 평가 보기 버튼
+      const viewFinalHowBtn = document.querySelector('#btn-view-final-how');
+      if (viewFinalHowBtn && viewFinalHowBtn.style.display !== 'none') {
+        viewFinalHowBtn.click();
+        return;
+      }
     }
 
     // Ctrl+ArrowLeft 또는 Cmd+ArrowLeft: 이전 단계
@@ -825,7 +839,10 @@ function renderStepWhy(container, apiKey, selectedModel) {
           </p>
         </div>
 
-        <div class="flex justify-end gap-3 pt-4">
+        <div class="flex flex-col items-end gap-2 pt-4">
+          <span class="text-xs text-gray-500 dark:text-gray-400">
+            ⌨️ 단축키: <kbd class="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl+→</kbd> 다음 단계
+          </span>
           <button id="btn-next-step" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
             다음 단계로 (감사 절차 작성) →
           </button>
@@ -855,9 +872,19 @@ async function evaluateWhy(container, apiKey, selectedModel) {
   submitBtn.innerHTML = '<div class="loader inline-block mr-2"></div> AI 평가 중...';
 
   feedbackArea.innerHTML = `
-    <div id="loading-spinner" class="flex justify-center items-center py-8">
-      <div class="loader"></div>
-      <span class="ml-3 text-gray-600 dark:text-gray-400">AI가 답안을 평가하고 있습니다...</span>
+    <div class="space-y-4">
+      <div id="loading-spinner" class="flex justify-center items-center py-8">
+        <div class="loader"></div>
+        <span class="ml-3 text-gray-600 dark:text-gray-400">AI가 답안을 평가하고 있습니다...</span>
+      </div>
+
+      <!-- 모범 답안 미리 표시 -->
+      <div class="model-answer bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+        <h5 class="font-bold text-purple-700 dark:text-purple-300 mb-2">📚 모범 답안 - 선정 이유</h5>
+        <p class="text-sm text-gray-800 dark:text-gray-100 leading-relaxed bg-white dark:bg-gray-700 p-4 rounded-lg" style="font-family: 'Iropke Batang', serif;">
+          ${kamUIState.currentCase.reason}
+        </p>
+      </div>
     </div>
   `;
 
@@ -981,7 +1008,10 @@ async function evaluateWhy(container, apiKey, selectedModel) {
           </p>
         </div>
 
-        <div class="flex justify-end gap-3 pt-4">
+        <div class="flex flex-col items-end gap-2 pt-4">
+          <span class="text-xs text-gray-500 dark:text-gray-400">
+            ⌨️ 단축키: <kbd class="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl+→</kbd> 다음 단계
+          </span>
           <button id="btn-next-step" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
             다음 단계로 (감사 절차 작성) →
           </button>
@@ -1201,13 +1231,18 @@ function renderStepHow(container, apiKey, selectedModel) {
             </ol>
           </div>
 
-          <div class="flex justify-between gap-3 pt-4">
+          <div class="flex justify-between items-end gap-3 pt-4">
             <button onclick="this.closest('.feedback-result').remove()" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors">
               닫기
             </button>
-            <button id="btn-view-final-saved" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
-              종합 평가 보기 →
-            </button>
+            <div class="flex flex-col items-end gap-2">
+              <span class="text-xs text-gray-500 dark:text-gray-400">
+                ⌨️ 단축키: <kbd class="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl+→</kbd> 종합 평가
+              </span>
+              <button id="btn-view-final-saved" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
+                종합 평가 보기 →
+              </button>
+            </div>
           </div>
         </div>
       `;
@@ -1322,7 +1357,10 @@ function renderStepHow(container, apiKey, selectedModel) {
           </ol>
         </div>
 
-        <div class="flex justify-end gap-3 pt-4">
+        <div class="flex flex-col items-end gap-2 pt-4">
+          <span class="text-xs text-gray-500 dark:text-gray-400">
+            ⌨️ 단축키: <kbd class="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl+→</kbd> 종합 평가
+          </span>
           <button id="btn-view-final" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
             종합 평가 보기 →
           </button>
@@ -1355,9 +1393,19 @@ async function evaluateHow(container, apiKey, selectedModel) {
   submitBtn.innerHTML = '<div class="loader inline-block mr-2"></div> AI 평가 중...';
 
   feedbackArea.innerHTML = `
-    <div class="flex justify-center items-center py-8">
-      <div class="loader"></div>
-      <span class="ml-3 text-gray-600 dark:text-gray-400">AI가 최종 평가를 진행하고 있습니다...</span>
+    <div class="space-y-4">
+      <div class="flex justify-center items-center py-8">
+        <div class="loader"></div>
+        <span class="ml-3 text-gray-600 dark:text-gray-400">AI가 최종 평가를 진행하고 있습니다...</span>
+      </div>
+
+      <!-- 모범 답안 미리 표시 -->
+      <div class="model-answer bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+        <h5 class="font-bold text-purple-700 dark:text-purple-300 mb-2">📚 모범 답안 - 감사 절차</h5>
+        <ol class="list-decimal list-inside space-y-1 text-sm text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 p-4 rounded-lg" style="font-family: 'Iropke Batang', serif;">
+          ${kamUIState.currentCase.procedures.map(p => `<li>${p}</li>`).join('')}
+        </ol>
+      </div>
     </div>
   `;
 
@@ -1515,13 +1563,40 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
       <div class="feedback-details grid grid-cols-1 ${whyResult ? 'md:grid-cols-2' : ''} gap-6">
         ${whyResult ? `
         <!-- Why 결과 -->
-        <div class="why-feedback bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4">
+        <div class="why-feedback bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4 space-y-4">
           <h4 class="font-bold text-purple-700 dark:text-purple-400 mb-2 flex items-center gap-2">
             <span>💭</span> Step 1: 선정 이유 (${whyScore}점)
           </h4>
           <div class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed" style="font-family: 'Iropke Batang', serif; white-space: pre-wrap;">
             ${whyResult.feedback}
           </div>
+
+          ${whyResult.strengths && whyResult.strengths.length > 0 ? `
+            <div class="strengths bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <h5 class="font-bold text-green-700 dark:text-green-400 mb-2">✅ 잘한 점</h5>
+              <ul class="list-disc list-inside space-y-1 text-sm text-green-600 dark:text-green-300">
+                ${whyResult.strengths.map(s => `<li>${s}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+
+          ${whyResult.improvements && whyResult.improvements.length > 0 ? `
+            <div class="improvements bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+              <h5 class="font-bold text-yellow-700 dark:text-yellow-400 mb-2">💡 개선할 점</h5>
+              <ul class="list-disc list-inside space-y-1 text-sm text-yellow-600 dark:text-yellow-300">
+                ${whyResult.improvements.map(i => `<li>${i}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+
+          ${whyResult.badPatterns && whyResult.badPatterns.length > 0 ? `
+            <div class="bad-patterns bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+              <h5 class="font-bold text-orange-700 dark:text-orange-400 mb-2">🚫 감지된 오답 패턴</h5>
+              <ul class="list-disc list-inside space-y-1 text-sm text-orange-600 dark:text-orange-300">
+                ${whyResult.badPatterns.map(bp => `<li>${bp}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
         </div>
         ` : `
         <!-- Why 건너뜀 안내 -->
