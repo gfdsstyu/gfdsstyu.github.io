@@ -2144,13 +2144,8 @@
         selectExamBtn.addEventListener('click', async () => {
           closeCaseModal();
 
-          const apiKey = localStorage.getItem('apiKey');
+          const apiKey = localStorage.getItem('apiKey') || '';
           const selectedModel = localStorage.getItem('selectedAiModel') || 'gemini-2.0-flash-exp';
-
-          if (!apiKey) {
-            alert('API 키를 먼저 설정해주세요.');
-            return;
-          }
 
           try {
             await enterExamMode(apiKey, selectedModel);
