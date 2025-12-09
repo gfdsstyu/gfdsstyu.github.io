@@ -4,7 +4,6 @@
  */
 
 import { examService } from './examService.js';
-import { auth } from '../../config/firebase-config.js';
 
 /**
  * UI 상태 관리
