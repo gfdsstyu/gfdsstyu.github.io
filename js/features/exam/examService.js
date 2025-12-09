@@ -509,19 +509,39 @@ ${!hasType ? `
    * Gemini API 호출 (채점)
    */
   async callGeminiForGrading(systemPrompt, userPrompt, apiKey, model) {
-    const { generateTextWithGemini } = await import('../../services/geminiApi.js');
+    const { callGeminiJsonAPI } = await import('../../services/geminiApi.js');
+
+    // systemPrompt와 userPrompt를 합쳐서 하나의 prompt로 만들기
+    const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+
+    // JSON 응답 스키마 정의
+    const responseSchema = {
+      type: 'OBJECT',
+      properties: {
+        score: { type: 'NUMBER' },
+        feedback: { type: 'STRING' },
+        strengths: {
+          type: 'ARRAY',
+          items: { type: 'STRING' }
+        },
+        improvements: {
+          type: 'ARRAY',
+          items: { type: 'STRING' }
+        },
+        keywordMatch: {
+          type: 'ARRAY',
+          items: { type: 'STRING' }
+        },
+        missingKeywords: {
+          type: 'ARRAY',
+          items: { type: 'STRING' }
+        }
+      },
+      required: ['score', 'feedback', 'strengths', 'improvements', 'keywordMatch', 'missingKeywords']
+    };
 
     try {
-      const response = await generateTextWithGemini(
-        apiKey,
-        systemPrompt,
-        userPrompt,
-        model,
-        { response_mime_type: 'application/json' }
-      );
-
-      // JSON 파싱
-      const result = JSON.parse(response);
+      const result = await callGeminiJsonAPI(fullPrompt, responseSchema, apiKey, model);
       return result;
     } catch (error) {
       console.error('채점 API 호출 실패:', error);
