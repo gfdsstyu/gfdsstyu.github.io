@@ -162,101 +162,111 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
   const metadata = examService.getMetadata(year);
 
   container.innerHTML = `
-    <div class="exam-paper-container h-screen flex flex-col">
-      <!-- Sticky Header: 타이머 & 제출 -->
+    <div class="exam-paper-container h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      <!-- Sticky Header: 한 줄로 배열 -->
       <div id="exam-header" class="sticky top-0 z-50 bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div class="flex items-center gap-4">
-            <h3 class="text-lg font-bold">${year}년 기출문제</h3>
-            <span class="text-sm opacity-90">총 ${examService.getTotalScore(year)}점</span>
-          </div>
+        <div class="w-full px-6 py-3 flex items-center justify-between">
+          <div class="flex items-center gap-6">
+            <h3 class="text-xl font-bold">${year}년 기출문제</h3>
+            <span class="text-sm opacity-90 px-3 py-1 bg-white/20 rounded-full">총 ${examService.getTotalScore(year)}점</span>
 
-          <!-- 타이머 -->
-          <div id="timer" class="flex items-center gap-3 text-lg font-bold">
-            <span>⏱️ 남은 시간:</span>
-            <span id="timer-display" class="text-2xl font-mono">--:--</span>
+            <!-- 타이머 -->
+            <div id="timer" class="flex items-center gap-2 px-4 py-1 bg-white/10 rounded-full">
+              <span class="text-sm">⏱️</span>
+              <span id="timer-display" class="text-lg font-mono">--:--</span>
+            </div>
           </div>
 
           <!-- 제출 버튼 -->
-          <button id="btn-submit-exam" class="px-6 py-2 bg-white text-purple-700 font-bold rounded-lg hover:bg-gray-100 transition-colors">
+          <button id="btn-submit-exam" class="px-6 py-2 bg-white text-purple-700 font-bold rounded-lg hover:bg-gray-100 transition-colors shadow-lg">
             최종 제출 및 채점 →
           </button>
         </div>
       </div>
 
-      <!-- Split View: 좌측 지문 | 우측 문제 -->
-      <div class="flex-1 flex overflow-hidden">
-        <!-- 좌측: Scenario (40%) -->
-        <div class="w-2/5 bg-gray-50 dark:bg-gray-900 border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto p-6">
-          <div class="sticky top-0 bg-gray-50 dark:bg-gray-900 pb-4 mb-4 border-b-2 border-gray-300 dark:border-gray-700">
-            <h4 class="text-xl font-bold text-gray-800 dark:text-gray-200">📄 지문 (Scenario)</h4>
-          </div>
+      <!-- Case별 카드 (지문과 물음 매핑) -->
+      <div class="flex-1 overflow-y-auto px-4 py-6">
+        <div class="max-w-full mx-auto space-y-6">
+          ${exams.map((exam, examIdx) => `
+            <div id="case-${exam.id}" class="case-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
+              <!-- Case 헤더 -->
+              <div class="bg-gradient-to-r from-purple-500 to-indigo-500 px-6 py-3 text-white">
+                <div class="flex items-center justify-between">
+                  <h4 class="text-lg font-bold">문제 ${examIdx + 1}</h4>
+                  <span class="text-sm bg-white/20 px-3 py-1 rounded-full">
+                    ${exam.questions.reduce((sum, q) => sum + q.score, 0)}점
+                  </span>
+                </div>
+                <p class="text-sm opacity-90 mt-1">${exam.topic}</p>
+              </div>
 
-          ${exams.map(exam => `
-            <div id="scenario-${exam.id}" class="scenario-section mb-8 scroll-mt-20">
-              <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-300 dark:border-gray-600">
-                <h5 class="font-bold text-purple-700 dark:text-purple-400 mb-2">${exam.topic}</h5>
-                <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">
-                  ${exam.scenario}
-                </p>
-                <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                  유형: ${exam.type === 'Rule' ? '기준서(Rule)' : '사례(Case)'}
+              <!-- Split View: 지문 (35%) | 물음들 (65%) -->
+              <div class="flex" style="min-height: 400px;">
+                <!-- 좌측: 지문 -->
+                <div class="w-[35%] bg-gray-50 dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-700 p-6 overflow-y-auto">
+                  <div class="mb-3">
+                    <span class="inline-block px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-bold rounded-full mb-3">
+                      📄 지문 (Scenario)
+                    </span>
+                  </div>
+                  <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">
+                    ${exam.scenario}
+                  </div>
+                  ${exam.type ? `
+                    <div class="mt-4 pt-4 border-t border-gray-300 dark:border-gray-600">
+                      <span class="text-xs text-gray-500 dark:text-gray-400">
+                        유형: ${exam.type === 'Rule' ? '기준서(Rule)' : exam.type === 'Case' ? '사례(Case)' : '일반'}
+                      </span>
+                    </div>
+                  ` : ''}
+                </div>
+
+                <!-- 우측: 물음들 -->
+                <div class="w-[65%] p-6 overflow-y-auto">
+                  <div class="space-y-6">
+                    ${exam.questions.map((q, qIdx) => `
+                      <div id="question-${q.id}" class="question-item border-2 border-gray-200 dark:border-gray-600 rounded-lg p-5 bg-white dark:bg-gray-800">
+                        <!-- 물음 헤더 -->
+                        <div class="flex items-center gap-2 mb-3">
+                          <span class="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-bold rounded-full">
+                            물음 ${examIdx + 1}-${qIdx + 1}
+                          </span>
+                          <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded">
+                            ${q.score}점
+                          </span>
+                        </div>
+
+                        <!-- 문제 -->
+                        <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                          <p class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">
+                            ${q.question}
+                          </p>
+                        </div>
+
+                        <!-- 답안 입력 -->
+                        <div>
+                          <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                            ✍️ 답안 작성
+                          </label>
+                          <textarea
+                            id="answer-${q.id}"
+                            class="w-full h-48 p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-200 resize-y text-sm"
+                            placeholder="답안을 입력하세요..."
+                            data-question-id="${q.id}"
+                            style="min-height: 150px;"
+                          >${examUIState.answers[q.id]?.answer || ''}</textarea>
+                          <div class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
+                            <span>💾 자동 저장됨</span>
+                            <span id="char-count-${q.id}">0자</span>
+                          </div>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
                 </div>
               </div>
             </div>
           `).join('')}
-        </div>
-
-        <!-- 우측: Questions (60%) -->
-        <div class="w-3/5 bg-white dark:bg-gray-800 overflow-y-auto p-6">
-          <div class="max-w-4xl mx-auto space-y-8">
-            ${exams.map(exam => `
-              ${exam.questions.map((q, qIdx) => `
-                <div id="question-${q.id}" class="question-card bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg p-6 scroll-mt-20">
-                  <!-- 문제 헤더 -->
-                  <div class="flex items-start justify-between mb-4">
-                    <div class="flex-1">
-                      <div class="flex items-center gap-2 mb-2">
-                        <span class="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-sm font-bold rounded-full">
-                          문제 ${qIdx + 1}
-                        </span>
-                        <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded">
-                          ${q.score}점
-                        </span>
-                      </div>
-                    </div>
-                    <button class="text-sm text-purple-600 dark:text-purple-400 hover:underline"
-                            onclick="document.getElementById('scenario-${exam.id}').scrollIntoView({ behavior: 'smooth', block: 'start' })">
-                      📄 지문 보기
-                    </button>
-                  </div>
-
-                  <!-- 문제 -->
-                  <div class="mb-4">
-                    <p class="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">
-                      ${q.question}
-                    </p>
-                  </div>
-
-                  <!-- 답안 입력 -->
-                  <div>
-                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                      ✍️ 답안 작성
-                    </label>
-                    <textarea
-                      id="answer-${q.id}"
-                      class="w-full h-40 p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-gray-200 resize-none"
-                      placeholder="답안을 입력하세요..."
-                      data-question-id="${q.id}"
-                    >${examUIState.answers[q.id]?.answer || ''}</textarea>
-                    <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
-                      <span>💾 자동 저장됨</span>
-                      <span id="char-count-${q.id}">0자</span>
-                    </div>
-                  </div>
-                </div>
-              `).join('')}
-            `).join('')}
           </div>
         </div>
       </div>
@@ -367,13 +377,19 @@ async function submitExam(container, year, apiKey, selectedModel) {
     return;
   }
 
+  // API 키를 localStorage에서 다시 확인 (파라미터가 비어있을 경우 대비)
+  const finalApiKey = apiKey || localStorage.getItem('apiKey') || '';
+  const finalModel = selectedModel || localStorage.getItem('selectedAiModel') || 'gemini-2.0-flash-exp';
+
+  console.log('🔑 API 키 확인:', finalApiKey ? '설정됨' : '미설정');
+
   // 타이머 정지
   if (examUIState.timerInterval) {
     clearInterval(examUIState.timerInterval);
   }
 
   // 채점 시작
-  await gradeAndShowResults(container, year, apiKey, selectedModel);
+  await gradeAndShowResults(container, year, finalApiKey, finalModel);
 }
 
 /**
@@ -381,6 +397,13 @@ async function submitExam(container, year, apiKey, selectedModel) {
  */
 async function gradeAndShowResults(container, year, apiKey, selectedModel) {
   const userAnswers = examService.getUserAnswers(year);
+
+  // API 키 확인
+  if (!apiKey || apiKey.trim() === '') {
+    alert('⚠️ API 키가 설정되지 않았습니다.\n\n우측 상단 설정 버튼을 클릭하여 Gemini API 키를 입력해주세요.\n\n※ API 키는 https://aistudio.google.com/app/apikey 에서 무료로 발급받을 수 있습니다.');
+    renderYearSelection(container, apiKey, selectedModel);
+    return;
+  }
 
   // 로딩 화면
   container.innerHTML = `
