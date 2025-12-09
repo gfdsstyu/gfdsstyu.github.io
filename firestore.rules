@@ -32,6 +32,11 @@ service cloud.firestore {
       match /records/{recordId} {
         allow read, write: if isOwner(userId);
       }
+
+      // KAM 점수 서브컬렉션
+      match /kamScores/{caseId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
     // ============================================
