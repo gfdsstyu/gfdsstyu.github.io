@@ -44,6 +44,20 @@ export function renderExamMode(container, apiKey, selectedModel) {
  * 연도 선택 화면
  */
 function renderYearSelection(container, apiKey, selectedModel) {
+  // 좌우 대시보드 복원 (시험 중 숨겨진 경우)
+  const leftDashboard = document.getElementById('left-dashboard');
+  const rightDashboard = document.getElementById('right-explorer');
+
+  if (leftDashboard && leftDashboard.dataset.hiddenByExam === 'true') {
+    leftDashboard.style.display = '';
+    delete leftDashboard.dataset.hiddenByExam;
+  }
+
+  if (rightDashboard && rightDashboard.dataset.hiddenByExam === 'true') {
+    rightDashboard.style.display = '';
+    delete rightDashboard.dataset.hiddenByExam;
+  }
+
   const metadata = examService.metadata;
   const years = Object.keys(metadata).sort((a, b) => b - a); // 최신 순
 
@@ -149,6 +163,20 @@ function startExam(container, year, apiKey, selectedModel) {
   // 타이머 시작
   if (!examService.getTimerStart(year)) {
     examService.saveTimerStart(year);
+  }
+
+  // 좌우 대시보드 숨기기 (전체화면 시험 모드)
+  const leftDashboard = document.getElementById('left-dashboard');
+  const rightDashboard = document.getElementById('right-explorer');
+
+  if (leftDashboard) {
+    leftDashboard.style.display = 'none';
+    leftDashboard.dataset.hiddenByExam = 'true';
+  }
+
+  if (rightDashboard) {
+    rightDashboard.style.display = 'none';
+    rightDashboard.dataset.hiddenByExam = 'true';
   }
 
   renderExamPaper(container, year, apiKey, selectedModel);
