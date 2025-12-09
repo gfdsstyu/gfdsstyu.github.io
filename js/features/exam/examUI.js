@@ -395,6 +395,20 @@ async function gradeAndShowResults(container, year, apiKey, selectedModel) {
           모범 답안과 비교하여 상세한 피드백을 생성 중입니다.
         </p>
 
+        <!-- 진행률 표시 -->
+        <div class="w-full max-w-md mx-auto">
+          <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <span id="progress-text">준비 중...</span>
+            <span id="progress-percentage">0%</span>
+          </div>
+          <div class="w-full bg-gray-300 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
+            <div id="progress-bar" class="bg-gradient-to-r from-purple-500 to-blue-500 h-full transition-all duration-500 ease-out" style="width: 0%"></div>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-500 mt-2" id="case-info">
+            Case별 병렬 채점이 진행됩니다.
+          </p>
+        </div>
+
         <!-- 채점 중에도 모범답안 미리 표시 -->
         <div class="mt-8 text-left bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-300 dark:border-gray-600">
           <h3 class="font-bold text-purple-700 dark:text-purple-400 mb-4">📚 모범 답안 미리보기</h3>
@@ -408,8 +422,23 @@ async function gradeAndShowResults(container, year, apiKey, selectedModel) {
   `;
 
   try {
-    // AI 채점 (병렬 처리)
-    const result = await examService.gradeExam(year, userAnswers, apiKey, selectedModel);
+    // 진행률 업데이트 콜백
+    const onProgress = ({ current, total, percentage, caseId }) => {
+      const progressBar = document.getElementById('progress-bar');
+      const progressText = document.getElementById('progress-text');
+      const progressPercentage = document.getElementById('progress-percentage');
+      const caseInfo = document.getElementById('case-info');
+
+      if (progressBar && progressText && progressPercentage) {
+        progressBar.style.width = `${percentage}%`;
+        progressText.textContent = `${current}/${total} Case 완료`;
+        progressPercentage.textContent = `${percentage}%`;
+        caseInfo.textContent = `현재 채점 완료: ${caseId}`;
+      }
+    };
+
+    // AI 채점 (병렬 처리 + 진행률 표시)
+    const result = await examService.gradeExam(year, userAnswers, apiKey, selectedModel, onProgress);
 
     // 점수 저장
     examService.saveScore(year, result.totalScore, result.details);
