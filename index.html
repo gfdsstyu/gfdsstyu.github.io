@@ -448,6 +448,9 @@
               <button id="kam-mode-btn" class="btn-primary flex-1 whitespace-nowrap">
                 <span id="kam-mode-btn-text">사례</span>
               </button>
+              <button id="exam-mode-btn" class="btn-primary flex-1 whitespace-nowrap">
+                <span id="exam-mode-btn-text">기출문제</span>
+              </button>
               <button id="random-quiz-btn" class="btn-outline flex-1 whitespace-nowrap">랜덤 문제</button>
               <button id="flashcard-mode-btn" class="btn-outline flex-1 whitespace-nowrap">플래시카드</button>
             </div>
@@ -1949,6 +1952,7 @@
     import { initRankingUI, openRankingModal } from './js/features/ranking/rankingUI.js';
     import { initReviewListeners } from './js/features/review/reviewCore.js';
     import { initSttListeners } from './js/features/stt/sttHandler.js';
+    import { enterExamMode, exitExamMode, getIsExamMode } from './js/features/exam/examIntegration.js';
 
     // Phase 2: Lazy Loading 모듈 관리
     let aiAnalysisModule = null;
@@ -2095,6 +2099,38 @@
 
       // STT 리스너 초기화
       initSttListeners();
+
+      // 기출문제 모드 버튼 이벤트
+      const examModeBtn = document.getElementById('exam-mode-btn');
+      const examModeBtnText = document.getElementById('exam-mode-btn-text');
+
+      if (examModeBtn) {
+        examModeBtn.addEventListener('click', async () => {
+          if (getIsExamMode()) {
+            // 기출문제 모드 종료
+            exitExamMode();
+            examModeBtnText.textContent = '기출문제';
+            examModeBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+            examModeBtn.classList.add('btn-primary');
+            console.log('📝 기출문제 모드 종료');
+          } else {
+            // 기출문제 모드 진입
+            const apiKey = localStorage.getItem('apiKey');
+            const selectedModel = localStorage.getItem('selectedAiModel') || 'gemini-2.0-flash-exp';
+
+            if (!apiKey) {
+              alert('API 키를 먼저 설정해주세요.');
+              return;
+            }
+
+            await enterExamMode(apiKey, selectedModel);
+            examModeBtnText.textContent = '종료';
+            examModeBtn.classList.remove('btn-primary');
+            examModeBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+            console.log('📝 기출문제 모드 진입');
+          }
+        });
+      }
     });
   </script>
 

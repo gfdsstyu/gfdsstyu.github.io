@@ -239,14 +239,22 @@ class ExamService {
    * 채점 프롬프트 생성 (Rule/Case 타입별)
    */
   buildGradingPrompt(examCase, question) {
-    const isRule = examCase.type === 'Rule';
+    // Type이 없는 경우 대비 (null, undefined, 빈 문자열 처리)
+    const hasType = examCase.type && examCase.type.trim() !== '';
+    const isRule = hasType && examCase.type === 'Rule';
+    const isCase = hasType && examCase.type === 'Case';
+
+    // Type 표시 (없으면 "일반" 표시)
+    const typeDisplay = hasType
+      ? (examCase.type === 'Rule' ? '기준서(Rule)' : '사례(Case)')
+      : '일반';
 
     const basePrompt = `
 # 2025 공인회계사 2차 시험 채점 AI
 
 ## 문제 정보
 - 주제: ${examCase.topic}
-- 타입: ${examCase.type === 'Rule' ? '기준서(Rule)' : '사례(Case)'}
+- 타입: ${typeDisplay}
 - 배점: ${question.score}점
 
 ## 지문 (Scenario)
@@ -274,9 +282,36 @@ ${question.evaluation_criteria}
 
 ---
 
-## 채점 전략 (${isRule ? 'Rule 타입' : 'Case 타입'})
+## 채점 전략 (${hasType ? (isRule ? 'Rule 타입' : 'Case 타입') : '일반'})
 
-${isRule ? `
+${!hasType ? `
+### 일반 채점 지침 (모범 답안 기준 평가)
+
+**Type이 명시되지 않았으므로, 모범 답안에 충실한 일반적 채점 기준을 적용합니다.**
+
+**1. 내용 정확성 (40-50%)**
+- 사용자의 답변이 모범 답안의 **핵심 내용**과 일치하는가?
+- 모범 답안의 결론 또는 주요 판단이 포함되어 있는가?
+
+**2. 핵심 키워드 포함 (30-40%)**
+- 모범 답안의 **주요 개념 및 용어**가 언급되었는가?
+- 키워드가 정확히 일치하지 않아도, **문맥상 동일한 의미**를 전달하면 인정
+
+**3. 논리 및 구조 (10-20%)**
+- 답변의 논리 전개가 명확하고 타당한가?
+- 모범 답안의 구조를 유사하게 따르고 있는가?
+
+**4. 구체성 (10-20%)**
+- 추상적이지 않고 구체적인 내용을 포함하는가?
+- 실무적/실전적 관점이 반영되어 있는가?
+
+**점수 배분 예시 (10점 문제):**
+- 핵심 내용 정확 + 키워드 포함 + 논리 명확 → 9-10점
+- 핵심 내용 이해 + 키워드 일부 + 논리 타당 → 7-8점
+- 부분적 이해 + 일부 키워드 → 5-6점
+- 내용 부족 + 키워드 부족 → 3-4점
+- 문제 의도 오해 → 0-2점
+` : (isRule ? `
 ### Rule 타입 채점 지침 (법적 근거 기반 평가)
 
 **1. 결론 정확성 (40-50%)**
@@ -345,7 +380,7 @@ ${isRule ? `
 - Scenario 부분 이해 + 논리 약함 → 5-6점
 - Scenario 오해 + 일반론만 서술 → 3-4점
 - 문제 의도 완전 오해 → 0-2점
-`}
+`)}
 
 ## 채점 결과 형식 (JSON)
 다음 형식으로 응답하세요:

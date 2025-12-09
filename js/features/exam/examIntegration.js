@@ -29,6 +29,20 @@ export async function enterExamMode(apiKey, selectedModel) {
     mainContainer.style.display = 'none';
   }
 
+  // 좌우 대시보드 숨기기 (전체화면 모드)
+  const leftDashboard = document.getElementById('left-dashboard');
+  const rightDashboard = document.getElementById('right-dashboard');
+
+  if (leftDashboard) {
+    leftDashboard.style.display = 'none';
+    leftDashboard.dataset.wasVisible = 'true'; // 원래 표시 상태 저장
+  }
+
+  if (rightDashboard) {
+    rightDashboard.style.display = 'none';
+    rightDashboard.dataset.wasVisible = 'true';
+  }
+
   // 기출문제 컨테이너 생성
   examContainer = document.createElement('div');
   examContainer.id = 'exam-container';
@@ -62,6 +76,20 @@ export function exitExamMode() {
   const mainContainer = document.getElementById('message-container');
   if (mainContainer) {
     mainContainer.style.display = 'block';
+  }
+
+  // 좌우 대시보드 복원
+  const leftDashboard = document.getElementById('left-dashboard');
+  const rightDashboard = document.getElementById('right-dashboard');
+
+  if (leftDashboard && leftDashboard.dataset.wasVisible === 'true') {
+    leftDashboard.style.display = '';
+    delete leftDashboard.dataset.wasVisible;
+  }
+
+  if (rightDashboard && rightDashboard.dataset.wasVisible === 'true') {
+    rightDashboard.style.display = '';
+    delete rightDashboard.dataset.wasVisible;
   }
 
   isExamMode = false;
