@@ -509,7 +509,7 @@ ${!hasType ? `
    * Gemini API 호출 (채점)
    */
   async callGeminiForGrading(systemPrompt, userPrompt, apiKey, model) {
-    const { generateTextWithGemini } = await import('../../core/geminiApi.js');
+    const { generateTextWithGemini } = await import('../../services/geminiApi.js');
 
     try {
       const response = await generateTextWithGemini(
@@ -538,13 +538,7 @@ ${!hasType ? `
    * @param {function} onProgress - 진행률 콜백 (선택) ({ current, total, percentage, caseId })
    */
   async gradeExam(year, userAnswers, apiKey, model = 'gemini-2.5-flash', onProgress = null) {
-    // API 키 확인 (이중 체크)
-    if (!apiKey || apiKey.trim() === '') {
-      console.error('❌ API 키가 설정되지 않았습니다.');
-      throw new Error('API 키가 설정되지 않았습니다. 우측 상단 설정에서 Gemini API 키를 입력해주세요.');
-    }
-
-    console.log('✅ API 키 확인 완료 - 채점 시작');
+    console.log('✅ 채점 시작');
 
     const exams = this.getExamByYear(year);
     const results = {};
