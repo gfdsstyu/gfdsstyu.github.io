@@ -270,11 +270,6 @@ class ExamService {
    * 임시 채점 실행 (5분 쿨다운)
    */
   async tempGradeExam(year, userAnswers, apiKey, model = 'gemini-2.5-flash') {
-    // API 키 확인
-    if (!apiKey || apiKey.trim() === '') {
-      throw new Error('API 키가 필요합니다.');
-    }
-
     const exams = this.getExamByYear(year);
     const results = {};
 
