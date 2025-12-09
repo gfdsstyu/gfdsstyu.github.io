@@ -31,7 +31,7 @@ export async function enterExamMode(apiKey, selectedModel) {
 
   // 좌우 대시보드 숨기기 (전체화면 모드)
   const leftDashboard = document.getElementById('left-dashboard');
-  const rightDashboard = document.getElementById('right-dashboard');
+  const rightDashboard = document.getElementById('right-explorer');
 
   if (leftDashboard) {
     leftDashboard.style.display = 'none';
@@ -80,7 +80,7 @@ export function exitExamMode() {
 
   // 좌우 대시보드 복원
   const leftDashboard = document.getElementById('left-dashboard');
-  const rightDashboard = document.getElementById('right-dashboard');
+  const rightDashboard = document.getElementById('right-explorer');
 
   if (leftDashboard && leftDashboard.dataset.wasVisible === 'true') {
     leftDashboard.style.display = '';

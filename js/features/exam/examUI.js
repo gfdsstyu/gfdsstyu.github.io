@@ -195,10 +195,10 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                   <p class="text-sm opacity-90 mt-1">${exam.topic}</p>
                 </div>
 
-                <!-- Split View: 지문 (40%) | 물음들 (60%) -->
+                <!-- Split View: 지문 (45%) | 물음들 (55%) -->
                 <div class="flex" style="min-height: 400px;">
                   <!-- 좌측: 지문 -->
-                  <div class="w-[40%] bg-gray-50 dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-700 p-6 overflow-y-auto">
+                  <div class="w-[45%] bg-gray-50 dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-700 p-6 overflow-y-auto">
                     <div class="mb-3">
                       <span class="inline-block px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-bold rounded-full mb-3">
                         📄 지문 (Scenario)
@@ -213,7 +213,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                   </div>
 
                   <!-- 우측: 물음들 -->
-                  <div class="w-[60%] p-6 overflow-y-auto">
+                  <div class="w-[55%] p-6 overflow-y-auto">
                     <div class="space-y-6">
                       ${exam.questions.map((q, qIdx) => {
                         const tempScore = tempSaveData?.results?.[q.id];
