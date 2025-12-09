@@ -479,23 +479,227 @@ function renderModelAnswersPreview(year) {
 }
 
 /**
- * 결과 화면 (빨간펜 스타일)
- * Phase 4에서 구현 예정
+ * 키워드 하이라이팅 헬퍼
+ */
+function highlightKeywords(text, keywords) {
+  if (!keywords || keywords.length === 0) return text;
+
+  let highlighted = text;
+  keywords.forEach(keyword => {
+    if (!keyword || keyword.trim() === '') return;
+
+    // 정규식 특수문자 이스케이프
+    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedKeyword})`, 'gi');
+
+    highlighted = highlighted.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-700 px-1 rounded">$1</mark>');
+  });
+
+  return highlighted;
+}
+
+/**
+ * 점수 마킹 이모지
+ */
+function getScoreEmoji(score, maxScore) {
+  const percentage = (score / maxScore) * 100;
+
+  if (percentage >= 90) return '⭕'; // 만점 (90% 이상)
+  if (percentage >= 50) return '🔺'; // 부분 점수
+  return '❌'; // 낮은 점수
+}
+
+/**
+ * 결과 화면 (빨간펜 선생님 스타일)
  */
 function renderResults(container, year, result, apiKey, selectedModel) {
-  // TODO: Phase 4에서 "빨간펜 선생님" 스타일로 구현
+  const exams = examService.getExamByYear(year);
+  const metadata = examService.getMetadata(year);
+  const totalPossibleScore = examService.getTotalScore(year);
+  const percentage = Math.round((result.totalScore / totalPossibleScore) * 100);
+  const isPassing = result.totalScore >= metadata.passingScore;
+
+  // 점수 히스토리 가져오기
+  const scoreHistory = examService.getScores(year);
+  const bestScore = examService.getBestScore(year);
+
   container.innerHTML = `
-    <div class="results-container max-w-5xl mx-auto p-6">
-      <h2 class="text-3xl font-bold mb-4">📊 채점 완료</h2>
-      <div class="text-6xl font-bold text-center mb-4">
-        ${result.totalScore}점
+    <div class="results-container max-w-6xl mx-auto p-4 md:p-8 space-y-6">
+      <!-- 헤더: 총점 -->
+      <div class="bg-gradient-to-r ${isPassing ? 'from-green-500 to-emerald-600' : 'from-red-500 to-rose-600'} rounded-2xl p-6 md:p-8 text-white shadow-xl">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div class="text-center md:text-left">
+            <h1 class="text-2xl md:text-3xl font-bold mb-2">📝 ${year}년 기출문제 채점 완료!</h1>
+            <p class="text-lg opacity-90">
+              ${isPassing ? '🎉 합격 기준 충족!' : '💪 조금만 더 노력하면 합격!'}
+            </p>
+          </div>
+          <div class="text-center">
+            <div class="text-6xl md:text-7xl font-extrabold mb-2">
+              ${result.totalScore}
+            </div>
+            <div class="text-xl md:text-2xl font-semibold">
+              / ${totalPossibleScore}점 (${percentage}%)
+            </div>
+          </div>
+        </div>
       </div>
-      <pre class="bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-auto">
-        ${JSON.stringify(result, null, 2)}
-      </pre>
-      <button onclick="location.reload()" class="mt-4 px-6 py-3 bg-purple-600 text-white rounded-lg">
-        돌아가기
-      </button>
+
+      <!-- 점수 히스토리 -->
+      ${scoreHistory.length > 0 ? `
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-md">
+          <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            📊 점수 히스토리 <span class="text-sm font-normal text-gray-600 dark:text-gray-400">(${scoreHistory.length}번째 응시)</span>
+          </h3>
+          <div class="flex items-center gap-4 overflow-x-auto pb-2">
+            ${scoreHistory.map((s, idx) => `
+              <div class="flex flex-col items-center min-w-[80px]">
+                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">${idx + 1}회</div>
+                <div class="w-12 h-12 rounded-full ${s.score >= metadata.passingScore ? 'bg-green-100 text-green-700 border-2 border-green-500' : 'bg-gray-100 text-gray-700 border-2 border-gray-300'} flex items-center justify-center font-bold text-sm">
+                  ${s.score}
+                </div>
+                ${s.score === bestScore ? '<div class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">🏆 최고</div>' : ''}
+              </div>
+            `).join('')}
+          </div>
+          ${bestScore && result.totalScore === bestScore && scoreHistory.length > 1 ? `
+            <p class="mt-4 text-sm text-green-600 dark:text-green-400 font-semibold">
+              ✨ 최고 점수 경신! 이전 최고: ${scoreHistory[scoreHistory.length - 2].score}점
+            </p>
+          ` : ''}
+        </div>
+      ` : ''}
+
+      <!-- 문제별 상세 피드백 -->
+      <div class="space-y-8">
+        ${exams.map((examCase, caseIdx) => `
+          <div class="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
+            <!-- Case 헤더 -->
+            <div class="bg-purple-50 dark:bg-purple-900/20 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 class="text-xl font-bold text-purple-900 dark:text-purple-200">
+                📄 Case ${caseIdx + 1}: ${examCase.topic}
+                <span class="text-sm font-normal text-gray-600 dark:text-gray-400 ml-2">(${examCase.type || '일반'})</span>
+              </h2>
+              <p class="text-sm text-gray-700 dark:text-gray-300 mt-2 line-clamp-2">${examCase.scenario.substring(0, 150)}...</p>
+            </div>
+
+            <!-- 문제별 카드 -->
+            <div class="p-6 space-y-6">
+              ${examCase.questions.map((question, qIdx) => {
+                const feedback = result.details[question.id];
+                const scoreEmoji = getScoreEmoji(feedback?.score || 0, question.score);
+                const userAnswer = examService.getUserAnswers(year)[question.id]?.answer || '';
+
+                return `
+                  <div class="border-l-4 ${feedback?.score >= question.score * 0.9 ? 'border-green-500' : feedback?.score >= question.score * 0.5 ? 'border-yellow-500' : 'border-red-500'} pl-4 pb-4">
+                    <!-- 문제 헤더 -->
+                    <div class="flex items-center justify-between mb-3">
+                      <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        문항 ${qIdx + 1} <span class="text-2xl ml-2">${scoreEmoji}</span>
+                      </h3>
+                      <div class="text-xl font-bold ${feedback?.score >= question.score * 0.9 ? 'text-green-600' : feedback?.score >= question.score * 0.5 ? 'text-yellow-600' : 'text-red-600'}">
+                        ${feedback?.score || 0} / ${question.score}점
+                      </div>
+                    </div>
+
+                    <!-- 문제 -->
+                    <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-3">
+                      <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">📝 문제</h4>
+                      <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">${question.question}</p>
+                    </div>
+
+                    <!-- 사용자 답안 -->
+                    <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-3">
+                      <h4 class="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-2">✍️ 내 답안</h4>
+                      <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                        ${highlightKeywords(userAnswer || '<em class="text-gray-500">작성하지 않음</em>', feedback?.keywordMatch || [])}
+                      </p>
+                    </div>
+
+                    <!-- 모범 답안 -->
+                    <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 mb-3">
+                      <h4 class="text-sm font-semibold text-green-700 dark:text-green-300 mb-2">📚 모범 답안</h4>
+                      <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                        ${highlightKeywords(question.model_answer, feedback?.missingKeywords || [])}
+                      </p>
+                    </div>
+
+                    <!-- AI 피드백 -->
+                    <div class="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg p-4 border-2 border-red-200 dark:border-red-700">
+                      <h4 class="text-sm font-bold text-red-700 dark:text-red-300 mb-3 flex items-center gap-2">
+                        🎯 빨간펜 선생님의 총평
+                      </h4>
+                      <p class="text-sm text-gray-800 dark:text-gray-200 mb-4 leading-relaxed">
+                        ${feedback?.feedback || '채점 정보 없음'}
+                      </p>
+
+                      ${feedback?.strengths && feedback.strengths.length > 0 ? `
+                        <div class="mb-3">
+                          <h5 class="text-xs font-bold text-green-700 dark:text-green-400 mb-2">✅ 잘한 점</h5>
+                          <ul class="list-disc list-inside space-y-1">
+                            ${feedback.strengths.map(s => `<li class="text-xs text-gray-700 dark:text-gray-300">${s}</li>`).join('')}
+                          </ul>
+                        </div>
+                      ` : ''}
+
+                      ${feedback?.improvements && feedback.improvements.length > 0 ? `
+                        <div class="mb-3">
+                          <h5 class="text-xs font-bold text-orange-700 dark:text-orange-400 mb-2">💡 개선할 점</h5>
+                          <ul class="list-disc list-inside space-y-1">
+                            ${feedback.improvements.map(i => `<li class="text-xs text-gray-700 dark:text-gray-300">${i}</li>`).join('')}
+                          </ul>
+                        </div>
+                      ` : ''}
+
+                      ${feedback?.keywordMatch && feedback.keywordMatch.length > 0 ? `
+                        <div class="mb-2">
+                          <h5 class="text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">🔑 포함된 키워드</h5>
+                          <div class="flex flex-wrap gap-1">
+                            ${feedback.keywordMatch.map(k => `<span class="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">${k}</span>`).join('')}
+                          </div>
+                        </div>
+                      ` : ''}
+
+                      ${feedback?.missingKeywords && feedback.missingKeywords.length > 0 ? `
+                        <div>
+                          <h5 class="text-xs font-bold text-red-700 dark:text-red-400 mb-1">❗ 누락된 키워드</h5>
+                          <div class="flex flex-wrap gap-1">
+                            ${feedback.missingKeywords.map(k => `<span class="text-xs bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 px-2 py-1 rounded">${k}</span>`).join('')}
+                          </div>
+                        </div>
+                      ` : ''}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- 하단 버튼 -->
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <button id="retry-exam-btn" class="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold text-lg rounded-xl shadow-lg transition transform hover:scale-105">
+          🔄 다시 풀기
+        </button>
+        <button id="exit-exam-results-btn" class="px-8 py-4 bg-gray-600 hover:bg-gray-700 text-white font-bold text-lg rounded-xl shadow-lg transition transform hover:scale-105">
+          ✕ 종료하기
+        </button>
+      </div>
     </div>
   `;
+
+  // 이벤트 리스너
+  container.querySelector('#retry-exam-btn').addEventListener('click', () => {
+    // 답안 초기화
+    examService.clearUserAnswers(year);
+    examService.clearTimer(year);
+
+    // 다시 문제 화면으로
+    renderExamPaper(container, year, apiKey, selectedModel);
+  });
+
+  container.querySelector('#exit-exam-results-btn').addEventListener('click', () => {
+    renderYearSelection(container, apiKey, selectedModel);
+  });
 }
