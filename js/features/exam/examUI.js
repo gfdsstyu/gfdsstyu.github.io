@@ -523,6 +523,9 @@ function renderResults(container, year, result, apiKey, selectedModel) {
   const scoreHistory = examService.getScores(year);
   const bestScore = examService.getBestScore(year);
 
+  // 사용자 답안 미리 가져오기
+  const userAnswers = examService.getUserAnswers(year);
+
   container.innerHTML = `
     <div class="results-container max-w-6xl mx-auto p-4 md:p-8 space-y-6">
       <!-- 헤더: 총점 -->
@@ -588,7 +591,7 @@ function renderResults(container, year, result, apiKey, selectedModel) {
               ${examCase.questions.map((question, qIdx) => {
                 const feedback = result.details[question.id];
                 const scoreEmoji = getScoreEmoji(feedback?.score || 0, question.score);
-                const userAnswer = examService.getUserAnswers(year)[question.id]?.answer || '';
+                const userAnswer = userAnswers[question.id]?.answer || '';
 
                 return `
                   <div class="border-l-4 ${feedback?.score >= question.score * 0.9 ? 'border-green-500' : feedback?.score >= question.score * 0.5 ? 'border-yellow-500' : 'border-red-500'} pl-4 pb-4">

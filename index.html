@@ -445,11 +445,8 @@
             </div>
             <div class="w-full md:w-auto md:self-end flex flex-col sm:flex-row gap-2">
               <button id="load-quiz-btn" class="btn-primary flex-1 whitespace-nowrap">기준</button>
-              <button id="kam-mode-btn" class="btn-primary flex-1 whitespace-nowrap">
-                <span id="kam-mode-btn-text">사례</span>
-              </button>
-              <button id="exam-mode-btn" class="btn-primary flex-1 whitespace-nowrap">
-                <span id="exam-mode-btn-text">기출문제</span>
+              <button id="case-mode-btn" class="btn-primary flex-1 whitespace-nowrap">
+                <span id="case-mode-btn-text">사례</span>
               </button>
               <button id="random-quiz-btn" class="btn-outline flex-1 whitespace-nowrap">랜덤 문제</button>
               <button id="flashcard-mode-btn" class="btn-outline flex-1 whitespace-nowrap">플래시카드</button>
@@ -1953,6 +1950,7 @@
     import { initReviewListeners } from './js/features/review/reviewCore.js';
     import { initSttListeners } from './js/features/stt/sttHandler.js';
     import { enterExamMode, exitExamMode, getIsExamMode } from './js/features/exam/examIntegration.js';
+    import { enterKAMMode } from './js/features/kam/kamIntegration.js';
 
     // Phase 2: Lazy Loading 모듈 관리
     let aiAnalysisModule = null;
@@ -2100,39 +2098,119 @@
       // STT 리스너 초기화
       initSttListeners();
 
-      // 기출문제 모드 버튼 이벤트
-      const examModeBtn = document.getElementById('exam-mode-btn');
-      const examModeBtnText = document.getElementById('exam-mode-btn-text');
+      // 사례 모드 버튼 이벤트 (KAM/기출 선택)
+      const caseModeBtn = document.getElementById('case-mode-btn');
 
-      if (examModeBtn) {
-        examModeBtn.addEventListener('click', async () => {
-          if (getIsExamMode()) {
-            // 기출문제 모드 종료
-            exitExamMode();
-            examModeBtnText.textContent = '기출문제';
-            examModeBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
-            examModeBtn.classList.add('btn-primary');
-            console.log('📝 기출문제 모드 종료');
-          } else {
-            // 기출문제 모드 진입
-            const apiKey = localStorage.getItem('apiKey');
-            const selectedModel = localStorage.getItem('selectedAiModel') || 'gemini-2.0-flash-exp';
+      if (caseModeBtn) {
+        caseModeBtn.addEventListener('click', () => {
+          const modal = document.getElementById('case-mode-selection-modal');
+          if (modal) {
+            modal.classList.remove('hidden');
+          }
+        });
+      }
 
-            if (!apiKey) {
-              alert('API 키를 먼저 설정해주세요.');
-              return;
-            }
+      // 사례 모드 선택 모달 이벤트
+      const caseModalBackdrop = document.getElementById('case-modal-backdrop');
+      const caseModalClose = document.getElementById('case-modal-close');
+      const selectKamBtn = document.getElementById('select-kam-btn');
+      const selectExamBtn = document.getElementById('select-exam-btn');
 
+      const closeCaseModal = () => {
+        const modal = document.getElementById('case-mode-selection-modal');
+        if (modal) modal.classList.add('hidden');
+      };
+
+      if (caseModalBackdrop) caseModalBackdrop.addEventListener('click', closeCaseModal);
+      if (caseModalClose) caseModalClose.addEventListener('click', closeCaseModal);
+
+      // KAM 모드 선택
+      if (selectKamBtn) {
+        selectKamBtn.addEventListener('click', async () => {
+          closeCaseModal();
+
+          try {
+            await enterKAMMode();
+            console.log('🔍 KAM 모드 진입');
+          } catch (error) {
+            console.error('KAM 모드 진입 실패:', error);
+            alert('KAM 모드 진입 중 오류가 발생했습니다.');
+          }
+        });
+      }
+
+      // 기출문제 모드 선택
+      if (selectExamBtn) {
+        selectExamBtn.addEventListener('click', async () => {
+          closeCaseModal();
+
+          const apiKey = localStorage.getItem('apiKey');
+          const selectedModel = localStorage.getItem('selectedAiModel') || 'gemini-2.0-flash-exp';
+
+          if (!apiKey) {
+            alert('API 키를 먼저 설정해주세요.');
+            return;
+          }
+
+          try {
             await enterExamMode(apiKey, selectedModel);
-            examModeBtnText.textContent = '종료';
-            examModeBtn.classList.remove('btn-primary');
-            examModeBtn.classList.add('bg-red-600', 'hover:bg-red-700');
             console.log('📝 기출문제 모드 진입');
+          } catch (error) {
+            console.error('기출문제 모드 진입 실패:', error);
+            alert('기출문제 모드 진입 중 오류가 발생했습니다.');
           }
         });
       }
     });
   </script>
+
+  <!-- ============================================ -->
+  <!-- 사례 모드 선택 모달 (KAM / 기출문제) -->
+  <!-- ============================================ -->
+  <div id="case-mode-selection-modal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center">
+    <!-- 배경 (Backdrop) -->
+    <div id="case-modal-backdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+
+    <!-- 모달 컨텐츠 -->
+    <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden">
+      <!-- 헤더 -->
+      <div class="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-4 flex items-center justify-between">
+        <h2 class="text-xl font-bold text-white">📚 사례 학습 모드 선택</h2>
+        <button id="case-modal-close" class="text-white hover:text-gray-200 text-2xl leading-none" aria-label="닫기">×</button>
+      </div>
+
+      <!-- 선택 카드 -->
+      <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- KAM 모드 -->
+        <button id="select-kam-btn" class="group relative bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 hover:from-purple-100 hover:to-blue-100 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30 border-2 border-purple-300 dark:border-purple-700 rounded-xl p-6 transition transform hover:scale-105 hover:shadow-xl">
+          <div class="text-6xl mb-4">🔍</div>
+          <h3 class="text-2xl font-bold text-purple-900 dark:text-purple-200 mb-2">KAM 모드</h3>
+          <p class="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
+            감사보고서 핵심감사사항(KAM)을 직접 작성하고, AI 피드백을 받아 실무 역량을 키워보세요.
+          </p>
+          <div class="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+            <div>✅ 선정 이유 + 대응 절차</div>
+            <div>✅ 실시간 AI 평가</div>
+            <div>✅ Gap Analysis 제공</div>
+          </div>
+        </button>
+
+        <!-- 기출문제 모드 -->
+        <button id="select-exam-btn" class="group relative bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-900/30 dark:hover:to-emerald-900/30 border-2 border-green-300 dark:border-green-700 rounded-xl p-6 transition transform hover:scale-105 hover:shadow-xl">
+          <div class="text-6xl mb-4">📝</div>
+          <h3 class="text-2xl font-bold text-green-900 dark:text-green-200 mb-2">기출문제 모드</h3>
+          <p class="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
+            공인회계사 2차 실전 기출문제를 풀고, 자동 채점 및 상세 피드백을 받아보세요.
+          </p>
+          <div class="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+            <div>✅ 90분 타이머</div>
+            <div>✅ Rule/Case 타입별 채점</div>
+            <div>✅ 빨간펜 선생님 피드백</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- ============================================ -->
   <!-- Firebase 로그인 모달 -->
