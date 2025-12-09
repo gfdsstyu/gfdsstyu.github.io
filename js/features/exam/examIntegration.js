@@ -29,19 +29,8 @@ export async function enterExamMode(apiKey, selectedModel) {
     mainContainer.style.display = 'none';
   }
 
-  // 좌우 대시보드 숨기기 (전체화면 모드)
-  const leftDashboard = document.getElementById('left-dashboard');
-  const rightDashboard = document.getElementById('right-explorer');
-
-  if (leftDashboard) {
-    leftDashboard.style.display = 'none';
-    leftDashboard.dataset.wasVisible = 'true'; // 원래 표시 상태 저장
-  }
-
-  if (rightDashboard) {
-    rightDashboard.style.display = 'none';
-    rightDashboard.dataset.wasVisible = 'true';
-  }
+  // 좌우 대시보드는 연도 선택 화면에서는 유지
+  // 실제 시험 시작 시에만 숨김 (examUI.js의 startExam에서 처리)
 
   // 기출문제 컨테이너 생성
   examContainer = document.createElement('div');
@@ -78,18 +67,18 @@ export function exitExamMode() {
     mainContainer.style.display = 'block';
   }
 
-  // 좌우 대시보드 복원
+  // 좌우 대시보드 복원 (시험 중 숨겨진 경우)
   const leftDashboard = document.getElementById('left-dashboard');
   const rightDashboard = document.getElementById('right-explorer');
 
-  if (leftDashboard && leftDashboard.dataset.wasVisible === 'true') {
+  if (leftDashboard && leftDashboard.dataset.hiddenByExam === 'true') {
     leftDashboard.style.display = '';
-    delete leftDashboard.dataset.wasVisible;
+    delete leftDashboard.dataset.hiddenByExam;
   }
 
-  if (rightDashboard && rightDashboard.dataset.wasVisible === 'true') {
+  if (rightDashboard && rightDashboard.dataset.hiddenByExam === 'true') {
     rightDashboard.style.display = '';
-    delete rightDashboard.dataset.wasVisible;
+    delete rightDashboard.dataset.hiddenByExam;
   }
 
   isExamMode = false;
