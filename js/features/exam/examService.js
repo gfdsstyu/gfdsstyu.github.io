@@ -230,6 +230,106 @@ class ExamService {
   }
 
   // ============================================
+  // 임시저장 (Temp Save)
+  // ============================================
+
+  /**
+   * 임시저장 데이터 저장
+   */
+  saveTempData(year, results) {
+    const key = `exam_${year}_temp_save`;
+    const data = {
+      timestamp: Date.now(),
+      results: results,
+      totalScore: Object.values(results).reduce((sum, r) => sum + (r.score || 0), 0)
+    };
+
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+      console.log('💾 임시저장 완료:', data.totalScore.toFixed(1) + '점');
+    } catch (error) {
+      console.error('임시저장 실패:', error);
+    }
+  }
+
+  /**
+   * 임시저장 데이터 불러오기
+   */
+  getTempSaveData(year) {
+    const key = `exam_${year}_temp_save`;
+    try {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      console.error('임시저장 데이터 로드 실패:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 임시 채점 실행 (5분 쿨다운)
+   */
+  async tempGradeExam(year, userAnswers, apiKey, model = 'gemini-2.5-flash') {
+    // API 키 확인
+    if (!apiKey || apiKey.trim() === '') {
+      throw new Error('API 키가 필요합니다.');
+    }
+
+    const exams = this.getExamByYear(year);
+    const results = {};
+
+    // 모든 문제 채점 (간소화 버전 - 병렬 처리)
+    const allPromises = [];
+
+    for (const examCase of exams) {
+      for (const question of examCase.questions) {
+        const userAnswer = userAnswers[question.id]?.answer;
+
+        if (userAnswer && userAnswer.trim() !== '') {
+          allPromises.push(
+            this.gradeQuestion(examCase, question, userAnswer, apiKey, model)
+              .then(result => ({ questionId: question.id, result }))
+              .catch(error => {
+                console.error(`문제 ${question.id} 채점 실패:`, error);
+                return {
+                  questionId: question.id,
+                  result: {
+                    score: 0,
+                    feedback: '채점 중 오류 발생'
+                  }
+                };
+              })
+          );
+        } else {
+          results[question.id] = {
+            score: 0,
+            feedback: '답안 미작성'
+          };
+        }
+      }
+    }
+
+    // 병렬 채점
+    const gradedResults = await Promise.all(allPromises);
+
+    // 결과 병합
+    gradedResults.forEach(({ questionId, result }) => {
+      results[questionId] = result;
+    });
+
+    // 총점 계산
+    const totalScore = Object.values(results).reduce((sum, r) => sum + (r.score || 0), 0);
+
+    // 임시저장
+    this.saveTempData(year, results);
+
+    return {
+      results,
+      totalScore
+    };
+  }
+
+  // ============================================
   // 채점 로직 (AI 호출)
   // ============================================
 
