@@ -204,14 +204,10 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                         📄 지문 (Scenario)
                       </span>
                     </div>
-                    <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">
-                      ${exam.scenario}
-                    </div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${exam.scenario}</div>
                     ${exam.type ? `
                       <div class="mt-4 pt-4 border-t border-gray-300 dark:border-gray-600">
-                        <span class="text-xs text-gray-500 dark:text-gray-400">
-                          유형: ${exam.type === 'Rule' ? '기준서(Rule)' : exam.type === 'Case' ? '사례(Case)' : '일반'}
-                        </span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">유형: ${exam.type === 'Rule' ? '기준서(Rule)' : exam.type === 'Case' ? '사례(Case)' : '일반'}</span>
                       </div>
                     ` : ''}
                   </div>
@@ -242,9 +238,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
 
                           <!-- 문제 -->
                           <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                            <p class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">
-                              ${q.question}
-                            </p>
+                            <p class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${q.question}</p>
                           </div>
 
                           <!-- 답안 입력 -->
@@ -444,14 +438,9 @@ function updateCharCounters() {
  * 임시저장 & 채점
  */
 async function handleTempSave(container, year, apiKey, selectedModel) {
-  // API 키 확인
+  // API 키 확인 (조용히 처리)
   const finalApiKey = apiKey || localStorage.getItem('apiKey') || '';
   const finalModel = selectedModel || localStorage.getItem('selectedAiModel') || 'gemini-2.0-flash-exp';
-
-  if (!finalApiKey || finalApiKey.trim() === '') {
-    alert('⚠️ API 키가 설정되지 않았습니다.\n\n임시 채점을 위해서는 API 키가 필요합니다.');
-    return;
-  }
 
   const userAnswers = examService.getUserAnswers(year);
 
@@ -599,9 +588,7 @@ function renderModelAnswersPreview(year) {
         ${exam.questions.slice(0, 2).map((q, idx) => `
           <div class="bg-purple-50 dark:bg-purple-900/20 rounded p-3">
             <div class="text-xs font-bold text-purple-700 dark:text-purple-300 mb-1">문제 ${idx + 1} (${q.score}점)</div>
-            <p class="text-xs text-gray-700 dark:text-gray-300 line-clamp-3">
-              ${q.model_answer.substring(0, 100)}...
-            </p>
+            <p class="text-xs text-gray-700 dark:text-gray-300 line-clamp-3">${q.model_answer.substring(0, 100)}...</p>
           </div>
         `).join('')}
       `).join('')}
@@ -746,17 +733,13 @@ function renderResults(container, year, result, apiKey, selectedModel) {
                     <!-- 사용자 답안 -->
                     <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-3">
                       <h4 class="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-2">✍️ 내 답안</h4>
-                      <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
-                        ${highlightKeywords(userAnswer || '<em class="text-gray-500">작성하지 않음</em>', feedback?.keywordMatch || [])}
-                      </p>
+                      <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">${highlightKeywords(userAnswer || '<em class="text-gray-500">작성하지 않음</em>', feedback?.keywordMatch || [])}</p>
                     </div>
 
                     <!-- 모범 답안 -->
                     <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 mb-3">
                       <h4 class="text-sm font-semibold text-green-700 dark:text-green-300 mb-2">📚 모범 답안</h4>
-                      <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
-                        ${highlightKeywords(question.model_answer, feedback?.missingKeywords || [])}
-                      </p>
+                      <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">${highlightKeywords(question.model_answer, feedback?.missingKeywords || [])}</p>
                     </div>
 
                     <!-- AI 피드백 -->
@@ -764,9 +747,7 @@ function renderResults(container, year, result, apiKey, selectedModel) {
                       <h4 class="text-sm font-bold text-red-700 dark:text-red-300 mb-3 flex items-center gap-2">
                         🎯 빨간펜 선생님의 총평
                       </h4>
-                      <p class="text-sm text-gray-800 dark:text-gray-200 mb-4 leading-relaxed">
-                        ${feedback?.feedback || '채점 정보 없음'}
-                      </p>
+                      <p class="text-sm text-gray-800 dark:text-gray-200 mb-4 leading-relaxed">${feedback?.feedback || '채점 정보 없음'}</p>
 
                       ${feedback?.strengths && feedback.strengths.length > 0 ? `
                         <div class="mb-3">
