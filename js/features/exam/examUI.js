@@ -177,11 +177,11 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
         </div>
       </div>
 
-      <!-- Main: 중앙 콘텐츠 + 우측 대시보드 -->
-      <div class="flex-1 flex overflow-hidden">
+      <!-- Main: 중앙 콘텐츠 + 우측 대시보드 (최대 폭 제한) -->
+      <div class="flex-1 flex overflow-hidden max-w-[1800px] mx-auto w-full">
         <!-- 중앙: Case 카드들 -->
         <div class="flex-1 overflow-y-auto px-4 py-6">
-          <div class="max-w-6xl mx-auto space-y-6">
+          <div class="space-y-6">
             ${exams.map((exam, examIdx) => `
               <div id="case-${exam.id}" class="case-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden scroll-mt-20">
                 <!-- Case 헤더 -->
@@ -275,7 +275,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
         </div>
 
         <!-- 우측 대시보드 (고정) -->
-        <div class="w-80 bg-white dark:bg-gray-800 border-l-2 border-gray-200 dark:border-gray-700 flex flex-col">
+        <div class="w-80 h-full bg-white dark:bg-gray-800 border-l-2 border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0">
           <!-- 타이머 -->
           <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20">
             <div class="text-center">
