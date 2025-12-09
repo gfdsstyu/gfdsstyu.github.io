@@ -3,14 +3,12 @@
  * 기출문제 데이터 로딩, 답안 저장, 채점 로직 관리
  */
 
-import { EXAM_2025, EXAM_METADATA } from './examData.js';
+import { getExam2025, getExamMetadata } from './examData.js';
 
 class ExamService {
   constructor() {
-    this.examData = {
-      2025: EXAM_2025
-    };
-    this.metadata = EXAM_METADATA;
+    this.examData = {};
+    this.metadata = {};
     this.initialized = false;
   }
 
@@ -20,7 +18,20 @@ class ExamService {
   async initialize() {
     if (this.initialized) return;
 
-    console.log('✅ Past Exam Service initialized');
+    // KAM 데이터 비동기 로드
+    const exam2025 = await getExam2025();
+    const metadata = await getExamMetadata();
+
+    this.examData = {
+      2025: exam2025
+    };
+    this.metadata = metadata;
+
+    console.log('✅ Past Exam Service initialized with KAM data');
+    console.log(`   - ${exam2025.length}개 사례`);
+    console.log(`   - 총 ${this.getTotalQuestions(2025)}개 문제`);
+    console.log(`   - 만점: ${this.getTotalScore(2025)}점`);
+
     this.initialized = true;
   }
 
@@ -432,6 +443,11 @@ ${!hasType ? `
    * @param {function} onProgress - 진행률 콜백 (선택) ({ current, total, percentage, caseId })
    */
   async gradeExam(year, userAnswers, apiKey, model = 'gemini-2.5-flash', onProgress = null) {
+    // API 키 확인
+    if (!apiKey || apiKey.trim() === '') {
+      throw new Error('API 키가 설정되지 않았습니다. 설정에서 API 키를 입력해주세요.');
+    }
+
     const exams = this.getExamByYear(year);
     const results = {};
 
