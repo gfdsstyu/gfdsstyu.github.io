@@ -1699,11 +1699,14 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
       </div>
 
       <!-- 액션 버튼 -->
-      <div class="flex justify-between gap-4 pt-4">
+      <div class="flex flex-col sm:flex-row justify-between gap-4 pt-4">
         <button id="btn-exit-kam-final" class="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white font-bold rounded-lg transition-colors">
           ← 사례 종료
         </button>
-        <div class="flex gap-3">
+        <div class="flex flex-wrap gap-3">
+          <button id="btn-next-case" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors">
+            다음 사례 풀기 →
+          </button>
           <button id="btn-retry" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
             이 사례 다시 풀기
           </button>
@@ -1737,6 +1740,24 @@ async function renderFinalResult(container, finalScore, apiKey, selectedModel) {
   container.querySelector('#btn-list').addEventListener('click', () => {
     kamUIState.reset();
     renderCaseList(container, apiKey, selectedModel);
+  });
+
+  container.querySelector('#btn-next-case').addEventListener('click', () => {
+    // 다음 사례 찾기
+    const allCases = kamEvaluationService.getAllCases();
+    const currentCaseNum = kamCase.num;
+    const nextCase = allCases.find(c => c.num === currentCaseNum + 1);
+
+    if (nextCase) {
+      // 다음 사례로 이동
+      kamUIState.reset();
+      kamUIState.currentCase = nextCase;
+      kamUIState.currentStep = 'why';
+      renderStepWhy(container, apiKey, selectedModel);
+    } else {
+      // 마지막 사례
+      alert(`축하합니다! 사례 ${currentCaseNum}이(가) 마지막 사례입니다.\n사례 목록으로 돌아가서 다른 사례를 선택하세요.`);
+    }
   });
 
   const loadStandardsBtn = container.querySelector('#btn-load-standards');
