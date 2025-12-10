@@ -2144,8 +2144,11 @@
         selectExamBtn.addEventListener('click', async () => {
           closeCaseModal();
 
-          const apiKey = localStorage.getItem('apiKey') || '';
-          const selectedModel = localStorage.getItem('selectedAiModel') || 'gemini-2.0-flash-exp';
+          const apiKey = localStorage.getItem('geminiApiKey') || '';
+          const selectedModel = localStorage.getItem('selectedAiModel') || 'gemini-2.5-flash-lite';
+
+          console.log('🔑 [index.html] 기출모드 진입 - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
+          console.log('🔑 [index.html] 선택된 모델:', selectedModel);
 
           try {
             await enterExamMode(apiKey, selectedModel);

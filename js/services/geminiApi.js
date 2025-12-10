@@ -351,8 +351,13 @@ export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemin
  * @returns {Promise<object>} 생성된 JSON 객체
  */
 export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selectedAiModel = 'gemini-2.5-flash-lite', retries = 3, delay = 1500) {
+  console.log('🔑 [geminiApi.js] callGeminiJsonAPI - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
+  console.log('🔑 [geminiApi.js] callGeminiJsonAPI - 모델:', selectedAiModel);
+
   const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash-lite';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+  console.log('🔑 [geminiApi.js] callGeminiJsonAPI - URL:', url.substring(0, 100) + '...');
 
   const generationConfig = {
     responseMimeType: 'application/json',

@@ -31,6 +31,8 @@ const examUIState = {
  * 메인 진입점
  */
 export function renderExamMode(container, apiKey, selectedModel) {
+  console.log('🔑 [examUI.js] renderExamMode - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
+
   if (!container) {
     console.error('Exam UI container not found');
     return;
@@ -44,6 +46,8 @@ export function renderExamMode(container, apiKey, selectedModel) {
  * 연도 선택 화면
  */
 function renderYearSelection(container, apiKey, selectedModel) {
+  console.log('🔑 [examUI.js] renderYearSelection - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
+
   // 좌우 대시보드 복원 (시험 중 숨겨진 경우)
   const leftDashboard = document.getElementById('left-dashboard');
   const rightDashboard = document.getElementById('right-explorer');
@@ -143,6 +147,8 @@ function renderYearSelection(container, apiKey, selectedModel) {
  * 시험 시작
  */
 function startExam(container, year, apiKey, selectedModel) {
+  console.log('🔑 [examUI.js] startExam - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
+
   examUIState.currentYear = year;
 
   // 기존 답안 불러오기 또는 초기화
@@ -186,6 +192,8 @@ function startExam(container, year, apiKey, selectedModel) {
  * 시험지 화면 (Split View)
  */
 function renderExamPaper(container, year, apiKey, selectedModel) {
+  console.log('🔑 [examUI.js] renderExamPaper - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
+
   const exams = examService.getExamByYear(year);
   const metadata = examService.getMetadata(year);
   const tempSaveData = examService.getTempSaveData(year);
@@ -466,9 +474,14 @@ function updateCharCounters() {
  * 임시저장 & 채점
  */
 async function handleTempSave(container, year, apiKey, selectedModel) {
+  console.log('🔑 [examUI.js] handleTempSave - 파라미터 apiKey:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
+  console.log('🔑 [examUI.js] handleTempSave - localStorage geminiApiKey:', localStorage.getItem('geminiApiKey') ? '✅ 있음' : '❌ 없음');
+
   // API 키 확인 (조용히 처리)
-  const finalApiKey = apiKey || localStorage.getItem('apiKey') || '';
-  const finalModel = selectedModel || localStorage.getItem('selectedAiModel') || 'gemini-2.0-flash-exp';
+  const finalApiKey = apiKey || localStorage.getItem('geminiApiKey') || '';
+  const finalModel = selectedModel || localStorage.getItem('selectedAiModel') || 'gemini-2.5-flash-lite';
+
+  console.log('🔑 [examUI.js] handleTempSave - 최종 apiKey:', finalApiKey ? `${finalApiKey.substring(0, 10)}...` : '❌ 없음');
 
   const userAnswers = examService.getUserAnswers(year);
 
@@ -504,11 +517,14 @@ async function submitExam(container, year, apiKey, selectedModel) {
     return;
   }
 
-  // API 키를 localStorage에서 다시 확인 (파라미터가 비어있을 경우 대비)
-  const finalApiKey = apiKey || localStorage.getItem('apiKey') || '';
-  const finalModel = selectedModel || localStorage.getItem('selectedAiModel') || 'gemini-2.0-flash-exp';
+  console.log('🔑 [examUI.js] submitExam - 파라미터 apiKey:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
+  console.log('🔑 [examUI.js] submitExam - localStorage geminiApiKey:', localStorage.getItem('geminiApiKey') ? '✅ 있음' : '❌ 없음');
 
-  console.log('🔑 API 키 확인:', finalApiKey ? '설정됨' : '미설정');
+  // API 키를 localStorage에서 다시 확인 (파라미터가 비어있을 경우 대비)
+  const finalApiKey = apiKey || localStorage.getItem('geminiApiKey') || '';
+  const finalModel = selectedModel || localStorage.getItem('selectedAiModel') || 'gemini-2.5-flash-lite';
+
+  console.log('🔑 [examUI.js] submitExam - 최종 apiKey:', finalApiKey ? `${finalApiKey.substring(0, 10)}...` : '❌ 없음');
 
   // 타이머 정지
   if (examUIState.timerInterval) {

@@ -270,6 +270,9 @@ class ExamService {
    * 임시 채점 실행 (5분 쿨다운)
    */
   async tempGradeExam(year, userAnswers, apiKey, model = 'gemini-2.5-flash') {
+    console.log('🔑 [examService.js] tempGradeExam - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
+    console.log('🔑 [examService.js] tempGradeExam - 모델:', model);
+
     const exams = this.getExamByYear(year);
     const results = {};
 
@@ -332,6 +335,8 @@ class ExamService {
    * 단일 문제 채점
    */
   async gradeQuestion(examCase, question, userAnswer, apiKey, model = 'gemini-2.5-flash') {
+    console.log('🔑 [examService.js] gradeQuestion - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
+
     // Rule vs Case 타입별 프롬프트 전략 분기
     const systemPrompt = this.buildGradingPrompt(examCase, question);
 
@@ -509,6 +514,9 @@ ${!hasType ? `
    * Gemini API 호출 (채점)
    */
   async callGeminiForGrading(systemPrompt, userPrompt, apiKey, model) {
+    console.log('🔑 [examService.js] callGeminiForGrading - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
+    console.log('🔑 [examService.js] callGeminiForGrading - 모델:', model);
+
     const { callGeminiJsonAPI } = await import('../../services/geminiApi.js');
 
     // systemPrompt와 userPrompt를 합쳐서 하나의 prompt로 만들기
@@ -559,6 +567,8 @@ ${!hasType ? `
    */
   async gradeExam(year, userAnswers, apiKey, model = 'gemini-2.5-flash', onProgress = null) {
     console.log('✅ 채점 시작');
+    console.log('🔑 [examService.js] gradeExam - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
+    console.log('🔑 [examService.js] gradeExam - 모델:', model);
 
     const exams = this.getExamByYear(year);
     const results = {};
