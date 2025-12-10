@@ -364,8 +364,8 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
       ${activeViewMode === 'split' ? `
         <!-- Split View: 좌측 지문 + 우측 문제 -->
         <div class="flex h-full">
-          <!-- Left Panel: Scenario (Sticky) -->
-          <div class="w-[45%] border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto bg-white dark:bg-gray-800 p-6">
+          <!-- Left Panel: Scenario (Fixed Width) -->
+          <div class="flex-none w-[480px] min-w-[480px] max-w-[480px] border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto bg-white dark:bg-gray-800 p-6">
             <div class="sticky top-0 bg-white dark:bg-gray-800 pb-4 border-b-2 border-gray-200 dark:border-gray-700 mb-4">
               <h4 class="text-lg font-bold text-purple-700 dark:text-purple-300">📄 지문</h4>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">현재 보고 있는 문제의 지문이 표시됩니다</p>
@@ -376,7 +376,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
           </div>
 
           <!-- Right Panel: Questions -->
-          <div class="w-[55%] overflow-y-auto p-6">
+          <div class="flex-1 overflow-y-auto p-6">
             <div class="space-y-8">
       ` : `
         <!-- Vertical View: 기존 카드형 레이아웃 -->
