@@ -15,6 +15,7 @@ const examUIState = {
   startTime: null,
   timerInterval: null,
   answers: {},
+  viewMode: 'auto', // 'split', 'vertical', 'auto'
 
   reset() {
     this.currentYear = null;
@@ -25,6 +26,18 @@ const examUIState = {
       this.timerInterval = null;
     }
     this.answers = {};
+    // viewMode는 초기화하지 않음 (사용자 선택 유지)
+  },
+
+  /**
+   * 현재 화면 크기에 따라 적절한 뷰 모드 반환
+   */
+  getActiveViewMode() {
+    if (this.viewMode === 'auto') {
+      // 1024px 기준으로 자동 감지
+      return window.innerWidth >= 1024 ? 'split' : 'vertical';
+    }
+    return this.viewMode;
   }
 };
 
@@ -246,6 +259,8 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
 
   console.log('🔍 [examUI.js] renderExamPaper - container.innerHTML 설정 시작');
 
+  const activeViewMode = examUIState.getActiveViewMode();
+
   container.innerHTML = `
     <!-- Fixed Header -->
     <div id="exam-header" class="flex-none bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 text-gray-800 dark:text-white shadow-lg z-50">
@@ -255,22 +270,63 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
               <h3 class="text-lg sm:text-xl font-bold">${year}년 기출문제</h3>
               <span class="text-xs sm:text-sm px-2 sm:px-3 py-1 bg-purple-200 dark:bg-white/30 rounded-full font-semibold">총 ${examService.getTotalScore(year)}점</span>
             </div>
-            <button
-              id="btn-exit-exam-header"
-              class="px-3 py-2 sm:px-4 sm:py-2 bg-purple-200 hover:bg-purple-300 dark:bg-white/30 dark:hover:bg-white/40 font-semibold rounded-lg transition-colors flex items-center gap-2 text-sm"
-              title="기출문제 모드 종료"
-            >
-              <span>✕</span>
-              <span class="hidden sm:inline">종료</span>
-            </button>
+
+            <!-- View Mode Toggle -->
+            <div class="flex items-center gap-2">
+              <div class="flex bg-white/50 dark:bg-gray-800/50 rounded-lg p-1 gap-1">
+                <button
+                  id="btn-view-split"
+                  class="px-3 py-1.5 rounded text-sm font-semibold transition-all ${activeViewMode === 'split' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'hover:bg-white/50 dark:hover:bg-gray-700/50'}"
+                  title="시험장 모드 (좌측 지문 고정)"
+                >
+                  🖥️ <span class="hidden sm:inline">시험장</span>
+                </button>
+                <button
+                  id="btn-view-vertical"
+                  class="px-3 py-1.5 rounded text-sm font-semibold transition-all ${activeViewMode === 'vertical' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'hover:bg-white/50 dark:hover:bg-gray-700/50'}"
+                  title="모바일 모드 (카드형)"
+                >
+                  📱 <span class="hidden sm:inline">모바일</span>
+                </button>
+              </div>
+
+              <button
+                id="btn-exit-exam-header"
+                class="px-3 py-2 sm:px-4 sm:py-2 bg-purple-200 hover:bg-purple-300 dark:bg-white/30 dark:hover:bg-white/40 font-semibold rounded-lg transition-colors flex items-center gap-2 text-sm"
+                title="기출문제 모드 종료"
+              >
+                <span>✕</span>
+                <span class="hidden sm:inline">종료</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
     <!-- Scrollable Content Area -->
-    <div id="exam-scroll-area" class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scroll-smooth relative">
-      <div class="w-full px-4 sm:px-6 lg:pl-8 lg:pr-[240px] py-6 pb-32">
-        <div class="max-w-6xl mx-auto space-y-12">
+    <div id="exam-scroll-area" class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scroll-smooth relative" data-view-mode="${activeViewMode}">
+      ${activeViewMode === 'split' ? `
+        <!-- Split View: 좌측 지문 + 우측 문제 -->
+        <div class="flex h-full">
+          <!-- Left Panel: Scenario (Sticky) -->
+          <div class="w-[45%] border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto bg-white dark:bg-gray-800 p-6">
+            <div class="sticky top-0 bg-white dark:bg-gray-800 pb-4 border-b-2 border-gray-200 dark:border-gray-700 mb-4">
+              <h4 class="text-lg font-bold text-purple-700 dark:text-purple-300">📄 지문</h4>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">현재 보고 있는 문제의 지문이 표시됩니다</p>
+            </div>
+            <div id="split-scenario-display" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">
+              ${exams[0]?.questions[0]?.scenario || exams[0]?.scenario || '지문을 불러오는 중...'}
+            </div>
+          </div>
+
+          <!-- Right Panel: Questions -->
+          <div class="w-[55%] overflow-y-auto p-6">
+            <div class="space-y-8">
+      ` : `
+        <!-- Vertical View: 기존 카드형 레이아웃 -->
+        <div class="w-full px-4 sm:px-6 lg:pl-8 lg:pr-[240px] py-6 pb-32">
+          <div class="max-w-6xl mx-auto space-y-12">
+      `}
             ${exams.map((exam, examIdx) => `
               <div id="case-${exam.id}" class="case-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-visible scroll-mt-4">
                 <!-- Case 헤더 -->
@@ -296,10 +352,10 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                       const isFirstQuestion = qIdx === 0;
 
                       return `
-                      <div id="question-${q.id}" class="question-item ${isSameScenario ? '' : 'scenario-changed'} border-2 ${isSameScenario ? 'border-gray-200 dark:border-gray-600' : 'border-orange-400 dark:border-orange-600'} rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-lg transition-all duration-300">
+                      <div id="question-${q.id}" class="question-item ${isSameScenario ? '' : 'scenario-changed'} border-2 ${isSameScenario ? 'border-gray-200 dark:border-gray-600' : 'border-orange-400 dark:border-orange-600'} rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-lg transition-all duration-300" data-scenario="${currentScenario.replace(/"/g, '&quot;')}">
 
-                        <!-- Scenario Section -->
-                        <div class="scenario-section ${isSameScenario ? 'bg-green-50 dark:bg-green-900/20' : 'bg-orange-50 dark:bg-orange-900/20'} border-b-2 ${isSameScenario ? 'border-green-200 dark:border-green-700' : 'border-orange-200 dark:border-orange-700'}">
+                        <!-- Scenario Section (Vertical View only) -->
+                        <div class="scenario-section ${activeViewMode === 'split' ? 'hidden' : ''} ${isSameScenario ? 'bg-green-50 dark:bg-green-900/20' : 'bg-orange-50 dark:bg-orange-900/20'} border-b-2 ${isSameScenario ? 'border-green-200 dark:border-green-700' : 'border-orange-200 dark:border-orange-700'}">
                           <button
                             class="scenario-toggle w-full px-4 py-3 text-left flex items-center justify-between hover:bg-opacity-80 transition-colors"
                             data-question-id="${q.id}"
@@ -370,7 +426,14 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
             `).join('')}
           </div>
         </div>
-      </div>
+      ${activeViewMode === 'split' ? `
+            </div>
+          </div>
+        </div>
+      ` : `
+        </div>
+      `}
+    </div>
 
       <!-- Floating Control Panel (Desktop - Always show for debugging) -->
       <div id="floating-controls" style="display: flex !important; position: fixed !important; top: 96px !important; right: 24px !important; z-index: 9999 !important;" class="flex-col gap-3 transition-all duration-300 w-[200px]">
@@ -548,10 +611,73 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
     });
   }
 
+  // View Mode Toggle 버튼
+  const btnViewSplit = container.querySelector('#btn-view-split');
+  const btnViewVertical = container.querySelector('#btn-view-vertical');
+
+  if (btnViewSplit) {
+    btnViewSplit.addEventListener('click', () => {
+      examUIState.viewMode = 'split';
+      renderExamPaper(container, year, apiKey, selectedModel);
+    });
+  }
+
+  if (btnViewVertical) {
+    btnViewVertical.addEventListener('click', () => {
+      examUIState.viewMode = 'vertical';
+      renderExamPaper(container, year, apiKey, selectedModel);
+    });
+  }
+
+  // Split View: Question 카드 클릭 시 좌측 지문 업데이트
+  if (activeViewMode === 'split') {
+    const questionCards = container.querySelectorAll('.question-item');
+    const scenarioDisplay = container.querySelector('#split-scenario-display');
+
+    questionCards.forEach(card => {
+      // textarea focus 시 지문 업데이트
+      const textarea = card.querySelector('textarea');
+      if (textarea && scenarioDisplay) {
+        textarea.addEventListener('focus', () => {
+          const scenario = card.dataset.scenario;
+          if (scenario) {
+            scenarioDisplay.innerHTML = scenario.replace(/&quot;/g, '"');
+          }
+        });
+      }
+
+      // 카드 클릭 시에도 업데이트
+      card.addEventListener('click', (e) => {
+        // textarea 클릭은 이미 위에서 처리되므로 제외
+        if (e.target.tagName !== 'TEXTAREA' && scenarioDisplay) {
+          const scenario = card.dataset.scenario;
+          if (scenario) {
+            scenarioDisplay.innerHTML = scenario.replace(/&quot;/g, '"');
+          }
+        }
+      });
+    });
+  }
+
+  // Responsive: Window resize 감지 (auto 모드일 때만)
+  const handleResize = () => {
+    if (examUIState.viewMode === 'auto') {
+      const newViewMode = examUIState.getActiveViewMode();
+      if (newViewMode !== activeViewMode) {
+        // 뷰 모드가 변경되었으므로 다시 렌더링
+        renderExamPaper(container, year, apiKey, selectedModel);
+      }
+    }
+  };
+
+  // 기존 리스너 제거 후 새로 등록 (중복 방지)
+  window.removeEventListener('resize', handleResize);
+  window.addEventListener('resize', handleResize);
+
   // 글자 수 카운터 업데이트
   updateCharCounters();
 
-  console.log('✅ [examUI.js] renderExamPaper - 렌더링 완료');
+  console.log('✅ [examUI.js] renderExamPaper - 렌더링 완료, viewMode:', activeViewMode);
 }
 
 /**
@@ -850,6 +976,8 @@ function renderResults(container, year, result, apiKey, selectedModel) {
   // 사용자 답안 미리 가져오기
   const userAnswers = examService.getUserAnswers(year);
 
+  const activeViewMode = examUIState.getActiveViewMode();
+
   container.innerHTML = `
     <!-- Fixed Header -->
     <div id="results-header" class="flex-none bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 text-gray-800 dark:text-white shadow-lg z-50">
@@ -859,14 +987,35 @@ function renderResults(container, year, result, apiKey, selectedModel) {
               <h3 class="text-lg sm:text-xl font-bold">${year}년 기출문제 채점 결과</h3>
               <span class="text-xs sm:text-sm px-2 sm:px-3 py-1 bg-purple-200 dark:bg-white/30 rounded-full font-semibold">${result.totalScore.toFixed(1)} / ${totalPossibleScore}점</span>
             </div>
-            <button
-              id="btn-exit-results-header"
-              class="px-3 py-2 sm:px-4 sm:py-2 bg-purple-200 hover:bg-purple-300 dark:bg-white/30 dark:hover:bg-white/40 font-semibold rounded-lg transition-colors flex items-center gap-2 text-sm"
-              title="기출문제 모드 종료"
-            >
-              <span>✕</span>
-              <span class="hidden sm:inline">종료</span>
-            </button>
+
+            <!-- View Mode Toggle (Results Screen) -->
+            <div class="flex items-center gap-2">
+              <div class="flex bg-white/50 dark:bg-gray-800/50 rounded-lg p-1 gap-1">
+                <button
+                  id="btn-view-split-results"
+                  class="px-3 py-1.5 rounded text-sm font-semibold transition-all ${activeViewMode === 'split' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'hover:bg-white/50 dark:hover:bg-gray-700/50'}"
+                  title="시험장 모드 (좌측 지문 고정)"
+                >
+                  🖥️ <span class="hidden sm:inline">시험장</span>
+                </button>
+                <button
+                  id="btn-view-vertical-results"
+                  class="px-3 py-1.5 rounded text-sm font-semibold transition-all ${activeViewMode === 'vertical' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'hover:bg-white/50 dark:hover:bg-gray-700/50'}"
+                  title="모바일 모드 (카드형)"
+                >
+                  📱 <span class="hidden sm:inline">모바일</span>
+                </button>
+              </div>
+
+              <button
+                id="btn-exit-results-header"
+                class="px-3 py-2 sm:px-4 sm:py-2 bg-purple-200 hover:bg-purple-300 dark:bg-white/30 dark:hover:bg-white/40 font-semibold rounded-lg transition-colors flex items-center gap-2 text-sm"
+                title="기출문제 모드 종료"
+              >
+                <span>✕</span>
+                <span class="hidden sm:inline">종료</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1116,6 +1265,24 @@ function renderResults(container, year, result, apiKey, selectedModel) {
     // 다시 문제 화면으로
     renderExamPaper(container, year, apiKey, selectedModel);
   });
+
+  // View Mode Toggle 버튼 (Results)
+  const btnViewSplitResults = container.querySelector('#btn-view-split-results');
+  const btnViewVerticalResults = container.querySelector('#btn-view-vertical-results');
+
+  if (btnViewSplitResults) {
+    btnViewSplitResults.addEventListener('click', () => {
+      examUIState.viewMode = 'split';
+      renderResults(container, year, result, apiKey, selectedModel);
+    });
+  }
+
+  if (btnViewVerticalResults) {
+    btnViewVerticalResults.addEventListener('click', () => {
+      examUIState.viewMode = 'vertical';
+      renderResults(container, year, result, apiKey, selectedModel);
+    });
+  }
 
   // 하단 종료 버튼
   container.querySelector('#exit-exam-results-btn').addEventListener('click', () => {
