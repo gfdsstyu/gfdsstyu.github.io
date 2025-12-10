@@ -38,7 +38,7 @@ export async function enterExamMode() {
   if (resultBox) resultBox.style.display = 'none';
   if (modelAnswerBox) modelAnswerBox.style.display = 'none';
 
-  // 기출문제 컨테이너 생성 (KAM 모드처럼 기존 레이아웃에 통합)
+  // 기출문제 컨테이너 생성 (Body에 직접 부착하여 레이아웃 간섭 회피)
   examContainer = document.querySelector('#exam-container');
   console.log('🔍 [examIntegration.js] 기존 exam-container:', examContainer);
 
@@ -47,14 +47,9 @@ export async function enterExamMode() {
     examContainer = document.createElement('div');
     examContainer.id = 'exam-container';
 
-    // quizArea 앞에 삽입 (KAM 모드 방식)
-    if (quizArea && quizArea.parentNode) {
-      quizArea.parentNode.insertBefore(examContainer, quizArea);
-      console.log('✅ [examIntegration.js] exam-container를 quizArea 앞에 추가');
-    } else {
-      document.body.appendChild(examContainer);
-      console.log('⚠️ [examIntegration.js] exam-container를 body에 추가 (fallback)');
-    }
+    // Body에 직접 append하여 Grid, Transform 등 레이아웃 간섭 회피
+    document.body.appendChild(examContainer);
+    console.log('✅ [examIntegration.js] exam-container를 body에 추가 (Full Screen Overlay)');
   }
 
   console.log('🔍 [examIntegration.js] 최종 examContainer:', examContainer);

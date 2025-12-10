@@ -190,8 +190,8 @@ function startExam(container, year) {
     examService.saveTimerStart(year);
   }
 
-  // 전체 화면 모드로 전환
-  container.className = 'fixed inset-0 z-50 bg-white dark:bg-gray-900';
+  // 전체 화면 모드로 전환 (Flex Column 구조)
+  container.className = 'fixed inset-0 z-50 bg-white dark:bg-gray-900 flex flex-col h-screen';
 
   // 좌우 대시보드와 헤더 숨기기
   const leftDashboard = document.getElementById('left-dashboard');
@@ -247,9 +247,8 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
   console.log('🔍 [examUI.js] renderExamPaper - container.innerHTML 설정 시작');
 
   container.innerHTML = `
-    <div class="exam-paper-container h-full overflow-auto bg-gray-50 dark:bg-gray-900 pb-20" style="scroll-behavior: smooth;">
-      <!-- Sticky Header -->
-      <div id="exam-header" class="sticky top-0 z-40 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 text-gray-800 dark:text-white shadow-lg">
+    <!-- Fixed Header -->
+    <div id="exam-header" class="flex-none bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 text-gray-800 dark:text-white shadow-lg z-50">
         <div class="w-full px-4 sm:px-6 lg:px-8 py-3">
           <div class="flex items-center justify-between flex-wrap gap-3">
             <div class="flex items-center gap-3">
@@ -268,13 +267,14 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
         </div>
       </div>
 
-      <!-- Main Content: Centered with margins for FAB (오른쪽 여백 200px 확보) -->
-      <div class="w-full px-4 sm:px-6 lg:pl-8 lg:pr-[240px] py-6">
-        <div class="max-w-6xl mx-auto space-y-8">
+    <!-- Scrollable Content Area -->
+    <div id="exam-scroll-area" class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scroll-smooth relative">
+      <div class="w-full px-4 sm:px-6 lg:pl-8 lg:pr-[240px] py-6 pb-32">
+        <div class="max-w-6xl mx-auto space-y-12">
             ${exams.map((exam, examIdx) => `
-              <div id="case-${exam.id}" class="case-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-visible scroll-mt-24">
+              <div id="case-${exam.id}" class="case-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-visible scroll-mt-4">
                 <!-- Case 헤더 -->
-                <div class="bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 px-6 py-3 shadow-md">
+                <div class="bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 px-6 py-3 shadow-md rounded-t-xl">
                   <div class="flex items-center justify-between">
                     <h4 class="text-lg font-bold text-gray-800 dark:text-white">문제 ${examIdx + 1}</h4>
                     <span class="text-sm bg-purple-200 dark:bg-white/30 px-3 py-1 rounded-full font-semibold text-gray-800 dark:text-white">
@@ -285,19 +285,19 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                 </div>
 
                 <!-- Split View: 지문 (45%) | 물음들 (55%) -->
-                <div class="flex flex-row items-start" style="min-height: 400px;">
+                <div class="flex flex-col lg:flex-row items-start relative" style="min-height: 400px;">
                   <!-- 좌측: 지문 - sticky로 고정 -->
-                  <div style="flex: 0 0 45%; min-width: 0;" class="sticky top-24 h-[calc(100vh-120px)] overflow-y-auto bg-gray-50 dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+                  <div class="lg:w-[45%] lg:sticky lg:top-4 h-[500px] lg:h-[calc(100vh-100px)] overflow-y-auto bg-gray-50 dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-700 p-4 sm:p-6 rounded-bl-xl">
                     <div class="mb-3">
                       <span class="inline-block px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-bold rounded-full mb-3">
                         📄 지문 (Scenario)
                       </span>
                     </div>
-                    <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${exam.scenario}</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap font-serif">${exam.scenario}</div>
                   </div>
 
                   <!-- 우측: 물음들 - 자연스럽게 늘어나도록 -->
-                  <div style="flex: 0 0 55%; min-width: 0;" class="p-4 sm:p-6">
+                  <div class="lg:w-[55%] p-4 sm:p-6">
                     <div class="space-y-6">
                       ${exam.questions.map((q, qIdx) => {
                         return `
@@ -467,11 +467,13 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
 
   // Desktop: Navigation buttons - 스크롤 이동
   const navButtons = container.querySelectorAll('#nav-grid button');
+  const scrollContainer = document.getElementById('exam-scroll-area'); // 스크롤 컨테이너 명시
+
   navButtons.forEach((btn, idx) => {
     btn.addEventListener('click', () => {
       const targetId = exams[idx].id;
       const targetElement = container.querySelector(`#case-${targetId}`);
-      if (targetElement) {
+      if (targetElement && scrollContainer) {
         // scrollIntoView를 사용하여 간단하고 정확하게 이동
         targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
