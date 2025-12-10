@@ -261,18 +261,12 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                       </span>
                     </div>
                     <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${exam.scenario}</div>
-                    ${exam.type ? `
-                      <div class="mt-4 pt-4 border-t border-gray-300 dark:border-gray-600">
-                        <span class="text-xs text-gray-500 dark:text-gray-400">유형: ${exam.type === 'Rule' ? '기준서(Rule)' : exam.type === 'Case' ? '사례(Case)' : '일반'}</span>
-                      </div>
-                    ` : ''}
                   </div>
 
                   <!-- 우측: 물음들 - flex-basis로 강제 고정 -->
                   <div style="flex: 0 0 55%; min-width: 0;" class="p-4 sm:p-6 overflow-y-auto max-h-screen">
                     <div class="space-y-6">
                       ${exam.questions.map((q, qIdx) => {
-                        const tempScore = tempSaveData?.results?.[q.id];
                         return `
                         <div id="question-${q.id}" class="question-item border-2 border-gray-200 dark:border-gray-600 rounded-lg p-5 bg-white dark:bg-gray-800">
                           <!-- 물음 헤더 -->
@@ -285,11 +279,6 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                                 ${q.score}점
                               </span>
                             </div>
-                            ${tempScore ? `
-                              <span class="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
-                                임시: ${tempScore.score.toFixed(1)}/${q.score}점
-                              </span>
-                            ` : ''}
                           </div>
 
                           <!-- 문제 -->
@@ -313,12 +302,6 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                               <span>💾 자동 저장됨</span>
                               <span id="char-count-${q.id}">0자</span>
                             </div>
-                            ${tempScore ? `
-                              <div class="mt-3 p-3 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                <p class="text-xs text-blue-800 dark:text-blue-300 mb-1 font-semibold">💬 임시 피드백:</p>
-                                <p class="text-xs text-blue-700 dark:text-blue-400">${tempScore.feedback || '피드백 없음'}</p>
-                              </div>
-                            ` : ''}
                           </div>
                         </div>
                       `}).join('')}
@@ -383,28 +366,6 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
           </button>
         </div>
       </div>
-        <button
-          id="btn-mobile-nav"
-          class="flex-shrink-0 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-xl flex items-center justify-center gap-2 text-sm"
-        >
-          <span>📌</span>
-        </button>
-        <button
-          id="btn-temp-save-mobile"
-          ${!canTempSave ? 'disabled' : ''}
-          class="flex-1 px-4 py-3 ${canTempSave ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-400 cursor-not-allowed'} text-white font-bold rounded-lg shadow-xl flex items-center justify-center gap-2 text-sm"
-        >
-          <span>💾</span>
-          <span>${canTempSave ? '임시' : '쿨다운'}</span>
-        </button>
-        <button
-          id="btn-submit-mobile"
-          class="flex-1 px-4 py-3 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-bold rounded-lg shadow-xl flex items-center justify-center gap-2 text-sm"
-        >
-          <span>📝</span>
-          <span>제출</span>
-        </button>
-      </div>
     </div>
   `;
 
@@ -456,58 +417,6 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
   const submitBtn = container.querySelector('#btn-submit-exam');
   if (submitBtn) {
     submitBtn.addEventListener('click', () => {
-      submitExam(container, year, apiKey, selectedModel);
-    });
-  }
-
-  // Mobile: 네비게이션 버튼 (모달 띄우기)
-  const mobileNavBtn = container.querySelector('#btn-mobile-nav');
-  if (mobileNavBtn) {
-    mobileNavBtn.addEventListener('click', () => {
-      // 간단한 네비게이션 모달
-      const navHtml = `
-        <div class="grid grid-cols-5 gap-2 p-4">
-          ${exams.map((exam, idx) => `
-            <button
-              onclick="document.getElementById('case-${exam.id}').scrollIntoView({ behavior: 'smooth', block: 'start' }); this.closest('.fixed').remove();"
-              class="aspect-square flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-bold"
-            >
-              ${idx + 1}
-            </button>
-          `).join('')}
-        </div>
-      `;
-
-      const modal = document.createElement('div');
-      modal.className = 'fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4';
-      modal.innerHTML = `
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full">
-          <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-            <h3 class="font-bold text-gray-800 dark:text-gray-200">문제 바로가기</h3>
-            <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">✕</button>
-          </div>
-          ${navHtml}
-        </div>
-      `;
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) modal.remove();
-      });
-      document.body.appendChild(modal);
-    });
-  }
-
-  // Mobile: 임시저장 버튼
-  const tempSaveMobileBtn = container.querySelector('#btn-temp-save-mobile');
-  if (tempSaveMobileBtn && canTempSave) {
-    tempSaveMobileBtn.addEventListener('click', async () => {
-      await handleTempSave(container, year, apiKey, selectedModel);
-    });
-  }
-
-  // Mobile: 최종 제출 버튼
-  const submitMobileBtn = container.querySelector('#btn-submit-mobile');
-  if (submitMobileBtn) {
-    submitMobileBtn.addEventListener('click', () => {
       submitExam(container, year, apiKey, selectedModel);
     });
   }
