@@ -12,10 +12,7 @@ let examContainer = null;
 /**
  * 기출문제 모드 진입
  */
-export async function enterExamMode(apiKey, selectedModel) {
-  console.log('🔑 [examIntegration.js] enterExamMode - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
-  console.log('🔑 [examIntegration.js] enterExamMode - 모델:', selectedModel);
-
+export async function enterExamMode() {
   if (isExamMode) {
     console.warn('이미 기출문제 모드입니다.');
     return;
@@ -24,25 +21,54 @@ export async function enterExamMode(apiKey, selectedModel) {
   console.log('📝 기출문제 모드 진입');
 
   // 서비스 초기화
+  console.log('🔧 [examIntegration.js] examService 초기화 시작');
   await examService.initialize();
+  console.log('✅ [examIntegration.js] examService 초기화 완료');
 
-  // 기존 컨테이너 숨기기
-  const mainContainer = document.getElementById('message-container');
-  if (mainContainer) {
-    mainContainer.style.display = 'none';
+  // 기존 UI 요소 숨기기 (KAM 모드 방식 차용)
+  const quizArea = document.querySelector('#quiz-area');
+  const summaryArea = document.querySelector('#summary-area');
+  const flashcardArea = document.querySelector('#flashcard-area');
+  const resultBox = document.querySelector('#result-box');
+  const modelAnswerBox = document.querySelector('#model-answer-box');
+
+  if (quizArea) quizArea.style.display = 'none';
+  if (summaryArea) summaryArea.style.display = 'none';
+  if (flashcardArea) flashcardArea.style.display = 'none';
+  if (resultBox) resultBox.style.display = 'none';
+  if (modelAnswerBox) modelAnswerBox.style.display = 'none';
+
+  // 기출문제 컨테이너 생성
+  examContainer = document.querySelector('#exam-container');
+  console.log('🔍 [examIntegration.js] 기존 exam-container:', examContainer);
+
+  if (!examContainer) {
+    console.log('🔧 [examIntegration.js] 새로운 exam-container 생성');
+    examContainer = document.createElement('div');
+    examContainer.id = 'exam-container';
+    // The container for main content inside the center column.
+    const mainContentContainer = document.querySelector('#center-core > div');
+    console.log('🔍 [examIntegration.js] mainContentContainer:', mainContentContainer);
+
+    if (mainContentContainer) {
+      mainContentContainer.appendChild(examContainer);
+      console.log('✅ [examIntegration.js] exam-container를 mainContentContainer에 추가');
+    } else {
+      console.error('Main content container not found!');
+      document.body.appendChild(examContainer); // Fallback
+      console.log('⚠️ [examIntegration.js] exam-container를 body에 추가 (fallback)');
+    }
   }
+
+  console.log('🔍 [examIntegration.js] 최종 examContainer:', examContainer);
 
   // 좌우 대시보드는 연도 선택 화면에서는 유지
   // 실제 시험 시작 시에만 숨김 (examUI.js의 startExam에서 처리)
 
-  // 기출문제 컨테이너 생성
-  examContainer = document.createElement('div');
-  examContainer.id = 'exam-container';
-  examContainer.className = 'exam-mode-container';
-  document.body.appendChild(examContainer);
-
   // UI 렌더링
-  renderExamMode(examContainer, apiKey, selectedModel);
+  console.log('🎨 [examIntegration.js] renderExamMode 호출');
+  renderExamMode(examContainer);
+  console.log('✅ [examIntegration.js] renderExamMode 완료');
 
   isExamMode = true;
 }
@@ -64,11 +90,21 @@ export function exitExamMode() {
     examContainer = null;
   }
 
-  // 기존 컨테이너 복원
-  const mainContainer = document.getElementById('message-container');
-  if (mainContainer) {
-    mainContainer.style.display = 'block';
-  }
+  // 숨겼던 UI 요소 복원
+  const quizArea = document.querySelector('#quiz-area');
+  const summaryArea = document.querySelector('#summary-area');
+  const flashcardArea = document.querySelector('#flashcard-area');
+  const resultBox = document.querySelector('#result-box');
+  const modelAnswerBox = document.querySelector('#model-answer-box');
+  const mainControls = document.querySelector('#center-core .flex.flex-col.md\\:flex-row.gap-4.mb-6');
+
+  if (quizArea) quizArea.style.display = '';
+  if (summaryArea) summaryArea.style.display = '';
+  if (flashcardArea) flashcardArea.style.display = 'none'; // Default is hidden
+  if (resultBox) resultBox.style.display = 'none'; // Default is hidden
+  if (modelAnswerBox) modelAnswerBox.style.display = 'none'; // Default is hidden
+  if (mainControls) mainControls.style.display = '';
+
 
   // 좌우 대시보드와 중앙 헤더 복원 (시험 중 숨겨진 경우)
   const leftDashboard = document.getElementById('left-dashboard');

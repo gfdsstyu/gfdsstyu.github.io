@@ -158,7 +158,7 @@ class ExamService {
     const elapsed = (Date.now() - start) / 1000 / 60; // 분 단위
     const remaining = metadata.timeLimit - elapsed;
 
-    return Math.max(0, Math.round(remaining));
+    return Math.max(0, remaining);
   }
 
   /**

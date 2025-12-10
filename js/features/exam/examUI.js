@@ -4,6 +4,7 @@
  */
 
 import { examService } from './examService.js';
+import { getGeminiApiKey, getSelectedAiModel } from '../../core/stateManager.js';
 
 /**
  * UI 상태 관리
@@ -30,7 +31,10 @@ const examUIState = {
 /**
  * 메인 진입점
  */
-export function renderExamMode(container, apiKey, selectedModel) {
+export function renderExamMode(container) {
+  const apiKey = getGeminiApiKey();
+  const selectedModel = getSelectedAiModel();
+
   console.log('🔑 [examUI.js] renderExamMode - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
 
   if (!container) {
@@ -39,13 +43,16 @@ export function renderExamMode(container, apiKey, selectedModel) {
   }
 
   examUIState.reset();
-  renderYearSelection(container, apiKey, selectedModel);
+  renderYearSelection(container);
 }
 
 /**
  * 연도 선택 화면
  */
-function renderYearSelection(container, apiKey, selectedModel) {
+function renderYearSelection(container) {
+  const apiKey = getGeminiApiKey();
+  const selectedModel = getSelectedAiModel();
+
   console.log('🔑 [examUI.js] renderYearSelection - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
 
   // 좌우 대시보드와 중앙 헤더 복원 (시험 중 숨겨진 경우)
@@ -144,7 +151,7 @@ function renderYearSelection(container, apiKey, selectedModel) {
   container.querySelectorAll('.year-card').forEach(card => {
     card.addEventListener('click', () => {
       const year = parseInt(card.dataset.year, 10);
-      startExam(container, year, apiKey, selectedModel);
+      startExam(container, year);
     });
   });
 }
@@ -152,7 +159,10 @@ function renderYearSelection(container, apiKey, selectedModel) {
 /**
  * 시험 시작
  */
-function startExam(container, year, apiKey, selectedModel) {
+function startExam(container, year) {
+  const apiKey = getGeminiApiKey();
+  const selectedModel = getSelectedAiModel();
+
   console.log('🔑 [examUI.js] startExam - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
 
   examUIState.currentYear = year;
@@ -204,28 +214,44 @@ function startExam(container, year, apiKey, selectedModel) {
  * 시험지 화면 (Split View)
  */
 function renderExamPaper(container, year, apiKey, selectedModel) {
+  // API 키가 전달되지 않았을 경우 StateManager에서 가져오기
+  if (!apiKey) {
+    apiKey = getGeminiApiKey();
+  }
+  if (!selectedModel) {
+    selectedModel = getSelectedAiModel();
+  }
+
   console.log('🔑 [examUI.js] renderExamPaper - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
+  console.log('🔍 [examUI.js] renderExamPaper - container:', container);
+  console.log('🔍 [examUI.js] renderExamPaper - year:', year);
 
   const exams = examService.getExamByYear(year);
   const metadata = examService.getMetadata(year);
+
+  console.log('🔍 [examUI.js] renderExamPaper - exams:', exams);
+  console.log('🔍 [examUI.js] renderExamPaper - metadata:', metadata);
+
   const tempSaveData = examService.getTempSaveData(year);
   const lastTempSave = tempSaveData?.timestamp || 0;
   const now = Date.now();
   const canTempSave = (now - lastTempSave) >= 5 * 60 * 1000; // 5분
 
+  console.log('🔍 [examUI.js] renderExamPaper - container.innerHTML 설정 시작');
+
   container.innerHTML = `
     <div class="exam-paper-container min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
       <!-- Sticky Header -->
-      <div id="exam-header" class="sticky top-0 z-40 bg-gradient-to-r from-purple-700 to-indigo-700 text-white shadow-lg">
+      <div id="exam-header" class="sticky top-0 z-40 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 text-gray-800 dark:text-white shadow-lg">
         <div class="w-full px-4 sm:px-6 lg:px-8 py-3">
           <div class="flex items-center justify-between flex-wrap gap-3">
             <div class="flex items-center gap-3">
               <h3 class="text-lg sm:text-xl font-bold">${year}년 기출문제</h3>
-              <span class="text-xs sm:text-sm px-2 sm:px-3 py-1 bg-white/30 rounded-full font-semibold">총 ${examService.getTotalScore(year)}점</span>
+              <span class="text-xs sm:text-sm px-2 sm:px-3 py-1 bg-purple-200 dark:bg-white/30 rounded-full font-semibold">총 ${examService.getTotalScore(year)}점</span>
             </div>
             <button
               id="btn-exit-exam-header"
-              class="px-3 py-2 sm:px-4 sm:py-2 bg-white/30 hover:bg-white/40 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 text-sm"
+              class="px-3 py-2 sm:px-4 sm:py-2 bg-purple-200 hover:bg-purple-300 dark:bg-white/30 dark:hover:bg-white/40 font-semibold rounded-lg transition-colors flex items-center gap-2 text-sm"
               title="기출문제 모드 종료"
             >
               <span>✕</span>
@@ -423,6 +449,8 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
 
   // 글자 수 카운터 업데이트
   updateCharCounters();
+
+  console.log('✅ [examUI.js] renderExamPaper - 렌더링 완료');
 }
 
 /**
@@ -707,7 +735,7 @@ function renderResults(container, year, result, apiKey, selectedModel) {
   const exams = examService.getExamByYear(year);
   const metadata = examService.getMetadata(year);
   const totalPossibleScore = examService.getTotalScore(year);
-  const percentage = Math.round((result.totalScore / totalPossibleScore) * 100);
+  const percentage = ((result.totalScore / totalPossibleScore) * 100).toFixed(1);
   const isPassing = result.totalScore >= metadata.passingScore;
 
   // 점수 히스토리 가져오기
@@ -720,7 +748,7 @@ function renderResults(container, year, result, apiKey, selectedModel) {
   container.innerHTML = `
     <div class="results-container max-w-6xl mx-auto p-4 md:p-8 space-y-6">
       <!-- 헤더: 총점 -->
-      <div class="bg-gradient-to-r ${isPassing ? 'from-green-500 to-emerald-600' : 'from-red-500 to-rose-600'} rounded-2xl p-6 md:p-8 text-white shadow-xl">
+      <div class="bg-gradient-to-r ${isPassing ? 'from-green-100 to-emerald-100 dark:from-green-500 dark:to-emerald-600' : 'from-red-100 to-rose-100 dark:from-red-500 dark:to-rose-600'} rounded-2xl p-6 md:p-8 text-gray-800 dark:text-white shadow-xl">
         <div class="flex flex-col md:flex-row items-center justify-between gap-4">
           <div class="text-center md:text-left">
             <h1 class="text-2xl md:text-3xl font-bold mb-2">📝 ${year}년 기출문제 채점 완료!</h1>
@@ -730,7 +758,7 @@ function renderResults(container, year, result, apiKey, selectedModel) {
           </div>
           <div class="text-center">
             <div class="text-6xl md:text-7xl font-extrabold mb-2">
-              ${result.totalScore}
+              ${result.totalScore.toFixed(1)}
             </div>
             <div class="text-xl md:text-2xl font-semibold">
               / ${totalPossibleScore}점 (${percentage}%)
@@ -750,7 +778,7 @@ function renderResults(container, year, result, apiKey, selectedModel) {
               <div class="flex flex-col items-center min-w-[80px]">
                 <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">${idx + 1}회</div>
                 <div class="w-12 h-12 rounded-full ${s.score >= metadata.passingScore ? 'bg-green-100 text-green-700 border-2 border-green-500' : 'bg-gray-100 text-gray-700 border-2 border-gray-300'} flex items-center justify-center font-bold text-sm">
-                  ${s.score}
+                  ${s.score.toFixed(1)}
                 </div>
                 ${s.score === bestScore ? '<div class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">🏆 최고</div>' : ''}
               </div>
@@ -780,10 +808,10 @@ function renderResults(container, year, result, apiKey, selectedModel) {
               </div>
             </div>
 
-            <!-- Split View: 지문 (45%) | 물음들 (55%) -->
+            <!-- Split View: 지문 (50%) | 물음들 (50%) -->
             <div class="flex flex-col lg:flex-row">
               <!-- 좌측: 지문 -->
-              <div class="lg:w-[45%] bg-gray-50 dark:bg-gray-900 border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700 p-6">
+              <div class="lg:w-1/2 bg-gray-50 dark:bg-gray-900 border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700 p-6">
                 <div class="mb-3">
                   <span class="inline-block px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-bold rounded-full">
                     📄 지문 (Scenario)
@@ -793,7 +821,7 @@ function renderResults(container, year, result, apiKey, selectedModel) {
               </div>
 
               <!-- 우측: 물음들 -->
-              <div class="lg:w-[55%] p-6">
+              <div class="lg:w-1/2 p-6">
                 <div class="space-y-6">
                   ${examCase.questions.map((question) => {
                     const feedback = result.details[question.id];
@@ -818,7 +846,7 @@ function renderResults(container, year, result, apiKey, selectedModel) {
                             <span class="text-2xl">${scoreEmoji}</span>
                           </div>
                           <div class="text-xl font-bold ${feedback?.score >= question.score * 0.9 ? 'text-green-600 dark:text-green-400' : feedback?.score >= question.score * 0.5 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}">
-                            ${feedback?.score || 0} / ${question.score}점
+                            ${(feedback?.score || 0).toFixed(1)} / ${question.score}점
                           </div>
                         </div>
 
