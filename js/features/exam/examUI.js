@@ -859,98 +859,143 @@ function renderResults(container, year, result, apiKey, selectedModel) {
       <div class="space-y-8">
         ${exams.map((examCase, caseIdx) => `
           <div class="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
-            <!-- Case 헤더 -->
-            <div class="bg-purple-50 dark:bg-purple-900/20 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 class="text-xl font-bold text-purple-900 dark:text-purple-200">
-                📄 Case ${caseIdx + 1}: ${examCase.topic}
-                <span class="text-sm font-normal text-gray-600 dark:text-gray-400 ml-2">(${examCase.type || '일반'})</span>
-              </h2>
-              <p class="text-sm text-gray-700 dark:text-gray-300 mt-2 line-clamp-2">${examCase.scenario.substring(0, 150)}...</p>
+            <!-- 문제 헤더 -->
+            <div class="bg-gradient-to-r from-purple-700 to-indigo-700 px-6 py-3 text-white shadow-md">
+              <div class="flex items-center justify-between">
+                <h2 class="text-xl font-bold">
+                  문제 ${caseIdx + 1}: ${examCase.topic}
+                </h2>
+                <span class="text-sm bg-white/20 px-3 py-1 rounded-full font-semibold">
+                  ${examCase.type === 'Rule' ? '기준서(Rule)' : examCase.type === 'Case' ? '사례(Case)' : '일반'}
+                </span>
+              </div>
             </div>
 
-            <!-- 문제별 카드 -->
-            <div class="p-6 space-y-6">
-              ${examCase.questions.map((question, qIdx) => {
-                const feedback = result.details[question.id];
-                const scoreEmoji = getScoreEmoji(feedback?.score || 0, question.score);
-                const userAnswer = userAnswers[question.id]?.answer || '';
+            <!-- Split View: 지문 (45%) | 물음들 (55%) -->
+            <div class="flex flex-col lg:flex-row">
+              <!-- 좌측: 지문 -->
+              <div class="lg:w-[45%] bg-gray-50 dark:bg-gray-900 border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700 p-6">
+                <div class="mb-3">
+                  <span class="inline-block px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-bold rounded-full">
+                    📄 지문 (Scenario)
+                  </span>
+                </div>
+                <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${examCase.scenario}</div>
+              </div>
 
-                return `
-                  <div class="border-l-4 ${feedback?.score >= question.score * 0.9 ? 'border-green-500' : feedback?.score >= question.score * 0.5 ? 'border-yellow-500' : 'border-red-500'} pl-4 pb-4">
-                    <!-- 문제 헤더 -->
-                    <div class="flex items-center justify-between mb-3">
-                      <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">
-                        문항 ${qIdx + 1} <span class="text-2xl ml-2">${scoreEmoji}</span>
-                      </h3>
-                      <div class="text-xl font-bold ${feedback?.score >= question.score * 0.9 ? 'text-green-600' : feedback?.score >= question.score * 0.5 ? 'text-yellow-600' : 'text-red-600'}">
-                        ${feedback?.score || 0} / ${question.score}점
+              <!-- 우측: 물음들 -->
+              <div class="lg:w-[55%] p-6">
+                <div class="space-y-6">
+                  ${examCase.questions.map((question) => {
+                    const feedback = result.details[question.id];
+                    const scoreEmoji = getScoreEmoji(feedback?.score || 0, question.score);
+                    const userAnswer = userAnswers[question.id]?.answer || '';
+
+                    // 이 물음의 점수 히스토리 가져오기
+                    const questionHistory = scoreHistory.map(attempt => ({
+                      attempt: attempt.attempt,
+                      score: attempt.details?.[question.id]?.score || 0,
+                      maxScore: question.score
+                    }));
+
+                    return `
+                      <div class="border-l-4 ${feedback?.score >= question.score * 0.9 ? 'border-green-500' : feedback?.score >= question.score * 0.5 ? 'border-yellow-500' : 'border-red-500'} pl-4 pb-4">
+                        <!-- 물음 헤더 -->
+                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                          <div class="flex items-center gap-2">
+                            <span class="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-bold rounded-full">
+                              물음 ${question.id.replace('Q', '')}
+                            </span>
+                            <span class="text-2xl">${scoreEmoji}</span>
+                          </div>
+                          <div class="text-xl font-bold ${feedback?.score >= question.score * 0.9 ? 'text-green-600 dark:text-green-400' : feedback?.score >= question.score * 0.5 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}">
+                            ${feedback?.score || 0} / ${question.score}점
+                          </div>
+                        </div>
+
+                        ${questionHistory.length > 1 ? `
+                          <!-- 물음별 점수 히스토리 -->
+                          <div class="mb-3 bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
+                            <h5 class="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">📊 점수 변화</h5>
+                            <div class="flex items-center gap-2 overflow-x-auto pb-1">
+                              ${questionHistory.map((h, idx) => `
+                                <div class="flex flex-col items-center min-w-[50px]">
+                                  <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">${h.attempt}회</div>
+                                  <div class="w-10 h-10 rounded-full ${h.score >= h.maxScore * 0.9 ? 'bg-green-500 text-white' : h.score >= h.maxScore * 0.5 ? 'bg-yellow-500 text-white' : 'bg-red-400 text-white'} flex items-center justify-center font-bold text-xs ${idx === questionHistory.length - 1 ? 'ring-2 ring-purple-500' : ''}">
+                                    ${h.score.toFixed(1)}
+                                  </div>
+                                </div>
+                              `).join('')}
+                            </div>
+                          </div>
+                        ` : ''}
+
+                        <!-- 문제 -->
+                        <div class="bg-white dark:bg-gray-800 rounded-lg p-4 mb-3 border border-gray-200 dark:border-gray-600">
+                          <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">📝 문제</h4>
+                          <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${question.question}</p>
+                        </div>
+
+                        <!-- 사용자 답안 -->
+                        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-3 border border-blue-200 dark:border-blue-700">
+                          <h4 class="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-2">✍️ 내 답안</h4>
+                          <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">${highlightKeywords(userAnswer || '<em class="text-gray-500">작성하지 않음</em>', feedback?.keywordMatch || [])}</p>
+                        </div>
+
+                        <!-- 모범 답안 -->
+                        <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 mb-3 border border-green-200 dark:border-green-700">
+                          <h4 class="text-sm font-semibold text-green-700 dark:text-green-300 mb-2">📚 모범 답안</h4>
+                          <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">${highlightKeywords(question.model_answer, feedback?.missingKeywords || [])}</p>
+                        </div>
+
+                        <!-- AI 피드백 -->
+                        <div class="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg p-4 border-2 border-red-200 dark:border-red-700">
+                          <h4 class="text-sm font-bold text-red-700 dark:text-red-300 mb-3 flex items-center gap-2">
+                            🎯 빨간펜 선생님의 총평
+                          </h4>
+                          <p class="text-sm text-gray-800 dark:text-gray-200 mb-4 leading-relaxed">${feedback?.feedback || '채점 정보 없음'}</p>
+
+                          ${feedback?.strengths && feedback.strengths.length > 0 ? `
+                            <div class="mb-3">
+                              <h5 class="text-xs font-bold text-green-700 dark:text-green-400 mb-2">✅ 잘한 점</h5>
+                              <ul class="list-disc list-inside space-y-1">
+                                ${feedback.strengths.map(s => `<li class="text-xs text-gray-700 dark:text-gray-300">${s}</li>`).join('')}
+                              </ul>
+                            </div>
+                          ` : ''}
+
+                          ${feedback?.improvements && feedback.improvements.length > 0 ? `
+                            <div class="mb-3">
+                              <h5 class="text-xs font-bold text-orange-700 dark:text-orange-400 mb-2">💡 개선할 점</h5>
+                              <ul class="list-disc list-inside space-y-1">
+                                ${feedback.improvements.map(i => `<li class="text-xs text-gray-700 dark:text-gray-300">${i}</li>`).join('')}
+                              </ul>
+                            </div>
+                          ` : ''}
+
+                          ${feedback?.keywordMatch && feedback.keywordMatch.length > 0 ? `
+                            <div class="mb-2">
+                              <h5 class="text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">🔑 포함된 키워드</h5>
+                              <div class="flex flex-wrap gap-1">
+                                ${feedback.keywordMatch.map(k => `<span class="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">${k}</span>`).join('')}
+                              </div>
+                            </div>
+                          ` : ''}
+
+                          ${feedback?.missingKeywords && feedback.missingKeywords.length > 0 ? `
+                            <div>
+                              <h5 class="text-xs font-bold text-red-700 dark:text-red-400 mb-1">❗ 누락된 키워드</h5>
+                              <div class="flex flex-wrap gap-1">
+                                ${feedback.missingKeywords.map(k => `<span class="text-xs bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 px-2 py-1 rounded">${k}</span>`).join('')}
+                              </div>
+                            </div>
+                          ` : ''}
+                        </div>
                       </div>
-                    </div>
-
-                    <!-- 문제 -->
-                    <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-3">
-                      <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">📝 문제</h4>
-                      <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">${question.question}</p>
-                    </div>
-
-                    <!-- 사용자 답안 -->
-                    <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-3">
-                      <h4 class="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-2">✍️ 내 답안</h4>
-                      <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">${highlightKeywords(userAnswer || '<em class="text-gray-500">작성하지 않음</em>', feedback?.keywordMatch || [])}</p>
-                    </div>
-
-                    <!-- 모범 답안 -->
-                    <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 mb-3">
-                      <h4 class="text-sm font-semibold text-green-700 dark:text-green-300 mb-2">📚 모범 답안</h4>
-                      <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">${highlightKeywords(question.model_answer, feedback?.missingKeywords || [])}</p>
-                    </div>
-
-                    <!-- AI 피드백 -->
-                    <div class="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg p-4 border-2 border-red-200 dark:border-red-700">
-                      <h4 class="text-sm font-bold text-red-700 dark:text-red-300 mb-3 flex items-center gap-2">
-                        🎯 빨간펜 선생님의 총평
-                      </h4>
-                      <p class="text-sm text-gray-800 dark:text-gray-200 mb-4 leading-relaxed">${feedback?.feedback || '채점 정보 없음'}</p>
-
-                      ${feedback?.strengths && feedback.strengths.length > 0 ? `
-                        <div class="mb-3">
-                          <h5 class="text-xs font-bold text-green-700 dark:text-green-400 mb-2">✅ 잘한 점</h5>
-                          <ul class="list-disc list-inside space-y-1">
-                            ${feedback.strengths.map(s => `<li class="text-xs text-gray-700 dark:text-gray-300">${s}</li>`).join('')}
-                          </ul>
-                        </div>
-                      ` : ''}
-
-                      ${feedback?.improvements && feedback.improvements.length > 0 ? `
-                        <div class="mb-3">
-                          <h5 class="text-xs font-bold text-orange-700 dark:text-orange-400 mb-2">💡 개선할 점</h5>
-                          <ul class="list-disc list-inside space-y-1">
-                            ${feedback.improvements.map(i => `<li class="text-xs text-gray-700 dark:text-gray-300">${i}</li>`).join('')}
-                          </ul>
-                        </div>
-                      ` : ''}
-
-                      ${feedback?.keywordMatch && feedback.keywordMatch.length > 0 ? `
-                        <div class="mb-2">
-                          <h5 class="text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">🔑 포함된 키워드</h5>
-                          <div class="flex flex-wrap gap-1">
-                            ${feedback.keywordMatch.map(k => `<span class="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">${k}</span>`).join('')}
-                          </div>
-                        </div>
-                      ` : ''}
-
-                      ${feedback?.missingKeywords && feedback.missingKeywords.length > 0 ? `
-                        <div>
-                          <h5 class="text-xs font-bold text-red-700 dark:text-red-400 mb-1">❗ 누락된 키워드</h5>
-                          <div class="flex flex-wrap gap-1">
-                            ${feedback.missingKeywords.map(k => `<span class="text-xs bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 px-2 py-1 rounded">${k}</span>`).join('')}
-                          </div>
-                        </div>
-                      ` : ''}
-                    </div>
-                  </div>
-                `;
-              }).join('')}
+                    `;
+                  }).join('')}
+                </div>
+              </div>
             </div>
           </div>
         `).join('')}
@@ -958,10 +1003,10 @@ function renderResults(container, year, result, apiKey, selectedModel) {
 
       <!-- 하단 버튼 -->
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <button id="retry-exam-btn" class="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold text-lg rounded-xl shadow-lg transition transform hover:scale-105">
+        <button id="retry-exam-btn" class="px-8 py-4 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-bold text-lg rounded-xl shadow-lg transition transform hover:scale-105">
           🔄 다시 풀기
         </button>
-        <button id="exit-exam-results-btn" class="px-8 py-4 bg-gray-600 hover:bg-gray-700 text-white font-bold text-lg rounded-xl shadow-lg transition transform hover:scale-105">
+        <button id="exit-exam-results-btn" class="px-8 py-4 bg-gray-700 hover:bg-gray-800 text-white font-bold text-lg rounded-xl shadow-lg transition transform hover:scale-105">
           ✕ 종료하기
         </button>
       </div>

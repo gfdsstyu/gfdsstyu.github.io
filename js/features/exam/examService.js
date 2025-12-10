@@ -558,7 +558,33 @@ ${!hasType ? `
   }
 
   /**
-   * 전체 시험 채점 (Case별 병렬 처리)
+   * 제한된 동시성으로 Promise 실행 (503 에러 방지)
+   * @param {Array} tasks - 실행할 작업 배열
+   * @param {number} limit - 동시 실행 제한 (기본값: 3)
+   */
+  async limitConcurrency(tasks, limit = 3) {
+    const results = [];
+    const executing = [];
+
+    for (const task of tasks) {
+      const promise = task().then(result => {
+        executing.splice(executing.indexOf(promise), 1);
+        return result;
+      });
+
+      results.push(promise);
+      executing.push(promise);
+
+      if (executing.length >= limit) {
+        await Promise.race(executing);
+      }
+    }
+
+    return Promise.all(results);
+  }
+
+  /**
+   * 전체 시험 채점 (동시 요청 수 제한으로 503 에러 방지)
    * @param {number} year - 시험 연도
    * @param {object} userAnswers - 사용자 답안 객체
    * @param {string} apiKey - API 키
@@ -576,10 +602,10 @@ ${!hasType ? `
     const totalCases = exams.length;
     let completedCases = 0;
 
-    // 각 Case별로 병렬 처리
+    // 각 Case별로 순차 처리
     for (const examCase of exams) {
-      // Case 내 모든 문제를 병렬로 채점
-      const questionPromises = examCase.questions.map(async (question) => {
+      // Case 내 문제를 동시 3개씩만 처리 (503 에러 방지)
+      const questionTasks = examCase.questions.map((question) => async () => {
         const userAnswer = userAnswers[question.id]?.answer;
 
         if (!userAnswer || userAnswer.trim() === '') {
@@ -616,8 +642,8 @@ ${!hasType ? `
         }
       });
 
-      // 현재 Case의 모든 문제 채점 완료 대기
-      const caseResults = await Promise.all(questionPromises);
+      // 동시 3개씩만 처리 (무료 API 한도 고려)
+      const caseResults = await this.limitConcurrency(questionTasks, 3);
 
       // 결과 저장
       caseResults.forEach(({ questionId, result }) => {
