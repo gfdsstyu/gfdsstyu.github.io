@@ -205,7 +205,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
     <div class="exam-paper-container min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
       <!-- Sticky Header with Timer -->
       <div id="exam-header" class="sticky top-0 z-40 bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+        <div class="w-full px-4 sm:px-6 lg:px-8 py-3">
           <div class="flex items-center justify-between flex-wrap gap-3">
             <div class="flex items-center gap-3">
               <h3 class="text-lg sm:text-xl font-bold">${year}년 기출문제</h3>
@@ -221,9 +221,9 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
         </div>
       </div>
 
-      <!-- Main Content: Centered with max-width -->
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        <div class="space-y-8">
+      <!-- Main Content: Centered with margins for FAB (오른쪽 여백 200px 확보) -->
+      <div class="w-full px-4 sm:px-6 lg:pl-8 lg:pr-[240px] py-6">
+        <div class="max-w-6xl mx-auto space-y-8">
             ${exams.map((exam, examIdx) => `
               <div id="case-${exam.id}" class="case-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden scroll-mt-20">
                 <!-- Case 헤더 -->
@@ -317,19 +317,19 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
         </div>
       </div>
 
-      <!-- Floating Control Panel (Fixed Position - Always Visible) -->
-      <div id="floating-controls" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 transition-all duration-300">
+      <!-- Floating Control Panel (Fixed Position in Right Margin - Always Visible) -->
+      <div id="floating-controls" class="hidden lg:flex fixed top-24 right-6 z-50 flex-col gap-3 transition-all duration-300 w-[200px]">
         <!-- Quick Navigation - Collapsible -->
-        <div id="nav-panel" class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-purple-500 dark:border-purple-600 overflow-hidden max-w-xs">
-          <button id="toggle-nav" class="w-full px-4 py-2 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 flex items-center justify-between text-sm font-semibold text-purple-700 dark:text-purple-300 transition-colors">
-            <span>📌 문제 바로가기</span>
+        <div id="nav-panel" class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-purple-500 dark:border-purple-600 overflow-hidden">
+          <button id="toggle-nav" class="w-full px-3 py-2 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 flex items-center justify-between text-xs font-semibold text-purple-700 dark:text-purple-300 transition-colors">
+            <span>📌 바로가기</span>
             <span id="nav-arrow" class="transform transition-transform">▼</span>
           </button>
-          <div id="nav-grid" class="p-3 grid grid-cols-5 gap-2">
+          <div id="nav-grid" class="p-2 grid grid-cols-4 gap-1.5">
             ${exams.map((exam, idx) => `
               <button
                 onclick="document.getElementById('case-${exam.id}').scrollIntoView({ behavior: 'smooth', block: 'start' })"
-                class="aspect-square flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-purple-500 hover:text-white dark:hover:bg-purple-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-bold transition-all hover:scale-110"
+                class="aspect-square flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-purple-500 hover:text-white dark:hover:bg-purple-600 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-bold transition-all hover:scale-110"
                 title="문제 ${idx + 1}"
               >
                 ${idx + 1}
@@ -344,22 +344,47 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
           <button
             id="btn-temp-save"
             ${!canTempSave ? 'disabled' : ''}
-            class="px-4 py-3 ${canTempSave ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'} text-white font-bold rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 text-sm"
+            class="px-3 py-2.5 ${canTempSave ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'} text-white font-bold rounded-lg transition-all shadow-md hover:shadow-lg flex flex-col items-center justify-center gap-1 text-xs"
             title="${canTempSave ? '임시 채점 & 저장' : `${Math.ceil((5 * 60 * 1000 - (now - lastTempSave)) / 1000 / 60)}분 후 사용 가능`}"
           >
-            <span>💾</span>
+            <span class="text-xl">💾</span>
             <span>${canTempSave ? '임시저장' : `쿨다운`}</span>
           </button>
 
           <!-- Final Submit -->
           <button
             id="btn-submit-exam"
-            class="px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-lg transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-sm"
+            class="px-3 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-lg transition-all shadow-lg hover:shadow-xl flex flex-col items-center justify-center gap-1 text-xs"
           >
-            <span>📝</span>
+            <span class="text-xl">📝</span>
             <span>최종 제출</span>
           </button>
         </div>
+      </div>
+
+      <!-- Mobile Floating Controls (Bottom Fixed) -->
+      <div id="mobile-controls" class="lg:hidden fixed bottom-4 left-4 right-4 z-50 flex gap-2">
+        <button
+          id="btn-mobile-nav"
+          class="flex-shrink-0 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-xl flex items-center justify-center gap-2 text-sm"
+        >
+          <span>📌</span>
+        </button>
+        <button
+          id="btn-temp-save-mobile"
+          ${!canTempSave ? 'disabled' : ''}
+          class="flex-1 px-4 py-3 ${canTempSave ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-400 cursor-not-allowed'} text-white font-bold rounded-lg shadow-xl flex items-center justify-center gap-2 text-sm"
+        >
+          <span>💾</span>
+          <span>${canTempSave ? '임시' : '쿨다운'}</span>
+        </button>
+        <button
+          id="btn-submit-mobile"
+          class="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-lg shadow-xl flex items-center justify-center gap-2 text-sm"
+        >
+          <span>📝</span>
+          <span>제출</span>
+        </button>
       </div>
     </div>
   `;
@@ -370,7 +395,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
   // 답안 자동저장 이벤트
   setupAutoSave(year);
 
-  // Floating Navigation Toggle
+  // Desktop: Floating Navigation Toggle
   const toggleNavBtn = container.querySelector('#toggle-nav');
   const navGrid = container.querySelector('#nav-grid');
   const navArrow = container.querySelector('#nav-arrow');
@@ -389,7 +414,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
     });
   }
 
-  // 임시저장 버튼
+  // Desktop: 임시저장 버튼
   const tempSaveBtn = container.querySelector('#btn-temp-save');
   if (tempSaveBtn && canTempSave) {
     tempSaveBtn.addEventListener('click', async () => {
@@ -397,10 +422,65 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
     });
   }
 
-  // 최종 제출 버튼
-  container.querySelector('#btn-submit-exam').addEventListener('click', () => {
-    submitExam(container, year, apiKey, selectedModel);
-  });
+  // Desktop: 최종 제출 버튼
+  const submitBtn = container.querySelector('#btn-submit-exam');
+  if (submitBtn) {
+    submitBtn.addEventListener('click', () => {
+      submitExam(container, year, apiKey, selectedModel);
+    });
+  }
+
+  // Mobile: 네비게이션 버튼 (모달 띄우기)
+  const mobileNavBtn = container.querySelector('#btn-mobile-nav');
+  if (mobileNavBtn) {
+    mobileNavBtn.addEventListener('click', () => {
+      // 간단한 네비게이션 모달
+      const navHtml = `
+        <div class="grid grid-cols-5 gap-2 p-4">
+          ${exams.map((exam, idx) => `
+            <button
+              onclick="document.getElementById('case-${exam.id}').scrollIntoView({ behavior: 'smooth', block: 'start' }); this.closest('.fixed').remove();"
+              class="aspect-square flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-bold"
+            >
+              ${idx + 1}
+            </button>
+          `).join('')}
+        </div>
+      `;
+
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4';
+      modal.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full">
+          <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+            <h3 class="font-bold text-gray-800 dark:text-gray-200">문제 바로가기</h3>
+            <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">✕</button>
+          </div>
+          ${navHtml}
+        </div>
+      `;
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+      });
+      document.body.appendChild(modal);
+    });
+  }
+
+  // Mobile: 임시저장 버튼
+  const tempSaveMobileBtn = container.querySelector('#btn-temp-save-mobile');
+  if (tempSaveMobileBtn && canTempSave) {
+    tempSaveMobileBtn.addEventListener('click', async () => {
+      await handleTempSave(container, year, apiKey, selectedModel);
+    });
+  }
+
+  // Mobile: 최종 제출 버튼
+  const submitMobileBtn = container.querySelector('#btn-submit-mobile');
+  if (submitMobileBtn) {
+    submitMobileBtn.addEventListener('click', () => {
+      submitExam(container, year, apiKey, selectedModel);
+    });
+  }
 
   // 글자 수 카운터 업데이트
   updateCharCounters();
