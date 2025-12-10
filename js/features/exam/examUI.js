@@ -191,7 +191,7 @@ function startExam(container, year) {
   }
 
   // 전체 화면 모드로 전환
-  container.className = 'fixed inset-0 z-50 bg-white dark:bg-gray-900 overflow-auto';
+  container.className = 'fixed inset-0 z-50 bg-white dark:bg-gray-900';
 
   // 좌우 대시보드와 헤더 숨기기
   const leftDashboard = document.getElementById('left-dashboard');
