@@ -247,7 +247,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
   console.log('🔍 [examUI.js] renderExamPaper - container.innerHTML 설정 시작');
 
   container.innerHTML = `
-    <div class="exam-paper-container h-full overflow-auto bg-gray-50 dark:bg-gray-900 pb-20">
+    <div class="exam-paper-container h-full overflow-auto bg-gray-50 dark:bg-gray-900 pb-20" style="scroll-behavior: smooth;">
       <!-- Sticky Header -->
       <div id="exam-header" class="sticky top-0 z-40 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 text-gray-800 dark:text-white shadow-lg">
         <div class="w-full px-4 sm:px-6 lg:px-8 py-3">
@@ -272,7 +272,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
       <div class="w-full px-4 sm:px-6 lg:pl-8 lg:pr-[240px] py-6">
         <div class="max-w-6xl mx-auto space-y-8">
             ${exams.map((exam, examIdx) => `
-              <div id="case-${exam.id}" class="case-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden scroll-mt-20">
+              <div id="case-${exam.id}" class="case-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-visible scroll-mt-24">
                 <!-- Case 헤더 -->
                 <div class="bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 px-6 py-3 shadow-md">
                   <div class="flex items-center justify-between">
@@ -284,10 +284,10 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                   <p class="text-sm mt-1 text-gray-700 dark:text-gray-200">${exam.topic}</p>
                 </div>
 
-                <!-- Split View: 지문 (45%) | 물음들 (55%) - 강제 비율 유지 -->
-                <div class="flex flex-row" style="min-height: 400px;">
-                  <!-- 좌측: 지문 - flex-basis로 강제 고정 -->
-                  <div style="flex: 0 0 45%; min-width: 0;" class="bg-gray-50 dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-700 p-4 sm:p-6 overflow-y-auto max-h-screen">
+                <!-- Split View: 지문 (45%) | 물음들 (55%) -->
+                <div class="flex flex-row items-start" style="min-height: 400px;">
+                  <!-- 좌측: 지문 - sticky로 고정 -->
+                  <div style="flex: 0 0 45%; min-width: 0;" class="sticky top-24 h-[calc(100vh-120px)] overflow-y-auto bg-gray-50 dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-700 p-4 sm:p-6">
                     <div class="mb-3">
                       <span class="inline-block px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-bold rounded-full mb-3">
                         📄 지문 (Scenario)
@@ -296,8 +296,8 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                     <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${exam.scenario}</div>
                   </div>
 
-                  <!-- 우측: 물음들 - flex-basis로 강제 고정 -->
-                  <div style="flex: 0 0 55%; min-width: 0;" class="p-4 sm:p-6 overflow-y-auto max-h-screen">
+                  <!-- 우측: 물음들 - 자연스럽게 늘어나도록 -->
+                  <div style="flex: 0 0 55%; min-width: 0;" class="p-4 sm:p-6">
                     <div class="space-y-6">
                       ${exam.questions.map((q, qIdx) => {
                         return `
@@ -467,22 +467,13 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
 
   // Desktop: Navigation buttons - 스크롤 이동
   const navButtons = container.querySelectorAll('#nav-grid button');
-  const scrollContainer = container.querySelector('.exam-paper-container');
   navButtons.forEach((btn, idx) => {
     btn.addEventListener('click', () => {
       const targetId = exams[idx].id;
       const targetElement = container.querySelector(`#case-${targetId}`);
-      if (targetElement && scrollContainer) {
-        // 스크롤 컨테이너 내에서 스크롤
-        const containerRect = scrollContainer.getBoundingClientRect();
-        const targetRect = targetElement.getBoundingClientRect();
-        const scrollTop = scrollContainer.scrollTop;
-        const offset = targetRect.top - containerRect.top + scrollTop - 80; // 80px은 헤더 높이
-
-        scrollContainer.scrollTo({
-          top: offset,
-          behavior: 'smooth'
-        });
+      if (targetElement) {
+        // scrollIntoView를 사용하여 간단하고 정확하게 이동
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });
   });
