@@ -55,6 +55,29 @@ function renderYearSelection(container) {
 
   console.log('🔑 [examUI.js] renderYearSelection - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
 
+  // 전체 화면 모드 해제 (연도 선택 화면은 기존 레이아웃 사용)
+  container.className = '';
+
+  // 좌우 대시보드와 헤더 복원
+  const leftDashboard = document.getElementById('left-dashboard');
+  const rightDashboard = document.getElementById('right-explorer');
+  const fixedHeader = document.getElementById('fixed-header');
+
+  if (leftDashboard && leftDashboard.dataset.hiddenByExam === 'true') {
+    leftDashboard.style.display = '';
+    delete leftDashboard.dataset.hiddenByExam;
+  }
+
+  if (rightDashboard && rightDashboard.dataset.hiddenByExam === 'true') {
+    rightDashboard.style.display = '';
+    delete rightDashboard.dataset.hiddenByExam;
+  }
+
+  if (fixedHeader && fixedHeader.dataset.hiddenByExam === 'true') {
+    fixedHeader.style.display = '';
+    delete fixedHeader.dataset.hiddenByExam;
+  }
+
   const metadata = examService.metadata;
   const years = Object.keys(metadata).sort((a, b) => b - a); // 최신 순
 
@@ -165,6 +188,29 @@ function startExam(container, year) {
   // 타이머 시작
   if (!examService.getTimerStart(year)) {
     examService.saveTimerStart(year);
+  }
+
+  // 전체 화면 모드로 전환
+  container.className = 'fixed inset-0 z-50 bg-white dark:bg-gray-900 overflow-auto';
+
+  // 좌우 대시보드와 헤더 숨기기
+  const leftDashboard = document.getElementById('left-dashboard');
+  const rightDashboard = document.getElementById('right-explorer');
+  const fixedHeader = document.getElementById('fixed-header');
+
+  if (leftDashboard) {
+    leftDashboard.style.display = 'none';
+    leftDashboard.dataset.hiddenByExam = 'true';
+  }
+
+  if (rightDashboard) {
+    rightDashboard.style.display = 'none';
+    rightDashboard.dataset.hiddenByExam = 'true';
+  }
+
+  if (fixedHeader) {
+    fixedHeader.style.display = 'none';
+    fixedHeader.dataset.hiddenByExam = 'true';
   }
 
   // 시험지 렌더링
@@ -707,9 +753,31 @@ function renderResults(container, year, result, apiKey, selectedModel) {
   const userAnswers = examService.getUserAnswers(year);
 
   container.innerHTML = `
-    <div class="results-container max-w-6xl mx-auto p-4 md:p-8 space-y-6">
-      <!-- 헤더: 총점 -->
-      <div class="bg-gradient-to-r ${isPassing ? 'from-green-100 to-emerald-100 dark:from-green-500 dark:to-emerald-600' : 'from-red-100 to-rose-100 dark:from-red-500 dark:to-rose-600'} rounded-2xl p-6 md:p-8 text-gray-800 dark:text-white shadow-xl">
+    <div class="results-container min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
+      <!-- Sticky Header -->
+      <div id="results-header" class="sticky top-0 z-40 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 text-gray-800 dark:text-white shadow-lg">
+        <div class="w-full px-4 sm:px-6 lg:px-8 py-3">
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <div class="flex items-center gap-3">
+              <h3 class="text-lg sm:text-xl font-bold">${year}년 기출문제 채점 결과</h3>
+              <span class="text-xs sm:text-sm px-2 sm:px-3 py-1 bg-purple-200 dark:bg-white/30 rounded-full font-semibold">${result.totalScore.toFixed(1)} / ${totalPossibleScore}점</span>
+            </div>
+            <button
+              id="btn-exit-results-header"
+              class="px-3 py-2 sm:px-4 sm:py-2 bg-purple-200 hover:bg-purple-300 dark:bg-white/30 dark:hover:bg-white/40 font-semibold rounded-lg transition-colors flex items-center gap-2 text-sm"
+              title="기출문제 모드 종료"
+            >
+              <span>✕</span>
+              <span class="hidden sm:inline">종료</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="max-w-6xl mx-auto p-4 md:p-8 space-y-6">
+        <!-- 총점 카드 -->
+        <div class="bg-gradient-to-r ${isPassing ? 'from-green-100 to-emerald-100 dark:from-green-500 dark:to-emerald-600' : 'from-red-100 to-rose-100 dark:from-red-500 dark:to-rose-600'} rounded-2xl p-6 md:p-8 text-gray-800 dark:text-white shadow-xl">
         <div class="flex flex-col md:flex-row items-center justify-between gap-4">
           <div class="text-center md:text-left">
             <h1 class="text-2xl md:text-3xl font-bold mb-2">📝 ${year}년 기출문제 채점 완료!</h1>
@@ -909,9 +977,22 @@ function renderResults(container, year, result, apiKey, selectedModel) {
         </button>
       </div>
     </div>
+    </div>
   `;
 
   // 이벤트 리스너
+  // 헤더 종료 버튼
+  const exitHeaderBtn = container.querySelector('#btn-exit-results-header');
+  if (exitHeaderBtn) {
+    exitHeaderBtn.addEventListener('click', async () => {
+      if (confirm('기출문제 모드를 종료하시겠습니까?')) {
+        const { exitExamMode } = await import('./examIntegration.js');
+        exitExamMode();
+      }
+    });
+  }
+
+  // 다시 풀기 버튼
   container.querySelector('#retry-exam-btn').addEventListener('click', () => {
     // 답안 초기화
     examService.clearUserAnswers(year);
@@ -921,6 +1002,7 @@ function renderResults(container, year, result, apiKey, selectedModel) {
     renderExamPaper(container, year, apiKey, selectedModel);
   });
 
+  // 하단 종료 버튼
   container.querySelector('#exit-exam-results-btn').addEventListener('click', () => {
     renderYearSelection(container, apiKey, selectedModel);
   });

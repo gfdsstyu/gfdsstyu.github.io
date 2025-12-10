@@ -38,7 +38,7 @@ export async function enterExamMode() {
   if (resultBox) resultBox.style.display = 'none';
   if (modelAnswerBox) modelAnswerBox.style.display = 'none';
 
-  // 기출문제 컨테이너 생성 (body에 직접 추가하여 전체 화면 사용)
+  // 기출문제 컨테이너 생성 (KAM 모드처럼 기존 레이아웃에 통합)
   examContainer = document.querySelector('#exam-container');
   console.log('🔍 [examIntegration.js] 기존 exam-container:', examContainer);
 
@@ -46,34 +46,18 @@ export async function enterExamMode() {
     console.log('🔧 [examIntegration.js] 새로운 exam-container 생성');
     examContainer = document.createElement('div');
     examContainer.id = 'exam-container';
-    examContainer.className = 'fixed inset-0 z-50 bg-white dark:bg-gray-900 overflow-auto';
 
-    // body에 직접 추가 (전체 화면 사용)
-    document.body.appendChild(examContainer);
-    console.log('✅ [examIntegration.js] exam-container를 body에 추가 (전체 화면)');
+    // quizArea 앞에 삽입 (KAM 모드 방식)
+    if (quizArea && quizArea.parentNode) {
+      quizArea.parentNode.insertBefore(examContainer, quizArea);
+      console.log('✅ [examIntegration.js] exam-container를 quizArea 앞에 추가');
+    } else {
+      document.body.appendChild(examContainer);
+      console.log('⚠️ [examIntegration.js] exam-container를 body에 추가 (fallback)');
+    }
   }
 
   console.log('🔍 [examIntegration.js] 최종 examContainer:', examContainer);
-
-  // 좌우 대시보드와 헤더 숨기기 (전체 화면 모드)
-  const leftDashboard = document.getElementById('left-dashboard');
-  const rightDashboard = document.getElementById('right-explorer');
-  const fixedHeader = document.getElementById('fixed-header');
-
-  if (leftDashboard) {
-    leftDashboard.style.display = 'none';
-    console.log('✅ [examIntegration.js] left-dashboard 숨김');
-  }
-
-  if (rightDashboard) {
-    rightDashboard.style.display = 'none';
-    console.log('✅ [examIntegration.js] right-explorer 숨김');
-  }
-
-  if (fixedHeader) {
-    fixedHeader.style.display = 'none';
-    console.log('✅ [examIntegration.js] fixed-header 숨김');
-  }
 
   // UI 렌더링
   console.log('🎨 [examIntegration.js] renderExamMode 호출');
@@ -116,6 +100,11 @@ export function exitExamMode() {
   if (mainControls) mainControls.style.display = '';
 
 
+  // exam-container 클래스 초기화
+  if (examContainer) {
+    examContainer.className = '';
+  }
+
   // 좌우 대시보드와 헤더 복원
   const leftDashboard = document.getElementById('left-dashboard');
   const rightDashboard = document.getElementById('right-explorer');
@@ -123,16 +112,19 @@ export function exitExamMode() {
 
   if (leftDashboard) {
     leftDashboard.style.display = '';
+    delete leftDashboard.dataset.hiddenByExam;
     console.log('✅ [examIntegration.js] left-dashboard 복원');
   }
 
   if (rightDashboard) {
     rightDashboard.style.display = '';
+    delete rightDashboard.dataset.hiddenByExam;
     console.log('✅ [examIntegration.js] right-explorer 복원');
   }
 
   if (fixedHeader) {
     fixedHeader.style.display = '';
+    delete fixedHeader.dataset.hiddenByExam;
     console.log('✅ [examIntegration.js] fixed-header 복원');
   }
 
