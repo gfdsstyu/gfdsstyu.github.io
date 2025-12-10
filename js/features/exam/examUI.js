@@ -247,7 +247,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
   console.log('🔍 [examUI.js] renderExamPaper - container.innerHTML 설정 시작');
 
   container.innerHTML = `
-    <div class="exam-paper-container bg-gray-50 dark:bg-gray-900 pb-20">
+    <div class="exam-paper-container h-full overflow-auto bg-gray-50 dark:bg-gray-900 pb-20">
       <!-- Sticky Header -->
       <div id="exam-header" class="sticky top-0 z-40 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 text-gray-800 dark:text-white shadow-lg">
         <div class="w-full px-4 sm:px-6 lg:px-8 py-3">
@@ -274,14 +274,14 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
             ${exams.map((exam, examIdx) => `
               <div id="case-${exam.id}" class="case-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden scroll-mt-20">
                 <!-- Case 헤더 -->
-                <div class="bg-gradient-to-r from-purple-700 to-indigo-700 px-6 py-3 text-white shadow-md">
+                <div class="bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 px-6 py-3 shadow-md">
                   <div class="flex items-center justify-between">
-                    <h4 class="text-lg font-bold">문제 ${examIdx + 1}</h4>
-                    <span class="text-sm bg-white/30 px-3 py-1 rounded-full font-semibold">
+                    <h4 class="text-lg font-bold text-gray-800 dark:text-white">문제 ${examIdx + 1}</h4>
+                    <span class="text-sm bg-purple-200 dark:bg-white/30 px-3 py-1 rounded-full font-semibold text-gray-800 dark:text-white">
                       ${exam.questions.reduce((sum, q) => sum + q.score, 0)}점
                     </span>
                   </div>
-                  <p class="text-sm opacity-90 mt-1">${exam.topic}</p>
+                  <p class="text-sm mt-1 text-gray-700 dark:text-gray-200">${exam.topic}</p>
                 </div>
 
                 <!-- Split View: 지문 (45%) | 물음들 (55%) - 강제 비율 유지 -->
@@ -365,17 +365,37 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
           </button>
           <div id="nav-grid" class="p-2 grid grid-cols-4 gap-1.5">
             ${exams.map((exam, idx) => {
-              // 이 케이스의 문제 중 하나라도 답안이 있는지 확인
-              const hasAnswer = exam.questions.some(q => {
+              // 이 케이스의 답안 상태 확인
+              const answeredCount = exam.questions.filter(q => {
                 const answer = examUIState.answers[q.id]?.answer;
                 return answer && answer.trim() !== '';
-              });
+              }).length;
+              const totalCount = exam.questions.length;
+
+              // 모두 채움(녹색), 일부만 채움(노랑), 하나도 안 채움(회색)
+              let bgClass, textClass, ringClass, statusText;
+              if (answeredCount === totalCount) {
+                bgClass = 'bg-green-100 dark:bg-green-900/50';
+                textClass = 'text-green-700 dark:text-green-300';
+                ringClass = 'ring-2 ring-green-500';
+                statusText = '완료';
+              } else if (answeredCount > 0) {
+                bgClass = 'bg-yellow-100 dark:bg-yellow-900/50';
+                textClass = 'text-yellow-700 dark:text-yellow-300';
+                ringClass = 'ring-2 ring-yellow-500';
+                statusText = `${answeredCount}/${totalCount}`;
+              } else {
+                bgClass = 'bg-gray-100 dark:bg-gray-700';
+                textClass = 'text-gray-700 dark:text-gray-300';
+                ringClass = '';
+                statusText = '';
+              }
 
               return `
                 <button
                   onclick="document.getElementById('case-${exam.id}').scrollIntoView({ behavior: 'smooth', block: 'start' })"
-                  class="aspect-square flex items-center justify-center ${hasAnswer ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 ring-2 ring-green-500' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'} hover:bg-purple-500 hover:text-white dark:hover:bg-purple-600 rounded-lg text-xs font-bold transition-all hover:scale-110"
-                  title="문제 ${idx + 1}${hasAnswer ? ' (답안 작성됨)' : ''}"
+                  class="aspect-square flex items-center justify-center ${bgClass} ${textClass} ${ringClass} hover:bg-purple-500 hover:text-white dark:hover:bg-purple-600 rounded-lg text-xs font-bold transition-all hover:scale-110"
+                  title="문제 ${idx + 1} ${statusText ? `(${statusText})` : ''}"
                 >
                   ${idx + 1}
                 </button>
@@ -400,7 +420,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
           <!-- Final Submit -->
           <button
             id="btn-submit-exam"
-            class="px-3 py-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-bold rounded-lg transition-all shadow-lg hover:shadow-xl flex flex-col items-center justify-center gap-1 text-xs"
+            class="px-3 py-2.5 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 hover:from-purple-200 hover:to-indigo-200 dark:hover:from-purple-800 dark:hover:to-indigo-800 text-gray-800 dark:text-white font-bold rounded-lg transition-all shadow-lg hover:shadow-xl flex flex-col items-center justify-center gap-1 text-xs"
           >
             <span class="text-xl">📝</span>
             <span>최종 제출</span>
@@ -765,7 +785,7 @@ function renderResults(container, year, result, apiKey, selectedModel) {
   const userAnswers = examService.getUserAnswers(year);
 
   container.innerHTML = `
-    <div class="results-container bg-gray-50 dark:bg-gray-900 pb-20">
+    <div class="results-container h-full overflow-auto bg-gray-50 dark:bg-gray-900 pb-20">
       <!-- Sticky Header -->
       <div id="results-header" class="sticky top-0 z-40 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 text-gray-800 dark:text-white shadow-lg">
         <div class="w-full px-4 sm:px-6 lg:px-8 py-3">
