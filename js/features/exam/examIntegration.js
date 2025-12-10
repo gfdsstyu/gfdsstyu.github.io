@@ -38,7 +38,7 @@ export async function enterExamMode() {
   if (resultBox) resultBox.style.display = 'none';
   if (modelAnswerBox) modelAnswerBox.style.display = 'none';
 
-  // 기출문제 컨테이너 생성
+  // 기출문제 컨테이너 생성 (body에 직접 추가하여 전체 화면 사용)
   examContainer = document.querySelector('#exam-container');
   console.log('🔍 [examIntegration.js] 기존 exam-container:', examContainer);
 
@@ -46,24 +46,34 @@ export async function enterExamMode() {
     console.log('🔧 [examIntegration.js] 새로운 exam-container 생성');
     examContainer = document.createElement('div');
     examContainer.id = 'exam-container';
-    // The container for main content inside the center column.
-    const mainContentContainer = document.querySelector('#center-core > div');
-    console.log('🔍 [examIntegration.js] mainContentContainer:', mainContentContainer);
+    examContainer.className = 'fixed inset-0 z-50 bg-white dark:bg-gray-900 overflow-auto';
 
-    if (mainContentContainer) {
-      mainContentContainer.appendChild(examContainer);
-      console.log('✅ [examIntegration.js] exam-container를 mainContentContainer에 추가');
-    } else {
-      console.error('Main content container not found!');
-      document.body.appendChild(examContainer); // Fallback
-      console.log('⚠️ [examIntegration.js] exam-container를 body에 추가 (fallback)');
-    }
+    // body에 직접 추가 (전체 화면 사용)
+    document.body.appendChild(examContainer);
+    console.log('✅ [examIntegration.js] exam-container를 body에 추가 (전체 화면)');
   }
 
   console.log('🔍 [examIntegration.js] 최종 examContainer:', examContainer);
 
-  // 좌우 대시보드는 연도 선택 화면에서는 유지
-  // 실제 시험 시작 시에만 숨김 (examUI.js의 startExam에서 처리)
+  // 좌우 대시보드와 헤더 숨기기 (전체 화면 모드)
+  const leftDashboard = document.getElementById('left-dashboard');
+  const rightDashboard = document.getElementById('right-explorer');
+  const fixedHeader = document.getElementById('fixed-header');
+
+  if (leftDashboard) {
+    leftDashboard.style.display = 'none';
+    console.log('✅ [examIntegration.js] left-dashboard 숨김');
+  }
+
+  if (rightDashboard) {
+    rightDashboard.style.display = 'none';
+    console.log('✅ [examIntegration.js] right-explorer 숨김');
+  }
+
+  if (fixedHeader) {
+    fixedHeader.style.display = 'none';
+    console.log('✅ [examIntegration.js] fixed-header 숨김');
+  }
 
   // UI 렌더링
   console.log('🎨 [examIntegration.js] renderExamMode 호출');
@@ -106,24 +116,24 @@ export function exitExamMode() {
   if (mainControls) mainControls.style.display = '';
 
 
-  // 좌우 대시보드와 중앙 헤더 복원 (시험 중 숨겨진 경우)
+  // 좌우 대시보드와 헤더 복원
   const leftDashboard = document.getElementById('left-dashboard');
   const rightDashboard = document.getElementById('right-explorer');
-  const centerCore = document.getElementById('center-core');
+  const fixedHeader = document.getElementById('fixed-header');
 
-  if (leftDashboard && leftDashboard.dataset.hiddenByExam === 'true') {
+  if (leftDashboard) {
     leftDashboard.style.display = '';
-    delete leftDashboard.dataset.hiddenByExam;
+    console.log('✅ [examIntegration.js] left-dashboard 복원');
   }
 
-  if (rightDashboard && rightDashboard.dataset.hiddenByExam === 'true') {
+  if (rightDashboard) {
     rightDashboard.style.display = '';
-    delete rightDashboard.dataset.hiddenByExam;
+    console.log('✅ [examIntegration.js] right-explorer 복원');
   }
 
-  if (centerCore && centerCore.dataset.hiddenByExam === 'true') {
-    centerCore.style.display = '';
-    delete centerCore.dataset.hiddenByExam;
+  if (fixedHeader) {
+    fixedHeader.style.display = '';
+    console.log('✅ [examIntegration.js] fixed-header 복원');
   }
 
   isExamMode = false;

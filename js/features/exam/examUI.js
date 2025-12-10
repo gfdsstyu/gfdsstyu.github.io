@@ -55,26 +55,6 @@ function renderYearSelection(container) {
 
   console.log('🔑 [examUI.js] renderYearSelection - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
 
-  // 좌우 대시보드와 중앙 헤더 복원 (시험 중 숨겨진 경우)
-  const leftDashboard = document.getElementById('left-dashboard');
-  const rightDashboard = document.getElementById('right-explorer');
-  const centerCore = document.getElementById('center-core');
-
-  if (leftDashboard && leftDashboard.dataset.hiddenByExam === 'true') {
-    leftDashboard.style.display = '';
-    delete leftDashboard.dataset.hiddenByExam;
-  }
-
-  if (rightDashboard && rightDashboard.dataset.hiddenByExam === 'true') {
-    rightDashboard.style.display = '';
-    delete rightDashboard.dataset.hiddenByExam;
-  }
-
-  if (centerCore && centerCore.dataset.hiddenByExam === 'true') {
-    centerCore.style.display = '';
-    delete centerCore.dataset.hiddenByExam;
-  }
-
   const metadata = examService.metadata;
   const years = Object.keys(metadata).sort((a, b) => b - a); // 최신 순
 
@@ -187,26 +167,7 @@ function startExam(container, year) {
     examService.saveTimerStart(year);
   }
 
-  // 전체화면 시험 모드 - 좌우 대시보드와 중앙 헤더 숨기기
-  const leftDashboard = document.getElementById('left-dashboard');
-  const rightDashboard = document.getElementById('right-explorer');
-  const centerCore = document.getElementById('center-core');
-
-  if (leftDashboard) {
-    leftDashboard.style.display = 'none';
-    leftDashboard.dataset.hiddenByExam = 'true';
-  }
-
-  if (rightDashboard) {
-    rightDashboard.style.display = 'none';
-    rightDashboard.dataset.hiddenByExam = 'true';
-  }
-
-  if (centerCore) {
-    centerCore.style.display = 'none';
-    centerCore.dataset.hiddenByExam = 'true';
-  }
-
+  // 시험지 렌더링
   renderExamPaper(container, year, apiKey, selectedModel);
 }
 
