@@ -48,9 +48,10 @@ export function renderExamMode(container, apiKey, selectedModel) {
 function renderYearSelection(container, apiKey, selectedModel) {
   console.log('🔑 [examUI.js] renderYearSelection - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
 
-  // 좌우 대시보드 복원 (시험 중 숨겨진 경우)
+  // 좌우 대시보드와 중앙 헤더 복원 (시험 중 숨겨진 경우)
   const leftDashboard = document.getElementById('left-dashboard');
   const rightDashboard = document.getElementById('right-explorer');
+  const centerCore = document.getElementById('center-core');
 
   if (leftDashboard && leftDashboard.dataset.hiddenByExam === 'true') {
     leftDashboard.style.display = '';
@@ -60,6 +61,11 @@ function renderYearSelection(container, apiKey, selectedModel) {
   if (rightDashboard && rightDashboard.dataset.hiddenByExam === 'true') {
     rightDashboard.style.display = '';
     delete rightDashboard.dataset.hiddenByExam;
+  }
+
+  if (centerCore && centerCore.dataset.hiddenByExam === 'true') {
+    centerCore.style.display = '';
+    delete centerCore.dataset.hiddenByExam;
   }
 
   const metadata = examService.metadata;
@@ -171,9 +177,10 @@ function startExam(container, year, apiKey, selectedModel) {
     examService.saveTimerStart(year);
   }
 
-  // 좌우 대시보드 숨기기 (전체화면 시험 모드)
+  // 전체화면 시험 모드 - 좌우 대시보드와 중앙 헤더 숨기기
   const leftDashboard = document.getElementById('left-dashboard');
   const rightDashboard = document.getElementById('right-explorer');
+  const centerCore = document.getElementById('center-core');
 
   if (leftDashboard) {
     leftDashboard.style.display = 'none';
@@ -183,6 +190,11 @@ function startExam(container, year, apiKey, selectedModel) {
   if (rightDashboard) {
     rightDashboard.style.display = 'none';
     rightDashboard.dataset.hiddenByExam = 'true';
+  }
+
+  if (centerCore) {
+    centerCore.style.display = 'none';
+    centerCore.dataset.hiddenByExam = 'true';
   }
 
   renderExamPaper(container, year, apiKey, selectedModel);
@@ -211,11 +223,19 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
               <h3 class="text-lg sm:text-xl font-bold">${year}년 기출문제</h3>
               <span class="text-xs sm:text-sm opacity-90 px-2 sm:px-3 py-1 bg-white/20 rounded-full">총 ${examService.getTotalScore(year)}점</span>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3 sm:gap-4">
               <div class="text-center">
                 <div class="text-xs opacity-75">⏱️ 남은 시간</div>
                 <div id="timer-display" class="text-xl sm:text-2xl font-mono font-bold">--:--</div>
               </div>
+              <button
+                id="btn-exit-exam-header"
+                class="px-3 py-2 sm:px-4 sm:py-2 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 text-sm"
+                title="기출문제 모드 종료"
+              >
+                <span>✕</span>
+                <span class="hidden sm:inline">종료</span>
+              </button>
             </div>
           </div>
         </div>
@@ -265,7 +285,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                           <div class="flex items-center justify-between mb-3">
                             <div class="flex items-center gap-2">
                               <span class="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-bold rounded-full">
-                                물음 ${examIdx + 1}-${qIdx + 1}
+                                물음 ${q.id.replace('Q', '')}
                               </span>
                               <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded">
                                 ${q.score}점
@@ -317,8 +337,8 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
         </div>
       </div>
 
-      <!-- Floating Control Panel (Fixed Position in Right Margin - Always Visible) -->
-      <div id="floating-controls" class="hidden lg:flex fixed top-24 right-6 z-50 flex-col gap-3 transition-all duration-300 w-[200px]">
+      <!-- Floating Control Panel (Desktop - Always show for debugging) -->
+      <div id="floating-controls" style="display: flex !important; position: fixed !important; top: 96px !important; right: 24px !important; z-index: 9999 !important;" class="flex-col gap-3 transition-all duration-300 w-[200px]">
         <!-- Quick Navigation - Collapsible -->
         <div id="nav-panel" class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-purple-500 dark:border-purple-600 overflow-hidden">
           <button id="toggle-nav" class="w-full px-3 py-2 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 flex items-center justify-between text-xs font-semibold text-purple-700 dark:text-purple-300 transition-colors">
@@ -361,9 +381,6 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
           </button>
         </div>
       </div>
-
-      <!-- Mobile Floating Controls (Bottom Fixed) -->
-      <div id="mobile-controls" class="lg:hidden fixed bottom-4 left-4 right-4 z-50 flex gap-2">
         <button
           id="btn-mobile-nav"
           class="flex-shrink-0 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg shadow-xl flex items-center justify-center gap-2 text-sm"
@@ -394,6 +411,17 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
 
   // 답안 자동저장 이벤트
   setupAutoSave(year);
+
+  // 헤더 종료 버튼
+  const exitHeaderBtn = container.querySelector('#btn-exit-exam-header');
+  if (exitHeaderBtn) {
+    exitHeaderBtn.addEventListener('click', async () => {
+      if (confirm('기출문제 모드를 종료하시겠습니까?')) {
+        const { exitExamMode } = await import('./examIntegration.js');
+        exitExamMode();
+      }
+    });
+  }
 
   // Desktop: Floating Navigation Toggle
   const toggleNavBtn = container.querySelector('#toggle-nav');
