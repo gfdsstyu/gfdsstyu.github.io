@@ -70,9 +70,10 @@ export function exitExamMode() {
     mainContainer.style.display = 'block';
   }
 
-  // 좌우 대시보드 복원 (시험 중 숨겨진 경우)
+  // 좌우 대시보드와 중앙 헤더 복원 (시험 중 숨겨진 경우)
   const leftDashboard = document.getElementById('left-dashboard');
   const rightDashboard = document.getElementById('right-explorer');
+  const centerCore = document.getElementById('center-core');
 
   if (leftDashboard && leftDashboard.dataset.hiddenByExam === 'true') {
     leftDashboard.style.display = '';
@@ -82,6 +83,11 @@ export function exitExamMode() {
   if (rightDashboard && rightDashboard.dataset.hiddenByExam === 'true') {
     rightDashboard.style.display = '';
     delete rightDashboard.dataset.hiddenByExam;
+  }
+
+  if (centerCore && centerCore.dataset.hiddenByExam === 'true') {
+    centerCore.style.display = '';
+    delete centerCore.dataset.hiddenByExam;
   }
 
   isExamMode = false;
