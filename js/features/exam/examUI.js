@@ -247,7 +247,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
   console.log('🔍 [examUI.js] renderExamPaper - container.innerHTML 설정 시작');
 
   container.innerHTML = `
-    <div class="exam-paper-container min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
+    <div class="exam-paper-container bg-gray-50 dark:bg-gray-900 pb-20">
       <!-- Sticky Header -->
       <div id="exam-header" class="sticky top-0 z-40 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 text-gray-800 dark:text-white shadow-lg">
         <div class="w-full px-4 sm:px-6 lg:px-8 py-3">
@@ -364,15 +364,23 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
             <span id="nav-arrow" class="transform transition-transform">▼</span>
           </button>
           <div id="nav-grid" class="p-2 grid grid-cols-4 gap-1.5">
-            ${exams.map((exam, idx) => `
-              <button
-                onclick="document.getElementById('case-${exam.id}').scrollIntoView({ behavior: 'smooth', block: 'start' })"
-                class="aspect-square flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-purple-500 hover:text-white dark:hover:bg-purple-600 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-bold transition-all hover:scale-110"
-                title="문제 ${idx + 1}"
-              >
-                ${idx + 1}
-              </button>
-            `).join('')}
+            ${exams.map((exam, idx) => {
+              // 이 케이스의 문제 중 하나라도 답안이 있는지 확인
+              const hasAnswer = exam.questions.some(q => {
+                const answer = examUIState.answers[q.id]?.answer;
+                return answer && answer.trim() !== '';
+              });
+
+              return `
+                <button
+                  onclick="document.getElementById('case-${exam.id}').scrollIntoView({ behavior: 'smooth', block: 'start' })"
+                  class="aspect-square flex items-center justify-center ${hasAnswer ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 ring-2 ring-green-500' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'} hover:bg-purple-500 hover:text-white dark:hover:bg-purple-600 rounded-lg text-xs font-bold transition-all hover:scale-110"
+                  title="문제 ${idx + 1}${hasAnswer ? ' (답안 작성됨)' : ''}"
+                >
+                  ${idx + 1}
+                </button>
+              `;
+            }).join('')}
           </div>
         </div>
 
@@ -382,7 +390,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
           <button
             id="btn-temp-save"
             ${!canTempSave ? 'disabled' : ''}
-            class="px-3 py-2.5 ${canTempSave ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'} text-white font-bold rounded-lg transition-all shadow-md hover:shadow-lg flex flex-col items-center justify-center gap-1 text-xs"
+            class="px-3 py-2.5 ${canTempSave ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 cursor-not-allowed'} font-bold rounded-lg transition-all shadow-md hover:shadow-lg flex flex-col items-center justify-center gap-1 text-xs"
             title="${canTempSave ? '임시 채점 & 저장' : `${Math.ceil((5 * 60 * 1000 - (now - lastTempSave)) / 1000 / 60)}분 후 사용 가능`}"
           >
             <span class="text-xl">💾</span>
@@ -565,11 +573,15 @@ async function handleTempSave(container, year, apiKey, selectedModel) {
     // 임시 채점
     const result = await examService.tempGradeExam(year, userAnswers, finalApiKey, finalModel);
 
-    // 성공 알림
-    alert(`✅ 임시 채점 완료!\n\n현재 점수: ${result.totalScore.toFixed(1)} / ${examService.getTotalScore(year)}점\n\n각 답안 옆에 임시 점수와 피드백이 표시됩니다.`);
+    // 버튼에 완료 피드백 표시
+    tempSaveBtn.innerHTML = '<span class="text-xl">✅</span><span>저장완료</span>';
+    tempSaveBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+    tempSaveBtn.classList.add('bg-green-500');
 
-    // UI 새로고침 (임시 점수 표시)
-    renderExamPaper(container, year, finalApiKey, finalModel);
+    // 1초 후 UI 새로고침
+    setTimeout(() => {
+      renderExamPaper(container, year, finalApiKey, finalModel);
+    }, 1000);
   } catch (error) {
     console.error('임시 채점 실패:', error);
     alert('❌ 임시 채점 중 오류가 발생했습니다.\n\n' + error.message);
@@ -753,7 +765,7 @@ function renderResults(container, year, result, apiKey, selectedModel) {
   const userAnswers = examService.getUserAnswers(year);
 
   container.innerHTML = `
-    <div class="results-container min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
+    <div class="results-container bg-gray-50 dark:bg-gray-900 pb-20">
       <!-- Sticky Header -->
       <div id="results-header" class="sticky top-0 z-40 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 text-gray-800 dark:text-white shadow-lg">
         <div class="w-full px-4 sm:px-6 lg:px-8 py-3">
