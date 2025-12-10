@@ -202,22 +202,28 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
   const canTempSave = (now - lastTempSave) >= 5 * 60 * 1000; // 5분
 
   container.innerHTML = `
-    <div class="exam-paper-container h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-      <!-- Sticky Header -->
-      <div id="exam-header" class="sticky top-0 z-50 bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg">
-        <div class="w-full px-6 py-3">
-          <div class="flex items-center gap-4">
-            <h3 class="text-xl font-bold">${year}년 기출문제</h3>
-            <span class="text-sm opacity-90 px-3 py-1 bg-white/20 rounded-full">총 ${examService.getTotalScore(year)}점</span>
+    <div class="exam-paper-container min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
+      <!-- Sticky Header with Timer -->
+      <div id="exam-header" class="sticky top-0 z-40 bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <div class="flex items-center gap-3">
+              <h3 class="text-lg sm:text-xl font-bold">${year}년 기출문제</h3>
+              <span class="text-xs sm:text-sm opacity-90 px-2 sm:px-3 py-1 bg-white/20 rounded-full">총 ${examService.getTotalScore(year)}점</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <div class="text-center">
+                <div class="text-xs opacity-75">⏱️ 남은 시간</div>
+                <div id="timer-display" class="text-xl sm:text-2xl font-mono font-bold">--:--</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Main: 중앙 콘텐츠 + 우측 대시보드 (최대 폭 제한) -->
-      <div class="flex-1 flex overflow-hidden max-w-[1800px] mx-auto w-full">
-        <!-- 중앙: Case 카드들 -->
-        <div class="flex-1 overflow-y-auto px-4 py-6">
-          <div class="space-y-6">
+      <!-- Main Content: Centered with max-width -->
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        <div class="space-y-8">
             ${exams.map((exam, examIdx) => `
               <div id="case-${exam.id}" class="case-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden scroll-mt-20">
                 <!-- Case 헤더 -->
@@ -231,10 +237,10 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                   <p class="text-sm opacity-90 mt-1">${exam.topic}</p>
                 </div>
 
-                <!-- Split View: 지문 (45%) | 물음들 (55%) -->
-                <div class="flex" style="min-height: 400px;">
-                  <!-- 좌측: 지문 -->
-                  <div class="flex-shrink-0 flex-grow-0 w-[45%] bg-gray-50 dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-700 p-6 overflow-y-auto">
+                <!-- Split View: 지문 (45%) | 물음들 (55%) - 강제 비율 유지 -->
+                <div class="flex flex-row" style="min-height: 400px;">
+                  <!-- 좌측: 지문 - flex-basis로 강제 고정 -->
+                  <div style="flex: 0 0 45%; min-width: 0;" class="bg-gray-50 dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-700 p-4 sm:p-6 overflow-y-auto max-h-screen">
                     <div class="mb-3">
                       <span class="inline-block px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-bold rounded-full mb-3">
                         📄 지문 (Scenario)
@@ -248,8 +254,8 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                     ` : ''}
                   </div>
 
-                  <!-- 우측: 물음들 -->
-                  <div class="flex-shrink-0 flex-grow-0 w-[55%] p-6 overflow-y-auto">
+                  <!-- 우측: 물음들 - flex-basis로 강제 고정 -->
+                  <div style="flex: 0 0 55%; min-width: 0;" class="p-4 sm:p-6 overflow-y-auto max-h-screen">
                     <div class="space-y-6">
                       ${exam.questions.map((q, qIdx) => {
                         const tempScore = tempSaveData?.results?.[q.id];
@@ -309,59 +315,50 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
             `).join('')}
           </div>
         </div>
+      </div>
 
-        <!-- 우측 대시보드 (고정) -->
-        <div class="w-80 h-full bg-white dark:bg-gray-800 border-l-2 border-gray-200 dark:border-gray-700 flex flex-col flex-shrink-0">
-          <!-- 타이머 -->
-          <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20">
-            <div class="text-center">
-              <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">⏱️ 남은 시간</div>
-              <div id="timer-display" class="text-3xl font-mono font-bold text-purple-700 dark:text-purple-300">--:--</div>
-            </div>
+      <!-- Floating Control Panel (Fixed Position - Always Visible) -->
+      <div id="floating-controls" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 transition-all duration-300">
+        <!-- Quick Navigation - Collapsible -->
+        <div id="nav-panel" class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-purple-500 dark:border-purple-600 overflow-hidden max-w-xs">
+          <button id="toggle-nav" class="w-full px-4 py-2 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 flex items-center justify-between text-sm font-semibold text-purple-700 dark:text-purple-300 transition-colors">
+            <span>📌 문제 바로가기</span>
+            <span id="nav-arrow" class="transform transition-transform">▼</span>
+          </button>
+          <div id="nav-grid" class="p-3 grid grid-cols-5 gap-2">
+            ${exams.map((exam, idx) => `
+              <button
+                onclick="document.getElementById('case-${exam.id}').scrollIntoView({ behavior: 'smooth', block: 'start' })"
+                class="aspect-square flex items-center justify-center bg-gray-100 dark:bg-gray-700 hover:bg-purple-500 hover:text-white dark:hover:bg-purple-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-bold transition-all hover:scale-110"
+                title="문제 ${idx + 1}"
+              >
+                ${idx + 1}
+              </button>
+            `).join('')}
           </div>
+        </div>
 
-          <!-- 문제 네비게이션 -->
-          <div class="flex-1 overflow-y-auto p-4">
-            <div class="mb-3">
-              <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">📌 문제 바로가기</h4>
-            </div>
-            <div class="grid grid-cols-4 gap-2">
-              ${exams.map((exam, idx) => `
-                <button
-                  onclick="document.getElementById('case-${exam.id}').scrollIntoView({ behavior: 'smooth', block: 'start' })"
-                  class="px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-gray-700 dark:text-gray-300 hover:text-purple-700 dark:hover:text-purple-300 rounded-lg text-sm font-semibold transition-colors"
-                >
-                  ${idx + 1}
-                </button>
-              `).join('')}
-            </div>
-          </div>
+        <!-- Action Buttons -->
+        <div class="flex flex-col gap-2 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-gray-300 dark:border-gray-600 p-3">
+          <!-- Temporary Save -->
+          <button
+            id="btn-temp-save"
+            ${!canTempSave ? 'disabled' : ''}
+            class="px-4 py-3 ${canTempSave ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'} text-white font-bold rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 text-sm"
+            title="${canTempSave ? '임시 채점 & 저장' : `${Math.ceil((5 * 60 * 1000 - (now - lastTempSave)) / 1000 / 60)}분 후 사용 가능`}"
+          >
+            <span>💾</span>
+            <span>${canTempSave ? '임시저장' : `쿨다운`}</span>
+          </button>
 
-          <!-- 액션 버튼들 -->
-          <div class="p-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
-            <!-- 임시저장 -->
-            <button
-              id="btn-temp-save"
-              ${!canTempSave ? 'disabled' : ''}
-              class="w-full px-4 py-3 ${canTempSave ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'} text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              <span>💾</span>
-              <span>${canTempSave ? '임시 채점 & 저장' : '임시저장 쿨다운'}</span>
-            </button>
-            ${!canTempSave ? `
-              <div class="text-xs text-center text-gray-500 dark:text-gray-400">
-                ${Math.ceil((5 * 60 * 1000 - (now - lastTempSave)) / 1000 / 60)}분 후 사용 가능
-              </div>
-            ` : ''}
-
-            <!-- 최종 제출 -->
-            <button
-              id="btn-submit-exam"
-              class="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-lg transition-all shadow-lg"
-            >
-              최종 제출 및 채점 →
-            </button>
-          </div>
+          <!-- Final Submit -->
+          <button
+            id="btn-submit-exam"
+            class="px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-lg transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 text-sm"
+          >
+            <span>📝</span>
+            <span>최종 제출</span>
+          </button>
         </div>
       </div>
     </div>
@@ -372,6 +369,25 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
 
   // 답안 자동저장 이벤트
   setupAutoSave(year);
+
+  // Floating Navigation Toggle
+  const toggleNavBtn = container.querySelector('#toggle-nav');
+  const navGrid = container.querySelector('#nav-grid');
+  const navArrow = container.querySelector('#nav-arrow');
+  let navExpanded = true;
+
+  if (toggleNavBtn && navGrid && navArrow) {
+    toggleNavBtn.addEventListener('click', () => {
+      navExpanded = !navExpanded;
+      if (navExpanded) {
+        navGrid.style.display = 'grid';
+        navArrow.style.transform = 'rotate(0deg)';
+      } else {
+        navGrid.style.display = 'none';
+        navArrow.style.transform = 'rotate(-90deg)';
+      }
+    });
+  }
 
   // 임시저장 버튼
   const tempSaveBtn = container.querySelector('#btn-temp-save');
