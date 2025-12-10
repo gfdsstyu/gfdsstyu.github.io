@@ -221,11 +221,11 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
           <div class="flex items-center justify-between flex-wrap gap-3">
             <div class="flex items-center gap-3">
               <h3 class="text-lg sm:text-xl font-bold">${year}년 기출문제</h3>
-              <span class="text-xs sm:text-sm opacity-90 px-2 sm:px-3 py-1 bg-white/20 rounded-full">총 ${examService.getTotalScore(year)}점</span>
+              <span class="text-xs sm:text-sm px-2 sm:px-3 py-1 bg-white/30 rounded-full font-semibold">총 ${examService.getTotalScore(year)}점</span>
             </div>
             <button
               id="btn-exit-exam-header"
-              class="px-3 py-2 sm:px-4 sm:py-2 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 text-sm"
+              class="px-3 py-2 sm:px-4 sm:py-2 bg-white/30 hover:bg-white/40 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 text-sm"
               title="기출문제 모드 종료"
             >
               <span>✕</span>
@@ -244,7 +244,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                 <div class="bg-gradient-to-r from-purple-700 to-indigo-700 px-6 py-3 text-white shadow-md">
                   <div class="flex items-center justify-between">
                     <h4 class="text-lg font-bold">문제 ${examIdx + 1}</h4>
-                    <span class="text-sm bg-white/20 px-3 py-1 rounded-full font-semibold">
+                    <span class="text-sm bg-white/30 px-3 py-1 rounded-full font-semibold">
                       ${exam.questions.reduce((sum, q) => sum + q.score, 0)}점
                     </span>
                   </div>
