@@ -393,7 +393,6 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
 
               return `
                 <button
-                  onclick="document.getElementById('case-${exam.id}').scrollIntoView({ behavior: 'smooth', block: 'start' })"
                   class="aspect-square flex items-center justify-center ${bgClass} ${textClass} ${ringClass} hover:bg-purple-500 hover:text-white dark:hover:bg-purple-600 rounded-lg text-xs font-bold transition-all hover:scale-110"
                   title="문제 ${idx + 1} ${statusText ? `(${statusText})` : ''}"
                 >
@@ -465,6 +464,28 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
       }
     });
   }
+
+  // Desktop: Navigation buttons - 스크롤 이동
+  const navButtons = container.querySelectorAll('#nav-grid button');
+  const scrollContainer = container.querySelector('.exam-paper-container');
+  navButtons.forEach((btn, idx) => {
+    btn.addEventListener('click', () => {
+      const targetId = exams[idx].id;
+      const targetElement = container.querySelector(`#case-${targetId}`);
+      if (targetElement && scrollContainer) {
+        // 스크롤 컨테이너 내에서 스크롤
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const targetRect = targetElement.getBoundingClientRect();
+        const scrollTop = scrollContainer.scrollTop;
+        const offset = targetRect.top - containerRect.top + scrollTop - 80; // 80px은 헤더 높이
+
+        scrollContainer.scrollTo({
+          top: offset,
+          behavior: 'smooth'
+        });
+      }
+    });
+  });
 
   // Desktop: 임시저장 버튼
   const tempSaveBtn = container.querySelector('#btn-temp-save');
