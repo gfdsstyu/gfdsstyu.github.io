@@ -7,6 +7,62 @@ import { examService } from './examService.js';
 import { getGeminiApiKey, getSelectedAiModel } from '../../core/stateManager.js';
 
 /**
+ * 마크다운 표를 HTML 테이블로 변환
+ * @param {string} text - 마크다운 텍스트
+ * @returns {string} - HTML로 변환된 텍스트
+ */
+function convertMarkdownTablesToHtml(text) {
+  if (!text) return text;
+
+  // 마크다운 표 패턴 감지: | col1 | col2 | ... 형식
+  const tableRegex = /(\|[^\n]+\|\r?\n)((?:\|:?-+:?\|)+\r?\n)((?:\|[^\n]+\|\r?\n?)+)/g;
+
+  return text.replace(tableRegex, (match, headerLine, separatorLine, bodyLines) => {
+    // 헤더 파싱
+    const headers = headerLine.trim().split('|').filter(h => h.trim()).map(h => h.trim());
+
+    // 정렬 정보 파싱 (separator line에서)
+    const alignments = separatorLine.trim().split('|').filter(s => s.trim()).map(s => {
+      const trimmed = s.trim();
+      if (trimmed.startsWith(':') && trimmed.endsWith(':')) return 'center';
+      if (trimmed.endsWith(':')) return 'right';
+      if (trimmed.startsWith(':')) return 'left';
+      return 'left';
+    });
+
+    // 바디 행 파싱
+    const rows = bodyLines.trim().split('\n').map(line => {
+      return line.trim().split('|').filter(c => c.trim()).map(c => c.trim());
+    });
+
+    // HTML 테이블 생성
+    let html = '<div class="markdown-table-wrapper overflow-x-auto my-4"><table class="markdown-table min-w-full border-collapse border border-gray-300 dark:border-gray-600">';
+
+    // 헤더
+    html += '<thead class="bg-gray-100 dark:bg-gray-700"><tr>';
+    headers.forEach((header, idx) => {
+      const align = alignments[idx] || 'left';
+      html += `<th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-${align} font-bold text-gray-900 dark:text-gray-100">${header}</th>`;
+    });
+    html += '</tr></thead>';
+
+    // 바디
+    html += '<tbody>';
+    rows.forEach(row => {
+      html += '<tr class="hover:bg-gray-50 dark:hover:bg-gray-800">';
+      row.forEach((cell, idx) => {
+        const align = alignments[idx] || 'left';
+        html += `<td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-${align} text-gray-800 dark:text-gray-200">${cell}</td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+
+    return html;
+  });
+}
+
+/**
  * UI 상태 관리
  */
 const examUIState = {
@@ -308,19 +364,19 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
       ${activeViewMode === 'split' ? `
         <!-- Split View: 좌측 지문 + 우측 문제 -->
         <div class="flex h-full">
-          <!-- Left Panel: Scenario (Sticky) -->
-          <div class="w-[45%] border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto bg-white dark:bg-gray-800 p-6">
+          <!-- Left Panel: Scenario (Fixed Width) -->
+          <div class="flex-none w-[480px] min-w-[480px] max-w-[480px] border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto bg-white dark:bg-gray-800 p-6">
             <div class="sticky top-0 bg-white dark:bg-gray-800 pb-4 border-b-2 border-gray-200 dark:border-gray-700 mb-4">
               <h4 class="text-lg font-bold text-purple-700 dark:text-purple-300">📄 지문</h4>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">현재 보고 있는 문제의 지문이 표시됩니다</p>
             </div>
-            <div id="split-scenario-display" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">
-              ${exams[0]?.questions[0]?.scenario || exams[0]?.scenario || '지문을 불러오는 중...'}
+            <div id="split-scenario-display" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed" style="font-family: 'Iropke Batang', serif;">
+              ${convertMarkdownTablesToHtml(exams[0]?.questions[0]?.scenario || exams[0]?.scenario || '지문을 불러오는 중...')}
             </div>
           </div>
 
           <!-- Right Panel: Questions -->
-          <div class="w-[55%] overflow-y-auto p-6">
+          <div class="flex-1 overflow-y-auto p-6">
             <div class="space-y-8">
       ` : `
         <!-- Vertical View: 기존 카드형 레이아웃 -->
@@ -376,7 +432,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                             class="scenario-content px-4 pb-4 ${isSameScenario ? 'hidden' : ''}"
                             data-question-id="${q.id}"
                           >
-                            <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${currentScenario}</div>
+                            <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${convertMarkdownTablesToHtml(currentScenario)}</div>
                           </div>
                         </div>
 
@@ -397,7 +453,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
 
                           <!-- 문제 -->
                           <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                            <p class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${q.question}</p>
+                            <div class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed" style="font-family: 'Iropke Batang', serif;">${convertMarkdownTablesToHtml(q.question)}</div>
                           </div>
 
                           <!-- 답안 입력 -->
@@ -641,7 +697,8 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
         textarea.addEventListener('focus', () => {
           const scenario = card.dataset.scenario;
           if (scenario) {
-            scenarioDisplay.innerHTML = scenario.replace(/&quot;/g, '"');
+            const decodedScenario = scenario.replace(/&quot;/g, '"');
+            scenarioDisplay.innerHTML = convertMarkdownTablesToHtml(decodedScenario);
           }
         });
       }
@@ -652,7 +709,8 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
         if (e.target.tagName !== 'TEXTAREA' && scenarioDisplay) {
           const scenario = card.dataset.scenario;
           if (scenario) {
-            scenarioDisplay.innerHTML = scenario.replace(/&quot;/g, '"');
+            const decodedScenario = scenario.replace(/&quot;/g, '"');
+            scenarioDisplay.innerHTML = convertMarkdownTablesToHtml(decodedScenario);
           }
         }
       });
