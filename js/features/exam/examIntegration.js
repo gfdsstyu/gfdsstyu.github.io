@@ -13,6 +13,9 @@ let examContainer = null;
  * 기출문제 모드 진입
  */
 export async function enterExamMode(apiKey, selectedModel) {
+  console.log('🔑 [examIntegration.js] enterExamMode - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
+  console.log('🔑 [examIntegration.js] enterExamMode - 모델:', selectedModel);
+
   if (isExamMode) {
     console.warn('이미 기출문제 모드입니다.');
     return;
