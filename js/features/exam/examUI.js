@@ -215,28 +215,22 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
 
   container.innerHTML = `
     <div class="exam-paper-container min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
-      <!-- Sticky Header with Timer -->
-      <div id="exam-header" class="sticky top-0 z-40 bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg">
+      <!-- Sticky Header -->
+      <div id="exam-header" class="sticky top-0 z-40 bg-gradient-to-r from-purple-700 to-indigo-700 text-white shadow-lg">
         <div class="w-full px-4 sm:px-6 lg:px-8 py-3">
           <div class="flex items-center justify-between flex-wrap gap-3">
             <div class="flex items-center gap-3">
               <h3 class="text-lg sm:text-xl font-bold">${year}년 기출문제</h3>
               <span class="text-xs sm:text-sm opacity-90 px-2 sm:px-3 py-1 bg-white/20 rounded-full">총 ${examService.getTotalScore(year)}점</span>
             </div>
-            <div class="flex items-center gap-3 sm:gap-4">
-              <div class="text-center">
-                <div class="text-xs opacity-75">⏱️ 남은 시간</div>
-                <div id="timer-display" class="text-xl sm:text-2xl font-mono font-bold">--:--</div>
-              </div>
-              <button
-                id="btn-exit-exam-header"
-                class="px-3 py-2 sm:px-4 sm:py-2 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 text-sm"
-                title="기출문제 모드 종료"
-              >
-                <span>✕</span>
-                <span class="hidden sm:inline">종료</span>
-              </button>
-            </div>
+            <button
+              id="btn-exit-exam-header"
+              class="px-3 py-2 sm:px-4 sm:py-2 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 text-sm"
+              title="기출문제 모드 종료"
+            >
+              <span>✕</span>
+              <span class="hidden sm:inline">종료</span>
+            </button>
           </div>
         </div>
       </div>
@@ -247,10 +241,10 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
             ${exams.map((exam, examIdx) => `
               <div id="case-${exam.id}" class="case-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden scroll-mt-20">
                 <!-- Case 헤더 -->
-                <div class="bg-gradient-to-r from-purple-500 to-indigo-500 px-6 py-3 text-white">
+                <div class="bg-gradient-to-r from-purple-700 to-indigo-700 px-6 py-3 text-white shadow-md">
                   <div class="flex items-center justify-between">
                     <h4 class="text-lg font-bold">문제 ${examIdx + 1}</h4>
-                    <span class="text-sm bg-white/20 px-3 py-1 rounded-full">
+                    <span class="text-sm bg-white/20 px-3 py-1 rounded-full font-semibold">
                       ${exam.questions.reduce((sum, q) => sum + q.score, 0)}점
                     </span>
                   </div>
@@ -339,6 +333,14 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
 
       <!-- Floating Control Panel (Desktop - Always show for debugging) -->
       <div id="floating-controls" style="display: flex !important; position: fixed !important; top: 96px !important; right: 24px !important; z-index: 9999 !important;" class="flex-col gap-3 transition-all duration-300 w-[200px]">
+        <!-- Timer Display -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-orange-500 dark:border-orange-600 p-4">
+          <div class="text-center">
+            <div class="text-xs font-semibold text-orange-700 dark:text-orange-300 mb-2">⏱️ 남은 시간</div>
+            <div id="timer-display" class="text-3xl font-mono font-bold text-orange-600 dark:text-orange-400">--:--</div>
+          </div>
+        </div>
+
         <!-- Quick Navigation - Collapsible -->
         <div id="nav-panel" class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-purple-500 dark:border-purple-600 overflow-hidden">
           <button id="toggle-nav" class="w-full px-3 py-2 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 flex items-center justify-between text-xs font-semibold text-purple-700 dark:text-purple-300 transition-colors">
@@ -374,7 +376,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
           <!-- Final Submit -->
           <button
             id="btn-submit-exam"
-            class="px-3 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-lg transition-all shadow-lg hover:shadow-xl flex flex-col items-center justify-center gap-1 text-xs"
+            class="px-3 py-2.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-bold rounded-lg transition-all shadow-lg hover:shadow-xl flex flex-col items-center justify-center gap-1 text-xs"
           >
             <span class="text-xl">📝</span>
             <span>최종 제출</span>
@@ -397,7 +399,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
         </button>
         <button
           id="btn-submit-mobile"
-          class="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-lg shadow-xl flex items-center justify-center gap-2 text-sm"
+          class="flex-1 px-4 py-3 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-bold rounded-lg shadow-xl flex items-center justify-center gap-2 text-sm"
         >
           <span>📝</span>
           <span>제출</span>
