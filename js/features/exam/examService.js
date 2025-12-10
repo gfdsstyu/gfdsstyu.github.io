@@ -350,15 +350,24 @@ class ExamService {
    * 채점 프롬프트 생성 (Rule/Case 타입별)
    */
   buildGradingPrompt(examCase, question) {
-    // Type이 없는 경우 대비 (null, undefined, 빈 문자열 처리)
-    const hasType = examCase.type && examCase.type.trim() !== '';
-    const isRule = hasType && examCase.type === 'Rule';
-    const isCase = hasType && examCase.type === 'Case';
+    // Type 결정: question 레벨 우선, 없으면 examCase 레벨
+    const questionType = question.type || examCase.type;
+    const hasType = questionType && questionType.trim() !== '';
+    const isRule = hasType && questionType === 'Rule';
+    const isCase = hasType && questionType === 'Case';
 
     // Type 표시 (없으면 "일반" 표시)
     const typeDisplay = hasType
-      ? (examCase.type === 'Rule' ? '기준서(Rule)' : '사례(Case)')
+      ? (questionType === 'Rule' ? '기준서(Rule)' : '사례(Case)')
       : '일반';
+
+    // Scenario 결정: question 레벨 우선 (새 구조), 없으면 examCase 레벨 (호환성)
+    const scenario = question.scenario || examCase.scenario || '지문 없음';
+
+    // Keywords 처리: question.keywords 배열 사용 (새 구조)
+    const evaluationCriteria = question.keywords && question.keywords.length > 0
+      ? `[Check Point]\n${question.keywords.map(k => `• ${k}`).join('\n')}`
+      : question.evaluation_criteria || '';
 
     const basePrompt = `
 # 2025 공인회계사 2차 시험 채점 AI
@@ -369,7 +378,7 @@ class ExamService {
 - 배점: ${question.score}점
 
 ## 지문 (Scenario)
-${examCase.scenario}
+${scenario}
 
 ## 문제
 ${question.question}
@@ -378,7 +387,7 @@ ${question.question}
 ${question.model_answer}
 
 ## 평가 기준 (Check Point)
-${question.evaluation_criteria}
+${evaluationCriteria}
 
 ---
 

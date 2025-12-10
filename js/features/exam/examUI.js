@@ -284,26 +284,50 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                   <p class="text-sm mt-1 text-gray-700 dark:text-gray-200">${exam.topic}</p>
                 </div>
 
-                <!-- Split View: 지문 (45%) | 물음들 (55%) -->
-                <div class="flex flex-row items-start relative" style="min-height: 400px;">
-                  <!-- 좌측: 지문 - sticky로 고정 -->
-                  <div style="flex: 0 0 45%; min-width: 0;" class="sticky top-4 h-[calc(100vh-100px)] overflow-y-auto bg-gray-50 dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-                    <div class="mb-3">
-                      <span class="inline-block px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-bold rounded-full mb-3">
-                        📄 지문 (Scenario)
-                      </span>
-                    </div>
-                    <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap font-serif">${exam.scenario}</div>
-                  </div>
+                <!-- New Structure: Per-Question Scenario Card -->
+                <div class="p-4 sm:p-6">
+                  <div class="space-y-6">
+                    ${exam.questions.map((q, qIdx) => {
+                      // 이전 question의 scenario와 비교
+                      const previousQ = qIdx > 0 ? exam.questions[qIdx - 1] : null;
+                      const currentScenario = q.scenario || exam.scenario || '';
+                      const previousScenario = previousQ ? (previousQ.scenario || exam.scenario || '') : null;
+                      const isSameScenario = previousScenario && currentScenario === previousScenario;
+                      const isFirstQuestion = qIdx === 0;
 
-                  <!-- 우측: 물음들 - 자연스럽게 늘어나도록 -->
-                  <div style="flex: 0 0 55%; min-width: 0;" class="p-4 sm:p-6">
-                    <div class="space-y-6">
-                      ${exam.questions.map((q, qIdx) => {
-                        return `
-                        <div id="question-${q.id}" class="question-item border-2 border-gray-200 dark:border-gray-600 rounded-lg p-5 bg-white dark:bg-gray-800">
+                      return `
+                      <div id="question-${q.id}" class="question-item ${isSameScenario ? '' : 'scenario-changed'} border-2 ${isSameScenario ? 'border-gray-200 dark:border-gray-600' : 'border-orange-400 dark:border-orange-600'} rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-lg transition-all duration-300">
+
+                        <!-- Scenario Section -->
+                        <div class="scenario-section ${isSameScenario ? 'bg-green-50 dark:bg-green-900/20' : 'bg-orange-50 dark:bg-orange-900/20'} border-b-2 ${isSameScenario ? 'border-green-200 dark:border-green-700' : 'border-orange-200 dark:border-orange-700'}">
+                          <button
+                            class="scenario-toggle w-full px-4 py-3 text-left flex items-center justify-between hover:bg-opacity-80 transition-colors"
+                            data-question-id="${q.id}"
+                            data-expanded="${!isSameScenario}"
+                          >
+                            <div class="flex items-center gap-2 flex-wrap">
+                              <span class="px-3 py-1 ${isSameScenario ? 'bg-green-200 dark:bg-green-700' : 'bg-orange-200 dark:bg-orange-700'} ${isSameScenario ? 'text-green-800 dark:text-green-200' : 'text-orange-800 dark:text-orange-200'} text-xs font-bold rounded-full">
+                                📄 지문
+                              </span>
+                              ${!isFirstQuestion && !isSameScenario ? '<span class="px-2 py-1 bg-orange-500 text-white text-xs font-bold rounded animate-pulse">⚠️ 상황 변경</span>' : ''}
+                              ${isSameScenario ? '<span class="text-xs text-green-700 dark:text-green-300 font-semibold">(이전과 동일)</span>' : ''}
+                            </div>
+                            <span class="text-gray-600 dark:text-gray-400 text-sm scenario-arrow" data-question-id="${q.id}">
+                              ${isSameScenario ? '▶' : '▼'}
+                            </span>
+                          </button>
+                          <div
+                            class="scenario-content px-4 pb-4 ${isSameScenario ? 'hidden' : ''}"
+                            data-question-id="${q.id}"
+                          >
+                            <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${currentScenario}</div>
+                          </div>
+                        </div>
+
+                        <!-- Question Card -->
+                        <div class="p-5">
                           <!-- 물음 헤더 -->
-                          <div class="flex items-center justify-between mb-3">
+                          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
                             <div class="flex items-center gap-2">
                               <span class="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-bold rounded-full">
                                 물음 ${q.id.replace('Q', '')}
@@ -311,6 +335,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                               <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded">
                                 ${q.score}점
                               </span>
+                              ${q.type ? `<span class="px-2 py-1 bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-purple-200 text-xs font-bold rounded">${q.type === 'Rule' ? '기준서' : '사례'}</span>` : ''}
                             </div>
                           </div>
 
@@ -337,8 +362,8 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                             </div>
                           </div>
                         </div>
-                      `}).join('')}
-                    </div>
+                      </div>
+                    `}).join('')}
                   </div>
                 </div>
               </div>
@@ -476,6 +501,33 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
       if (targetElement && scrollContainer) {
         // scrollIntoView를 사용하여 간단하고 정확하게 이동
         targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
+  // Scenario Toggle 이벤트 리스너
+  const scenarioToggles = container.querySelectorAll('.scenario-toggle');
+  scenarioToggles.forEach(toggle => {
+    toggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      const questionId = toggle.dataset.questionId;
+      const scenarioContent = container.querySelector(`.scenario-content[data-question-id="${questionId}"]`);
+      const arrow = container.querySelector(`.scenario-arrow[data-question-id="${questionId}"]`);
+
+      if (scenarioContent && arrow) {
+        const isExpanded = toggle.dataset.expanded === 'true';
+
+        if (isExpanded) {
+          // 접기
+          scenarioContent.classList.add('hidden');
+          arrow.textContent = '▶';
+          toggle.dataset.expanded = 'false';
+        } else {
+          // 펼치기
+          scenarioContent.classList.remove('hidden');
+          arrow.textContent = '▼';
+          toggle.dataset.expanded = 'true';
+        }
       }
     });
   });
@@ -883,22 +935,15 @@ function renderResults(container, year, result, apiKey, selectedModel) {
               </div>
             </div>
 
-            <!-- Split View: 지문 (50%) | 물음들 (50%) -->
-            <div class="flex flex-col lg:flex-row">
-              <!-- 좌측: 지문 -->
-              <div class="lg:w-1/2 bg-gray-50 dark:bg-gray-900 border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700 p-6">
-                <div class="mb-3">
-                  <span class="inline-block px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-bold rounded-full">
-                    📄 지문 (Scenario)
-                  </span>
-                </div>
-                <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${examCase.scenario}</div>
-              </div>
-
-              <!-- 우측: 물음들 -->
-              <div class="lg:w-1/2 p-6">
-                <div class="space-y-6">
-                  ${examCase.questions.map((question) => {
+            <!-- Question Cards with Individual Scenarios -->
+            <div class="p-6">
+              <div class="space-y-6">
+                ${examCase.questions.map((question, qIdx) => {
+                  // 이전 question의 scenario와 비교
+                  const previousQ = qIdx > 0 ? examCase.questions[qIdx - 1] : null;
+                  const currentScenario = question.scenario || examCase.scenario || '';
+                  const previousScenario = previousQ ? (previousQ.scenario || examCase.scenario || '') : null;
+                  const isSameScenario = previousScenario && currentScenario === previousScenario;
                     const feedback = result.details[question.id];
                     const scoreEmoji = getScoreEmoji(feedback?.score || 0, question.score);
                     const userAnswer = userAnswers[question.id]?.answer || '';
@@ -911,19 +956,42 @@ function renderResults(container, year, result, apiKey, selectedModel) {
                     }));
 
                     return `
-                      <div class="border-l-4 ${feedback?.score >= question.score * 0.9 ? 'border-green-500' : feedback?.score >= question.score * 0.5 ? 'border-yellow-500' : 'border-red-500'} pl-4 pb-4">
-                        <!-- 물음 헤더 -->
-                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-                          <div class="flex items-center gap-2">
-                            <span class="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-bold rounded-full">
-                              물음 ${question.id.replace('Q', '')}
-                            </span>
-                            <span class="text-2xl">${scoreEmoji}</span>
+                      <div class="border-2 ${feedback?.score >= question.score * 0.9 ? 'border-green-500' : feedback?.score >= question.score * 0.5 ? 'border-yellow-500' : 'border-red-500'} rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-md mb-4">
+                        <!-- Scenario Section (결과 화면용 - 항상 펼쳐진 상태) -->
+                        ${!isSameScenario ? `
+                          <div class="scenario-section bg-purple-50 dark:bg-purple-900/20 border-b-2 border-purple-200 dark:border-purple-700 px-4 py-3">
+                            <div class="flex items-center gap-2 mb-2">
+                              <span class="px-3 py-1 bg-purple-200 dark:bg-purple-700 text-purple-800 dark:text-purple-200 text-xs font-bold rounded-full">
+                                📄 지문
+                              </span>
+                              ${qIdx > 0 ? '<span class="px-2 py-1 bg-orange-500 text-white text-xs font-bold rounded">⚠️ 상황 변경</span>' : ''}
+                            </div>
+                            <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${currentScenario}</div>
                           </div>
-                          <div class="text-xl font-bold ${feedback?.score >= question.score * 0.9 ? 'text-green-600 dark:text-green-400' : feedback?.score >= question.score * 0.5 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}">
-                            ${(feedback?.score || 0).toFixed(1)} / ${question.score}점
+                        ` : `
+                          <div class="scenario-section bg-green-50 dark:bg-green-900/20 border-b-2 border-green-200 dark:border-green-700 px-4 py-2">
+                            <div class="flex items-center gap-2">
+                              <span class="px-3 py-1 bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-200 text-xs font-bold rounded-full">
+                                📄 지문 (이전과 동일)
+                              </span>
+                            </div>
                           </div>
-                        </div>
+                        `}
+
+                        <!-- Question Card -->
+                        <div class="p-4">
+                          <!-- 물음 헤더 -->
+                          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                            <div class="flex items-center gap-2">
+                              <span class="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-bold rounded-full">
+                                물음 ${question.id.replace('Q', '')}
+                              </span>
+                              <span class="text-2xl">${scoreEmoji}</span>
+                            </div>
+                            <div class="text-xl font-bold ${feedback?.score >= question.score * 0.9 ? 'text-green-600 dark:text-green-400' : feedback?.score >= question.score * 0.5 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}">
+                              ${(feedback?.score || 0).toFixed(1)} / ${question.score}점
+                            </div>
+                          </div>
 
                         ${questionHistory.length > 1 ? `
                           <!-- 물음별 점수 히스토리 -->
@@ -1002,6 +1070,7 @@ function renderResults(container, year, result, apiKey, selectedModel) {
                               </div>
                             </div>
                           ` : ''}
+                        </div>
                         </div>
                       </div>
                     `;
