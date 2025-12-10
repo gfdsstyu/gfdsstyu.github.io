@@ -285,9 +285,9 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                 </div>
 
                 <!-- Split View: 지문 (45%) | 물음들 (55%) -->
-                <div class="flex flex-col lg:flex-row items-start relative" style="min-height: 400px;">
+                <div class="flex flex-row items-start relative" style="min-height: 400px;">
                   <!-- 좌측: 지문 - sticky로 고정 -->
-                  <div class="lg:w-[45%] lg:sticky lg:top-4 h-[500px] lg:h-[calc(100vh-100px)] overflow-y-auto bg-gray-50 dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-700 p-4 sm:p-6 rounded-bl-xl">
+                  <div style="flex: 0 0 45%; min-width: 0;" class="sticky top-4 h-[calc(100vh-100px)] overflow-y-auto bg-gray-50 dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-700 p-4 sm:p-6">
                     <div class="mb-3">
                       <span class="inline-block px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-bold rounded-full mb-3">
                         📄 지문 (Scenario)
@@ -297,7 +297,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                   </div>
 
                   <!-- 우측: 물음들 - 자연스럽게 늘어나도록 -->
-                  <div class="lg:w-[55%] p-4 sm:p-6">
+                  <div style="flex: 0 0 55%; min-width: 0;" class="p-4 sm:p-6">
                     <div class="space-y-6">
                       ${exam.questions.map((q, qIdx) => {
                         return `
@@ -799,9 +799,8 @@ function renderResults(container, year, result, apiKey, selectedModel) {
   const userAnswers = examService.getUserAnswers(year);
 
   container.innerHTML = `
-    <div class="results-container h-full overflow-auto bg-gray-50 dark:bg-gray-900 pb-20">
-      <!-- Sticky Header -->
-      <div id="results-header" class="sticky top-0 z-40 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 text-gray-800 dark:text-white shadow-lg">
+    <!-- Fixed Header -->
+    <div id="results-header" class="flex-none bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 text-gray-800 dark:text-white shadow-lg z-50">
         <div class="w-full px-4 sm:px-6 lg:px-8 py-3">
           <div class="flex items-center justify-between flex-wrap gap-3">
             <div class="flex items-center gap-3">
@@ -820,7 +819,8 @@ function renderResults(container, year, result, apiKey, selectedModel) {
         </div>
       </div>
 
-      <!-- Main Content -->
+    <!-- Scrollable Content Area -->
+    <div class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scroll-smooth">
       <div class="max-w-6xl mx-auto p-4 md:p-8 space-y-6">
         <!-- 총점 카드 -->
         <div class="bg-gradient-to-r ${isPassing ? 'from-green-100 to-emerald-100 dark:from-green-500 dark:to-emerald-600' : 'from-red-100 to-rose-100 dark:from-red-500 dark:to-rose-600'} rounded-2xl p-6 md:p-8 text-gray-800 dark:text-white shadow-xl">
