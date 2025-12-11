@@ -176,7 +176,7 @@ function renderYearSelection(container) {
                 <h3 class="text-2xl font-bold text-purple-700 dark:text-purple-400">${year}년</h3>
                 ${bestScore !== null ? `
                   <span class="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm font-bold rounded-full">
-                    최고 ${bestScore}점
+                    최고 ${bestScore.toFixed(1)}점
                   </span>
                 ` : ''}
               </div>
@@ -1120,7 +1120,7 @@ function renderResults(container, year, result, apiKey, selectedModel) {
           </div>
           ${bestScore && result.totalScore === bestScore && scoreHistory.length > 1 ? `
             <p class="mt-4 text-sm text-green-600 dark:text-green-400 font-semibold">
-              ✨ 최고 점수 경신! 이전 최고: ${scoreHistory[scoreHistory.length - 2].score}점
+              ✨ 최고 점수 경신! 이전 최고: ${scoreHistory[scoreHistory.length - 2].score.toFixed(1)}점
             </p>
           ` : ''}
         </div>

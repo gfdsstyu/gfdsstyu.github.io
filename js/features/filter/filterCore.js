@@ -10,18 +10,19 @@ import { eventBus } from '../../core/eventBus.js';
 
 // 필터 설정 저장 키
 export const SOURCE_LS = 'sourceFilterSelectionV1';
+export const COMPACT_LS = 'compactFilterEnabled';
 
 // 출처 태그 분류
 export const BASIC_TAGS = ['S', 'H', 'HS'];
 export const ADV_TAGS = ['SS', 'P'];
 
 /**
- * 범위 필터링된 데이터 가져오기 (출처 + 단원 필터 적용)
+ * 범위 필터링된 데이터 가져오기 (출처 + 단원 + 컴팩트 필터 적용)
  * @returns {Array} 필터링된 문제 배열
  */
 export function getScopeFilteredData() {
   const allData = window.allData || getAllData() || [];
-  return filterByChapterSelection(applySourceFilter(allData));
+  return applyCompactFilter(filterByChapterSelection(applySourceFilter(allData)));
 }
 
 /**
@@ -38,6 +39,7 @@ export function buildSourceFilterUI() {
         <label class="text-sm flex items-center gap-1 text-gray-900 dark:text-gray-100"><input type="checkbox" id="source-filter-basic" name="source-filter-basic" value="basic" class="source-filter"> 기본(S/H/HS)</label>
         <label class="text-sm flex items-center gap-1 text-gray-900 dark:text-gray-100"><input type="checkbox" id="source-filter-advanced" name="source-filter-advanced" value="advanced" class="source-filter"> 심화(SS/P)</label>
         <label class="text-sm flex items-center gap-1 text-gray-900 dark:text-gray-100"><input type="checkbox" id="source-filter-other" name="source-filter-other" value="other" class="source-filter"> 기타</label>
+        <label class="text-sm flex items-center gap-1 text-gray-900 dark:text-gray-100"><input type="checkbox" id="compact-filter" name="compact-filter" value="compact"> 컴팩트</label>
         <button id="source-filter-all" class="ml-auto text-xs px-2 py-1 border rounded text-gray-900 dark:text-gray-100">전체</button>
         <button id="source-filter-none" class="text-xs px-2 py-1 border rounded text-gray-900 dark:text-gray-100">해제</button>
       </div>
@@ -52,6 +54,17 @@ export function buildSourceFilterUI() {
       eventBus.emit('quiz:reload');
     });
   });
+
+  // 컴팩트 필터 초기화
+  const compactCheckbox = el.sourceGroupFilter.querySelector('#compact-filter');
+  if (compactCheckbox) {
+    const compactEnabled = localStorage.getItem(COMPACT_LS) === 'true';
+    compactCheckbox.checked = compactEnabled;
+    compactCheckbox.addEventListener('change', () => {
+      localStorage.setItem(COMPACT_LS, compactCheckbox.checked);
+      eventBus.emit('quiz:reload');
+    });
+  }
 
   el.sourceGroupFilter.querySelector('#source-filter-all')?.addEventListener('click', () => {
     setAllGroups(['basic', 'advanced', 'other']);
@@ -88,6 +101,32 @@ export function getSelectedSourceGroups() {
     if (cb.checked) arr.push(cb.value);
   });
   return arr;
+}
+
+/**
+ * 컴팩트 필터 활성화 여부 확인
+ * @returns {boolean} 컴팩트 필터 활성화 여부
+ */
+export function isCompactFilterEnabled() {
+  return localStorage.getItem(COMPACT_LS) === 'true';
+}
+
+/**
+ * 컴팩트 필터 적용 (q_001~q_200만 표시)
+ * @param {Array} arr - 문제 배열
+ * @returns {Array} 필터링된 문제 배열
+ */
+export function applyCompactFilter(arr) {
+  if (!isCompactFilterEnabled()) return arr;
+
+  return (arr || []).filter(q => {
+    const id = String(q.고유ID || '').toLowerCase();
+    // q_001부터 q_200까지만 포함
+    const match = id.match(/^q_(\d+)/);
+    if (!match) return false;
+    const num = parseInt(match[1], 10);
+    return num >= 1 && num <= 200;
+  });
 }
 
 /**
@@ -158,7 +197,7 @@ export function filterByChapterSelection(list) {
 }
 
 /**
- * UI 필터 종합 적용 (출처 + 단원 + 상태 + 정렬)
+ * UI 필터 종합 적용 (출처 + 단원 + 컴팩트 + 상태 + 정렬)
  * @returns {Array} 필터링 및 정렬된 문제 배열
  */
 export function getFilteredByUI() {
@@ -172,7 +211,10 @@ export function getFilteredByUI() {
   // 2. 단원 필터 적용
   list = filterByChapterSelection(list);
 
-  // 3. 상태 필터 적용
+  // 3. 컴팩트 필터 적용
+  list = applyCompactFilter(list);
+
+  // 4. 상태 필터 적용
   list = list.filter(q => {
     const key = normId(q.고유ID);
     const s = questionScores[key];
@@ -195,7 +237,7 @@ export function getFilteredByUI() {
     return true;
   });
 
-  // 4. 오늘의 복습 필터 (제외 표시 제거 + 우선순위 정렬)
+  // 5. 오늘의 복습 필터 (제외 표시 제거 + 우선순위 정렬)
   if (filter === 'today-review') {
     list = list.filter(q => !questionScores[normId(q.고유ID)]?.userReviewExclude);
 
@@ -205,7 +247,7 @@ export function getFilteredByUI() {
     }
   }
 
-  // 5. 정렬: 1순위 단원, 2순위 표시번호
+  // 6. 정렬: 1순위 단원, 2순위 고유ID (자연 정렬)
   list.sort((a, b) => {
     // 1순위: 단원 비교
     const chA = +a.단원;
@@ -223,7 +265,21 @@ export function getFilteredByUI() {
       if (cmp !== 0) return cmp;
     }
 
-    // 2순위: 표시번호 비교
+    // 2순위: 고유ID 자연 정렬 (q_1, q_2, ..., q_10)
+    const idA = String(a.고유ID || '');
+    const idB = String(b.고유ID || '');
+
+    // q_숫자 패턴에서 숫자 추출
+    const matchA = idA.match(/^q_(\d+)/i);
+    const matchB = idB.match(/^q_(\d+)/i);
+
+    if (matchA && matchB) {
+      const numA = parseInt(matchA[1], 10);
+      const numB = parseInt(matchB[1], 10);
+      if (numA !== numB) return numA - numB;
+    }
+
+    // 표시번호로 폴백
     const numA = +(a.표시번호 || a.물음번호 || 0);
     const numB = +(b.표시번호 || b.물음번호 || 0);
 
@@ -231,10 +287,8 @@ export function getFilteredByUI() {
       return numA - numB;
     }
 
-    // fallback: 문자열 비교
-    return String(a.표시번호 || a.물음번호 || '').localeCompare(
-      String(b.표시번호 || b.물음번호 || ''), 'ko'
-    );
+    // 최종 폴백: 문자열 비교
+    return idA.localeCompare(idB, 'ko');
   });
 
   return list;
