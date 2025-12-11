@@ -1079,8 +1079,28 @@ function renderResults(container, year, result, apiKey, selectedModel) {
       </div>
 
     <!-- Scrollable Content Area -->
-    <div class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scroll-smooth">
-      <div class="max-w-6xl mx-auto p-4 md:p-8 space-y-6">
+    <div id="results-scroll-area" class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scroll-smooth" data-view-mode="${activeViewMode}">
+      ${activeViewMode === 'split' ? `
+        <!-- Split View: 좌측 지문 + 우측 문제 -->
+        <div class="flex h-full">
+          <!-- Left Panel: Scenario (Fixed Width) -->
+          <div class="flex-none w-[480px] min-w-[480px] max-w-[480px] border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto bg-white dark:bg-gray-800 p-6">
+            <div class="sticky top-0 bg-white dark:bg-gray-800 pb-4 border-b-2 border-gray-200 dark:border-gray-700 mb-4">
+              <h4 class="text-lg font-bold text-purple-700 dark:text-purple-300">📄 지문</h4>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">현재 보고 있는 문제의 지문이 표시됩니다</p>
+            </div>
+            <div id="split-scenario-display-results" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">
+              ${exams[0]?.questions[0]?.scenario || exams[0]?.scenario || '지문을 불러오는 중...'}
+            </div>
+          </div>
+
+          <!-- Right Panel: Questions with Feedback -->
+          <div class="flex-1 overflow-y-auto">
+      ` : `
+        <!-- Vertical View: 기존 카드형 레이아웃 -->
+        <div class="w-full">
+      `}
+            <div class="max-w-6xl mx-auto p-4 md:p-8 space-y-6">
         <!-- 총점 카드 -->
         <div class="bg-gradient-to-r ${isPassing ? 'from-green-100 to-emerald-100 dark:from-green-500 dark:to-emerald-600' : 'from-red-100 to-rose-100 dark:from-red-500 dark:to-rose-600'} rounded-2xl p-6 md:p-8 text-gray-800 dark:text-white shadow-xl">
         <div class="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -1163,10 +1183,10 @@ function renderResults(container, year, result, apiKey, selectedModel) {
                     }));
 
                     return `
-                      <div class="border-2 ${feedback?.score >= question.score * 0.9 ? 'border-green-500' : feedback?.score >= question.score * 0.5 ? 'border-yellow-500' : 'border-red-500'} rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-md mb-4">
-                        <!-- Scenario Section (결과 화면용 - 항상 펼쳐진 상태) -->
+                      <div class="border-2 ${feedback?.score >= question.score * 0.9 ? 'border-green-500' : feedback?.score >= question.score * 0.5 ? 'border-yellow-500' : 'border-red-500'} rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-md mb-4" data-scenario="${currentScenario.replace(/"/g, '&quot;')}">
+                        <!-- Scenario Section (Vertical View only) -->
                         ${!isSameScenario ? `
-                          <div class="scenario-section bg-purple-50 dark:bg-purple-900/20 border-b-2 border-purple-200 dark:border-purple-700 px-4 py-3">
+                          <div class="scenario-section ${activeViewMode === 'split' ? 'hidden' : ''} bg-purple-50 dark:bg-purple-900/20 border-b-2 border-purple-200 dark:border-purple-700 px-4 py-3">
                             <div class="flex items-center gap-2 mb-2">
                               <span class="px-3 py-1 bg-purple-200 dark:bg-purple-700 text-purple-800 dark:text-purple-200 text-xs font-bold rounded-full">
                                 📄 지문
@@ -1176,7 +1196,7 @@ function renderResults(container, year, result, apiKey, selectedModel) {
                             <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${currentScenario}</div>
                           </div>
                         ` : `
-                          <div class="scenario-section bg-green-50 dark:bg-green-900/20 border-b-2 border-green-200 dark:border-green-700 px-4 py-2">
+                          <div class="scenario-section ${activeViewMode === 'split' ? 'hidden' : ''} bg-green-50 dark:bg-green-900/20 border-b-2 border-green-200 dark:border-green-700 px-4 py-2">
                             <div class="flex items-center gap-2">
                               <span class="px-3 py-1 bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-200 text-xs font-bold rounded-full">
                                 📄 지문 (이전과 동일)
@@ -1299,6 +1319,12 @@ function renderResults(container, year, result, apiKey, selectedModel) {
         </button>
       </div>
     </div>
+      ${activeViewMode === 'split' ? `
+          </div>
+        </div>
+      ` : `
+      `}
+    </div>
     </div>
   `;
 
@@ -1340,6 +1366,34 @@ function renderResults(container, year, result, apiKey, selectedModel) {
       examUIState.viewMode = 'vertical';
       renderResults(container, year, result, apiKey, selectedModel);
     });
+  }
+
+  // Split View: Scroll observer to update left panel scenario
+  if (activeViewMode === 'split') {
+    const scrollArea = container.querySelector('#results-scroll-area .flex-1.overflow-y-auto');
+    const scenarioDisplay = container.querySelector('#split-scenario-display-results');
+
+    if (scrollArea && scenarioDisplay) {
+      const questionCards = scrollArea.querySelectorAll('[data-scenario]');
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+            const scenario = entry.target.getAttribute('data-scenario');
+            if (scenario) {
+              const decodedScenario = scenario.replace(/&quot;/g, '"');
+              scenarioDisplay.innerHTML = decodedScenario;
+            }
+          }
+        });
+      }, {
+        root: scrollArea,
+        threshold: [0.5, 0.75, 1.0],
+        rootMargin: '-20% 0px -20% 0px'
+      });
+
+      questionCards.forEach(card => observer.observe(card));
+    }
   }
 
   // 하단 종료 버튼
