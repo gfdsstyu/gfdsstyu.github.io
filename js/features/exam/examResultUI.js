@@ -275,7 +275,7 @@ const totalPossibleScore = examService.getTotalScore(year);
             <!-- 문제별 결과 -->
             <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
               ${examCase.questions.map((question, qIdx) => {
-const feedback = result.details[question.id];
+                const feedback = result.details[question.id];
                 const userAnswer = userAnswers[question.id]?.answer || '';
                 const score = feedback?.score || 0;
                 const scorePercent = question.score > 0 ? ((score / question.score) * 100) : 0;
@@ -347,27 +347,32 @@ const feedback = result.details[question.id];
                         </div>
                         
                         <!-- 점수 히스토리 -->
-                        ${scoreHistory.length > 0 ? `
+                        ${scoreHistory && Array.isArray(scoreHistory) && scoreHistory.length > 0 ? `
                           <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">점수 히스토리:</span>
                             <div class="flex gap-2">
                               ${scoreHistory.slice(-5).map((s, idx) => {
-                                const historyFeedback = s.details?.[question.id];
-                                const historyScore = historyFeedback?.score || 0;
-                                const historyPercent = question.score > 0 ? ((historyScore / question.score) * 100) : 0;
-                                const historyIdx = scoreHistory.length - 5 + idx;
-                                const isCurrent = historyIdx === scoreHistory.length - 1;
-                                const historyColor = historyPercent >= 90 ? 'bg-green-500' : historyPercent >= 50 ? 'bg-yellow-500' : 'bg-red-500';
-                                const ringClass = isCurrent ? 'ring-2 ring-purple-500' : '';
-                                
-                                return `
-                                  <div class="relative group">
-                                    <div class="w-10 h-10 ${historyColor} ${ringClass} rounded-full flex items-center justify-center text-white font-bold text-xs cursor-pointer transition-all hover:scale-110" 
-                                         title="${historyIdx + 1}회전: ${historyScore.toFixed(1)}/${question.score}점">
-                                      ${historyScore.toFixed(1)}
+                                try {
+                                  const historyFeedback = s.details?.[question.id];
+                                  const historyScore = historyFeedback?.score || 0;
+                                  const historyPercent = question.score > 0 ? ((historyScore / question.score) * 100) : 0;
+                                  const historyIdx = scoreHistory.length - 5 + idx;
+                                  const isCurrent = historyIdx === scoreHistory.length - 1;
+                                  const historyColor = historyPercent >= 90 ? 'bg-green-500' : historyPercent >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                                  const ringClass = isCurrent ? 'ring-2 ring-purple-500' : '';
+                                  
+                                  return `
+                                    <div class="relative group">
+                                      <div class="w-10 h-10 ${historyColor} ${ringClass} rounded-full flex items-center justify-center text-white font-bold text-xs cursor-pointer transition-all hover:scale-110" 
+                                           title="${historyIdx + 1}회전: ${historyScore.toFixed(1)}/${question.score}점">
+                                        ${historyScore.toFixed(1)}
+                                      </div>
                                     </div>
-                                  </div>
-                                `;
+                                  `;
+                                } catch (error) {
+                                  console.error('점수 히스토리 렌더링 에러:', error);
+                                  return '';
+                                }
                               }).join('')}
                             </div>
                           </div>
