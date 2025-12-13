@@ -180,8 +180,23 @@ function escapeHtml(text) {
  * 예: "Q10-1-2" -> [10, 1, 2]
  *     "Q1-2-3" -> [1, 2, 3]
  */
+/**
+ * Question ID에서 숫자 배열 추출 (정렬용)
+ * ⚠️ 중요: "2025_Q1", "2025_Q10" 형식을 올바르게 처리해야 함
+ * 이 함수를 수정할 때는 examData.js의 extractQuestionNumbers와 동일한 로직 유지 필수
+ * 
+ * 예: "Q10-1-2" -> [10, 1, 2]
+ *     "Q1-2-3" -> [1, 2, 3]
+ *     "2025_Q1" -> [1]
+ *     "2025_Q10" -> [10]
+ * 
+ * 만약 이 함수가 "2025_Q1" 형식을 처리하지 못하면:
+ * - 모든 exam이 [0]으로 파싱되어 정렬이 작동하지 않음
+ * - 문제가 1, 10, 2, 3, 4... 순서로 표시됨
+ */
 function extractQuestionNumbers(questionId) {
   // "Q" 또는 "_Q" 이후 부분만 추출
+  // ⚠️ 단순히 replace(/^Q/i, '')만 사용하면 "2025_Q1" 형식을 처리하지 못함
   let qPart = questionId;
   const qMatch = questionId.match(/[_-]?Q(.+)$/i);
   if (qMatch) {
@@ -510,7 +525,9 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
   let exams = examService.getExamByYear(year);
   const metadata = examService.getMetadata(year);
 
-  // exams 배열 자체를 정렬 (Q1, Q2, ..., Q10 순서)
+  // ⚠️ 중요: exams 배열 자체를 정렬 (Q1, Q2, ..., Q10 순서)
+  // "2025_Q1", "2025_Q10" 형식을 올바르게 처리하기 위해 extractQuestionNumbers 사용 필수
+  // 이 정렬을 생략하면 문제가 1, 10, 2, 3, 4... 순서로 표시됨
   exams = [...exams].sort((a, b) => {
     const numsA = extractQuestionNumbers(a.id);
     const numsB = extractQuestionNumbers(b.id);
@@ -523,7 +540,8 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
     return 0;
   });
 
-  // questions 정렬 보장 (Q1, Q2, ..., Q10 순서)
+  // ⚠️ 중요: questions 정렬 보장 (Q1, Q2, ..., Q10 순서)
+  // extractQuestionNumbers가 "2025_Q1" 형식을 올바르게 처리하는지 확인 필수
   exams = exams.map(exam => ({
     ...exam,
     questions: [...exam.questions].sort((a, b) => {
@@ -949,7 +967,9 @@ function setupFloatingControls(exams, year) {
     existingControls.remove();
   }
 
-  // exams 정렬 (Q1, Q2, ..., Q10 순서)
+  // ⚠️ 중요: exams 정렬 (Q1, Q2, ..., Q10 순서)
+  // "2025_Q1", "2025_Q10" 형식을 올바르게 처리하기 위해 extractQuestionNumbers 사용 필수
+  // 이 정렬을 생략하면 플로팅 리모콘의 문제 번호가 1, 10, 2, 3... 순서로 표시됨
   const sortedExams = [...exams].sort((a, b) => {
     const numsA = extractQuestionNumbers(a.id);
     const numsB = extractQuestionNumbers(b.id);
