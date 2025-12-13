@@ -220,6 +220,8 @@ const examUIState = {
   timerInterval: null,
   answers: {},
   viewMode: 'auto', // 'split', 'vertical', 'auto'
+  isPaused: false, // 타이머 일시정지 상태
+  pauseStartTime: null, // 일시정지 시작 시간
 
   reset() {
     this.currentYear = null;
@@ -229,7 +231,13 @@ const examUIState = {
       clearInterval(this.timerInterval);
       this.timerInterval = null;
     }
+    if (this.timerCleanup) {
+      this.timerCleanup();
+      this.timerCleanup = null;
+    }
     this.answers = {};
+    this.isPaused = false;
+    this.pauseStartTime = null;
     // viewMode는 초기화하지 않음 (사용자 선택 유지)
   },
 
@@ -276,8 +284,12 @@ function renderYearSelection(container) {
   if (examUIState.timerInterval) {
     clearInterval(examUIState.timerInterval);
     examUIState.timerInterval = null;
-    console.log('✅ [examUI.js] renderYearSelection - 타이머 정지');
   }
+  if (examUIState.timerCleanup) {
+    examUIState.timerCleanup();
+    examUIState.timerCleanup = null;
+  }
+  console.log('✅ [examUI.js] renderYearSelection - 타이머 정지');
 
   // 전체 화면 모드 해제 (연도 선택 화면은 기존 레이아웃 사용)
   container.className = '';
@@ -744,6 +756,14 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
     </div>
   `;
 
+  // 페이지 로드 시 이전 일시정지 상태 확인 및 종료 처리
+  const pauseData = examService.getTimerPause(year);
+  if (pauseData && Array.isArray(pauseData) && pauseData.length % 2 === 1) {
+    // 마지막 일시정지 시작 시간만 있고 종료 시간이 없으면 종료 시간 추가
+    const pauseEndTime = Date.now();
+    examService.saveTimerPause(year, pauseEndTime);
+  }
+
   // 타이머 시작
   startTimer(year, metadata.timeLimit);
 
@@ -1088,6 +1108,11 @@ function startTimer(year, timeLimit) {
   const timerDisplay = document.getElementById('timer-display');
   if (!timerDisplay) return;
 
+  // 타이머 시작 시간이 없으면 저장 (처음 시작하는 경우)
+  if (!examService.getTimerStart(year)) {
+    examService.saveTimerStart(year);
+  }
+
   const updateTimer = () => {
     const remaining = examService.getRemainingTime(year);
     if (remaining === null) return;
@@ -1105,6 +1130,11 @@ function startTimer(year, timeLimit) {
     // 시간 종료
     if (remaining <= 0) {
       clearInterval(examUIState.timerInterval);
+      examUIState.timerInterval = null;
+      if (examUIState.timerCleanup) {
+        examUIState.timerCleanup();
+        examUIState.timerCleanup = null;
+      }
       timerDisplay.textContent = '00:00';
       alert('⏰ 시험 시간이 종료되었습니다.\n자동으로 제출합니다.');
 
@@ -1119,6 +1149,63 @@ function startTimer(year, timeLimit) {
 
   // 1초마다 업데이트
   examUIState.timerInterval = setInterval(updateTimer, 1000);
+
+  // 페이지가 보이지 않을 때 일시정지 처리
+  const handleVisibilityChange = () => {
+    if (document.hidden) {
+      // 탭이 숨겨지면 일시정지 시작
+      if (!examUIState.isPaused) {
+        examUIState.isPaused = true;
+        examUIState.pauseStartTime = Date.now();
+        examService.saveTimerPause(year, examUIState.pauseStartTime);
+      }
+    } else {
+      // 탭이 다시 보이면 일시정지 종료
+      if (examUIState.isPaused && examUIState.pauseStartTime) {
+        examUIState.isPaused = false;
+        const pauseEndTime = Date.now();
+        examService.saveTimerPause(year, pauseEndTime);
+        examUIState.pauseStartTime = null;
+      }
+    }
+  };
+
+  // 페이지를 떠날 때 일시정지 처리
+  const handleBeforeUnload = () => {
+    if (!examUIState.isPaused) {
+      examUIState.isPaused = true;
+      examUIState.pauseStartTime = Date.now();
+      examService.saveTimerPause(year, examUIState.pauseStartTime);
+    }
+  };
+
+  // 페이지가 다시 로드될 때 일시정지 종료 처리
+  const handlePageShow = (e) => {
+    // 페이지가 다시 로드되었을 때 이전 일시정지 종료 시간 저장
+    const pauseData = examService.getTimerPause(year);
+    if (pauseData && Array.isArray(pauseData) && pauseData.length % 2 === 1) {
+      // 마지막 일시정지 시작 시간만 있고 종료 시간이 없으면 종료 시간 추가
+      const pauseEndTime = Date.now();
+      examService.saveTimerPause(year, pauseEndTime);
+    }
+    // examUIState도 업데이트
+    if (examUIState.isPaused && examUIState.pauseStartTime) {
+      examUIState.isPaused = false;
+      examUIState.pauseStartTime = null;
+    }
+  };
+
+  // 이벤트 리스너 등록
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  window.addEventListener('beforeunload', handleBeforeUnload);
+  window.addEventListener('pageshow', handlePageShow);
+
+  // 타이머가 정리될 때 이벤트 리스너도 제거하도록 저장
+  examUIState.timerCleanup = () => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.removeEventListener('pageshow', handlePageShow);
+  };
 }
 
 /**
@@ -1282,6 +1369,11 @@ async function submitExam(container, year, apiKey, selectedModel) {
   // 타이머 정지
   if (examUIState.timerInterval) {
     clearInterval(examUIState.timerInterval);
+    examUIState.timerInterval = null;
+  }
+  if (examUIState.timerCleanup) {
+    examUIState.timerCleanup();
+    examUIState.timerCleanup = null;
   }
 
   // 채점 시작
