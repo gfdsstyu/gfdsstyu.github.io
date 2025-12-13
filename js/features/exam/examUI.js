@@ -179,10 +179,21 @@ function escapeHtml(text) {
  * Question ID에서 숫자 배열 추출 (정렬용)
  * 예: "Q10-1-2" -> [10, 1, 2]
  *     "Q1-2-3" -> [1, 2, 3]
+ *     "2025_Q1" -> [1]
+ *     "2025_Q10" -> [10]
  */
 function extractQuestionNumbers(questionId) {
-  // "Q" 제거 후 "-"로 분리하여 숫자 추출
-  const parts = questionId.replace(/^Q/i, '').split('-');
+  // "Q" 또는 "_Q" 이후 부분만 추출
+  let qPart = questionId;
+  const qMatch = questionId.match(/[_-]?Q(.+)$/i);
+  if (qMatch) {
+    qPart = qMatch[1]; // "Q" 이후 부분만
+  } else if (questionId.startsWith('Q') || questionId.startsWith('q')) {
+    qPart = questionId.replace(/^Q/i, '');
+  }
+  
+  // "-"로 분리하여 숫자 추출
+  const parts = qPart.split('-');
   return parts.map(part => {
     const num = parseInt(part, 10);
     return isNaN(num) ? 0 : num;
@@ -484,6 +495,19 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
   let exams = examService.getExamByYear(year);
   const metadata = examService.getMetadata(year);
 
+  // exams 배열 자체를 정렬 (Q1, Q2, ..., Q10 순서)
+  exams = [...exams].sort((a, b) => {
+    const numsA = extractQuestionNumbers(a.id);
+    const numsB = extractQuestionNumbers(b.id);
+    const maxLen = Math.max(numsA.length, numsB.length);
+    for (let i = 0; i < maxLen; i++) {
+      const numA = numsA[i] || 0;
+      const numB = numsB[i] || 0;
+      if (numA !== numB) return numA - numB;
+    }
+    return 0;
+  });
+
   // questions 정렬 보장 (Q1, Q2, ..., Q10 순서)
   exams = exams.map(exam => ({
     ...exam,
@@ -586,9 +610,10 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
     <div id="exam-scroll-area" class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scroll-smooth relative" data-view-mode="${activeViewMode}">
       ${activeViewMode === 'split' ? `
         <!-- Split View: 좌측 지문 + 우측 문제 (고정 비율 4.5:5.5) -->
-        <div class="flex h-full px-6 lg:px-8 gap-4 lg:gap-6">
-          <!-- Left Panel: Scenario (고정 45% 너비) -->
-          <div class="flex-none border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto bg-white dark:bg-gray-800 p-6" style="width: 45%;">
+        <!-- 좌측 여백(지문부) + 지문부 + 물음부 + 우측 여백(리모콘 공간) -->
+        <div class="flex h-full" style="padding-left: 64px; padding-right: 320px;">
+          <!-- Left Panel: Scenario (45% 너비) -->
+          <div class="flex-none border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto bg-white dark:bg-gray-800 p-6" style="width: 45%; flex-shrink: 0;">
             <div class="sticky top-0 bg-white dark:bg-gray-800 pb-4 border-b-2 border-gray-200 dark:border-gray-700 mb-4">
               <h4 class="text-lg font-bold text-purple-700 dark:text-purple-300">📄 지문</h4>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">현재 보고 있는 문제의 지문이 표시됩니다</p>
@@ -598,15 +623,16 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
             </div>
           </div>
 
-          <!-- Right Panel: Questions (고정 55% 너비) -->
-          <div class="flex-none overflow-y-auto p-6" style="width: 55%;">
+          <!-- Right Panel: Questions (55% 너비) -->
+          <div class="flex-none overflow-y-auto p-6" style="width: 55%; flex-shrink: 0;">
             <div class="space-y-8">
       ` : `
         <!-- Vertical View: 기존 카드형 레이아웃 -->
-        <div class="w-full px-4 sm:px-6 lg:pl-8 lg:pr-[240px] py-6 pb-32">
+        <div class="w-full px-4 sm:px-6 lg:px-8 py-6 pb-32">
           <div class="max-w-6xl mx-auto space-y-12">
       `}
-            ${exams.map((exam, examIdx) => `
+            ${exams.map((exam, examIdx) => {
+              return `
               <div id="case-${exam.id}" class="case-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-visible scroll-mt-4">
                 <!-- Case 헤더 -->
                 <div class="bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 px-6 py-3 shadow-md rounded-t-xl">
@@ -702,7 +728,8 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                   </div>
                 </div>
               </div>
-            `).join('')}
+            `;
+            }).join('')}
           </div>
         </div>
       ${activeViewMode === 'split' ? `
@@ -896,20 +923,43 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
  * 플로팅 리모콘 설정 (container 밖에 별도로 추가)
  */
 function setupFloatingControls(exams, year) {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examUI.js:898',message:'setupFloatingControls called',data:{examsCount:exams?.length||0,year},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
-  
   // 기존 플로팅 리모콘 제거
   const existingControls = document.getElementById('floating-controls-exam');
   if (existingControls) {
     existingControls.remove();
   }
 
+  // exams 배열을 정렬하여 버튼 순서 보장 (Q1, Q2, ..., Q10 순서)
+  const sortedExams = [...exams].sort((a, b) => {
+    const numsA = extractQuestionNumbers(a.id);
+    const numsB = extractQuestionNumbers(b.id);
+    const maxLen = Math.max(numsA.length, numsB.length);
+    for (let i = 0; i < maxLen; i++) {
+      const numA = numsA[i] || 0;
+      const numB = numsB[i] || 0;
+      if (numA !== numB) return numA - numB;
+    }
+    return 0;
+  });
+
   // 새 플로팅 리모콘 생성
   const floatingControls = document.createElement('div');
   floatingControls.id = 'floating-controls-exam';
-  floatingControls.className = 'hidden md:flex fixed top-24 right-4 lg:right-6 z-[60] flex-col gap-3 transition-all duration-300 w-[180px] lg:w-[200px]';
+  // 데스크톱에서만 표시 (JavaScript로 직접 제어)
+  const isDesktop = window.innerWidth >= 768; // md breakpoint
+  // 헤더 높이 동적 계산
+  const header = document.getElementById('exam-header');
+  const headerHeight = header ? header.offsetHeight : 80;
+  // 플로팅 리모콘을 화면 가장자리 바깥쪽에 배치 (겹침 방지)
+  floatingControls.className = `${isDesktop ? 'flex' : 'hidden'} fixed flex-col gap-3 transition-all duration-300 w-[180px] lg:w-[200px]`;
+  floatingControls.style.right = '8px'; // 화면 가장자리에서 8px 안쪽 (모바일)
+  floatingControls.style.top = `${headerHeight + 20}px`; // 헤더 아래 20px 여유 공간
+  floatingControls.style.zIndex = '9999'; // 명시적으로 높은 z-index 설정
+  
+  // 데스크톱에서는 더 바깥쪽으로 (viewport 밖으로)
+  if (isDesktop) {
+    floatingControls.style.right = '12px'; // 데스크톱에서도 화면 가장자리 근처
+  }
   floatingControls.innerHTML = `
     <!-- Quick Navigation - Collapsible -->
     <div id="nav-panel" class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-purple-500 dark:border-purple-600 overflow-hidden">
@@ -918,7 +968,7 @@ function setupFloatingControls(exams, year) {
         <span id="nav-arrow" class="transform transition-transform">▼</span>
       </button>
       <div id="nav-grid" class="p-2 grid grid-cols-4 gap-1.5">
-        ${exams.map((exam, idx) => {
+        ${sortedExams.map((exam, idx) => {
           // 이 케이스의 답안 상태 확인
           const answeredCount = exam.questions.filter(q => {
             const answer = examUIState.answers[q.id]?.answer;
@@ -961,10 +1011,6 @@ function setupFloatingControls(exams, year) {
 
   // body에 추가
   document.body.appendChild(floatingControls);
-  
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examUI.js:960',message:'Floating controls added to body',data:{elementId:floatingControls.id,className:floatingControls.className,examsCount:exams?.length||0,windowWidth:window.innerWidth},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
 
   // 이벤트 리스너 설정
   const toggleNavBtn = floatingControls.querySelector('#toggle-nav');
@@ -987,17 +1033,49 @@ function setupFloatingControls(exams, year) {
 
   // Navigation buttons - 스크롤 이동
   const navButtons = floatingControls.querySelectorAll('#nav-grid button');
-  navButtons.forEach((btn, idx) => {
-    btn.addEventListener('click', () => {
-      const caseCard = document.getElementById(`case-${exams[idx].id}`);
-      if (caseCard) {
-        const scrollArea = document.getElementById('exam-scroll-area');
-        if (scrollArea) {
-          scrollArea.scrollTo({
-            top: caseCard.offsetTop - 20,
-            behavior: 'smooth'
-          });
-        }
+  navButtons.forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const caseIdx = parseInt(btn.dataset.caseIdx, 10);
+      const targetExam = sortedExams[caseIdx];
+      if (!targetExam) {
+        console.error('Target exam not found for index:', caseIdx);
+        return;
+      }
+      
+      const caseCard = document.getElementById(`case-${targetExam.id}`);
+      if (!caseCard) {
+        console.error('Case card not found:', `case-${targetExam.id}`);
+        return;
+      }
+      
+      const scrollArea = document.getElementById('exam-scroll-area');
+      if (scrollArea) {
+        // scrollIntoView를 사용하여 스크롤 컨테이너 내에서 요소로 이동
+        // examResultUI.js와 유사한 방식
+        caseCard.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start',
+          inline: 'nearest'
+        });
+        
+        // 추가로 스크롤 위치를 미세 조정 (20px 여유 공간)
+        setTimeout(() => {
+          const scrollAreaRect = scrollArea.getBoundingClientRect();
+          const caseCardRect = caseCard.getBoundingClientRect();
+          const offset = caseCardRect.top - scrollAreaRect.top;
+          if (offset > 0 && offset < 20) {
+            scrollArea.scrollBy({
+              top: offset - 20,
+              behavior: 'smooth'
+            });
+          }
+        }, 100);
+      } else {
+        // exam-scroll-area가 없으면 일반 스크롤
+        caseCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });
   });
@@ -1076,7 +1154,19 @@ function setupAutoSave(year) {
  * Quick Navigation 답안 상태 실시간 업데이트
  */
 function updateQuickNavigation(year) {
-  const exams = examService.getExamByYear(year);
+  let exams = examService.getExamByYear(year);
+  // exams 배열을 정렬하여 버튼 순서와 일치시킴
+  exams = [...exams].sort((a, b) => {
+    const numsA = extractQuestionNumbers(a.id);
+    const numsB = extractQuestionNumbers(b.id);
+    const maxLen = Math.max(numsA.length, numsB.length);
+    for (let i = 0; i < maxLen; i++) {
+      const numA = numsA[i] || 0;
+      const numB = numsB[i] || 0;
+      if (numA !== numB) return numA - numB;
+    }
+    return 0;
+  });
   const navGrid = document.getElementById('nav-grid');
   if (!navGrid) return;
 
