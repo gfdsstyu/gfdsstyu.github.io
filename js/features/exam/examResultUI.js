@@ -163,29 +163,22 @@ function renderTable(headers, alignments, rows) {
  * 채점 결과 화면 렌더링 (버티컬 뷰)
  */
 export function renderResultMode(container, year, result, apiKey, selectedModel, inheritedViewMode = 'auto') {
-  // 컨테이너 초기화 (스크롤 문제 해결: body 스크롤 방지)
-  container.className = 'fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden';
-  
-  // body 스크롤 방지
-  document.body.style.overflow = 'hidden';
-  
-  // 데이터 준비
-  let exams = examService.getExamByYear(year);
-  const metadata = examService.getMetadata(year);
-
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:173',message:'Before sort - exam questions IDs',data:{exam0Questions:exams[0]?.questions?.map(q=>q.id)||[],exam0Count:exams[0]?.questions?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
+  try {
+    // 컨테이너 초기화 (스크롤 문제 해결: body 스크롤 방지)
+    container.className = 'fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden';
+    
+    // body 스크롤 방지
+    document.body.style.overflow = 'hidden';
+    
+    // 데이터 준비
+    let exams = examService.getExamByYear(year);
+    const metadata = examService.getMetadata(year);
 
   // questions 정렬 보장 (Q1, Q2, ..., Q10 순서)
   exams = exams.map((exam, examIdx) => {
     const sortedQuestions = [...exam.questions].sort((a, b) => {
       const numsA = extractQuestionNumbers(a.id);
       const numsB = extractQuestionNumbers(b.id);
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:180',message:'Sort comparison',data:{aId:a.id,bId:b.id,numsA,numsB},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       
       const maxLen = Math.max(numsA.length, numsB.length);
       for (let i = 0; i < maxLen; i++) {
@@ -196,20 +189,13 @@ export function renderResultMode(container, year, result, apiKey, selectedModel,
       return 0;
     });
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:195',message:'After sort - exam questions IDs',data:{examIdx,sortedIds:sortedQuestions.map(q=>q.id),originalIds:exam.questions.map(q=>q.id)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-    
     return {
       ...exam,
       questions: sortedQuestions
     };
   });
   
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:202',message:'Final exams questions IDs',data:{exam0Questions:exams[0]?.questions?.map(q=>q.id)||[]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-  // #endregion
-  const totalPossibleScore = examService.getTotalScore(year);
+const totalPossibleScore = examService.getTotalScore(year);
   const percentage = ((result.totalScore / totalPossibleScore) * 100).toFixed(1);
   const isPassing = result.totalScore >= metadata.passingScore;
   const scoreHistory = examService.getScores(year);
@@ -251,9 +237,9 @@ export function renderResultMode(container, year, result, apiKey, selectedModel,
             <p class="text-base sm:text-lg text-gray-600 dark:text-gray-300">
               (${percentage}%)
             </p>
-            ${bestScore && bestScore.score !== result.totalScore ? `
+            ${bestScore !== null && bestScore !== result.totalScore ? `
               <p class="text-sm text-gray-600 dark:text-gray-300 mt-3">
-                최고 점수: ${bestScore.score.toFixed(1)}점
+                최고 점수: ${bestScore.toFixed(1)}점
               </p>
             ` : ''}
           </div>
@@ -289,10 +275,7 @@ export function renderResultMode(container, year, result, apiKey, selectedModel,
             <!-- 문제별 결과 -->
             <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
               ${examCase.questions.map((question, qIdx) => {
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:270',message:'Rendering question',data:{caseIdx,questionId:question.id,qIdx,allIds:examCase.questions.map(q=>q.id)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                // #endregion
-                const feedback = result.details[question.id];
+const feedback = result.details[question.id];
                 const userAnswer = userAnswers[question.id]?.answer || '';
                 const score = feedback?.score || 0;
                 const scorePercent = question.score > 0 ? ((score / question.score) * 100) : 0;
@@ -400,35 +383,70 @@ export function renderResultMode(container, year, result, apiKey, selectedModel,
 
   `;
 
-  // 이벤트 리스너 등록
-  setupEventListeners(container, year, apiKey, selectedModel);
+    // 이벤트 리스너 등록
+    setupEventListeners(container, year, apiKey, selectedModel);
 
-  // 플로팅 리모콘을 container 밖에 추가 (body에 직접)
-  setupFloatingControlsResult(exams, year, result);
+    // 플로팅 리모콘을 container 밖에 추가 (body에 직접)
+    setupFloatingControlsResult(exams, year, result, container);
+  } catch (error) {
+    console.error('❌ [examResultUI.js] renderResultMode 에러:', error);
+    // 에러 발생 시 기본 화면 표시
+    container.innerHTML = `
+      <div class="fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
+        <header class="flex-none bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 px-4 sm:px-6 py-4 shadow-lg">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
+              ${year}년 기출문제 채점 결과
+            </h2>
+            <button id="btn-exit-results" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-sm sm:text-base transition-colors">
+              ✕ 종료
+            </button>
+          </div>
+        </header>
+        <main class="flex-1 overflow-y-auto flex items-center justify-center">
+          <div class="text-center p-8">
+            <p class="text-red-600 dark:text-red-400 text-lg mb-4">채점 결과를 불러오는 중 오류가 발생했습니다.</p>
+            <p class="text-gray-600 dark:text-gray-400 text-sm mb-4">${error.message}</p>
+            <button onclick="location.reload()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg">
+              페이지 새로고침
+            </button>
+          </div>
+        </main>
+      </div>
+    `;
+    // 종료 버튼 이벤트 리스너
+    container.querySelector('#btn-exit-results')?.addEventListener('click', async () => {
+      document.body.style.overflow = '';
+      const { renderYearSelection } = await import('./examUI.js');
+      renderYearSelection(container);
+    });
+  }
 }
 
 /**
  * 플로팅 리모콘 설정 (채점결과 화면용)
  */
-function setupFloatingControlsResult(exams, year, result) {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:413',message:'setupFloatingControlsResult called',data:{examsCount:exams?.length||0,year},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
-  
+function setupFloatingControlsResult(exams, year, result, container) {
   // 기존 플로팅 리모콘 제거
   const existingControls = document.getElementById('floating-controls-result');
   if (existingControls) {
     existingControls.remove();
   }
 
+  // scoreHistory 가져오기 (문제 바로가기에서 사용)
+  const scoreHistory = examService.getScores(year);
+
   // 새 플로팅 리모콘 생성
   const floatingControls = document.createElement('div');
   floatingControls.id = 'floating-controls-result';
-  floatingControls.className = 'hidden md:flex fixed top-24 right-4 lg:right-6 z-[60] flex-col gap-3 transition-all duration-300 w-[180px] lg:w-[200px]';
-  
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:421',message:'Creating floating controls HTML',data:{examsCount:exams?.length||0,hasExams:!!exams&&exams.length>0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
+  // 데스크톱에서만 표시 (JavaScript로 직접 제어)
+  const isDesktop = window.innerWidth >= 768; // md breakpoint
+  // 헤더 높이 계산 (헤더는 약 80-100px, 여유 공간 포함하여 120px로 설정)
+  const header = container.querySelector('header');
+  const headerHeight = header ? header.offsetHeight : 100;
+  floatingControls.className = `${isDesktop ? 'flex' : 'hidden'} fixed right-4 lg:right-6 flex-col gap-3 transition-all duration-300 w-[180px] lg:w-[200px]`;
+  floatingControls.style.top = `${headerHeight + 20}px`; // 헤더 아래 20px 여유 공간
+  floatingControls.style.zIndex = '9999'; // 명시적으로 높은 z-index 설정
   
   floatingControls.innerHTML = `
     <!-- Quick Navigation - Collapsible -->
@@ -486,10 +504,6 @@ function setupFloatingControlsResult(exams, year, result) {
   // body에 추가
   document.body.appendChild(floatingControls);
   
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:470',message:'Floating controls added to body',data:{elementId:floatingControls.id,className:floatingControls.className,examsCount:exams?.length||0,windowWidth:window.innerWidth},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
-
   // 이벤트 리스너 설정
   const toggleNavBtn = floatingControls.querySelector('#toggle-nav');
   const navGrid = floatingControls.querySelector('#nav-grid');
@@ -616,10 +630,6 @@ function extractQuestionNumbers(questionId) {
     const num = parseInt(part, 10);
     return isNaN(num) ? 0 : num;
   });
-  
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:575',message:'extractQuestionNumbers',data:{questionId,parts,result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
   
   return result;
 }
