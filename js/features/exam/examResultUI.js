@@ -173,18 +173,9 @@ export function renderResultMode(container, year, result, apiKey, selectedModel,
   let exams = examService.getExamByYear(year);
   const metadata = examService.getMetadata(year);
 
-  // exams 배열 자체를 정렬 (Q1, Q2, ..., Q10 순서)
-  exams = [...exams].sort((a, b) => {
-    const numsA = extractQuestionNumbers(a.id);
-    const numsB = extractQuestionNumbers(b.id);
-    const maxLen = Math.max(numsA.length, numsB.length);
-    for (let i = 0; i < maxLen; i++) {
-      const numA = numsA[i] || 0;
-      const numB = numsB[i] || 0;
-      if (numA !== numB) return numA - numB;
-    }
-    return 0;
-  });
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:173',message:'Before sort - exam questions IDs',data:{exam0Questions:exams[0]?.questions?.map(q=>q.id)||[],exam0Count:exams[0]?.questions?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
 
   // questions 정렬 보장 (Q1, Q2, ..., Q10 순서)
   exams = exams.map((exam, examIdx) => {
@@ -192,25 +183,32 @@ export function renderResultMode(container, year, result, apiKey, selectedModel,
       const numsA = extractQuestionNumbers(a.id);
       const numsB = extractQuestionNumbers(b.id);
       
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:180',message:'Sort comparison',data:{aId:a.id,bId:b.id,numsA,numsB},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+      
       const maxLen = Math.max(numsA.length, numsB.length);
-      let comparison = 0;
       for (let i = 0; i < maxLen; i++) {
         const numA = numsA[i] || 0;
         const numB = numsB[i] || 0;
-        if (numA !== numB) {
-          comparison = numA - numB;
-          break;
-        }
+        if (numA !== numB) return numA - numB;
       }
-      
-      return comparison;
+      return 0;
     });
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:195',message:'After sort - exam questions IDs',data:{examIdx,sortedIds:sortedQuestions.map(q=>q.id),originalIds:exam.questions.map(q=>q.id)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     
     return {
       ...exam,
       questions: sortedQuestions
     };
   });
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:202',message:'Final exams questions IDs',data:{exam0Questions:exams[0]?.questions?.map(q=>q.id)||[]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
   const totalPossibleScore = examService.getTotalScore(year);
   const percentage = ((result.totalScore / totalPossibleScore) * 100).toFixed(1);
   const isPassing = result.totalScore >= metadata.passingScore;
@@ -291,6 +289,9 @@ export function renderResultMode(container, year, result, apiKey, selectedModel,
             <!-- 문제별 결과 -->
             <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
               ${examCase.questions.map((question, qIdx) => {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:270',message:'Rendering question',data:{caseIdx,questionId:question.id,qIdx,allIds:examCase.questions.map(q=>q.id)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                // #endregion
                 const feedback = result.details[question.id];
                 const userAnswer = userAnswers[question.id]?.answer || '';
                 const score = feedback?.score || 0;
@@ -340,67 +341,13 @@ export function renderResultMode(container, year, result, apiKey, selectedModel,
                     <!-- 문제 카드 -->
                     <div class="p-4 sm:p-5 space-y-4">
                       <!-- 문제 헤더 -->
-                      <div class="pb-3 border-b border-gray-200 dark:border-gray-700 space-y-3">
-                        <div class="flex items-center justify-between">
-                          <h5 class="font-bold text-base sm:text-lg text-gray-800 dark:text-white">
-                            물음 ${extractQuestionNumber(question.id)} (${question.score}점)
-                          </h5>
-                          <span class="text-lg sm:text-xl font-bold ${scoreColor}">
-                            ${score.toFixed(1)}점
-                          </span>
-                        </div>
-                        
-                        <!-- 정답여부 및 점수히스토리 -->
-                        <div class="flex items-center gap-4 flex-wrap">
-                          <!-- 정답여부 -->
-                          <div class="flex items-center gap-2">
-                            ${score >= question.score * 0.9 ? `
-                              <span class="px-3 py-1 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 text-xs font-bold rounded-full flex items-center gap-1">
-                                ✅ 정답
-                              </span>
-                            ` : score >= question.score * 0.5 ? `
-                              <span class="px-3 py-1 bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 text-xs font-bold rounded-full flex items-center gap-1">
-                                ⚠️ 부분정답
-                              </span>
-                            ` : `
-                              <span class="px-3 py-1 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-bold rounded-full flex items-center gap-1">
-                                ❌ 오답
-                              </span>
-                            `}
-                          </div>
-                          
-                          <!-- 점수히스토리 -->
-                          ${(() => {
-                            if (scoreHistory.length <= 1) return '';
-                            const recentScores = scoreHistory.slice(-5);
-                            const currentIndex = scoreHistory.length - 1;
-                            const startIndex = Math.max(0, currentIndex - recentScores.length + 1);
-                            return `
-                            <div class="flex items-center gap-2 flex-wrap">
-                              <span class="text-xs text-gray-600 dark:text-gray-400 font-semibold">📊 점수 히스토리:</span>
-                              <div class="flex items-center gap-1.5 flex-wrap">
-                                ${recentScores.map((s, idx) => {
-                                  const questionScore = s.details?.[question.id]?.score || 0;
-                                  const questionPercent = question.score > 0 ? (questionScore / question.score) * 100 : 0;
-                                  const originalIdx = startIndex + idx;
-                                  const isCurrent = originalIdx === currentIndex;
-                                  const bgColor = questionPercent >= 90 ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' : questionPercent >= 50 ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300' : 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300';
-                                  const borderColor = questionPercent >= 90 ? 'border-green-500' : questionPercent >= 50 ? 'border-yellow-500' : 'border-red-500';
-                                  const attemptNum = originalIdx + 1;
-                                  return `
-                                    <div class="relative group">
-                                      <div class="px-2 py-1 ${bgColor} ${isCurrent ? 'ring-2 ring-purple-500 ring-offset-1 border-2 ' + borderColor : 'border border-gray-300 dark:border-gray-600'} rounded text-xs font-bold cursor-help min-w-[50px] text-center" 
-                                           title="${isCurrent ? '현재' : `${attemptNum}회전`}: ${questionScore.toFixed(1)}/${question.score}점">
-                                        ${questionScore.toFixed(1)}
-                                      </div>
-                                    </div>
-                                  `;
-                                }).join('')}
-                              </div>
-                            </div>
-                            `;
-                          })()}
-                        </div>
+                      <div class="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
+                        <h5 class="font-bold text-base sm:text-lg text-gray-800 dark:text-white">
+                          물음 ${extractQuestionNumber(question.id)} (${question.score}점)
+                        </h5>
+                        <span class="text-lg sm:text-xl font-bold ${scoreColor}">
+                          ${score.toFixed(1)}점
+                        </span>
                       </div>
 
                       <!-- 문제 내용 -->
@@ -457,33 +404,31 @@ export function renderResultMode(container, year, result, apiKey, selectedModel,
   setupEventListeners(container, year, apiKey, selectedModel);
 
   // 플로팅 리모콘을 container 밖에 추가 (body에 직접)
-  setupFloatingControlsResult(exams, year, result, container);
+  setupFloatingControlsResult(exams, year, result);
 }
 
 /**
  * 플로팅 리모콘 설정 (채점결과 화면용)
  */
-function setupFloatingControlsResult(exams, year, result, container) {
+function setupFloatingControlsResult(exams, year, result) {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:413',message:'setupFloatingControlsResult called',data:{examsCount:exams?.length||0,year},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+  
   // 기존 플로팅 리모콘 제거
   const existingControls = document.getElementById('floating-controls-result');
   if (existingControls) {
     existingControls.remove();
   }
 
-  // scoreHistory 가져오기 (문제 바로가기에서 사용)
-  const scoreHistory = examService.getScores(year);
-
   // 새 플로팅 리모콘 생성
   const floatingControls = document.createElement('div');
   floatingControls.id = 'floating-controls-result';
-  // 데스크톱에서만 표시 (JavaScript로 직접 제어)
-  const isDesktop = window.innerWidth >= 768; // md breakpoint
-  // 헤더 높이 계산 (헤더는 약 80-100px, 여유 공간 포함하여 120px로 설정)
-  const header = container.querySelector('header');
-  const headerHeight = header ? header.offsetHeight : 100;
-  floatingControls.className = `${isDesktop ? 'flex' : 'hidden'} fixed right-4 lg:right-6 flex-col gap-3 transition-all duration-300 w-[180px] lg:w-[200px]`;
-  floatingControls.style.top = `${headerHeight + 20}px`; // 헤더 아래 20px 여유 공간
-  floatingControls.style.zIndex = '9999'; // 명시적으로 높은 z-index 설정
+  floatingControls.className = 'hidden md:flex fixed top-24 right-4 lg:right-6 z-[60] flex-col gap-3 transition-all duration-300 w-[180px] lg:w-[200px]';
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:421',message:'Creating floating controls HTML',data:{examsCount:exams?.length||0,hasExams:!!exams&&exams.length>0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
   
   floatingControls.innerHTML = `
     <!-- Quick Navigation - Collapsible -->
@@ -540,6 +485,10 @@ function setupFloatingControlsResult(exams, year, result, container) {
 
   // body에 추가
   document.body.appendChild(floatingControls);
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:470',message:'Floating controls added to body',data:{elementId:floatingControls.id,className:floatingControls.className,examsCount:exams?.length||0,windowWidth:window.innerWidth},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
 
   // 이벤트 리스너 설정
   const toggleNavBtn = floatingControls.querySelector('#toggle-nav');
@@ -563,18 +512,12 @@ function setupFloatingControlsResult(exams, year, result, container) {
   floatingControls.querySelectorAll('.result-nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const caseIdx = parseInt(btn.dataset.caseIdx, 10);
-      // 모든 section을 찾아서 문제 섹션만 필터링 (총점 요약, 점수 히스토리 제외)
-      const allSections = container.querySelectorAll('main section');
-      // 총점 요약(0), 점수 히스토리(1) 다음부터가 문제 섹션
-      const problemSection = allSections[caseIdx + (scoreHistory.length > 0 ? 2 : 1)];
-      if (problemSection) {
+      const targetSection = container.querySelector(`section:nth-of-type(${caseIdx + 3})`); // 총점, 히스토리 다음부터
+      if (targetSection) {
         const main = container.querySelector('main');
         if (main) {
-          // 헤더 높이를 고려한 스크롤 위치 계산
-          const header = container.querySelector('header');
-          const headerHeight = header ? header.offsetHeight : 80;
           main.scrollTo({
-            top: problemSection.offsetTop - headerHeight - 20,
+            top: targetSection.offsetTop - 20,
             behavior: 'smooth'
           });
         }
@@ -665,25 +608,20 @@ function escapeHtml(text) {
  * Question ID에서 숫자 배열 추출 (정렬용)
  * 예: "Q10-1-2" -> [10, 1, 2]
  *     "Q1-2-3" -> [1, 2, 3]
- *     "2025_Q1" -> [1]
- *     "2025_Q10" -> [10]
  */
 function extractQuestionNumbers(questionId) {
-  // "Q" 또는 "_Q" 이후 부분만 추출
-  let qPart = questionId;
-  const qMatch = questionId.match(/[_-]?Q(.+)$/i);
-  if (qMatch) {
-    qPart = qMatch[1]; // "Q" 이후 부분만
-  } else if (questionId.startsWith('Q') || questionId.startsWith('q')) {
-    qPart = questionId.replace(/^Q/i, '');
-  }
-  
-  // "-"로 분리하여 숫자 추출
-  const parts = qPart.split('-');
-  return parts.map(part => {
+  // "Q" 제거 후 "-"로 분리하여 숫자 추출
+  const parts = questionId.replace(/^Q/i, '').split('-');
+  const result = parts.map(part => {
     const num = parseInt(part, 10);
     return isNaN(num) ? 0 : num;
   });
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:575',message:'extractQuestionNumbers',data:{questionId,parts,result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+  
+  return result;
 }
 
 /**
