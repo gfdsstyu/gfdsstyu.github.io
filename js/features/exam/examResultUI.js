@@ -174,8 +174,24 @@ export function renderResultMode(container, year, result, apiKey, selectedModel,
     let exams = examService.getExamByYear(year);
     const metadata = examService.getMetadata(year);
 
-  // questions 정렬 보장 (Q1, Q2, ..., Q10 순서)
-  exams = exams.map((exam, examIdx) => {
+    // ⚠️ 중요: exams 배열 자체를 정렬 (Q1, Q2, ..., Q10 순서)
+    // "2025_Q1", "2025_Q10" 형식을 올바르게 처리하기 위해 extractQuestionNumbers 사용 필수
+    // 이 정렬을 생략하면 문제가 1, 10, 2, 3, 4... 순서로 표시됨
+    exams = [...exams].sort((a, b) => {
+      const numsA = extractQuestionNumbers(a.id);
+      const numsB = extractQuestionNumbers(b.id);
+      const maxLen = Math.max(numsA.length, numsB.length);
+      for (let i = 0; i < maxLen; i++) {
+        const numA = numsA[i] || 0;
+        const numB = numsB[i] || 0;
+        if (numA !== numB) return numA - numB;
+      }
+      return 0;
+    });
+
+    // ⚠️ 중요: questions 정렬 보장 (Q1, Q2, ..., Q10 순서)
+    // extractQuestionNumbers가 "2025_Q1" 형식을 올바르게 처리하는지 확인 필수
+    exams = exams.map((exam, examIdx) => {
     const sortedQuestions = [...exam.questions].sort((a, b) => {
       const numsA = extractQuestionNumbers(a.id);
       const numsB = extractQuestionNumbers(b.id);
@@ -666,18 +682,35 @@ function escapeHtml(text) {
 
 /**
  * Question ID에서 숫자 배열 추출 (정렬용)
+ * ⚠️ 중요: "2025_Q1", "2025_Q10" 형식을 올바르게 처리해야 함
+ * 이 함수를 수정할 때는 examData.js의 extractQuestionNumbers와 동일한 로직 유지 필수
+ * 
  * 예: "Q10-1-2" -> [10, 1, 2]
  *     "Q1-2-3" -> [1, 2, 3]
+ *     "2025_Q1" -> [1]
+ *     "2025_Q10" -> [10]
+ * 
+ * 만약 이 함수가 "2025_Q1" 형식을 처리하지 못하면:
+ * - 모든 exam이 [0]으로 파싱되어 정렬이 작동하지 않음
+ * - 문제가 1, 10, 2, 3, 4... 순서로 표시됨
  */
 function extractQuestionNumbers(questionId) {
-  // "Q" 제거 후 "-"로 분리하여 숫자 추출
-  const parts = questionId.replace(/^Q/i, '').split('-');
-  const result = parts.map(part => {
+  // "Q" 또는 "_Q" 이후 부분만 추출
+  // ⚠️ 단순히 replace(/^Q/i, '')만 사용하면 "2025_Q1" 형식을 처리하지 못함
+  let qPart = questionId;
+  const qMatch = questionId.match(/[_-]?Q(.+)$/i);
+  if (qMatch) {
+    qPart = qMatch[1]; // "Q" 이후 부분만
+  } else if (questionId.startsWith('Q') || questionId.startsWith('q')) {
+    qPart = questionId.replace(/^Q/i, '');
+  }
+  
+  // "-"로 분리하여 숫자 추출
+  const parts = qPart.split('-');
+  return parts.map(part => {
     const num = parseInt(part, 10);
     return isNaN(num) ? 0 : num;
   });
-  
-  return result;
 }
 
 /**
