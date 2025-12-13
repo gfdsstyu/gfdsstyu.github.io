@@ -181,8 +181,17 @@ function escapeHtml(text) {
  *     "Q1-2-3" -> [1, 2, 3]
  */
 function extractQuestionNumbers(questionId) {
-  // "Q" 제거 후 "-"로 분리하여 숫자 추출
-  const parts = questionId.replace(/^Q/i, '').split('-');
+  // "Q" 또는 "_Q" 이후 부분만 추출
+  let qPart = questionId;
+  const qMatch = questionId.match(/[_-]?Q(.+)$/i);
+  if (qMatch) {
+    qPart = qMatch[1]; // "Q" 이후 부분만
+  } else if (questionId.startsWith('Q') || questionId.startsWith('q')) {
+    qPart = questionId.replace(/^Q/i, '');
+  }
+  
+  // "-"로 분리하여 숫자 추출
+  const parts = qPart.split('-');
   return parts.map(part => {
     const num = parseInt(part, 10);
     return isNaN(num) ? 0 : num;
