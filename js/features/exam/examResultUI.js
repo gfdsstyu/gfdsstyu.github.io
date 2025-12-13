@@ -163,15 +163,16 @@ function renderTable(headers, alignments, rows) {
  * 채점 결과 화면 렌더링 (버티컬 뷰)
  */
 export function renderResultMode(container, year, result, apiKey, selectedModel, inheritedViewMode = 'auto') {
-  // 컨테이너 초기화 (스크롤 문제 해결: body 스크롤 방지)
-  container.className = 'fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden';
-  
-  // body 스크롤 방지
-  document.body.style.overflow = 'hidden';
-  
-  // 데이터 준비
-  let exams = examService.getExamByYear(year);
-  const metadata = examService.getMetadata(year);
+  try {
+    // 컨테이너 초기화 (스크롤 문제 해결: body 스크롤 방지)
+    container.className = 'fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden';
+    
+    // body 스크롤 방지
+    document.body.style.overflow = 'hidden';
+    
+    // 데이터 준비
+    let exams = examService.getExamByYear(year);
+    const metadata = examService.getMetadata(year);
 
   // exams 배열 자체를 정렬 (Q1, Q2, ..., Q10 순서)
   exams = [...exams].sort((a, b) => {
@@ -253,9 +254,9 @@ export function renderResultMode(container, year, result, apiKey, selectedModel,
             <p class="text-base sm:text-lg text-gray-600 dark:text-gray-300">
               (${percentage}%)
             </p>
-            ${bestScore && bestScore.score !== result.totalScore ? `
+            ${bestScore !== null && bestScore !== result.totalScore ? `
               <p class="text-sm text-gray-600 dark:text-gray-300 mt-3">
-                최고 점수: ${bestScore.score.toFixed(1)}점
+                최고 점수: ${bestScore.toFixed(1)}점
               </p>
             ` : ''}
           </div>
@@ -456,8 +457,41 @@ export function renderResultMode(container, year, result, apiKey, selectedModel,
   // 이벤트 리스너 등록
   setupEventListeners(container, year, apiKey, selectedModel);
 
-  // 플로팅 리모콘을 container 밖에 추가 (body에 직접)
-  setupFloatingControlsResult(exams, year, result, container);
+    // 플로팅 리모콘을 container 밖에 추가 (body에 직접)
+    setupFloatingControlsResult(exams, year, result, container);
+  } catch (error) {
+    console.error('❌ [examResultUI.js] renderResultMode 에러:', error);
+    // 에러 발생 시 기본 화면 표시
+    container.innerHTML = `
+      <div class="fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
+        <header class="flex-none bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 px-4 sm:px-6 py-4 shadow-lg">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
+              ${year}년 기출문제 채점 결과
+            </h2>
+            <button id="btn-exit-results" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-sm sm:text-base transition-colors">
+              ✕ 종료
+            </button>
+          </div>
+        </header>
+        <main class="flex-1 overflow-y-auto flex items-center justify-center">
+          <div class="text-center p-8">
+            <p class="text-red-600 dark:text-red-400 text-lg mb-4">채점 결과를 불러오는 중 오류가 발생했습니다.</p>
+            <p class="text-gray-600 dark:text-gray-400 text-sm mb-4">${error.message}</p>
+            <button onclick="location.reload()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg">
+              페이지 새로고침
+            </button>
+          </div>
+        </main>
+      </div>
+    `;
+    // 종료 버튼 이벤트 리스너
+    container.querySelector('#btn-exit-results')?.addEventListener('click', async () => {
+      document.body.style.overflow = '';
+      const { renderYearSelection } = await import('./examUI.js');
+      renderYearSelection(container);
+    });
+  }
 }
 
 /**
