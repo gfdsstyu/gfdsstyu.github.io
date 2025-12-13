@@ -1075,11 +1075,27 @@ function setupFloatingControls(exams, year) {
       if (targetElement) {
         const scrollContainer = document.getElementById('exam-scroll-area');
         if (scrollContainer) {
-          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          // scrollIntoView 후 미세 조정
-          setTimeout(() => {
-            scrollContainer.scrollTop -= 20;
-          }, 100);
+          // 뷰 모드 확인
+          const viewMode = scrollContainer.dataset.viewMode || 'auto';
+          
+          if (viewMode === 'split') {
+            // Split View: scrollIntoView 사용 (정확한 위치 필요)
+            targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // scrollIntoView 후 미세 조정
+            setTimeout(() => {
+              scrollContainer.scrollTop -= 20;
+            }, 100);
+          } else {
+            // Vertical/Mobile View: 직접 스크롤 (더 부드러움)
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const targetRect = targetElement.getBoundingClientRect();
+            const scrollOffset = targetRect.top - containerRect.top + scrollContainer.scrollTop - 20;
+            
+            scrollContainer.scrollTo({
+              top: scrollOffset,
+              behavior: 'smooth'
+            });
+          }
         }
       }
     });
