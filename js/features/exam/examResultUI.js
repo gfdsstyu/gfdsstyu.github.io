@@ -333,6 +333,47 @@ const feedback = result.details[question.id];
                         </span>
                       </div>
 
+                      <!-- 정답여부 및 점수히스토리 -->
+                      <div class="mb-4 space-y-3">
+                        <!-- 정답여부 -->
+                        <div class="flex items-center gap-2">
+                          <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">정답여부:</span>
+                          ${scorePercent >= 90 ? 
+                            '<span class="text-green-600 dark:text-green-400 font-bold">✅ 정답</span>' : 
+                            scorePercent >= 50 ? 
+                            '<span class="text-yellow-600 dark:text-yellow-400 font-bold">⚠️ 부분정답</span>' : 
+                            '<span class="text-red-600 dark:text-red-400 font-bold">❌ 오답</span>'
+                          }
+                        </div>
+                        
+                        <!-- 점수 히스토리 -->
+                        ${scoreHistory.length > 0 ? `
+                          <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">점수 히스토리:</span>
+                            <div class="flex gap-2">
+                              ${scoreHistory.slice(-5).map((s, idx) => {
+                                const historyFeedback = s.details?.[question.id];
+                                const historyScore = historyFeedback?.score || 0;
+                                const historyPercent = question.score > 0 ? ((historyScore / question.score) * 100) : 0;
+                                const historyIdx = scoreHistory.length - 5 + idx;
+                                const isCurrent = historyIdx === scoreHistory.length - 1;
+                                const historyColor = historyPercent >= 90 ? 'bg-green-500' : historyPercent >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                                const ringClass = isCurrent ? 'ring-2 ring-purple-500' : '';
+                                
+                                return `
+                                  <div class="relative group">
+                                    <div class="w-10 h-10 ${historyColor} ${ringClass} rounded-full flex items-center justify-center text-white font-bold text-xs cursor-pointer transition-all hover:scale-110" 
+                                         title="${historyIdx + 1}회전: ${historyScore.toFixed(1)}/${question.score}점">
+                                      ${historyScore.toFixed(1)}
+                                    </div>
+                                  </div>
+                                `;
+                              }).join('')}
+                            </div>
+                          </div>
+                        ` : ''}
+                      </div>
+
                       <!-- 문제 내용 -->
                       <div class="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded">
                         <h6 class="font-bold mb-2 text-sm sm:text-base text-gray-800 dark:text-white">📝 문제</h6>
