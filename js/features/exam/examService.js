@@ -149,30 +149,13 @@ class ExamService {
 
   /**
    * 남은 시간 계산 (분)
-   * 일시정지 시간을 고려하여 계산
    */
   getRemainingTime(year) {
     const start = this.getTimerStart(year);
     if (!start) return null;
 
     const metadata = this.getMetadata(year);
-    const now = Date.now();
-    
-    // 일시정지 시간 계산 (누적된 일시정지 기간)
-    const pauseData = this.getTimerPause(year);
-    let totalPauseTime = 0; // 분 단위
-    
-    if (pauseData && Array.isArray(pauseData)) {
-      // 일시정지 데이터는 [시작시간, 종료시간, 시작시간, 종료시간, ...] 형식
-      for (let i = 0; i < pauseData.length; i += 2) {
-        const pauseStart = pauseData[i];
-        const pauseEnd = pauseData[i + 1] || now; // 종료 시간이 없으면 현재 시간
-        totalPauseTime += (pauseEnd - pauseStart) / 1000 / 60; // 분 단위
-      }
-    }
-    
-    // 실제 경과 시간 = 현재 시간 - 시작 시간 - 일시정지 시간
-    const elapsed = ((now - start) / 1000 / 60) - totalPauseTime; // 분 단위
+    const elapsed = (Date.now() - start) / 1000 / 60; // 분 단위
     const remaining = metadata.timeLimit - elapsed;
 
     return Math.max(0, remaining);
@@ -183,39 +166,6 @@ class ExamService {
    */
   clearTimer(year) {
     const key = `exam_${year}_timer_start`;
-    localStorage.removeItem(key);
-    this.clearTimerPause(year);
-  }
-
-  /**
-   * 타이머 일시정지 시간 저장
-   */
-  saveTimerPause(year, pauseTime) {
-    const key = `exam_${year}_timer_pause`;
-    const existing = this.getTimerPause(year) || [];
-    existing.push(pauseTime);
-    localStorage.setItem(key, JSON.stringify(existing));
-  }
-
-  /**
-   * 타이머 일시정지 시간 가져오기
-   */
-  getTimerPause(year) {
-    const key = `exam_${year}_timer_pause`;
-    try {
-      const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : null;
-    } catch (error) {
-      console.error('일시정지 시간 불러오기 실패:', error);
-      return null;
-    }
-  }
-
-  /**
-   * 타이머 일시정지 시간 제거
-   */
-  clearTimerPause(year) {
-    const key = `exam_${year}_timer_pause`;
     localStorage.removeItem(key);
   }
 
@@ -484,7 +434,7 @@ ${keywords.length > 0 ? keywords.map(k => `• ${k}`).join('\n') : '(키워드 �
 
 ### 채점 기준:
 - **논리적 근거 필수 (70%)**:
-  - OX 문제에서 결론(O/X, 예/아니오)만 맞고 **근거가 틀리거나 없으면** → 배점의 30%부여
+  - OX 문제에서 결론(O/X, 예/아니오)만 맞고 **근거가 틀리거나 없으면** → 배점의 20% 미만
   - 근거가 핵심입니다!
 
 - **정확한 적용 (30%)**:
@@ -493,10 +443,9 @@ ${keywords.length > 0 ? keywords.map(k => `• ${k}`).join('\n') : '(키워드 �
 
 ### 점수 배분 (배점 ${question.score}점):
 - 결론 정확 + 논리적 근거 명확 + 상황 적용 정확 → ${question.score}점 (만점)
-- 결론 정확 + 근거 약함/미약 → ${(question.score * 0.5).toFixed(1)}점 이상 (50%는 하한선, 근거의 타당도에 따라 50%~90% 사이 부여)
-- 결론 정확 but 근거 없음/틀림 → ${(question.score * 0.3).toFixed(1)}점
-- 결론 틀림 but 근거 타당/논리적 → ${(question.score * 0.15).toFixed(1)}점 (부분점수)
-- 결론 틀림 + 근거 없음/틀림 → 0점
+- 결론 정확 + 근거 약함 → ${(question.score * 0.5).toFixed(1)}점
+- 결론 정확 but 근거 없음/틀림 → ${(question.score * 0.2).toFixed(1)}점
+- 결론 틀림 → 0점 (근거 관계없이)
 
 ## 🚫 공통 감점 사유:
 - **관련 없는 서술**: 문제에서 묻는 것과 전혀 다른 기준서/내용을 서술 → **0점**

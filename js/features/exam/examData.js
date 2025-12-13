@@ -24,21 +24,10 @@
  * Question ID에서 숫자 배열 추출 (정렬용)
  * 예: "Q10-1-2" -> [10, 1, 2]
  *     "Q1-2-3" -> [1, 2, 3]
- *     "2025_Q1" -> [1]
- *     "2025_Q10" -> [10]
  */
 function extractQuestionNumbers(questionId) {
-  // "Q" 또는 "_Q" 이후 부분만 추출
-  let qPart = questionId;
-  const qMatch = questionId.match(/[_-]?Q(.+)$/i);
-  if (qMatch) {
-    qPart = qMatch[1]; // "Q" 이후 부분만
-  } else if (questionId.startsWith('Q') || questionId.startsWith('q')) {
-    qPart = questionId.replace(/^Q/i, '');
-  }
-  
-  // "-"로 분리하여 숫자 추출
-  const parts = qPart.split('-');
+  // "Q" 제거 후 "-"로 분리하여 숫자 추출
+  const parts = questionId.replace(/^Q/i, '').split('-');
   return parts.map(part => {
     const num = parseInt(part, 10);
     return isNaN(num) ? 0 : num;
