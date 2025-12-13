@@ -2151,7 +2151,7 @@
           console.log('🔑 [index.html] 선택된 모델:', selectedModel);
 
           try {
-            await enterExamMode(apiKey, selectedModel);
+            await enterExamMode();
             console.log('📝 기출문제 모드 진입');
           } catch (error) {
             console.error('기출문제 모드 진입 실패:', error);

@@ -93,6 +93,22 @@ export function exitExamMode() {
 
   console.log('📝 기출문제 모드 종료');
 
+  // 플로팅 리모콘 제거
+  const floatingControlsExam = document.getElementById('floating-controls-exam');
+  if (floatingControlsExam) {
+    floatingControlsExam.remove();
+  }
+  const floatingControlsResult = document.getElementById('floating-controls-result');
+  if (floatingControlsResult) {
+    floatingControlsResult.remove();
+  }
+
+  // 타이머 정지
+  if (window.stopExamTimer) {
+    window.stopExamTimer();
+    console.log('✅ [examIntegration.js] 타이머 정지');
+  }
+
   // 컨테이너 제거
   if (examContainer) {
     examContainer.remove();
