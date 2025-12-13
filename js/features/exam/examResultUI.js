@@ -454,8 +454,8 @@ export function renderResultMode(container, year, result, apiKey, selectedModel,
 
   `;
 
-  // 이벤트 리스너 등록
-  setupEventListeners(container, year, apiKey, selectedModel);
+    // 이벤트 리스너 등록
+    setupEventListeners(container, year, apiKey, selectedModel);
 
     // 플로팅 리모콘을 container 밖에 추가 (body에 직접)
     setupFloatingControlsResult(exams, year, result, container);
