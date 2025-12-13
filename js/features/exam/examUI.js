@@ -501,6 +501,19 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
   let exams = examService.getExamByYear(year);
   const metadata = examService.getMetadata(year);
 
+  // exams 배열 자체를 정렬 (Q1, Q2, ..., Q10 순서)
+  exams = [...exams].sort((a, b) => {
+    const numsA = extractQuestionNumbers(a.id);
+    const numsB = extractQuestionNumbers(b.id);
+    const maxLen = Math.max(numsA.length, numsB.length);
+    for (let i = 0; i < maxLen; i++) {
+      const numA = numsA[i] || 0;
+      const numB = numsB[i] || 0;
+      if (numA !== numB) return numA - numB;
+    }
+    return 0;
+  });
+
   // questions 정렬 보장 (Q1, Q2, ..., Q10 순서)
   exams = exams.map(exam => ({
     ...exam,
@@ -603,7 +616,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
     <div id="exam-scroll-area" class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scroll-smooth relative" data-view-mode="${activeViewMode}">
       ${activeViewMode === 'split' ? `
         <!-- Split View: 좌측 지문 + 우측 문제 (고정 비율 4.5:5.5) -->
-        <div class="flex h-full px-6 lg:px-8 gap-4 lg:gap-6">
+        <div class="flex h-full" style="padding-left: 64px; padding-right: 320px;">
           <!-- Left Panel: Scenario (고정 45% 너비) -->
           <div class="flex-none border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto bg-white dark:bg-gray-800 p-6" style="width: 45%;">
             <div class="sticky top-0 bg-white dark:bg-gray-800 pb-4 border-b-2 border-gray-200 dark:border-gray-700 mb-4">
@@ -921,20 +934,36 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
  * 플로팅 리모콘 설정 (container 밖에 별도로 추가)
  */
 function setupFloatingControls(exams, year) {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examUI.js:898',message:'setupFloatingControls called',data:{examsCount:exams?.length||0,year},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
-  
   // 기존 플로팅 리모콘 제거
   const existingControls = document.getElementById('floating-controls-exam');
   if (existingControls) {
     existingControls.remove();
   }
 
+  // exams 정렬 (Q1, Q2, ..., Q10 순서)
+  const sortedExams = [...exams].sort((a, b) => {
+    const numsA = extractQuestionNumbers(a.id);
+    const numsB = extractQuestionNumbers(b.id);
+    const maxLen = Math.max(numsA.length, numsB.length);
+    for (let i = 0; i < maxLen; i++) {
+      const numA = numsA[i] || 0;
+      const numB = numsB[i] || 0;
+      if (numA !== numB) return numA - numB;
+    }
+    return 0;
+  });
+
   // 새 플로팅 리모콘 생성
   const floatingControls = document.createElement('div');
   floatingControls.id = 'floating-controls-exam';
-  floatingControls.className = 'hidden md:flex fixed top-24 right-4 lg:right-6 z-[60] flex-col gap-3 transition-all duration-300 w-[180px] lg:w-[200px]';
+  // 데스크톱에서만 표시 (JavaScript로 직접 제어)
+  const isDesktop = window.innerWidth >= 768; // md breakpoint
+  // 헤더 높이 계산
+  const header = document.querySelector('#exam-header');
+  const headerHeight = header ? header.offsetHeight : 100;
+  floatingControls.className = `${isDesktop ? 'flex' : 'hidden'} fixed right-4 lg:right-6 flex-col gap-3 transition-all duration-300 w-[180px] lg:w-[200px]`;
+  floatingControls.style.top = `${headerHeight + 20}px`; // 헤더 아래 20px 여유 공간
+  floatingControls.style.zIndex = '9999'; // 명시적으로 높은 z-index 설정
   floatingControls.innerHTML = `
     <!-- Quick Navigation - Collapsible -->
     <div id="nav-panel" class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-purple-500 dark:border-purple-600 overflow-hidden">
@@ -943,7 +972,7 @@ function setupFloatingControls(exams, year) {
         <span id="nav-arrow" class="transform transition-transform">▼</span>
       </button>
       <div id="nav-grid" class="p-2 grid grid-cols-4 gap-1.5">
-        ${exams.map((exam, idx) => {
+        ${sortedExams.map((exam, idx) => {
           // 이 케이스의 답안 상태 확인
           const answeredCount = exam.questions.filter(q => {
             const answer = examUIState.answers[q.id]?.answer;
@@ -986,10 +1015,6 @@ function setupFloatingControls(exams, year) {
 
   // body에 추가
   document.body.appendChild(floatingControls);
-  
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examUI.js:960',message:'Floating controls added to body',data:{elementId:floatingControls.id,className:floatingControls.className,examsCount:exams?.length||0,windowWidth:window.innerWidth},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
 
   // 이벤트 리스너 설정
   const toggleNavBtn = floatingControls.querySelector('#toggle-nav');
@@ -1013,15 +1038,19 @@ function setupFloatingControls(exams, year) {
   // Navigation buttons - 스크롤 이동
   const navButtons = floatingControls.querySelectorAll('#nav-grid button');
   navButtons.forEach((btn, idx) => {
-    btn.addEventListener('click', () => {
-      const caseCard = document.getElementById(`case-${exams[idx].id}`);
-      if (caseCard) {
-        const scrollArea = document.getElementById('exam-scroll-area');
-        if (scrollArea) {
-          scrollArea.scrollTo({
-            top: caseCard.offsetTop - 20,
-            behavior: 'smooth'
-          });
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const targetId = sortedExams[idx].id;
+      const targetElement = document.getElementById(`case-${targetId}`);
+      if (targetElement) {
+        const scrollContainer = document.getElementById('exam-scroll-area');
+        if (scrollContainer) {
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // scrollIntoView 후 미세 조정
+          setTimeout(() => {
+            scrollContainer.scrollTop -= 20;
+          }, 100);
         }
       }
     });
