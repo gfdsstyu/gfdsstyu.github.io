@@ -1065,6 +1065,10 @@ function setupFloatingControls(exams, year) {
   }
 
   // Navigation buttons - 스크롤 이동
+  // ⚠️ 중요: 뷰 모드별로 다른 스크롤 방식 사용 필수
+  // - Split View: scrollIntoView 사용 (정확한 위치 필요, setTimeout 조정 필요)
+  // - Vertical/Mobile View: scrollTo 사용 (부드러운 스크롤, 버벅임 방지)
+  // 이 구분을 없애거나 통일하면 모바일 뷰에서 스크롤이 버벅거리는 문제 발생
   const navButtons = floatingControls.querySelectorAll('#nav-grid button');
   navButtons.forEach((btn, idx) => {
     btn.addEventListener('click', (e) => {
@@ -1080,13 +1084,16 @@ function setupFloatingControls(exams, year) {
           
           if (viewMode === 'split') {
             // Split View: scrollIntoView 사용 (정확한 위치 필요)
+            // ⚠️ Split View에서는 이 방식이 정확하게 작동함
             targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
             // scrollIntoView 후 미세 조정
             setTimeout(() => {
               scrollContainer.scrollTop -= 20;
             }, 100);
           } else {
-            // Vertical/Mobile View: 직접 스크롤 (더 부드러움)
+            // Vertical/Mobile View: 직접 scrollTo 사용 (더 부드러움)
+            // ⚠️ 중요: 모바일 뷰에서 scrollIntoView + setTimeout은 버벅거림 발생
+            // scrollTo를 사용하여 스크롤 컨테이너 기준으로 직접 계산해야 함
             const containerRect = scrollContainer.getBoundingClientRect();
             const targetRect = targetElement.getBoundingClientRect();
             const scrollOffset = targetRect.top - containerRect.top + scrollContainer.scrollTop - 20;
