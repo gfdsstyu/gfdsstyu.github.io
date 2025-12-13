@@ -170,8 +170,45 @@ export function renderResultMode(container, year, result, apiKey, selectedModel,
   document.body.style.overflow = 'hidden';
   
   // 데이터 준비
-  const exams = examService.getExamByYear(year);
+  let exams = examService.getExamByYear(year);
   const metadata = examService.getMetadata(year);
+
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:173',message:'Before sort - exam questions IDs',data:{exam0Questions:exams[0]?.questions?.map(q=>q.id)||[],exam0Count:exams[0]?.questions?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
+
+  // questions 정렬 보장 (Q1, Q2, ..., Q10 순서)
+  exams = exams.map((exam, examIdx) => {
+    const sortedQuestions = [...exam.questions].sort((a, b) => {
+      const numsA = extractQuestionNumbers(a.id);
+      const numsB = extractQuestionNumbers(b.id);
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:180',message:'Sort comparison',data:{aId:a.id,bId:b.id,numsA,numsB},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+      
+      const maxLen = Math.max(numsA.length, numsB.length);
+      for (let i = 0; i < maxLen; i++) {
+        const numA = numsA[i] || 0;
+        const numB = numsB[i] || 0;
+        if (numA !== numB) return numA - numB;
+      }
+      return 0;
+    });
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:195',message:'After sort - exam questions IDs',data:{examIdx,sortedIds:sortedQuestions.map(q=>q.id),originalIds:exam.questions.map(q=>q.id)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    
+    return {
+      ...exam,
+      questions: sortedQuestions
+    };
+  });
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:202',message:'Final exams questions IDs',data:{exam0Questions:exams[0]?.questions?.map(q=>q.id)||[]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
   const totalPossibleScore = examService.getTotalScore(year);
   const percentage = ((result.totalScore / totalPossibleScore) * 100).toFixed(1);
   const isPassing = result.totalScore >= metadata.passingScore;
@@ -252,6 +289,9 @@ export function renderResultMode(container, year, result, apiKey, selectedModel,
             <!-- 문제별 결과 -->
             <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
               ${examCase.questions.map((question, qIdx) => {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:270',message:'Rendering question',data:{caseIdx,questionId:question.id,qIdx,allIds:examCase.questions.map(q=>q.id)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                // #endregion
                 const feedback = result.details[question.id];
                 const userAnswer = userAnswers[question.id]?.answer || '';
                 const score = feedback?.score || 0;
@@ -358,63 +398,132 @@ export function renderResultMode(container, year, result, apiKey, selectedModel,
       </div>
     </main>
 
-    <!-- Floating Control Panel (문제 바로가기) -->
-    <div id="floating-controls" class="hidden md:flex fixed top-24 right-4 lg:right-6 z-[60] flex-col gap-3 transition-all duration-300 w-[180px] lg:w-[200px]">
-      <!-- Quick Navigation - Collapsible -->
-      <div id="nav-panel" class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-purple-500 dark:border-purple-600 overflow-hidden">
-        <button id="toggle-nav" class="w-full px-3 py-2 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 flex items-center justify-between text-xs font-semibold text-purple-700 dark:text-purple-300 transition-colors">
-          <span>📌 문제 바로가기</span>
-          <span id="nav-arrow" class="transform transition-transform">▼</span>
-        </button>
-        <div id="nav-grid" class="p-2 grid grid-cols-4 gap-1.5">
-          ${exams.map((exam, idx) => {
-            // 각 케이스의 평균 점수 계산
-            const caseQuestions = exam.questions;
-            let totalScore = 0;
-            let totalPossible = 0;
-            
-            caseQuestions.forEach(q => {
-              const feedback = result.details[q.id];
-              const score = feedback?.score || 0;
-              totalScore += score;
-              totalPossible += q.score;
-            });
-            
-            const avgPercent = totalPossible > 0 ? (totalScore / totalPossible) * 100 : 0;
-            
-            // 점수에 따른 색상 결정 (90점 이상: 녹색, 50점 이상: 노랑, 미만: 빨강)
-            let bgClass, textClass, ringClass;
-            if (avgPercent >= 90) {
-              bgClass = 'bg-green-100 dark:bg-green-900/50';
-              textClass = 'text-green-700 dark:text-green-300';
-              ringClass = 'ring-2 ring-green-500';
-            } else if (avgPercent >= 50) {
-              bgClass = 'bg-yellow-100 dark:bg-yellow-900/50';
-              textClass = 'text-yellow-700 dark:text-yellow-300';
-              ringClass = 'ring-2 ring-yellow-500';
-            } else {
-              bgClass = 'bg-red-100 dark:bg-red-900/50';
-              textClass = 'text-red-700 dark:text-red-300';
-              ringClass = 'ring-2 ring-red-500';
-            }
-
-            return `
-              <button
-                class="result-nav-btn aspect-square flex items-center justify-center ${bgClass} ${textClass} ${ringClass} hover:bg-purple-500 hover:text-white dark:hover:bg-purple-600 rounded-lg text-xs font-bold transition-all hover:scale-110"
-                data-case-idx="${idx}"
-                title="문제 ${idx + 1} (${avgPercent.toFixed(0)}점)"
-              >
-                ${idx + 1}
-              </button>
-            `;
-          }).join('')}
-        </div>
-      </div>
-    </div>
   `;
 
   // 이벤트 리스너 등록
   setupEventListeners(container, year, apiKey, selectedModel);
+
+  // 플로팅 리모콘을 container 밖에 추가 (body에 직접)
+  setupFloatingControlsResult(exams, year, result);
+}
+
+/**
+ * 플로팅 리모콘 설정 (채점결과 화면용)
+ */
+function setupFloatingControlsResult(exams, year, result) {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:413',message:'setupFloatingControlsResult called',data:{examsCount:exams?.length||0,year},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+  
+  // 기존 플로팅 리모콘 제거
+  const existingControls = document.getElementById('floating-controls-result');
+  if (existingControls) {
+    existingControls.remove();
+  }
+
+  // 새 플로팅 리모콘 생성
+  const floatingControls = document.createElement('div');
+  floatingControls.id = 'floating-controls-result';
+  floatingControls.className = 'hidden md:flex fixed top-24 right-4 lg:right-6 z-[60] flex-col gap-3 transition-all duration-300 w-[180px] lg:w-[200px]';
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:421',message:'Creating floating controls HTML',data:{examsCount:exams?.length||0,hasExams:!!exams&&exams.length>0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+  
+  floatingControls.innerHTML = `
+    <!-- Quick Navigation - Collapsible -->
+    <div id="nav-panel" class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-purple-500 dark:border-purple-600 overflow-hidden">
+      <button id="toggle-nav" class="w-full px-3 py-2 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 flex items-center justify-between text-xs font-semibold text-purple-700 dark:text-purple-300 transition-colors">
+        <span>📌 문제 바로가기</span>
+        <span id="nav-arrow" class="transform transition-transform">▼</span>
+      </button>
+      <div id="nav-grid" class="p-2 grid grid-cols-4 gap-1.5">
+        ${exams.map((exam, idx) => {
+          // 각 케이스의 평균 점수 계산
+          const caseQuestions = exam.questions;
+          let totalScore = 0;
+          let totalPossible = 0;
+          
+          caseQuestions.forEach(q => {
+            const feedback = result.details[q.id];
+            const score = feedback?.score || 0;
+            totalScore += score;
+            totalPossible += q.score;
+          });
+          
+          const avgPercent = totalPossible > 0 ? (totalScore / totalPossible) * 100 : 0;
+          
+          // 점수에 따른 색상 결정 (90점 이상: 녹색, 50점 이상: 노랑, 미만: 빨강)
+          let bgClass, textClass, ringClass;
+          if (avgPercent >= 90) {
+            bgClass = 'bg-green-100 dark:bg-green-900/50';
+            textClass = 'text-green-700 dark:text-green-300';
+            ringClass = 'ring-2 ring-green-500';
+          } else if (avgPercent >= 50) {
+            bgClass = 'bg-yellow-100 dark:bg-yellow-900/50';
+            textClass = 'text-yellow-700 dark:text-yellow-300';
+            ringClass = 'ring-2 ring-yellow-500';
+          } else {
+            bgClass = 'bg-red-100 dark:bg-red-900/50';
+            textClass = 'text-red-700 dark:text-red-300';
+            ringClass = 'ring-2 ring-red-500';
+          }
+
+          return `
+            <button
+              class="result-nav-btn aspect-square flex items-center justify-center ${bgClass} ${textClass} ${ringClass} hover:bg-purple-500 hover:text-white dark:hover:bg-purple-600 rounded-lg text-xs font-bold transition-all hover:scale-110"
+              data-case-idx="${idx}"
+              title="문제 ${idx + 1} (${avgPercent.toFixed(0)}점)"
+            >
+              ${idx + 1}
+            </button>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+
+  // body에 추가
+  document.body.appendChild(floatingControls);
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:470',message:'Floating controls added to body',data:{elementId:floatingControls.id,className:floatingControls.className,examsCount:exams?.length||0,windowWidth:window.innerWidth},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
+
+  // 이벤트 리스너 설정
+  const toggleNavBtn = floatingControls.querySelector('#toggle-nav');
+  const navGrid = floatingControls.querySelector('#nav-grid');
+  const navArrow = floatingControls.querySelector('#nav-arrow');
+
+  if (toggleNavBtn && navGrid && navArrow) {
+    toggleNavBtn.addEventListener('click', () => {
+      const isExpanded = navGrid.style.display !== 'none';
+      if (isExpanded) {
+        navGrid.style.display = 'none';
+        navArrow.textContent = '▶';
+      } else {
+        navGrid.style.display = 'grid';
+        navArrow.textContent = '▼';
+      }
+    });
+  }
+
+  // 문제 바로가기 버튼 클릭
+  floatingControls.querySelectorAll('.result-nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const caseIdx = parseInt(btn.dataset.caseIdx, 10);
+      const targetSection = container.querySelector(`section:nth-of-type(${caseIdx + 3})`); // 총점, 히스토리 다음부터
+      if (targetSection) {
+        const main = container.querySelector('main');
+        if (main) {
+          main.scrollTo({
+            top: targetSection.offsetTop - 20,
+            behavior: 'smooth'
+          });
+        }
+      }
+    });
+  });
 }
 
 /**
@@ -482,40 +591,7 @@ function setupEventListeners(container, year, apiKey, selectedModel) {
     });
   });
 
-  // Floating Navigation Toggle
-  const toggleNavBtn = container.querySelector('#toggle-nav');
-  const navGrid = container.querySelector('#nav-grid');
-  const navArrow = container.querySelector('#nav-arrow');
-
-  if (toggleNavBtn && navGrid && navArrow) {
-    toggleNavBtn.addEventListener('click', () => {
-      const isExpanded = navGrid.style.display !== 'none';
-      if (isExpanded) {
-        navGrid.style.display = 'none';
-        navArrow.textContent = '▶';
-      } else {
-        navGrid.style.display = 'grid';
-        navArrow.textContent = '▼';
-      }
-    });
-  }
-
-  // 문제 바로가기 버튼 클릭
-  container.querySelectorAll('.result-nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const caseIdx = parseInt(btn.dataset.caseIdx, 10);
-      const targetSection = container.querySelector(`section:nth-of-type(${caseIdx + 3})`); // 총점, 히스토리 다음부터
-      if (targetSection) {
-        const main = container.querySelector('main');
-        if (main) {
-          main.scrollTo({
-            top: targetSection.offsetTop - 20,
-            behavior: 'smooth'
-          });
-        }
-      }
-    });
-  });
+  // 플로팅 리모콘은 setupFloatingControlsResult에서 처리됨
 }
 
 /**
@@ -526,6 +602,26 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+/**
+ * Question ID에서 숫자 배열 추출 (정렬용)
+ * 예: "Q10-1-2" -> [10, 1, 2]
+ *     "Q1-2-3" -> [1, 2, 3]
+ */
+function extractQuestionNumbers(questionId) {
+  // "Q" 제거 후 "-"로 분리하여 숫자 추출
+  const parts = questionId.replace(/^Q/i, '').split('-');
+  const result = parts.map(part => {
+    const num = parseInt(part, 10);
+    return isNaN(num) ? 0 : num;
+  });
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:575',message:'extractQuestionNumbers',data:{questionId,parts,result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+  
+  return result;
 }
 
 /**

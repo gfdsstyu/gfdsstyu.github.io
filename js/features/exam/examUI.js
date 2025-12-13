@@ -48,8 +48,8 @@ function convertMarkdownTablesToHtml(text) {
       }
     }
     
-    // 테이블이 아니면 원본 텍스트 유지
-    result += (i > 0 ? '\n' : '') + lines[i];
+    // 테이블이 아니면 원본 텍스트 유지 (HTML 이스케이프 적용)
+    result += (i > 0 ? '\n' : '') + escapeHtml(lines[i]);
     i++;
   }
 
@@ -176,6 +176,20 @@ function escapeHtml(text) {
 }
 
 /**
+ * Question ID에서 숫자 배열 추출 (정렬용)
+ * 예: "Q10-1-2" -> [10, 1, 2]
+ *     "Q1-2-3" -> [1, 2, 3]
+ */
+function extractQuestionNumbers(questionId) {
+  // "Q" 제거 후 "-"로 분리하여 숫자 추출
+  const parts = questionId.replace(/^Q/i, '').split('-');
+  return parts.map(part => {
+    const num = parseInt(part, 10);
+    return isNaN(num) ? 0 : num;
+  });
+}
+
+/**
  * Question ID에서 표시용 번호 추출
  * 예: "Q10-1-2" -> "10-1-2"
  *     "Q1-2-3" -> "1-2-3"
@@ -246,6 +260,13 @@ function renderYearSelection(container) {
   const selectedModel = getSelectedAiModel();
 
   console.log('🔑 [examUI.js] renderYearSelection - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
+
+  // 타이머 정지
+  if (examUIState.timerInterval) {
+    clearInterval(examUIState.timerInterval);
+    examUIState.timerInterval = null;
+    console.log('✅ [examUI.js] renderYearSelection - 타이머 정지');
+  }
 
   // 전체 화면 모드 해제 (연도 선택 화면은 기존 레이아웃 사용)
   container.className = '';
@@ -460,8 +481,24 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
   console.log('🔍 [examUI.js] renderExamPaper - container:', container);
   console.log('🔍 [examUI.js] renderExamPaper - year:', year);
 
-  const exams = examService.getExamByYear(year);
+  let exams = examService.getExamByYear(year);
   const metadata = examService.getMetadata(year);
+
+  // questions 정렬 보장 (Q1, Q2, ..., Q10 순서)
+  exams = exams.map(exam => ({
+    ...exam,
+    questions: [...exam.questions].sort((a, b) => {
+      const numsA = extractQuestionNumbers(a.id);
+      const numsB = extractQuestionNumbers(b.id);
+      const maxLen = Math.max(numsA.length, numsB.length);
+      for (let i = 0; i < maxLen; i++) {
+        const numA = numsA[i] || 0;
+        const numB = numsB[i] || 0;
+        if (numA !== numB) return numA - numB;
+      }
+      return 0;
+    })
+  }));
 
   console.log('🔍 [examUI.js] renderExamPaper - exams:', exams);
   console.log('🔍 [examUI.js] renderExamPaper - metadata:', metadata);
@@ -639,7 +676,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
 
                           <!-- 문제 -->
                           <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                            <div class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed" style="font-family: 'Iropke Batang', serif;">${convertMarkdownTablesToHtml(q.question)}</div>
+                            <div class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${convertMarkdownTablesToHtml(q.question)}</div>
                           </div>
 
                           <!-- 답안 입력 -->
@@ -677,54 +714,6 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
       `}
     </div>
 
-      <!-- Floating Control Panel (Desktop - Quick Navigation only) -->
-      <div id="floating-controls" class="hidden md:flex fixed top-24 right-4 lg:right-6 z-[60] flex-col gap-3 transition-all duration-300 w-[180px] lg:w-[200px]">
-        <!-- Quick Navigation - Collapsible -->
-        <div id="nav-panel" class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-purple-500 dark:border-purple-600 overflow-hidden">
-          <button id="toggle-nav" class="w-full px-3 py-2 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 flex items-center justify-between text-xs font-semibold text-purple-700 dark:text-purple-300 transition-colors">
-            <span>📌 바로가기</span>
-            <span id="nav-arrow" class="transform transition-transform">▼</span>
-          </button>
-          <div id="nav-grid" class="p-2 grid grid-cols-4 gap-1.5">
-            ${exams.map((exam, idx) => {
-              // 이 케이스의 답안 상태 확인
-              const answeredCount = exam.questions.filter(q => {
-                const answer = examUIState.answers[q.id]?.answer;
-                return answer && answer.trim() !== '';
-              }).length;
-              const totalCount = exam.questions.length;
-
-              // 모두 채움(녹색), 일부만 채움(노랑), 하나도 안 채움(회색)
-              let bgClass, textClass, ringClass, statusText;
-              if (answeredCount === totalCount) {
-                bgClass = 'bg-green-100 dark:bg-green-900/50';
-                textClass = 'text-green-700 dark:text-green-300';
-                ringClass = 'ring-2 ring-green-500';
-                statusText = '완료';
-              } else if (answeredCount > 0) {
-                bgClass = 'bg-yellow-100 dark:bg-yellow-900/50';
-                textClass = 'text-yellow-700 dark:text-yellow-300';
-                ringClass = 'ring-2 ring-yellow-500';
-                statusText = `${answeredCount}/${totalCount}`;
-              } else {
-                bgClass = 'bg-gray-100 dark:bg-gray-700';
-                textClass = 'text-gray-700 dark:text-gray-300';
-                ringClass = '';
-                statusText = '';
-              }
-
-              return `
-                <button
-                  class="aspect-square flex items-center justify-center ${bgClass} ${textClass} ${ringClass} hover:bg-purple-500 hover:text-white dark:hover:bg-purple-600 rounded-lg text-xs font-bold transition-all hover:scale-110"
-                  title="문제 ${idx + 1} ${statusText ? `(${statusText})` : ''}"
-                >
-                  ${idx + 1}
-                </button>
-              `;
-            }).join('')}
-          </div>
-        </div>
-      </div>
     </div>
   `;
 
@@ -897,7 +886,121 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
   // 글자 수 카운터 업데이트
   updateCharCounters();
 
+  // 플로팅 리모콘을 container 밖에 추가 (body에 직접)
+  setupFloatingControls(exams, year);
+
   console.log('✅ [examUI.js] renderExamPaper - 렌더링 완료, viewMode:', activeViewMode);
+}
+
+/**
+ * 플로팅 리모콘 설정 (container 밖에 별도로 추가)
+ */
+function setupFloatingControls(exams, year) {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examUI.js:898',message:'setupFloatingControls called',data:{examsCount:exams?.length||0,year},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+  
+  // 기존 플로팅 리모콘 제거
+  const existingControls = document.getElementById('floating-controls-exam');
+  if (existingControls) {
+    existingControls.remove();
+  }
+
+  // 새 플로팅 리모콘 생성
+  const floatingControls = document.createElement('div');
+  floatingControls.id = 'floating-controls-exam';
+  floatingControls.className = 'hidden md:flex fixed top-24 right-4 lg:right-6 z-[60] flex-col gap-3 transition-all duration-300 w-[180px] lg:w-[200px]';
+  floatingControls.innerHTML = `
+    <!-- Quick Navigation - Collapsible -->
+    <div id="nav-panel" class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-purple-500 dark:border-purple-600 overflow-hidden">
+      <button id="toggle-nav" class="w-full px-3 py-2 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 flex items-center justify-between text-xs font-semibold text-purple-700 dark:text-purple-300 transition-colors">
+        <span>📌 바로가기</span>
+        <span id="nav-arrow" class="transform transition-transform">▼</span>
+      </button>
+      <div id="nav-grid" class="p-2 grid grid-cols-4 gap-1.5">
+        ${exams.map((exam, idx) => {
+          // 이 케이스의 답안 상태 확인
+          const answeredCount = exam.questions.filter(q => {
+            const answer = examUIState.answers[q.id]?.answer;
+            return answer && answer.trim() !== '';
+          }).length;
+          const totalCount = exam.questions.length;
+
+          // 모두 채움(녹색), 일부만 채움(노랑), 하나도 안 채움(회색)
+          let bgClass, textClass, ringClass, statusText;
+          if (answeredCount === totalCount) {
+            bgClass = 'bg-green-100 dark:bg-green-900/50';
+            textClass = 'text-green-700 dark:text-green-300';
+            ringClass = 'ring-2 ring-green-500';
+            statusText = '완료';
+          } else if (answeredCount > 0) {
+            bgClass = 'bg-yellow-100 dark:bg-yellow-900/50';
+            textClass = 'text-yellow-700 dark:text-yellow-300';
+            ringClass = 'ring-2 ring-yellow-500';
+            statusText = `${answeredCount}/${totalCount}`;
+          } else {
+            bgClass = 'bg-gray-100 dark:bg-gray-700';
+            textClass = 'text-gray-700 dark:text-gray-300';
+            ringClass = '';
+            statusText = '';
+          }
+
+          return `
+            <button
+              class="aspect-square flex items-center justify-center ${bgClass} ${textClass} ${ringClass} hover:bg-purple-500 hover:text-white dark:hover:bg-purple-600 rounded-lg text-xs font-bold transition-all hover:scale-110"
+              title="문제 ${idx + 1} ${statusText ? `(${statusText})` : ''}"
+              data-case-idx="${idx}"
+            >
+              ${idx + 1}
+            </button>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+
+  // body에 추가
+  document.body.appendChild(floatingControls);
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examUI.js:960',message:'Floating controls added to body',data:{elementId:floatingControls.id,className:floatingControls.className,examsCount:exams?.length||0,windowWidth:window.innerWidth},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
+
+  // 이벤트 리스너 설정
+  const toggleNavBtn = floatingControls.querySelector('#toggle-nav');
+  const navGrid = floatingControls.querySelector('#nav-grid');
+  const navArrow = floatingControls.querySelector('#nav-arrow');
+  let navExpanded = true;
+
+  if (toggleNavBtn && navGrid && navArrow) {
+    toggleNavBtn.addEventListener('click', () => {
+      navExpanded = !navExpanded;
+      if (navExpanded) {
+        navGrid.style.display = 'grid';
+        navArrow.style.transform = 'rotate(0deg)';
+      } else {
+        navGrid.style.display = 'none';
+        navArrow.style.transform = 'rotate(-90deg)';
+      }
+    });
+  }
+
+  // Navigation buttons - 스크롤 이동
+  const navButtons = floatingControls.querySelectorAll('#nav-grid button');
+  navButtons.forEach((btn, idx) => {
+    btn.addEventListener('click', () => {
+      const caseCard = document.getElementById(`case-${exams[idx].id}`);
+      if (caseCard) {
+        const scrollArea = document.getElementById('exam-scroll-area');
+        if (scrollArea) {
+          scrollArea.scrollTo({
+            top: caseCard.offsetTop - 20,
+            behavior: 'smooth'
+          });
+        }
+      }
+    });
+  });
 }
 
 /**
