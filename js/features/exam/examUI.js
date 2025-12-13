@@ -5,6 +5,19 @@
 
 import { examService } from './examService.js';
 import { getGeminiApiKey, getSelectedAiModel } from '../../core/stateManager.js';
+import { renderResultMode } from './examResultUI.js';
+
+/**
+ * 텍스트 정규화: 과도한 줄바꿈 완화
+ * @param {string} text - 원본 텍스트
+ * @returns {string} - 정규화된 텍스트
+ */
+function normalizeText(text) {
+  if (!text) return text;
+
+  // 3개 이상의 연속된 줄바꿈을 2개로 축소
+  return text.replace(/\n{3,}/g, '\n\n');
+}
 
 /**
  * 마크다운 표를 HTML 테이블로 변환
@@ -14,52 +27,162 @@ import { getGeminiApiKey, getSelectedAiModel } from '../../core/stateManager.js'
 function convertMarkdownTablesToHtml(text) {
   if (!text) return text;
 
-  // 마크다운 표 패턴 감지: | col1 | col2 | ... 형식
-  const tableRegex = /(\|[^\n]+\|\r?\n)((?:\|:?-+:?\|)+\r?\n)((?:\|[^\n]+\|\r?\n?)+)/g;
+  // 텍스트 정규화 먼저 적용
+  text = normalizeText(text);
 
-  return text.replace(tableRegex, (match, headerLine, separatorLine, bodyLines) => {
-    // 헤더 파싱
-    const headers = headerLine.trim().split('|').filter(h => h.trim()).map(h => h.trim());
+  // 줄 단위로 분리
+  const lines = text.split(/\r?\n/);
+  let result = '';
+  let i = 0;
 
-    // 정렬 정보 파싱 (separator line에서)
-    const alignments = separatorLine.trim().split('|').filter(s => s.trim()).map(s => {
-      const trimmed = s.trim();
-      if (trimmed.startsWith(':') && trimmed.endsWith(':')) return 'center';
-      if (trimmed.endsWith(':')) return 'right';
-      if (trimmed.startsWith(':')) return 'left';
-      return 'left';
-    });
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    
+    // 테이블 시작 감지: | 로 시작하고 끝나는 줄
+    if (line.startsWith('|') && line.endsWith('|')) {
+      const tableData = parseTable(lines, i);
+      if (tableData) {
+        result += renderTable(tableData.headers, tableData.alignments, tableData.rows);
+        i = tableData.nextIndex;
+        continue;
+      }
+    }
+    
+    // 테이블이 아니면 원본 텍스트 유지
+    result += (i > 0 ? '\n' : '') + lines[i];
+    i++;
+  }
 
-    // 바디 행 파싱
-    const rows = bodyLines.trim().split('\n').map(line => {
-      return line.trim().split('|').filter(c => c.trim()).map(c => c.trim());
-    });
+  return result;
+}
 
-    // HTML 테이블 생성
-    let html = '<div class="markdown-table-wrapper overflow-x-auto my-4"><table class="markdown-table min-w-full border-collapse border border-gray-300 dark:border-gray-600">';
+/**
+ * 테이블 파싱 (시작 인덱스부터 테이블 끝까지)
+ */
+function parseTable(lines, startIndex) {
+  const tableRows = [];
+  let i = startIndex;
+  let alignments = [];
 
-    // 헤더
-    html += '<thead class="bg-gray-100 dark:bg-gray-700"><tr>';
-    headers.forEach((header, idx) => {
-      const align = alignments[idx] || 'left';
-      html += `<th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-${align} font-bold text-gray-900 dark:text-gray-100">${header}</th>`;
-    });
-    html += '</tr></thead>';
+  // 헤더 행
+  const headerLine = lines[i].trim();
+  if (!headerLine.startsWith('|') || !headerLine.endsWith('|')) {
+    return null;
+  }
+  const headers = parseTableRow(headerLine);
+  if (headers.length < 2) return null; // 최소 2개 컬럼 필요
+  
+  i++;
 
-    // 바디
-    html += '<tbody>';
-    rows.forEach(row => {
-      html += '<tr class="hover:bg-gray-50 dark:hover:bg-gray-800">';
-      row.forEach((cell, idx) => {
-        const align = alignments[idx] || 'left';
-        html += `<td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-${align} text-gray-800 dark:text-gray-200">${cell}</td>`;
-      });
-      html += '</tr>';
-    });
-    html += '</tbody></table></div>';
-
-    return html;
+  // 구분선 (정렬 정보)
+  if (i >= lines.length) return null;
+  const separatorLine = lines[i].trim();
+  if (!separatorLine.startsWith('|') || !separatorLine.endsWith('|')) {
+    return null;
+  }
+  
+  // 정렬 정보 파싱
+  alignments = parseTableRow(separatorLine).map(cell => {
+    const trimmed = cell.trim();
+    // :---: (center), ---: (right), :--- (left), --- (left)
+    if (trimmed.startsWith(':') && trimmed.endsWith(':')) return 'center';
+    if (trimmed.endsWith(':')) return 'right';
+    if (trimmed.startsWith(':')) return 'left';
+    return 'left';
   });
+  
+  i++;
+
+  // 바디 행들
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    
+    // 테이블 행인지 확인
+    if (line.startsWith('|') && line.endsWith('|')) {
+      const row = parseTableRow(line);
+      if (row.length === headers.length) {
+        tableRows.push(row);
+        i++;
+        continue;
+      }
+    }
+    
+    // 빈 줄이면 테이블 종료
+    if (line === '') {
+      i++;
+      break;
+    }
+    
+    // 테이블이 아닌 줄이면 종료
+    break;
+  }
+
+  if (tableRows.length === 0) return null;
+
+  return {
+    headers,
+    alignments,
+    rows: tableRows,
+    nextIndex: i
+  };
+}
+
+/**
+ * 테이블 행 파싱 (|로 구분된 셀들)
+ */
+function parseTableRow(line) {
+  // 앞뒤 | 제거 후 분리
+  const cells = line.slice(1, -1).split('|');
+  return cells.map(cell => cell.trim());
+}
+
+/**
+ * HTML 테이블 렌더링
+ */
+function renderTable(headers, alignments, rows) {
+  let html = '<div class="markdown-table-wrapper overflow-x-auto my-4"><table class="markdown-table min-w-full border-collapse border border-gray-300 dark:border-gray-600">';
+  
+  // 헤더
+  html += '<thead class="bg-gray-100 dark:bg-gray-700"><tr>';
+  headers.forEach((header, idx) => {
+    const align = alignments[idx] || 'left';
+    html += `<th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-${align} font-bold text-gray-900 dark:text-gray-100">${escapeHtml(header)}</th>`;
+  });
+  html += '</tr></thead>';
+
+  // 바디
+  html += '<tbody>';
+  rows.forEach(row => {
+    html += '<tr class="hover:bg-gray-50 dark:hover:bg-gray-800">';
+    row.forEach((cell, idx) => {
+      const align = alignments[idx] || 'left';
+      html += `<td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-${align} text-gray-800 dark:text-gray-200">${escapeHtml(cell)}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  return html;
+}
+
+/**
+ * HTML 이스케이프 유틸리티
+ */
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/**
+ * Question ID에서 표시용 번호 추출
+ * 예: "Q10-1-2" -> "10-1-2"
+ *     "Q1-2-3" -> "1-2-3"
+ */
+function extractQuestionNumber(questionId) {
+  // "Q" 제거 (대소문자 무시)
+  return questionId.replace(/^Q/i, '');
 }
 
 /**
@@ -198,9 +321,16 @@ function renderYearSelection(container) {
                 ` : ''}
               </div>
 
-              <button class="mt-4 w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
-                ${latestAttempt > 0 ? '다시 풀기' : '시작하기'} →
-              </button>
+              <div class="mt-4 flex gap-2">
+                <button class="start-exam-btn flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
+                  ${latestAttempt > 0 ? '다시 풀기' : '시작하기'} →
+                </button>
+                ${latestAttempt > 0 ? `
+                  <button class="view-result-btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors" data-year="${year}">
+                    📊 결과보기
+                  </button>
+                ` : ''}
+              </div>
             </div>
           `;
         }).join('')}
@@ -220,10 +350,38 @@ function renderYearSelection(container) {
   `;
 
   // 이벤트 리스너
-  container.querySelectorAll('.year-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const year = parseInt(card.dataset.year, 10);
+  // 시작하기/다시 풀기 버튼
+  container.querySelectorAll('.start-exam-btn').forEach((btn, idx) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const year = parseInt(years[idx], 10);
       startExam(container, year);
+    });
+  });
+
+  // 결과보기 버튼
+  container.querySelectorAll('.view-result-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const year = parseInt(btn.dataset.year, 10);
+
+      // 가장 최근 채점 결과 가져오기
+      const scores = examService.getScores(year);
+      if (scores.length === 0) {
+        alert('채점 이력이 없습니다.');
+        return;
+      }
+
+      const latestScore = scores[scores.length - 1];
+
+      // result 객체 재구성
+      const result = {
+        totalScore: latestScore.score,
+        details: latestScore.details || {}
+      };
+
+      // 결과 화면 렌더링
+      renderResultMode(container, year, result, apiKey, selectedModel, examUIState.viewMode);
     });
   });
 }
@@ -327,28 +485,56 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
               <span class="text-xs sm:text-sm px-2 sm:px-3 py-1 bg-purple-200 dark:bg-white/30 rounded-full font-semibold">총 ${examService.getTotalScore(year)}점</span>
             </div>
 
-            <!-- View Mode Toggle -->
-            <div class="flex items-center gap-2">
+            <!-- Timer and Actions -->
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <!-- Timer Display -->
+              <div class="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/50 px-3 py-1.5 rounded-lg border-2 border-orange-400 dark:border-orange-600">
+                <span class="text-xs font-semibold text-orange-700 dark:text-orange-300">⏱️</span>
+                <div id="timer-display" class="text-lg font-mono font-bold text-orange-600 dark:text-orange-400">--:--</div>
+              </div>
+
+              <!-- Temp Save Button -->
+              <button
+                id="btn-temp-save"
+                ${!canTempSave ? 'disabled' : ''}
+                class="px-3 py-2 ${canTempSave ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'} font-bold rounded-lg transition-all text-xs sm:text-sm flex items-center gap-1"
+                title="${canTempSave ? '임시 채점 & 저장' : `${Math.ceil((5 * 60 * 1000 - (now - lastTempSave)) / 1000 / 60)}분 후 사용 가능`}"
+              >
+                <span>💾</span>
+                <span class="hidden sm:inline">임시저장</span>
+              </button>
+
+              <!-- Final Submit Button -->
+              <button
+                id="btn-submit-exam"
+                class="px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold rounded-lg transition-all text-xs sm:text-sm flex items-center gap-1"
+              >
+                <span>📝</span>
+                <span class="hidden sm:inline">최종 제출</span>
+              </button>
+
+              <!-- View Mode Toggle -->
               <div class="flex bg-white/50 dark:bg-gray-800/50 rounded-lg p-1 gap-1">
                 <button
                   id="btn-view-split"
-                  class="px-3 py-1.5 rounded text-sm font-semibold transition-all ${activeViewMode === 'split' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'hover:bg-white/50 dark:hover:bg-gray-700/50'}"
+                  class="px-2 py-1.5 rounded text-xs font-semibold transition-all ${activeViewMode === 'split' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'hover:bg-white/50 dark:hover:bg-gray-700/50'}"
                   title="시험장 모드 (좌측 지문 고정)"
                 >
-                  🖥️ <span class="hidden sm:inline">시험장</span>
+                  🖥️ <span class="hidden md:inline">시험장</span>
                 </button>
                 <button
                   id="btn-view-vertical"
-                  class="px-3 py-1.5 rounded text-sm font-semibold transition-all ${activeViewMode === 'vertical' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'hover:bg-white/50 dark:hover:bg-gray-700/50'}"
+                  class="px-2 py-1.5 rounded text-xs font-semibold transition-all ${activeViewMode === 'vertical' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'hover:bg-white/50 dark:hover:bg-gray-700/50'}"
                   title="모바일 모드 (카드형)"
                 >
-                  📱 <span class="hidden sm:inline">모바일</span>
+                  📱 <span class="hidden md:inline">모바일</span>
                 </button>
               </div>
 
+              <!-- Exit Button -->
               <button
                 id="btn-exit-exam-header"
-                class="px-3 py-2 sm:px-4 sm:py-2 bg-purple-200 hover:bg-purple-300 dark:bg-white/30 dark:hover:bg-white/40 font-semibold rounded-lg transition-colors flex items-center gap-2 text-sm"
+                class="px-3 py-2 bg-purple-200 hover:bg-purple-300 dark:bg-white/30 dark:hover:bg-white/40 font-semibold rounded-lg transition-colors flex items-center gap-1 text-xs sm:text-sm"
                 title="기출문제 모드 종료"
               >
                 <span>✕</span>
@@ -362,21 +548,21 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
     <!-- Scrollable Content Area -->
     <div id="exam-scroll-area" class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scroll-smooth relative" data-view-mode="${activeViewMode}">
       ${activeViewMode === 'split' ? `
-        <!-- Split View: 좌측 지문 + 우측 문제 -->
-        <div class="flex h-full">
-          <!-- Left Panel: Scenario (Fixed Width) -->
-          <div class="flex-none w-[480px] min-w-[480px] max-w-[480px] border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto bg-white dark:bg-gray-800 p-6">
+        <!-- Split View: 좌측 지문 + 우측 문제 (고정 비율 4.5:5.5) -->
+        <div class="flex h-full px-6 lg:px-8 gap-4 lg:gap-6">
+          <!-- Left Panel: Scenario (고정 45% 너비) -->
+          <div class="flex-none border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto bg-white dark:bg-gray-800 p-6" style="width: 45%;">
             <div class="sticky top-0 bg-white dark:bg-gray-800 pb-4 border-b-2 border-gray-200 dark:border-gray-700 mb-4">
               <h4 class="text-lg font-bold text-purple-700 dark:text-purple-300">📄 지문</h4>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">현재 보고 있는 문제의 지문이 표시됩니다</p>
             </div>
-            <div id="split-scenario-display" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed" style="font-family: 'Iropke Batang', serif;">
+            <div id="split-scenario-display" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">
               ${convertMarkdownTablesToHtml(exams[0]?.questions[0]?.scenario || exams[0]?.scenario || '지문을 불러오는 중...')}
             </div>
           </div>
 
-          <!-- Right Panel: Questions -->
-          <div class="flex-1 overflow-y-auto p-6">
+          <!-- Right Panel: Questions (고정 55% 너비) -->
+          <div class="flex-none overflow-y-auto p-6" style="width: 55%;">
             <div class="space-y-8">
       ` : `
         <!-- Vertical View: 기존 카드형 레이아웃 -->
@@ -442,7 +628,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
                           <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
                             <div class="flex items-center gap-2">
                               <span class="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-bold rounded-full">
-                                물음 ${q.id.replace('Q', '')}
+                                물음 ${extractQuestionNumber(q.id)}
                               </span>
                               <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded">
                                 ${q.score}점
@@ -491,16 +677,8 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
       `}
     </div>
 
-      <!-- Floating Control Panel (Desktop - Always show for debugging) -->
-      <div id="floating-controls" style="display: flex !important; position: fixed !important; top: 96px !important; right: 24px !important; z-index: 9999 !important;" class="flex-col gap-3 transition-all duration-300 w-[200px]">
-        <!-- Timer Display -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-orange-500 dark:border-orange-600 p-4">
-          <div class="text-center">
-            <div class="text-xs font-semibold text-orange-700 dark:text-orange-300 mb-2">⏱️ 남은 시간</div>
-            <div id="timer-display" class="text-3xl font-mono font-bold text-orange-600 dark:text-orange-400">--:--</div>
-          </div>
-        </div>
-
+      <!-- Floating Control Panel (Desktop - Quick Navigation only) -->
+      <div id="floating-controls" class="hidden md:flex fixed top-24 right-4 lg:right-6 z-[60] flex-col gap-3 transition-all duration-300 w-[180px] lg:w-[200px]">
         <!-- Quick Navigation - Collapsible -->
         <div id="nav-panel" class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-purple-500 dark:border-purple-600 overflow-hidden">
           <button id="toggle-nav" class="w-full px-3 py-2 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 flex items-center justify-between text-xs font-semibold text-purple-700 dark:text-purple-300 transition-colors">
@@ -545,29 +723,6 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
               `;
             }).join('')}
           </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="flex flex-col gap-2 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-gray-300 dark:border-gray-600 p-3">
-          <!-- Temporary Save -->
-          <button
-            id="btn-temp-save"
-            ${!canTempSave ? 'disabled' : ''}
-            class="px-3 py-2.5 ${canTempSave ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 cursor-not-allowed'} font-bold rounded-lg transition-all shadow-md hover:shadow-lg flex flex-col items-center justify-center gap-1 text-xs"
-            title="${canTempSave ? '임시 채점 & 저장' : `${Math.ceil((5 * 60 * 1000 - (now - lastTempSave)) / 1000 / 60)}분 후 사용 가능`}"
-          >
-            <span class="text-xl">💾</span>
-            <span>${canTempSave ? '임시저장' : `쿨다운`}</span>
-          </button>
-
-          <!-- Final Submit -->
-          <button
-            id="btn-submit-exam"
-            class="px-3 py-2.5 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 hover:from-purple-200 hover:to-indigo-200 dark:hover:from-purple-800 dark:hover:to-indigo-800 text-gray-800 dark:text-white font-bold rounded-lg transition-all shadow-lg hover:shadow-xl flex flex-col items-center justify-center gap-1 text-xs"
-          >
-            <span class="text-xl">📝</span>
-            <span>최종 제출</span>
-          </button>
         </div>
       </div>
     </div>
@@ -714,6 +869,13 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
           }
         }
       });
+      
+      // 답안 입력 시 실시간 반영 (노랑/녹색)
+      if (textarea) {
+        textarea.addEventListener('input', () => {
+          updateQuickNavigation(year);
+        });
+      }
     });
   }
 
@@ -800,7 +962,53 @@ function setupAutoSave(year) {
       if (charCount) {
         charCount.textContent = `${answer.length}자`;
       }
+
+      // Quick Navigation 실시간 업데이트
+      updateQuickNavigation(year);
     });
+  });
+}
+
+/**
+ * Quick Navigation 답안 상태 실시간 업데이트
+ */
+function updateQuickNavigation(year) {
+  const exams = examService.getExamByYear(year);
+  const navGrid = document.getElementById('nav-grid');
+  if (!navGrid) return;
+
+  // 각 케이스 버튼의 상태를 업데이트
+  exams.forEach((exam, idx) => {
+    const answeredCount = exam.questions.filter(q => {
+      const answer = examUIState.answers[q.id]?.answer;
+      return answer && answer.trim() !== '';
+    }).length;
+    const totalCount = exam.questions.length;
+
+    // 버튼 찾기 (idx로)
+    const btn = navGrid.children[idx];
+    if (!btn) return;
+
+    // 기존 클래스 제거
+    btn.className = btn.className.replace(/bg-\w+-\d+/g, '').replace(/text-\w+-\d+/g, '').replace(/ring-\d+/g, '').replace(/ring-\w+-\d+/g, '');
+
+    // 새 상태에 따라 클래스 추가
+    let bgClass, textClass, ringClass;
+    if (answeredCount === totalCount) {
+      bgClass = 'bg-green-100 dark:bg-green-900/50';
+      textClass = 'text-green-700 dark:text-green-300';
+      ringClass = 'ring-2 ring-green-500';
+    } else if (answeredCount > 0) {
+      bgClass = 'bg-yellow-100 dark:bg-yellow-900/50';
+      textClass = 'text-yellow-700 dark:text-yellow-300';
+      ringClass = 'ring-2 ring-yellow-500';
+    } else {
+      bgClass = 'bg-gray-100 dark:bg-gray-700';
+      textClass = 'text-gray-700 dark:text-gray-300';
+      ringClass = '';
+    }
+
+    btn.className = `aspect-square flex items-center justify-center ${bgClass} ${textClass} ${ringClass} hover:bg-purple-500 hover:text-white dark:hover:bg-purple-600 rounded-lg text-xs font-bold transition-all hover:scale-110`;
   });
 }
 
@@ -956,8 +1164,8 @@ async function gradeAndShowResults(container, year, apiKey, selectedModel) {
     // 타이머 초기화
     examService.clearTimer(year);
 
-    // 결과 화면 렌더링
-    renderResults(container, year, result, apiKey, selectedModel);
+    // 결과 화면 렌더링 (examResultUI.js 사용)
+    renderResultMode(container, year, result, apiKey, selectedModel, examUIState.viewMode);
   } catch (error) {
     console.error('채점 실패:', error);
     alert('채점 중 오류가 발생했습니다. 다시 시도해주세요.');
@@ -987,417 +1195,6 @@ function renderModelAnswersPreview(year) {
 }
 
 /**
- * 키워드 하이라이팅 헬퍼
+ * renderExamPaper와 renderYearSelection을 export하여 examResultUI.js에서 사용 가능하도록
  */
-function highlightKeywords(text, keywords) {
-  if (!keywords || keywords.length === 0) return text;
-
-  let highlighted = text;
-  keywords.forEach(keyword => {
-    if (!keyword || keyword.trim() === '') return;
-
-    // 정규식 특수문자 이스케이프
-    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(${escapedKeyword})`, 'gi');
-
-    highlighted = highlighted.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-700 px-1 rounded">$1</mark>');
-  });
-
-  return highlighted;
-}
-
-/**
- * 점수 마킹 이모지
- */
-function getScoreEmoji(score, maxScore) {
-  const percentage = (score / maxScore) * 100;
-
-  if (percentage >= 90) return '⭕'; // 만점 (90% 이상)
-  if (percentage >= 50) return '🔺'; // 부분 점수
-  return '❌'; // 낮은 점수
-}
-
-/**
- * 결과 화면 (빨간펜 선생님 스타일)
- */
-function renderResults(container, year, result, apiKey, selectedModel) {
-  const exams = examService.getExamByYear(year);
-  const metadata = examService.getMetadata(year);
-  const totalPossibleScore = examService.getTotalScore(year);
-  const percentage = ((result.totalScore / totalPossibleScore) * 100).toFixed(1);
-  const isPassing = result.totalScore >= metadata.passingScore;
-
-  // 점수 히스토리 가져오기
-  const scoreHistory = examService.getScores(year);
-  const bestScore = examService.getBestScore(year);
-
-  // 사용자 답안 미리 가져오기
-  const userAnswers = examService.getUserAnswers(year);
-
-  const activeViewMode = examUIState.getActiveViewMode();
-
-  container.innerHTML = `
-    <!-- Fixed Header -->
-    <div id="results-header" class="flex-none bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-700 dark:to-indigo-700 text-gray-800 dark:text-white shadow-lg z-50">
-        <div class="w-full px-4 sm:px-6 lg:px-8 py-3">
-          <div class="flex items-center justify-between flex-wrap gap-3">
-            <div class="flex items-center gap-3">
-              <h3 class="text-lg sm:text-xl font-bold">${year}년 기출문제 채점 결과</h3>
-              <span class="text-xs sm:text-sm px-2 sm:px-3 py-1 bg-purple-200 dark:bg-white/30 rounded-full font-semibold">${result.totalScore.toFixed(1)} / ${totalPossibleScore}점</span>
-            </div>
-
-            <!-- View Mode Toggle (Results Screen) -->
-            <div class="flex items-center gap-2">
-              <div class="flex bg-white/50 dark:bg-gray-800/50 rounded-lg p-1 gap-1">
-                <button
-                  id="btn-view-split-results"
-                  class="px-3 py-1.5 rounded text-sm font-semibold transition-all ${activeViewMode === 'split' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'hover:bg-white/50 dark:hover:bg-gray-700/50'}"
-                  title="시험장 모드 (좌측 지문 고정)"
-                >
-                  🖥️ <span class="hidden sm:inline">시험장</span>
-                </button>
-                <button
-                  id="btn-view-vertical-results"
-                  class="px-3 py-1.5 rounded text-sm font-semibold transition-all ${activeViewMode === 'vertical' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'hover:bg-white/50 dark:hover:bg-gray-700/50'}"
-                  title="모바일 모드 (카드형)"
-                >
-                  📱 <span class="hidden sm:inline">모바일</span>
-                </button>
-              </div>
-
-              <button
-                id="btn-exit-results-header"
-                class="px-3 py-2 sm:px-4 sm:py-2 bg-purple-200 hover:bg-purple-300 dark:bg-white/30 dark:hover:bg-white/40 font-semibold rounded-lg transition-colors flex items-center gap-2 text-sm"
-                title="기출문제 모드 종료"
-              >
-                <span>✕</span>
-                <span class="hidden sm:inline">종료</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    <!-- Scrollable Content Area -->
-    <div id="results-scroll-area" class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scroll-smooth" data-view-mode="${activeViewMode}">
-      ${activeViewMode === 'split' ? `
-        <!-- Split View: 좌측 지문 + 우측 문제 -->
-        <div class="flex h-full">
-          <!-- Left Panel: Scenario (Fixed Width) -->
-          <div class="flex-none w-[480px] min-w-[480px] max-w-[480px] border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto bg-white dark:bg-gray-800 p-6">
-            <div class="sticky top-0 bg-white dark:bg-gray-800 pb-4 border-b-2 border-gray-200 dark:border-gray-700 mb-4">
-              <h4 class="text-lg font-bold text-purple-700 dark:text-purple-300">📄 지문</h4>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">현재 보고 있는 문제의 지문이 표시됩니다</p>
-            </div>
-            <div id="split-scenario-display-results" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">
-              ${exams[0]?.questions[0]?.scenario || exams[0]?.scenario || '지문을 불러오는 중...'}
-            </div>
-          </div>
-
-          <!-- Right Panel: Questions with Feedback -->
-          <div class="flex-1 overflow-y-auto">
-      ` : `
-        <!-- Vertical View: 기존 카드형 레이아웃 -->
-        <div class="w-full">
-      `}
-            <div class="max-w-6xl mx-auto p-4 md:p-8 space-y-6">
-        <!-- 총점 카드 -->
-        <div class="bg-gradient-to-r ${isPassing ? 'from-green-100 to-emerald-100 dark:from-green-500 dark:to-emerald-600' : 'from-red-100 to-rose-100 dark:from-red-500 dark:to-rose-600'} rounded-2xl p-6 md:p-8 text-gray-800 dark:text-white shadow-xl">
-        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div class="text-center md:text-left">
-            <h1 class="text-2xl md:text-3xl font-bold mb-2">📝 ${year}년 기출문제 채점 완료!</h1>
-            <p class="text-lg opacity-90">
-              ${isPassing ? '🎉 합격 기준 충족!' : '💪 조금만 더 노력하면 합격!'}
-            </p>
-          </div>
-          <div class="text-center">
-            <div class="text-6xl md:text-7xl font-extrabold mb-2">
-              ${result.totalScore.toFixed(1)}
-            </div>
-            <div class="text-xl md:text-2xl font-semibold">
-              / ${totalPossibleScore}점 (${percentage}%)
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 점수 히스토리 -->
-      ${scoreHistory.length > 0 ? `
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-md">
-          <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            📊 점수 히스토리 <span class="text-sm font-normal text-gray-600 dark:text-gray-400">(${scoreHistory.length}번째 응시)</span>
-          </h3>
-          <div class="flex items-center gap-4 overflow-x-auto pb-2">
-            ${scoreHistory.map((s, idx) => `
-              <div class="flex flex-col items-center min-w-[80px]">
-                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">${idx + 1}회</div>
-                <div class="w-12 h-12 rounded-full ${s.score >= metadata.passingScore ? 'bg-green-100 text-green-700 border-2 border-green-500' : 'bg-gray-100 text-gray-700 border-2 border-gray-300'} flex items-center justify-center font-bold text-sm">
-                  ${s.score.toFixed(1)}
-                </div>
-                ${s.score === bestScore ? '<div class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">🏆 최고</div>' : ''}
-              </div>
-            `).join('')}
-          </div>
-          ${bestScore && result.totalScore === bestScore && scoreHistory.length > 1 ? `
-            <p class="mt-4 text-sm text-green-600 dark:text-green-400 font-semibold">
-              ✨ 최고 점수 경신! 이전 최고: ${scoreHistory[scoreHistory.length - 2].score.toFixed(1)}점
-            </p>
-          ` : ''}
-        </div>
-      ` : ''}
-
-      <!-- 문제별 상세 피드백 -->
-      <div class="space-y-8">
-        ${exams.map((examCase, caseIdx) => `
-          <div class="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
-            <!-- 문제 헤더 -->
-            <div class="bg-gradient-to-r from-purple-700 to-indigo-700 px-6 py-3 text-white shadow-md">
-              <div class="flex items-center justify-between">
-                <h2 class="text-xl font-bold">
-                  문제 ${caseIdx + 1}: ${examCase.topic}
-                </h2>
-                <span class="text-sm bg-white/20 px-3 py-1 rounded-full font-semibold">
-                  ${examCase.type === 'Rule' ? '기준서(Rule)' : examCase.type === 'Case' ? '사례(Case)' : '일반'}
-                </span>
-              </div>
-            </div>
-
-            <!-- Question Cards with Individual Scenarios -->
-            <div class="p-6">
-              <div class="space-y-6">
-                ${examCase.questions.map((question, qIdx) => {
-                  // 이전 question의 scenario와 비교
-                  const previousQ = qIdx > 0 ? examCase.questions[qIdx - 1] : null;
-                  const currentScenario = question.scenario || examCase.scenario || '';
-                  const previousScenario = previousQ ? (previousQ.scenario || examCase.scenario || '') : null;
-                  const isSameScenario = previousScenario && currentScenario === previousScenario;
-                    const feedback = result.details[question.id];
-                    const scoreEmoji = getScoreEmoji(feedback?.score || 0, question.score);
-                    const userAnswer = userAnswers[question.id]?.answer || '';
-
-                    // 이 물음의 점수 히스토리 가져오기
-                    const questionHistory = scoreHistory.map(attempt => ({
-                      attempt: attempt.attempt,
-                      score: attempt.details?.[question.id]?.score || 0,
-                      maxScore: question.score
-                    }));
-
-                    return `
-                      <div class="border-2 ${feedback?.score >= question.score * 0.9 ? 'border-green-500' : feedback?.score >= question.score * 0.5 ? 'border-yellow-500' : 'border-red-500'} rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-md mb-4" data-scenario="${currentScenario.replace(/"/g, '&quot;')}">
-                        <!-- Scenario Section (Vertical View only) -->
-                        ${!isSameScenario ? `
-                          <div class="scenario-section ${activeViewMode === 'split' ? 'hidden' : ''} bg-purple-50 dark:bg-purple-900/20 border-b-2 border-purple-200 dark:border-purple-700 px-4 py-3">
-                            <div class="flex items-center gap-2 mb-2">
-                              <span class="px-3 py-1 bg-purple-200 dark:bg-purple-700 text-purple-800 dark:text-purple-200 text-xs font-bold rounded-full">
-                                📄 지문
-                              </span>
-                              ${qIdx > 0 ? '<span class="px-2 py-1 bg-orange-500 text-white text-xs font-bold rounded">⚠️ 상황 변경</span>' : ''}
-                            </div>
-                            <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${currentScenario}</div>
-                          </div>
-                        ` : `
-                          <div class="scenario-section ${activeViewMode === 'split' ? 'hidden' : ''} bg-green-50 dark:bg-green-900/20 border-b-2 border-green-200 dark:border-green-700 px-4 py-2">
-                            <div class="flex items-center gap-2">
-                              <span class="px-3 py-1 bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-200 text-xs font-bold rounded-full">
-                                📄 지문 (이전과 동일)
-                              </span>
-                            </div>
-                          </div>
-                        `}
-
-                        <!-- Question Card -->
-                        <div class="p-4">
-                          <!-- 물음 헤더 -->
-                          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-                            <div class="flex items-center gap-2">
-                              <span class="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-bold rounded-full">
-                                물음 ${question.id.replace('Q', '')}
-                              </span>
-                              <span class="text-2xl">${scoreEmoji}</span>
-                            </div>
-                            <div class="text-xl font-bold ${feedback?.score >= question.score * 0.9 ? 'text-green-600 dark:text-green-400' : feedback?.score >= question.score * 0.5 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}">
-                              ${(feedback?.score || 0).toFixed(1)} / ${question.score}점
-                            </div>
-                          </div>
-
-                        ${questionHistory.length > 1 ? `
-                          <!-- 물음별 점수 히스토리 -->
-                          <div class="mb-3 bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
-                            <h5 class="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">📊 점수 변화</h5>
-                            <div class="flex items-center gap-2 overflow-x-auto pb-1">
-                              ${questionHistory.map((h, idx) => `
-                                <div class="flex flex-col items-center min-w-[50px]">
-                                  <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">${h.attempt}회</div>
-                                  <div class="w-10 h-10 rounded-full ${h.score >= h.maxScore * 0.9 ? 'bg-green-500 text-white' : h.score >= h.maxScore * 0.5 ? 'bg-yellow-500 text-white' : 'bg-red-400 text-white'} flex items-center justify-center font-bold text-xs ${idx === questionHistory.length - 1 ? 'ring-2 ring-purple-500' : ''}">
-                                    ${h.score.toFixed(1)}
-                                  </div>
-                                </div>
-                              `).join('')}
-                            </div>
-                          </div>
-                        ` : ''}
-
-                        <!-- 문제 -->
-                        <div class="bg-white dark:bg-gray-800 rounded-lg p-4 mb-3 border border-gray-200 dark:border-gray-600">
-                          <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">📝 문제</h4>
-                          <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${question.question}</p>
-                        </div>
-
-                        <!-- 사용자 답안 -->
-                        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-3 border border-blue-200 dark:border-blue-700">
-                          <h4 class="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-2">✍️ 내 답안</h4>
-                          <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">${highlightKeywords(userAnswer || '<em class="text-gray-500">작성하지 않음</em>', feedback?.keywordMatch || [])}</p>
-                        </div>
-
-                        <!-- 모범 답안 -->
-                        <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 mb-3 border border-green-200 dark:border-green-700">
-                          <h4 class="text-sm font-semibold text-green-700 dark:text-green-300 mb-2">📚 모범 답안</h4>
-                          <p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">${highlightKeywords(question.model_answer, feedback?.missingKeywords || [])}</p>
-                        </div>
-
-                        <!-- AI 피드백 -->
-                        <div class="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg p-4 border-2 border-red-200 dark:border-red-700">
-                          <h4 class="text-sm font-bold text-red-700 dark:text-red-300 mb-3 flex items-center gap-2">
-                            🎯 빨간펜 선생님의 총평
-                          </h4>
-                          <p class="text-sm text-gray-800 dark:text-gray-200 mb-4 leading-relaxed">${feedback?.feedback || '채점 정보 없음'}</p>
-
-                          ${feedback?.strengths && feedback.strengths.length > 0 ? `
-                            <div class="mb-3">
-                              <h5 class="text-xs font-bold text-green-700 dark:text-green-400 mb-2">✅ 잘한 점</h5>
-                              <ul class="list-disc list-inside space-y-1">
-                                ${feedback.strengths.map(s => `<li class="text-xs text-gray-700 dark:text-gray-300">${s}</li>`).join('')}
-                              </ul>
-                            </div>
-                          ` : ''}
-
-                          ${feedback?.improvements && feedback.improvements.length > 0 ? `
-                            <div class="mb-3">
-                              <h5 class="text-xs font-bold text-orange-700 dark:text-orange-400 mb-2">💡 개선할 점</h5>
-                              <ul class="list-disc list-inside space-y-1">
-                                ${feedback.improvements.map(i => `<li class="text-xs text-gray-700 dark:text-gray-300">${i}</li>`).join('')}
-                              </ul>
-                            </div>
-                          ` : ''}
-
-                          ${feedback?.keywordMatch && feedback.keywordMatch.length > 0 ? `
-                            <div class="mb-2">
-                              <h5 class="text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">🔑 포함된 키워드</h5>
-                              <div class="flex flex-wrap gap-1">
-                                ${feedback.keywordMatch.map(k => `<span class="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">${k}</span>`).join('')}
-                              </div>
-                            </div>
-                          ` : ''}
-
-                          ${feedback?.missingKeywords && feedback.missingKeywords.length > 0 ? `
-                            <div>
-                              <h5 class="text-xs font-bold text-red-700 dark:text-red-400 mb-1">❗ 누락된 키워드</h5>
-                              <div class="flex flex-wrap gap-1">
-                                ${feedback.missingKeywords.map(k => `<span class="text-xs bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200 px-2 py-1 rounded">${k}</span>`).join('')}
-                              </div>
-                            </div>
-                          ` : ''}
-                        </div>
-                        </div>
-                      </div>
-                    `;
-                  }).join('')}
-                </div>
-              </div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-
-      <!-- 하단 버튼 -->
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <button id="retry-exam-btn" class="px-8 py-4 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-bold text-lg rounded-xl shadow-lg transition transform hover:scale-105">
-          🔄 다시 풀기
-        </button>
-        <button id="exit-exam-results-btn" class="px-8 py-4 bg-gray-700 hover:bg-gray-800 text-white font-bold text-lg rounded-xl shadow-lg transition transform hover:scale-105">
-          ✕ 종료하기
-        </button>
-      </div>
-    </div>
-      ${activeViewMode === 'split' ? `
-          </div>
-        </div>
-      ` : `
-      `}
-    </div>
-    </div>
-  `;
-
-  // 이벤트 리스너
-  // 헤더 종료 버튼
-  const exitHeaderBtn = container.querySelector('#btn-exit-results-header');
-  if (exitHeaderBtn) {
-    exitHeaderBtn.addEventListener('click', async () => {
-      if (confirm('기출문제 모드를 종료하시겠습니까?')) {
-        const { exitExamMode } = await import('./examIntegration.js');
-        exitExamMode();
-      }
-    });
-  }
-
-  // 다시 풀기 버튼
-  container.querySelector('#retry-exam-btn').addEventListener('click', () => {
-    // 답안 초기화
-    examService.clearUserAnswers(year);
-    examService.clearTimer(year);
-
-    // 다시 문제 화면으로
-    renderExamPaper(container, year, apiKey, selectedModel);
-  });
-
-  // View Mode Toggle 버튼 (Results)
-  const btnViewSplitResults = container.querySelector('#btn-view-split-results');
-  const btnViewVerticalResults = container.querySelector('#btn-view-vertical-results');
-
-  if (btnViewSplitResults) {
-    btnViewSplitResults.addEventListener('click', () => {
-      examUIState.viewMode = 'split';
-      renderResults(container, year, result, apiKey, selectedModel);
-    });
-  }
-
-  if (btnViewVerticalResults) {
-    btnViewVerticalResults.addEventListener('click', () => {
-      examUIState.viewMode = 'vertical';
-      renderResults(container, year, result, apiKey, selectedModel);
-    });
-  }
-
-  // Split View: Scroll observer to update left panel scenario
-  if (activeViewMode === 'split') {
-    const scrollArea = container.querySelector('#results-scroll-area .flex-1.overflow-y-auto');
-    const scenarioDisplay = container.querySelector('#split-scenario-display-results');
-
-    if (scrollArea && scenarioDisplay) {
-      const questionCards = scrollArea.querySelectorAll('[data-scenario]');
-
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-            const scenario = entry.target.getAttribute('data-scenario');
-            if (scenario) {
-              const decodedScenario = scenario.replace(/&quot;/g, '"');
-              scenarioDisplay.innerHTML = decodedScenario;
-            }
-          }
-        });
-      }, {
-        root: scrollArea,
-        threshold: [0.5, 0.75, 1.0],
-        rootMargin: '-20% 0px -20% 0px'
-      });
-
-      questionCards.forEach(card => observer.observe(card));
-    }
-  }
-
-  // 하단 종료 버튼
-  container.querySelector('#exit-exam-results-btn').addEventListener('click', () => {
-    renderYearSelection(container, apiKey, selectedModel);
-  });
-}
+export { renderExamPaper, renderYearSelection };
