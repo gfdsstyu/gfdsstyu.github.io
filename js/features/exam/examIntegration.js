@@ -38,7 +38,7 @@ export async function enterExamMode() {
   if (resultBox) resultBox.style.display = 'none';
   if (modelAnswerBox) modelAnswerBox.style.display = 'none';
 
-  // 기출문제 컨테이너 생성 (Body에 직접 부착하여 레이아웃 간섭 회피)
+  // 기출문제 컨테이너 생성 (center-core 안에 렌더링)
   examContainer = document.querySelector('#exam-container');
   console.log('🔍 [examIntegration.js] 기존 exam-container:', examContainer);
 
@@ -47,9 +47,29 @@ export async function enterExamMode() {
     examContainer = document.createElement('div');
     examContainer.id = 'exam-container';
 
-    // Body에 직접 append하여 Grid, Transform 등 레이아웃 간섭 회피
-    document.body.appendChild(examContainer);
-    console.log('✅ [examIntegration.js] exam-container를 body에 추가 (Full Screen Overlay)');
+    // center-core 안의 단원문제모드 선택란 바로 아래에 추가
+    const centerCore = document.querySelector('#center-core');
+    const filterSelect = document.querySelector('#filter-select');
+    
+    if (centerCore) {
+      // filter-select 다음에 삽입
+      if (filterSelect && filterSelect.parentElement) {
+        const parentDiv = filterSelect.parentElement.parentElement; // flex flex-col md:flex-row gap-4 mb-6
+        if (parentDiv && parentDiv.nextSibling) {
+          parentDiv.parentElement.insertBefore(examContainer, parentDiv.nextSibling);
+        } else {
+          parentDiv.parentElement.appendChild(examContainer);
+        }
+      } else {
+        // fallback: center-core 안에 추가
+        centerCore.appendChild(examContainer);
+      }
+      console.log('✅ [examIntegration.js] exam-container를 center-core에 추가');
+    } else {
+      // fallback: body에 추가
+      document.body.appendChild(examContainer);
+      console.log('✅ [examIntegration.js] exam-container를 body에 추가 (fallback)');
+    }
   }
 
   console.log('🔍 [examIntegration.js] 최종 examContainer:', examContainer);

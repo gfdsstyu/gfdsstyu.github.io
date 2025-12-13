@@ -20,6 +20,40 @@
  *     - explanation: 해설
  */
 
+/**
+ * Question ID에서 숫자 배열 추출 (정렬용)
+ * 예: "Q10-1-2" -> [10, 1, 2]
+ *     "Q1-2-3" -> [1, 2, 3]
+ */
+function extractQuestionNumbers(questionId) {
+  // "Q" 제거 후 "-"로 분리하여 숫자 추출
+  const parts = questionId.replace(/^Q/i, '').split('-');
+  return parts.map(part => {
+    const num = parseInt(part, 10);
+    return isNaN(num) ? 0 : num;
+  });
+}
+
+/**
+ * Question ID 비교 함수 (정렬용)
+ * 숫자 순서로 정렬: Q1, Q2, Q3, ..., Q9, Q10, Q11, ...
+ */
+function compareQuestionIds(a, b) {
+  const numsA = extractQuestionNumbers(a.id);
+  const numsB = extractQuestionNumbers(b.id);
+  
+  // 각 숫자 부분을 순차적으로 비교
+  const maxLen = Math.max(numsA.length, numsB.length);
+  for (let i = 0; i < maxLen; i++) {
+    const numA = numsA[i] || 0;
+    const numB = numsB[i] || 0;
+    if (numA !== numB) {
+      return numA - numB;
+    }
+  }
+  return 0;
+}
+
 // Hierarchical 데이터를 동적으로 import
 let hierarchicalExamData = null;
 
@@ -60,19 +94,21 @@ export async function getExam2025() {
         // scenario는 첫 번째 subQuestion의 scenario 사용 (호환성 유지)
         scenario: caseItem.subQuestions[0]?.scenario || '',
         type: caseItem.subQuestions[0]?.type || null,
-        questions: caseItem.subQuestions.map(sq => ({
-          id: sq.id,
-          question: sq.question,
-          score: sq.score,
-          model_answer: sq.answer,
-          evaluation_criteria: sq.keywords ? `[Check Point]\n${sq.keywords.map(k => `• ${k}`).join('\n')}` : '',
-          related_q: sq.relatedQ || '',
-          // 새로운 필드 추가
-          scenario: sq.scenario, // SubQuestion 레벨의 scenario 보존
-          explanation: sq.explanation,
-          keywords: sq.keywords,
-          type: sq.type
-        }))
+        questions: caseItem.subQuestions
+          .map(sq => ({
+            id: sq.id,
+            question: sq.question,
+            score: sq.score,
+            model_answer: sq.answer,
+            evaluation_criteria: sq.keywords ? `[Check Point]\n${sq.keywords.map(k => `• ${k}`).join('\n')}` : '',
+            related_q: sq.relatedQ || '',
+            // 새로운 필드 추가
+            scenario: sq.scenario, // SubQuestion 레벨의 scenario 보존
+            explanation: sq.explanation,
+            keywords: sq.keywords,
+            type: sq.type
+          }))
+          .sort(compareQuestionIds) // ID 숫자 순서로 정렬
       });
     });
   });
