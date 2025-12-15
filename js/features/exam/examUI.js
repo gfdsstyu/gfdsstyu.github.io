@@ -333,9 +333,14 @@ function renderYearSelection(container) {
   container.innerHTML = `
     <div class="exam-selection-container max-w-5xl mx-auto p-6">
       <div class="mb-6">
-        <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-2">
-          📝 기출문제 실전연습
-        </h2>
+        <div class="flex items-center justify-between flex-wrap gap-4 mb-2">
+          <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-200">
+            📝 기출문제 실전연습
+          </h2>
+          <a id="btn-clear-exam-history" href="#" class="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 underline cursor-pointer">
+            시험기록 초기화
+          </a>
+        </div>
         <p class="text-gray-600 dark:text-gray-400">
           실제 시험처럼 90분 제한 시간 안에 문제를 풀어보세요.
         </p>
@@ -407,6 +412,20 @@ function renderYearSelection(container) {
   `;
 
   // 이벤트 리스너
+  // 시험기록 초기화 링크
+  const clearHistoryLink = container.querySelector('#btn-clear-exam-history');
+  if (clearHistoryLink) {
+    clearHistoryLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (confirm('모든 연도의 시험기록을 초기화하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.')) {
+        examService.clearAllScores();
+        alert('시험기록이 초기화되었습니다.');
+        // 화면 새로고침
+        renderYearSelection(container);
+      }
+    });
+  }
+
   // 시작하기/다시 풀기 버튼
   container.querySelectorAll('.start-exam-btn').forEach((btn, idx) => {
     btn.addEventListener('click', (e) => {
@@ -964,10 +983,14 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
  * 플로팅 리모콘 설정 (container 밖에 별도로 추가)
  */
 function setupFloatingControls(exams, year) {
-  // 기존 플로팅 리모콘 제거
-  const existingControls = document.getElementById('floating-controls-exam');
-  if (existingControls) {
-    existingControls.remove();
+  // 기존 플로팅 리모콘 모두 제거 (exam과 result 모두)
+  const existingExamControls = document.getElementById('floating-controls-exam');
+  if (existingExamControls) {
+    existingExamControls.remove();
+  }
+  const existingResultControls = document.getElementById('floating-controls-result');
+  if (existingResultControls) {
+    existingResultControls.remove();
   }
 
   // ⚠️ 중요: exams 정렬 (Q1, Q2, ..., Q10 순서)

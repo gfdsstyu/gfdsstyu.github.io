@@ -640,6 +640,16 @@ function setupEventListeners(container, year, result, exams, metadata, userAnswe
   if (retryBtn) {
     retryBtn.replaceWith(retryBtn.cloneNode(true)); // 기존 리스너 제거
     container.querySelector('#retry-exam-btn')?.addEventListener('click', async () => {
+      // 기존 플로팅 리모콘 모두 제거
+      const existingResultControls = document.getElementById('floating-controls-result');
+      if (existingResultControls) {
+        existingResultControls.remove();
+      }
+      const existingExamControls = document.getElementById('floating-controls-exam');
+      if (existingExamControls) {
+        existingExamControls.remove();
+      }
+      
       examService.clearUserAnswers(year);
       examService.clearTimer(year);
       const { renderExamPaper } = await import('./examUI.js');

@@ -270,6 +270,27 @@ class ExamService {
   }
 
   /**
+   * 특정 연도의 점수 히스토리 초기화
+   */
+  clearScores(year) {
+    const key = `exam_${year}_scores`;
+    localStorage.removeItem(key);
+    console.log(`🗑️ ${year}년 점수 히스토리 초기화 완료`);
+  }
+
+  /**
+   * 모든 연도의 점수 히스토리 초기화
+   */
+  clearAllScores() {
+    const keys = Object.keys(localStorage);
+    const examScoreKeys = keys.filter(key => key.startsWith('exam_') && key.endsWith('_scores'));
+    examScoreKeys.forEach(key => {
+      localStorage.removeItem(key);
+    });
+    console.log(`🗑️ 모든 연도 점수 히스토리 초기화 완료 (${examScoreKeys.length}개)`);
+  }
+
+  /**
    * 최고 점수 가져오기
    */
   getBestScore(year) {
