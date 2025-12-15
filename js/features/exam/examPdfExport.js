@@ -78,6 +78,40 @@ export async function exportExamResultsToPdf(year, result, exams, metadata, user
         <title>${year}년 기출문제 채점결과</title>
         <link rel="preconnect" href="https://cdn.jsdelivr.net">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css" />
+        <script>
+          // 폰트 로드 대기 후 인쇄
+          window.addEventListener('load', function() {
+            // 폰트가 로드될 때까지 추가 대기
+            if (document.fonts && document.fonts.ready) {
+              document.fonts.ready.then(function() {
+                setTimeout(function() {
+                  try {
+                    window.print();
+                  } catch (error) {
+                    console.error('인쇄 오류:', error);
+                    alert('인쇄 중 오류가 발생했습니다. 브라우저의 인쇄 기능을 직접 사용해주세요.');
+                  }
+                }, 500);
+              });
+            } else {
+              setTimeout(function() {
+                try {
+                  window.print();
+                } catch (error) {
+                  console.error('인쇄 오류:', error);
+                  alert('인쇄 중 오류가 발생했습니다. 브라우저의 인쇄 기능을 직접 사용해주세요.');
+                }
+              }, 1000);
+            }
+          });
+          
+          // afterprint 이벤트 처리
+          window.addEventListener('afterprint', function() {
+            setTimeout(function() {
+              window.close();
+            }, 100);
+          });
+        </script>
         <style>
           * {
             box-sizing: border-box;
@@ -112,38 +146,9 @@ export async function exportExamResultsToPdf(year, result, exams, metadata, user
     `);
     printWindow.document.close();
     
-    // 렌더링 대기
-    await new Promise(resolve => {
-      printWindow.addEventListener('load', () => {
-        setTimeout(resolve, 500);
-      }, { once: true });
-      // 이미 로드된 경우
-      if (printWindow.document.readyState === 'complete') {
-        setTimeout(resolve, 500);
-      }
-    });
-    
-    // #region agent log
-    const printDoc = printWindow.document;
-    const printBody = printDoc.body;
-    const printScrollHeight = printBody.scrollHeight;
-    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examPdfExport.js:70',message:'Print window ready',data:{printScrollHeight,printBodyChildren:printBody.children.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
-    // 인쇄 실행
+    // 인쇄는 새 창 내부의 스크립트에서 처리됨 (window.load 이벤트에서)
+    // 폰트 로드 및 렌더링 완료 후 자동으로 print() 호출
     printWindow.focus();
-    printWindow.print();
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examPdfExport.js:120',message:'Print dialog opened',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
-    // 인쇄 후 창 닫기
-    printWindow.addEventListener('afterprint', () => {
-      setTimeout(() => {
-        printWindow.close();
-      }, 100);
-    }, { once: true });
 
   } catch (error) {
     // #region agent log
@@ -788,11 +793,12 @@ function parseTable(lines, startIndex) {
 
   // 바디 행들
   while (i < lines.length) {
-    const line = lines[i].trim();
+    const line = lines[i];
+    const trimmedLine = line.trim();
     
     // 테이블 행인지 확인
-    if (line.startsWith('|') && line.endsWith('|')) {
-      const row = parseTableRow(line);
+    if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
+      const row = parseTableRow(trimmedLine);
       if (row.length === headers.length) {
         tableRows.push(row);
         i++;
@@ -800,9 +806,8 @@ function parseTable(lines, startIndex) {
       }
     }
     
-    // 빈 줄이면 테이블 종료
-    if (line === '') {
-      i++;
+    // 빈 줄이면 테이블 종료 (빈 줄은 포함하지 않음)
+    if (trimmedLine === '') {
       break;
     }
     
@@ -857,29 +862,42 @@ function renderTableForPdf(headers, alignments, rows) {
 function convertMarkdownTablesToHtml(text) {
   if (!text) return text;
 
-  // 텍스트 정규화 먼저 적용
-  text = normalizeText(text);
-
-  // 줄 단위로 분리
+  // 줄 단위로 분리 (정규화 전에 분리하여 테이블 구조 보존)
   const lines = text.split(/\r?\n/);
   let result = '';
   let i = 0;
+  let lastWasTable = false;
 
   while (i < lines.length) {
-    const line = lines[i].trim();
+    const line = lines[i];
+    const trimmedLine = line.trim();
     
     // 테이블 시작 감지: | 로 시작하고 끝나는 줄
-    if (line.startsWith('|') && line.endsWith('|')) {
+    if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
       const tableData = parseTable(lines, i);
       if (tableData) {
+        // 테이블 전에 줄바꿈 추가 (이전 내용이 있으면)
+        if (result && !result.endsWith('<br>') && !result.endsWith('</table>')) {
+          result += '<br>';
+        }
         result += renderTableForPdf(tableData.headers, tableData.alignments, tableData.rows);
         i = tableData.nextIndex;
+        lastWasTable = true;
         continue;
       }
     }
     
     // 테이블이 아니면 원본 텍스트 유지 (HTML 이스케이프 적용)
-    result += (i > 0 ? '\n' : '') + escapeHtml(lines[i]);
+    // 줄바꿈을 <br>로 변환
+    if (i > 0) {
+      if (lastWasTable) {
+        result += '<br>';
+        lastWasTable = false;
+      } else if (result && !result.endsWith('<br>')) {
+        result += '<br>';
+      }
+    }
+    result += escapeHtml(line);
     i++;
   }
 
