@@ -28,7 +28,7 @@ function safeText(text) {
   }
 }
 
-export async function exportExamResultsToPdf(year, result, exams, metadata, userAnswers, questionScores = null) {
+export async function exportExamResultsToPdf(year, result, exams, metadata, userAnswers, questionScores = null, options = { includeScenario: true, includeQuestion: true }) {
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examPdfExport.js:22',message:'PDF export started',data:{year,yearType:typeof year,resultKeys:Object.keys(result),examsLength:exams?.length,metadataKeys:Object.keys(metadata)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
   // #endregion
@@ -52,7 +52,7 @@ export async function exportExamResultsToPdf(year, result, exams, metadata, user
     fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examPdfExport.js:45',message:'QuestionScores loaded',data:{questionScoresKeys:Object.keys(qScores).slice(0, 10),questionScoresCount:Object.keys(qScores).length,hasQuestionScoresParam:!!questionScores},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
     // #endregion
     
-    const pdfHtml = generatePdfHtml(year, result, exams, metadata, userAnswers, qScores);
+    const pdfHtml = generatePdfHtml(year, result, exams, metadata, userAnswers, qScores, options);
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examPdfExport.js:40',message:'PDF HTML generated',data:{htmlLength:pdfHtml.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
     // #endregion
@@ -222,7 +222,7 @@ function extractQuestionNumber(questionId) {
  * PDF용 HTML 생성 (더 이상 사용하지 않음 - jsPDF 직접 사용으로 대체됨)
  * @deprecated
  */
-function generatePdfHtml(year, result, exams, metadata, userAnswers) {
+function generatePdfHtml(year, result, exams, metadata, userAnswers, questionScores = {}, options = { includeScenario: true, includeQuestion: true }) {
   const totalPossibleScoreRaw = metadata.totalScore || 100;
   const totalPossibleScore = Math.round(totalPossibleScoreRaw * 10) / 10; // 소수점 첫째자리로 반올림
   const roundedScore = Math.round(result.totalScore * 10) / 10; // 소수점 첫째자리로 반올림
@@ -273,7 +273,7 @@ function generatePdfHtml(year, result, exams, metadata, userAnswers) {
         }
         .section {
           page-break-inside: avoid;
-          margin-bottom: 8mm;
+          margin-bottom: 5mm;
         }
         .section-title {
           font-size: 16pt;
@@ -286,8 +286,8 @@ function generatePdfHtml(year, result, exams, metadata, userAnswers) {
         .summary-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 6mm;
-          margin-bottom: 8mm;
+          gap: 4mm;
+          margin-bottom: 5mm;
         }
         .summary-card {
           background: #F9FAFB;
@@ -308,33 +308,42 @@ function generatePdfHtml(year, result, exams, metadata, userAnswers) {
         .case-section {
           margin-bottom: 10mm;
         }
-        .case-section:not(:first-of-type) {
-          page-break-before: always;
+        .case-section {
+          margin-bottom: 5mm;
+          page-break-before: auto;
         }
         .case-section:first-of-type {
-          page-break-before: auto;
-          margin-top: 5mm;
+          margin-top: 3mm;
         }
         .case-header {
           background: #6D28D9;
-          color: white;
-          padding: 6mm;
+          color: #111827;
+          padding: 4mm;
           border-radius: 4mm 4mm 0 0;
           font-size: 14pt;
           font-weight: bold;
+          page-break-after: avoid;
+          margin-bottom: 0;
+          padding-bottom: 3mm;
         }
         .question-card {
           border: 1px solid #E5E7EB;
           border-top: none;
-          padding: 5mm;
+          padding: 3mm;
           page-break-inside: avoid;
+          margin-top: 0;
+        }
+        .question-card:first-of-type {
+          border-top: 1px solid #E5E7EB;
+          border-radius: 0;
+          margin-top: 0;
         }
         .question-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 3mm;
-          padding-bottom: 2mm;
+          margin-bottom: 2mm;
+          padding-bottom: 1mm;
           border-bottom: 1px solid #E5E7EB;
         }
         .question-title {
@@ -348,8 +357,8 @@ function generatePdfHtml(year, result, exams, metadata, userAnswers) {
           color: #6D28D9;
         }
         .content-box {
-          margin-bottom: 3mm;
-          padding: 4mm;
+          margin-bottom: 2mm;
+          padding: 3mm;
           border-radius: 3mm;
           border-left: 4px solid;
         }
@@ -376,15 +385,30 @@ function generatePdfHtml(year, result, exams, metadata, userAnswers) {
         .content-label {
           font-size: 10pt;
           font-weight: bold;
-          margin-bottom: 2mm;
+          margin-bottom: 1mm;
           color: #374151;
         }
         .content-text {
           font-size: 10pt;
-          line-height: 1.6;
+          line-height: 1.5;
           color: #111827;
           white-space: pre-wrap;
           word-wrap: break-word;
+        }
+        .content-text table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 2mm 0;
+          font-size: 9pt;
+        }
+        .content-text table th,
+        .content-text table td {
+          border: 1px solid #D1D5DB;
+          padding: 2mm;
+        }
+        .content-text table th {
+          background: #F3F4F6;
+          font-weight: bold;
         }
         .question-history {
           margin-top: 3mm;
@@ -517,9 +541,6 @@ function generatePdfHtml(year, result, exams, metadata, userAnswers) {
           <div class="summary-card">
             <div class="summary-label">합격 기준</div>
             <div class="summary-value">${metadata.passingScore || 60}점</div>
-            <div style="font-size: 11pt; color: ${isPassing ? '#16A34A' : '#DC2626'}; margin-top: 2mm;">
-              ${isPassing ? '✅ 합격' : '❌ 불합격'}
-            </div>
           </div>
         </div>
       </div>
@@ -545,7 +566,7 @@ function generatePdfHtml(year, result, exams, metadata, userAnswers) {
 
       <!-- 문제별 상세 결과 -->
       ${exams.map((examCase, caseIdx) => {
-        return generateCaseSection(examCase, caseIdx, result, userAnswers, questionScores, year);
+        return generateCaseSection(examCase, caseIdx, result, userAnswers, questionScores, year, options);
       }).join('')}
 
       <!-- 푸터 -->
@@ -562,7 +583,7 @@ function generatePdfHtml(year, result, exams, metadata, userAnswers) {
 /**
  * Case별 섹션 생성
  */
-function generateCaseSection(examCase, caseIdx, result, userAnswers, questionScores = {}, year) {
+function generateCaseSection(examCase, caseIdx, result, userAnswers, questionScores = {}, year, options = { includeScenario: true, includeQuestion: true }) {
   return `
     <div class="case-section">
       <div class="case-header">
@@ -639,24 +660,26 @@ function generateCaseSection(examCase, caseIdx, result, userAnswers, questionSco
           <div class="question-card">
             <div class="question-header">
               <div>
-                <span class="question-title">물음 ${extractQuestionNumber(question.id)} (${question.score}점)</span>
+                <span class="question-title">물음 ${extractQuestionNumber(question.id)}</span>
                 <span class="score-badge ${scoreBadgeClass}">${scoreBadgeText}</span>
               </div>
-              <div class="question-score">${Math.round(score * 10) / 10}점</div>
+              <div class="question-score">${(Math.round(score * 10) / 10).toFixed(1)} / ${question.score}점</div>
             </div>
             ${historyHtml}
 
-            ${currentScenario && !isSameScenario ? `
+            ${options.includeScenario && currentScenario && !isSameScenario ? `
               <div class="content-box scenario">
                 <div class="content-label">📄 지문</div>
-                <div class="content-text">${escapeHtml(currentScenario)}</div>
+                <div class="content-text">${convertMarkdownTablesToHtml(currentScenario)}</div>
               </div>
             ` : ''}
 
+            ${options.includeQuestion ? `
             <div class="content-box question">
               <div class="content-label">📝 문제</div>
-              <div class="content-text">${escapeHtml(question.question)}</div>
+              <div class="content-text">${convertMarkdownTablesToHtml(question.question)}</div>
             </div>
+            ` : ''}
 
             <div class="content-box user-answer">
               <div class="content-label">✍️ 내 답안</div>
@@ -665,18 +688,18 @@ function generateCaseSection(examCase, caseIdx, result, userAnswers, questionSco
 
             <div class="content-box model-answer">
               <div class="content-label">📚 모범 답안</div>
-              <div class="content-text">${escapeHtml(question.model_answer)}</div>
+              <div class="content-text">${convertMarkdownTablesToHtml(question.model_answer)}</div>
             </div>
 
             ${feedback?.feedback ? `
               <div class="content-box feedback">
                 <div class="content-label">🎯 AI 선생님의 총평</div>
-                <div class="content-text">${escapeHtml(feedback.feedback)}</div>
+                <div class="content-text">${convertMarkdownTablesToHtml(feedback.feedback)}</div>
               </div>
             ` : ''}
 
             ${feedback?.strengths && feedback.strengths.length > 0 ? `
-              <div style="margin-top: 4mm;">
+              <div style="margin-top: 2mm;">
                 <div class="content-label">✅ 잘한 점</div>
                 <ul style="margin: 2mm 0; padding-left: 6mm; font-size: 10pt;">
                   ${feedback.strengths.map(s => `<li style="margin-bottom: 1mm;">${escapeHtml(s)}</li>`).join('')}
@@ -685,7 +708,7 @@ function generateCaseSection(examCase, caseIdx, result, userAnswers, questionSco
             ` : ''}
 
             ${feedback?.improvements && feedback.improvements.length > 0 ? `
-              <div style="margin-top: 3mm;">
+              <div style="margin-top: 2mm;">
                 <div class="content-label">💡 개선할 점</div>
                 <ul style="margin: 2mm 0; padding-left: 6mm; font-size: 10pt;">
                   ${feedback.improvements.map(i => `<li style="margin-bottom: 1mm;">${escapeHtml(i)}</li>`).join('')}
@@ -707,5 +730,159 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+/**
+ * 텍스트 정규화: 과도한 줄바꿈 완화
+ */
+function normalizeText(text) {
+  if (!text) return text;
+  return text.replace(/\n{3,}/g, '\n\n');
+}
+
+/**
+ * 테이블 행 파싱 (|로 구분된 셀들)
+ */
+function parseTableRow(line) {
+  // 앞뒤 | 제거 후 분리
+  const cells = line.slice(1, -1).split('|');
+  return cells.map(cell => cell.trim());
+}
+
+/**
+ * 테이블 파싱 (시작 인덱스부터 테이블 끝까지)
+ */
+function parseTable(lines, startIndex) {
+  const tableRows = [];
+  let i = startIndex;
+  let alignments = [];
+
+  // 헤더 행
+  const headerLine = lines[i].trim();
+  if (!headerLine.startsWith('|') || !headerLine.endsWith('|')) {
+    return null;
+  }
+  const headers = parseTableRow(headerLine);
+  if (headers.length < 2) return null; // 최소 2개 컬럼 필요
+  
+  i++;
+
+  // 구분선 (정렬 정보)
+  if (i >= lines.length) return null;
+  const separatorLine = lines[i].trim();
+  if (!separatorLine.startsWith('|') || !separatorLine.endsWith('|')) {
+    return null;
+  }
+  
+  // 정렬 정보 파싱
+  alignments = parseTableRow(separatorLine).map(cell => {
+    const trimmed = cell.trim();
+    // :---: (center), ---: (right), :--- (left), --- (left)
+    if (trimmed.startsWith(':') && trimmed.endsWith(':')) return 'center';
+    if (trimmed.endsWith(':')) return 'right';
+    if (trimmed.startsWith(':')) return 'left';
+    return 'left';
+  });
+  
+  i++;
+
+  // 바디 행들
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    
+    // 테이블 행인지 확인
+    if (line.startsWith('|') && line.endsWith('|')) {
+      const row = parseTableRow(line);
+      if (row.length === headers.length) {
+        tableRows.push(row);
+        i++;
+        continue;
+      }
+    }
+    
+    // 빈 줄이면 테이블 종료
+    if (line === '') {
+      i++;
+      break;
+    }
+    
+    // 테이블이 아닌 줄이면 종료
+    break;
+  }
+
+  if (tableRows.length === 0) return null;
+
+  return {
+    headers,
+    alignments,
+    rows: tableRows,
+    nextIndex: i
+  };
+}
+
+/**
+ * HTML 테이블 렌더링 (PDF용)
+ */
+function renderTableForPdf(headers, alignments, rows) {
+  let html = '<table style="width: 100%; border-collapse: collapse; margin: 2mm 0; font-size: 9pt;">';
+  
+  // 헤더
+  html += '<thead><tr style="background: #F3F4F6;">';
+  headers.forEach((header, idx) => {
+    const align = alignments[idx] || 'left';
+    const textAlign = align === 'center' ? 'center' : (align === 'right' ? 'right' : 'left');
+    html += `<th style="border: 1px solid #D1D5DB; padding: 2mm; text-align: ${textAlign}; font-weight: bold;">${escapeHtml(header)}</th>`;
+  });
+  html += '</tr></thead>';
+
+  // 바디
+  html += '<tbody>';
+  rows.forEach(row => {
+    html += '<tr>';
+    row.forEach((cell, idx) => {
+      const align = alignments[idx] || 'left';
+      const textAlign = align === 'center' ? 'center' : (align === 'right' ? 'right' : 'left');
+      html += `<td style="border: 1px solid #D1D5DB; padding: 2mm; text-align: ${textAlign};">${escapeHtml(cell)}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+
+  return html;
+}
+
+/**
+ * 마크다운 표를 HTML 테이블로 변환 (PDF용)
+ */
+function convertMarkdownTablesToHtml(text) {
+  if (!text) return text;
+
+  // 텍스트 정규화 먼저 적용
+  text = normalizeText(text);
+
+  // 줄 단위로 분리
+  const lines = text.split(/\r?\n/);
+  let result = '';
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    
+    // 테이블 시작 감지: | 로 시작하고 끝나는 줄
+    if (line.startsWith('|') && line.endsWith('|')) {
+      const tableData = parseTable(lines, i);
+      if (tableData) {
+        result += renderTableForPdf(tableData.headers, tableData.alignments, tableData.rows);
+        i = tableData.nextIndex;
+        continue;
+      }
+    }
+    
+    // 테이블이 아니면 원본 텍스트 유지 (HTML 이스케이프 적용)
+    result += (i > 0 ? '\n' : '') + escapeHtml(lines[i]);
+    i++;
+  }
+
+  return result;
 }
 

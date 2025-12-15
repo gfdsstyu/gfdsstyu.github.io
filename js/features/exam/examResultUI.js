@@ -6,11 +6,16 @@
 import { examService } from './examService.js';
 
 /**
- * 텍스트 정규화: 과도한 줄바꿈 완화
+ * 텍스트 정규화: 과도한 줄바꿈 완화 및 불필요한 들여쓰기 제거
  */
 function normalizeText(text) {
   if (!text) return text;
-  return text.replace(/\n{3,}/g, '\n\n');
+  // 각 줄의 앞뒤 공백 제거
+  const lines = text.split('\n').map(line => line.trim());
+  // 빈 줄 제거 후 다시 결합
+  const cleaned = lines.join('\n').replace(/\n{3,}/g, '\n\n');
+  // 전체 텍스트의 앞뒤 공백 제거
+  return cleaned.trim();
 }
 
 /**
@@ -230,9 +235,19 @@ const totalPossibleScore = examService.getTotalScore(year);
           <span class="px-3 sm:px-4 py-1.5 sm:py-2 bg-white dark:bg-gray-800 rounded-lg font-bold text-sm sm:text-base">
             ${result.totalScore.toFixed(1)} / ${totalPossibleScore}점
           </span>
-          <button id="btn-export-pdf" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-sm sm:text-base transition-colors flex items-center gap-1.5">
-            📄 PDF
-          </button>
+          <div class="relative inline-block">
+            <button id="btn-export-pdf" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-sm sm:text-base transition-colors flex items-center gap-1.5">
+              📄 PDF <span class="text-xs">▼</span>
+            </button>
+            <div id="pdf-export-menu" class="hidden absolute right-0 mt-1 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700" style="z-index: 99999;">
+              <button class="pdf-export-option w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700" data-options='{"includeScenario":true,"includeQuestion":true}'>
+                📄 전체 내보내기
+              </button>
+              <button class="pdf-export-option w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700" data-options='{"includeScenario":false,"includeQuestion":false}'>
+                📄 지문, 물음 제외 (해설만)
+              </button>
+            </div>
+          </div>
           <button id="btn-exit-results" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-sm sm:text-base transition-colors">
             ✕ 종료
           </button>
@@ -287,7 +302,7 @@ const totalPossibleScore = examService.getTotalScore(year);
         ${exams.map((examCase, caseIdx) => `
           <section class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
             <!-- Case 헤더 -->
-            <div class="bg-purple-700 dark:bg-purple-800 text-white px-4 sm:px-6 py-3 sm:py-4">
+            <div class="bg-purple-700 dark:bg-purple-800 text-gray-900 dark:text-white px-4 sm:px-6 py-3 sm:py-4">
               <h3 class="text-lg sm:text-xl font-bold">문제 ${caseIdx + 1}: ${examCase.topic}</h3>
             </div>
 
@@ -408,7 +423,7 @@ const totalPossibleScore = examService.getTotalScore(year);
                     <div class="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded">
                       <h6 class="font-bold mb-2 text-sm sm:text-base text-blue-700 dark:text-blue-400">✍️ 내 답안</h6>
                       <p class="text-sm sm:text-base break-words text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                        ${userAnswer ? escapeHtml(userAnswer) : '<em class="text-gray-500 dark:text-gray-400">작성하지 않음</em>'}
+${userAnswer ? escapeHtml(normalizeText(userAnswer)) : '<em class="text-gray-500 dark:text-gray-400">작성하지 않음</em>'}
                       </p>
                     </div>
 
@@ -422,7 +437,7 @@ const totalPossibleScore = examService.getTotalScore(year);
                     <div class="p-3 sm:p-4 bg-purple-50 dark:bg-purple-900/20 rounded">
                       <h6 class="font-bold mb-2 text-sm sm:text-base text-purple-700 dark:text-purple-400">🎯 AI 선생님의 총평</h6>
                       <p class="text-sm sm:text-base text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
-                        ${feedback?.feedback ? escapeHtml(feedback.feedback) : '<span class="text-gray-500 dark:text-gray-400">채점 정보 없음</span>'}
+${feedback?.feedback ? escapeHtml(normalizeText(feedback.feedback)) : '<span class="text-gray-500 dark:text-gray-400">채점 정보 없음</span>'}
                       </p>
                     </div>
                     </div>
@@ -435,13 +450,10 @@ const totalPossibleScore = examService.getTotalScore(year);
 
         <!-- 하단 액션 버튼 -->
         <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center pb-6 sm:pb-8 pt-4">
-          <button id="retry-exam-btn" class="flex-1 sm:flex-none px-6 sm:px-8 py-3 sm:py-4 bg-purple-700 hover:bg-purple-800 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg transition-colors">
+          <button id="retry-exam-btn" class="flex-1 sm:flex-none px-6 sm:px-8 py-3 sm:py-4 bg-purple-700 hover:bg-purple-800 text-gray-900 dark:text-white font-bold text-base sm:text-lg rounded-xl shadow-lg transition-colors">
             🔄 다시 풀기
           </button>
-          <button id="btn-export-pdf-bottom" class="flex-1 sm:flex-none px-6 sm:px-8 py-3 sm:py-4 bg-green-600 hover:bg-green-700 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2">
-            📄 PDF 내보내기
-          </button>
-          <button id="exit-exam-btn" class="flex-1 sm:flex-none px-6 sm:px-8 py-3 sm:py-4 bg-gray-700 hover:bg-gray-800 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg transition-colors">
+          <button id="exit-exam-btn" class="flex-1 sm:flex-none px-6 sm:px-8 py-3 sm:py-4 bg-gray-700 hover:bg-gray-800 text-gray-900 dark:text-white font-bold text-base sm:text-lg rounded-xl shadow-lg transition-colors">
             ✕ 종료하기
           </button>
         </div>
@@ -673,23 +685,67 @@ function setupEventListeners(container, year, result, exams, metadata, userAnswe
     });
   });
 
-  // PDF 내보내기 버튼 (헤더)
+  // PDF 내보내기 버튼 (헤더) - 드롭다운 메뉴
   const pdfExportBtn = container.querySelector('#btn-export-pdf');
-  if (pdfExportBtn) {
-    pdfExportBtn.replaceWith(pdfExportBtn.cloneNode(true));
-    container.querySelector('#btn-export-pdf')?.addEventListener('click', async () => {
-      await handlePdfExport(year, result, exams, metadata, userAnswers);
-    });
+  const pdfExportMenu = container.querySelector('#pdf-export-menu');
+  
+  if (pdfExportBtn && pdfExportMenu) {
+    // 기존 이벤트 리스너 제거를 위해 부모 요소에서 교체
+    const pdfExportContainer = pdfExportBtn.parentElement;
+    if (pdfExportContainer) {
+      pdfExportContainer.replaceWith(pdfExportContainer.cloneNode(true));
+    }
+    
+    const newPdfExportBtn = container.querySelector('#btn-export-pdf');
+    const newPdfExportMenu = container.querySelector('#pdf-export-menu');
+    
+    if (newPdfExportBtn && newPdfExportMenu) {
+      // 드롭다운 메뉴를 body에 직접 추가하고 fixed positioning 사용
+      const menuClone = newPdfExportMenu.cloneNode(true);
+      menuClone.id = 'pdf-export-menu-floating';
+      menuClone.style.position = 'fixed';
+      menuClone.style.zIndex = '99999';
+      document.body.appendChild(menuClone);
+      
+      // 원본 메뉴는 숨김
+      newPdfExportMenu.style.display = 'none';
+      
+      // 버튼 클릭 시 메뉴 토글 및 위치 계산
+      newPdfExportBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = menuClone.classList.contains('hidden');
+        menuClone.classList.toggle('hidden');
+        
+        if (!isHidden) {
+          // 메뉴 표시 시 버튼 위치에 맞춰 배치
+          const btnRect = newPdfExportBtn.getBoundingClientRect();
+          menuClone.style.right = `${window.innerWidth - btnRect.right}px`;
+          menuClone.style.top = `${btnRect.bottom + 4}px`;
+        }
+      });
+      
+      // 메뉴 외부 클릭 시 닫기
+      const handleOutsideClick = (e) => {
+        if (newPdfExportBtn && menuClone && 
+            !newPdfExportBtn.contains(e.target) && !menuClone.contains(e.target)) {
+          menuClone.classList.add('hidden');
+        }
+      };
+      document.addEventListener('click', handleOutsideClick);
+      
+      // 옵션 선택 시 PDF 내보내기
+      const options = menuClone.querySelectorAll('.pdf-export-option');
+      options.forEach(option => {
+        option.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          menuClone.classList.add('hidden');
+          const optionsData = JSON.parse(option.dataset.options);
+          await handlePdfExport(year, result, exams, metadata, userAnswers, optionsData);
+        });
+      });
+    }
   }
 
-  // PDF 내보내기 버튼 (하단)
-  const pdfExportBtnBottom = container.querySelector('#btn-export-pdf-bottom');
-  if (pdfExportBtnBottom) {
-    pdfExportBtnBottom.replaceWith(pdfExportBtnBottom.cloneNode(true));
-    container.querySelector('#btn-export-pdf-bottom')?.addEventListener('click', async () => {
-      await handlePdfExport(year, result, exams, metadata, userAnswers);
-    });
-  }
 
   // 플로팅 리모콘은 setupFloatingControlsResult에서 처리됨
 }
@@ -697,7 +753,7 @@ function setupEventListeners(container, year, result, exams, metadata, userAnswe
 /**
  * PDF 내보내기 처리
  */
-async function handlePdfExport(year, result, exams, metadata, userAnswers) {
+async function handlePdfExport(year, result, exams, metadata, userAnswers, options = { includeScenario: true, includeQuestion: true }) {
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:700',message:'handlePdfExport called',data:{year,yearType:typeof year,resultKeys:Object.keys(result),examsLength:exams?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
   // #endregion
@@ -721,7 +777,7 @@ async function handlePdfExport(year, result, exams, metadata, userAnswers) {
     const { getQuestionScores } = await import('../../core/stateManager.js');
     const questionScores = getQuestionScores();
     
-    await exportExamResultsToPdf(year, resultWithHistory, exams, metadata, userAnswers, questionScores);
+    await exportExamResultsToPdf(year, resultWithHistory, exams, metadata, userAnswers, questionScores, options);
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:713',message:'exportExamResultsToPdf completed',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
     // #endregion
