@@ -3,7 +3,7 @@
  * 기출문제 데이터 로딩, 답안 저장, 채점 로직 관리
  */
 
-import { getExam2025, getExamMetadata } from './examData.js';
+import { getExamByYear, getExamMetadata } from './examData.js';
 
 class ExamService {
   constructor() {
@@ -14,23 +14,33 @@ class ExamService {
 
   /**
    * 초기화
+   * 2014-2025년 범위의 모든 연도 데이터를 로드
    */
   async initialize() {
     if (this.initialized) return;
 
-    // KAM 데이터 비동기 로드
-    const exam2025 = await getExam2025();
+    // 메타데이터 먼저 로드하여 사용 가능한 연도 확인
     const metadata = await getExamMetadata();
+    const availableYears = Object.keys(metadata).map(y => parseInt(y)).sort((a, b) => b - a);
 
-    this.examData = {
-      2025: exam2025
-    };
+    // 사용 가능한 모든 연도 데이터 로드
+    this.examData = {};
+    const loadPromises = availableYears.map(async (year) => {
+      const examData = await getExamByYear(year);
+      this.examData[year] = examData;
+      return { year, count: examData.length };
+    });
+
+    const results = await Promise.all(loadPromises);
     this.metadata = metadata;
 
-    console.log('✅ Past Exam Service initialized with KAM data');
-    console.log(`   - ${exam2025.length}개 사례`);
-    console.log(`   - 총 ${this.getTotalQuestions(2025)}개 문제`);
-    console.log(`   - 만점: ${this.getTotalScore(2025)}점`);
+    console.log('✅ Past Exam Service initialized');
+    console.log(`   - 사용 가능한 연도: ${availableYears.join(', ')}`);
+    results.forEach(({ year, count }) => {
+      if (count > 0) {
+        console.log(`   - ${year}년: ${count}개 사례, ${this.getTotalQuestions(year)}개 문제, 만점 ${this.getTotalScore(year)}점`);
+      }
+    });
 
     this.initialized = true;
   }

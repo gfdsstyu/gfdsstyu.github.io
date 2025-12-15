@@ -819,6 +819,9 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
   }
 
   // Desktop: Navigation buttons - 스크롤 이동
+  // ⚠️ 참고: 이 부분은 헤더 내부의 네비게이션 버튼 (현재 사용 안 함)
+  // 실제 문제 바로가기는 setupFloatingControls의 navButtons에서 처리됨
+  // 뷰 모드별 스크롤 처리 로직은 setupFloatingControls 함수 참고 필수
   const navButtons = container.querySelectorAll('#nav-grid button');
   const scrollContainer = document.getElementById('exam-scroll-area'); // 스크롤 컨테이너 명시
 
