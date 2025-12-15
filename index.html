@@ -12,16 +12,6 @@
 
     gtag('config', 'G-20Q61B31CM');
 </script>
-  <!-- Google Tag Manager -->
-<script>(function (w, d, s, l, i) {
-    w[l] = w[l] || []; w[l].push({
-        'gtm.start':
-        new Date().getTime(), event: 'gtm.js'
-    }); var f = d.getElementsByTagName(s)[0],
-    j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
-    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
-})(window, document, 'script', 'dataLayer', 'GTM-TC8G7NJD');</script>
-<!-- End Google Tag Manager -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="referrer" content="same-origin" />
@@ -1072,9 +1062,11 @@
           <input
             type="text"
             id="create-group-name"
+            name="create-group-name"
             required
             minlength="2"
             maxlength="30"
+            autocomplete="organization"
             class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
             placeholder="예: 2025 감사 1차 대비반"
           />
@@ -1104,7 +1096,9 @@
           <input
             type="password"
             id="create-group-password"
+            name="create-group-password"
             minlength="4"
+            autocomplete="new-password"
             class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
             placeholder="비밀번호 없이 공개 그룹으로 만들 수 있습니다"
           />
@@ -1952,13 +1946,16 @@
     import { initRankingUI, openRankingModal } from './js/features/ranking/rankingUI.js';
     import { initReviewListeners } from './js/features/review/reviewCore.js';
     import { initSttListeners } from './js/features/stt/sttHandler.js';
-    import { enterExamMode, exitExamMode, getIsExamMode } from './js/features/exam/examIntegration.js';
-    import { enterKAMMode } from './js/features/kam/kamIntegration.js';
+    // Exam/KAM 모듈은 Lazy Loading으로 변경됨
+    // import { enterExamMode, exitExamMode, getIsExamMode } from './js/features/exam/examIntegration.js';
+    // import { enterKAMMode } from './js/features/kam/kamIntegration.js';
 
     // Phase 2: Lazy Loading 모듈 관리
     let aiAnalysisModule = null;
     let flashcardModule = null;
     let dataImportExportModule = null;
+    let examModule = null;
+    let kamModule = null;
 
     /**
      * Phase 2: AI 분석 모듈 Lazy Loading
@@ -2010,6 +2007,38 @@
       } catch (err) {
         console.error('❌ [Lazy] 데이터 Import/Export 모듈 로드 실패:', err);
         showToast('데이터 Import/Export 모듈 로드 실패', 'error');
+        throw err;
+      }
+    }
+
+    /**
+     * Exam 모듈 Lazy Loading
+     */
+    async function loadExamModule() {
+      if (examModule) return examModule;
+      try {
+        examModule = await import('./js/features/exam/examIntegration.js');
+        console.log('✅ [Lazy] Exam 모듈 로드 완료');
+        return examModule;
+      } catch (err) {
+        console.error('❌ [Lazy] Exam 모듈 로드 실패:', err);
+        showToast('기출문제 모드 로드 실패', 'error');
+        throw err;
+      }
+    }
+
+    /**
+     * KAM 모듈 Lazy Loading
+     */
+    async function loadKAMModule() {
+      if (kamModule) return kamModule;
+      try {
+        kamModule = await import('./js/features/kam/kamIntegration.js');
+        console.log('✅ [Lazy] KAM 모듈 로드 완료');
+        return kamModule;
+      } catch (err) {
+        console.error('❌ [Lazy] KAM 모듈 로드 실패:', err);
+        showToast('KAM 모드 로드 실패', 'error');
         throw err;
       }
     }
@@ -2133,6 +2162,7 @@
           closeCaseModal();
 
           try {
+            const { enterKAMMode } = await loadKAMModule();
             await enterKAMMode();
             console.log('🔍 KAM 모드 진입');
           } catch (error) {
@@ -2154,6 +2184,7 @@
           console.log('🔑 [index.html] 선택된 모델:', selectedModel);
 
           try {
+            const { enterExamMode } = await loadExamModule();
             await enterExamMode();
             console.log('📝 기출문제 모드 진입');
           } catch (error) {
@@ -2269,6 +2300,8 @@
               <input
                 type="email"
                 id="login-email"
+                name="login-email"
+                autocomplete="username"
                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                 placeholder="example@email.com"
                 required
@@ -2284,6 +2317,8 @@
               <input
                 type="password"
                 id="login-password"
+                name="login-password"
+                autocomplete="current-password"
                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                 placeholder="••••••••"
                 required
@@ -2334,6 +2369,8 @@
               <input
                 type="email"
                 id="signup-email"
+                name="signup-email"
+                autocomplete="username"
                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                 placeholder="example@email.com"
                 required
@@ -2344,6 +2381,8 @@
               <input
                 type="password"
                 id="signup-password"
+                name="signup-password"
+                autocomplete="new-password"
                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                 placeholder="••••••••"
                 required
@@ -2354,6 +2393,8 @@
               <input
                 type="password"
                 id="signup-password-confirm"
+                name="signup-password-confirm"
+                autocomplete="new-password"
                 class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
                 placeholder="••••••••"
                 required
@@ -2534,15 +2575,29 @@
 
             <!-- 이메일 로그인 사용자를 위한 비밀번호 입력 -->
             <div id="delete-password-section" class="hidden">
-              <label for="delete-password-input" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                본인 확인을 위해 비밀번호를 입력하세요
-              </label>
-              <input
-                type="password"
-                id="delete-password-input"
-                class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-gray-100"
-                placeholder="비밀번호"
-              />
+              <form id="delete-account-form" onsubmit="return false;">
+                <!-- 접근성을 위한 hidden username 필드 -->
+                <input
+                  type="text"
+                  name="delete-username"
+                  autocomplete="username"
+                  value=""
+                  style="position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0;"
+                  tabindex="-1"
+                  aria-hidden="true"
+                />
+                <label for="delete-password-input" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  본인 확인을 위해 비밀번호를 입력하세요
+                </label>
+                <input
+                  type="password"
+                  id="delete-password-input"
+                  name="delete-password-input"
+                  autocomplete="current-password"
+                  class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:text-gray-100"
+                  placeholder="비밀번호"
+                />
+              </form>
             </div>
 
             <button
@@ -2558,10 +2613,6 @@
   </div>
 
 </body>
-  <!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TC8G7NJD"
-height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
 </html>
 
 
