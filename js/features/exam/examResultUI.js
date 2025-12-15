@@ -230,6 +230,9 @@ const totalPossibleScore = examService.getTotalScore(year);
           <span class="px-3 sm:px-4 py-1.5 sm:py-2 bg-white dark:bg-gray-800 rounded-lg font-bold text-sm sm:text-base">
             ${result.totalScore.toFixed(1)} / ${totalPossibleScore}점
           </span>
+          <button id="btn-export-pdf" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-sm sm:text-base transition-colors flex items-center gap-1.5">
+            📄 PDF
+          </button>
           <button id="btn-exit-results" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-sm sm:text-base transition-colors">
             ✕ 종료
           </button>
@@ -435,6 +438,9 @@ const totalPossibleScore = examService.getTotalScore(year);
           <button id="retry-exam-btn" class="flex-1 sm:flex-none px-6 sm:px-8 py-3 sm:py-4 bg-purple-700 hover:bg-purple-800 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg transition-colors">
             🔄 다시 풀기
           </button>
+          <button id="btn-export-pdf-bottom" class="flex-1 sm:flex-none px-6 sm:px-8 py-3 sm:py-4 bg-green-600 hover:bg-green-700 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2">
+            📄 PDF 내보내기
+          </button>
           <button id="exit-exam-btn" class="flex-1 sm:flex-none px-6 sm:px-8 py-3 sm:py-4 bg-gray-700 hover:bg-gray-800 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg transition-colors">
             ✕ 종료하기
           </button>
@@ -446,7 +452,7 @@ const totalPossibleScore = examService.getTotalScore(year);
   `;
 
     // 이벤트 리스너 등록
-    setupEventListeners(container, year, apiKey, selectedModel);
+    setupEventListeners(container, year, result, exams, metadata, userAnswers, apiKey, selectedModel);
 
     // 플로팅 리모콘을 container 밖에 추가 (body에 직접)
     setupFloatingControlsResult(exams, year, result, container);
@@ -605,7 +611,7 @@ function setupFloatingControlsResult(exams, year, result, container) {
 /**
  * 이벤트 리스너 설정
  */
-function setupEventListeners(container, year, apiKey, selectedModel) {
+function setupEventListeners(container, year, result, exams, metadata, userAnswers, apiKey, selectedModel) {
   // 종료 버튼
   const exitResultsBtn = container.querySelector('#btn-exit-results');
   if (exitResultsBtn) {
@@ -667,7 +673,65 @@ function setupEventListeners(container, year, apiKey, selectedModel) {
     });
   });
 
+  // PDF 내보내기 버튼 (헤더)
+  const pdfExportBtn = container.querySelector('#btn-export-pdf');
+  if (pdfExportBtn) {
+    pdfExportBtn.replaceWith(pdfExportBtn.cloneNode(true));
+    container.querySelector('#btn-export-pdf')?.addEventListener('click', async () => {
+      await handlePdfExport(year, result, exams, metadata, userAnswers);
+    });
+  }
+
+  // PDF 내보내기 버튼 (하단)
+  const pdfExportBtnBottom = container.querySelector('#btn-export-pdf-bottom');
+  if (pdfExportBtnBottom) {
+    pdfExportBtnBottom.replaceWith(pdfExportBtnBottom.cloneNode(true));
+    container.querySelector('#btn-export-pdf-bottom')?.addEventListener('click', async () => {
+      await handlePdfExport(year, result, exams, metadata, userAnswers);
+    });
+  }
+
   // 플로팅 리모콘은 setupFloatingControlsResult에서 처리됨
+}
+
+/**
+ * PDF 내보내기 처리
+ */
+async function handlePdfExport(year, result, exams, metadata, userAnswers) {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:700',message:'handlePdfExport called',data:{year,yearType:typeof year,resultKeys:Object.keys(result),examsLength:exams?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+  try {
+    // 점수 히스토리 추가
+    const scoreHistory = examService.getScores(year);
+    const resultWithHistory = {
+      ...result,
+      scoreHistory: scoreHistory
+    };
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:707',message:'Before import',data:{scoreHistoryLength:scoreHistory?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+
+    // PDF 내보내기 함수 호출
+    const { exportExamResultsToPdf } = await import('./examPdfExport.js');
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:711',message:'Before exportExamResultsToPdf call',data:{hasExportFunction:typeof exportExamResultsToPdf === 'function'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    // questionScores 가져오기
+    const { getQuestionScores } = await import('../../core/stateManager.js');
+    const questionScores = getQuestionScores();
+    
+    await exportExamResultsToPdf(year, resultWithHistory, exams, metadata, userAnswers, questionScores);
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:713',message:'exportExamResultsToPdf completed',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+  } catch (error) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:715',message:'PDF export error caught',data:{errorMessage:error.message,errorStack:error.stack,errorName:error.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    console.error('PDF 내보내기 실패:', error);
+    alert('PDF 내보내기 중 오류가 발생했습니다: ' + error.message);
+  }
 }
 
 /**
