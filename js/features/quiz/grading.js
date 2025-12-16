@@ -303,71 +303,83 @@ export async function handleGrade() {
       console.log('   - ⏭️ 로그아웃 상태 - Firestore 동기화 스킵');
     }
 
-    // Phase 3.2: 랭킹 통계 업데이트
+    // Phase 3.2: 랭킹 통계 업데이트 (고유 회독수 기반)
+    // registerUniqueRead의 결과를 확인하여 새 회독인 경우에만 통계 업데이트
     if (currentUser) {
-      console.log('📊 [Grading] 랭킹 통계 업데이트 시작...');
-      updateUserStats(currentUser.uid, finalScore)
-        .then(result => {
-          if (result.success) {
-            console.log('   - ✅ 랭킹 통계 업데이트 성공');
-          } else {
-            console.warn('   - ⚠️ 랭킹 통계 업데이트 실패:', result.message);
-          }
-        })
-        .catch(err => {
-          console.error('   - ❌ 랭킹 통계 업데이트 에러:', err);
-        });
+      // 회독 등록 및 확인
+      let isNewRead = false;
+      if (typeof window.registerUniqueRead === 'function') {
+        const { increased, uniqueReads } = window.registerUniqueRead(qKey);
+        isNewRead = increased;
+        if (increased) {
+          showToast(`회독 +1 (이 문제 고유 ${uniqueReads}회)`);
+        }
+      }
+      
+      if (isNewRead) {
+        console.log('📊 [Grading] 랭킹 통계 업데이트 시작... (새 회독)');
+        updateUserStats(currentUser.uid, finalScore, qKey)
+          .then(result => {
+            if (result.success) {
+              console.log('   - ✅ 랭킹 통계 업데이트 성공');
+            } else {
+              console.warn('   - ⚠️ 랭킹 통계 업데이트 실패:', result.message);
+            }
+          })
+          .catch(err => {
+            console.error('   - ❌ 랭킹 통계 업데이트 에러:', err);
+          });
+      } else {
+        console.log('📊 [Grading] 랭킹 통계 업데이트 스킵 (5분 이내 재풀이)');
+      }
 
-      // Phase 3.5.3: 그룹 랭킹 통계 업데이트
-      console.log('📊 [Grading] 그룹 랭킹 통계 업데이트 시작...');
-      getMyGroups()
-        .then(groups => {
-          if (groups && groups.length > 0) {
-            console.log(`   - 📋 ${groups.length}개 그룹 발견`);
-            // 모든 그룹에 대해 통계 업데이트
-            groups.forEach(group => {
-              updateGroupStats(group.groupId, currentUser.uid, finalScore)
-                .then(result => {
-                  if (result.success) {
-                    console.log(`   - ✅ 그룹 "${group.name}" 통계 업데이트 성공`);
-                  } else {
-                    console.warn(`   - ⚠️ 그룹 "${group.name}" 통계 업데이트 실패:`, result.message);
-                  }
-                })
-                .catch(err => {
-                  console.error(`   - ❌ 그룹 "${group.name}" 통계 업데이트 에러:`, err);
-                });
-            });
-          } else {
-            console.log('   - ℹ️ 가입한 그룹이 없습니다.');
-          }
-        })
-        .catch(err => {
-          console.error('   - ❌ 그룹 목록 조회 에러:', err);
-        });
+      // Phase 3.5.3: 그룹 랭킹 통계 업데이트 (새 회독인 경우에만)
+      if (isNewRead) {
+        console.log('📊 [Grading] 그룹 랭킹 통계 업데이트 시작...');
+        getMyGroups()
+          .then(groups => {
+            if (groups && groups.length > 0) {
+              console.log(`   - 📋 ${groups.length}개 그룹 발견`);
+              // 모든 그룹에 대해 통계 업데이트
+              groups.forEach(group => {
+                updateGroupStats(group.groupId, currentUser.uid, finalScore)
+                  .then(result => {
+                    if (result.success) {
+                      console.log(`   - ✅ 그룹 "${group.name}" 통계 업데이트 성공`);
+                    } else {
+                      console.warn(`   - ⚠️ 그룹 "${group.name}" 통계 업데이트 실패:`, result.message);
+                    }
+                  })
+                  .catch(err => {
+                    console.error(`   - ❌ 그룹 "${group.name}" 통계 업데이트 에러:`, err);
+                  });
+              });
+            } else {
+              console.log('   - ℹ️ 가입한 그룹이 없습니다.');
+            }
+          })
+          .catch(err => {
+            console.error('   - ❌ 그룹 목록 조회 에러:', err);
+          });
 
-      // Phase 3.6: 대학교 랭킹 통계 업데이트
-      console.log('🎓 [Grading] 대학교 랭킹 통계 업데이트 시작...');
-      updateUniversityStats(currentUser.uid, finalScore)
-        .then(result => {
-          if (result.success) {
-            console.log('   - ✅ 대학교 통계 업데이트 성공');
-          } else {
-            console.log(`   - ℹ️ 대학교 통계 업데이트: ${result.message}`);
-          }
-        })
-        .catch(err => {
-          console.error('   - ❌ 대학교 통계 업데이트 에러:', err);
-        });
-    }
-
-    // 회독 등록
-    if (typeof window.registerUniqueRead === 'function') {
-      const { increased, uniqueReads } = window.registerUniqueRead(qKey);
-      if (increased) {
-        showToast(`회독 +1 (이 문제 고유 ${uniqueReads}회)`);
+        // Phase 3.6: 대학교 랭킹 통계 업데이트 (새 회독인 경우에만)
+        console.log('🎓 [Grading] 대학교 랭킹 통계 업데이트 시작...');
+        updateUniversityStats(currentUser.uid, finalScore)
+          .then(result => {
+            if (result.success) {
+              console.log('   - ✅ 대학교 통계 업데이트 성공');
+            } else {
+              console.log(`   - ℹ️ 대학교 통계 업데이트: ${result.message}`);
+            }
+          })
+          .catch(err => {
+            console.error('   - ❌ 대학교 통계 업데이트 에러:', err);
+          });
       }
     }
+
+    // 회독 등록 (위에서 이미 확인했으므로 여기서는 토스트만 표시)
+    // registerUniqueRead는 위의 랭킹 통계 업데이트 로직에서 호출됨
 
     // UI 업데이트
     updateSummary();

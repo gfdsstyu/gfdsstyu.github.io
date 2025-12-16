@@ -110,11 +110,11 @@ import * as WebSpeechApi from './services/webSpeechApi.js';
 import * as SttHandler from './features/stt/sttHandler.js';
 import * as SttVocabulary from './features/stt/sttVocabulary.js';
 
-// 기능 - KAM 사례형 실전 훈련
-import { renderKAMUI } from './features/kam/kamUI.js';
-import ragSearchService from './services/ragSearch.js';
-import kamEvaluationService from './features/kam/kamCore.js';
-import { enterKAMMode, exitKAMMode, getKAMStats } from './features/kam/kamIntegration.js';
+// 기능 - KAM 사례형 실전 훈련 (Lazy Loading으로 변경됨)
+// import { renderKAMUI } from './features/kam/kamUI.js';
+// import ragSearchService from './services/ragSearch.js';
+// import kamEvaluationService from './features/kam/kamCore.js';
+// import { enterKAMMode, exitKAMMode, getKAMStats } from './features/kam/kamIntegration.js';
 
 // ========================================
 // 임시 브릿지: index.html의 기존 코드가 새 모듈을 찾을 수 있도록
@@ -152,13 +152,13 @@ window.callGeminiAPI = GeminiApi.callGeminiAPI;
 window.callGeminiHintAPI = GeminiApi.callGeminiHintAPI;
 window.callGeminiTextAPI = GeminiApi.callGeminiTextAPI;
 
-// KAM 시스템
-window.renderKAMUI = renderKAMUI;
-window.ragSearchService = ragSearchService;
-window.kamEvaluationService = kamEvaluationService;
-window.enterKAMMode = enterKAMMode;
-window.exitKAMMode = exitKAMMode;
-window.getKAMStats = getKAMStats;
+// KAM 시스템 (Lazy Loading으로 변경됨 - 필요시 동적 로드)
+// window.renderKAMUI = renderKAMUI;
+// window.ragSearchService = ragSearchService;
+// window.kamEvaluationService = kamEvaluationService;
+// window.enterKAMMode = enterKAMMode;
+// window.exitKAMMode = exitKAMMode;
+// window.getKAMStats = getKAMStats;
 
 // DataImportExport (데이터 Import/Export)
 window.DataImportExport = DataImportExport;
@@ -532,6 +532,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 1-1. 🔧 [Migration] questionScores 데이터 구조 정리 (암기팁/메모만 있고 solveHistory 없는 엔트리 수정)
   StateManager.migrateQuestionScoresStructure();
+
+  // 1-2. 🔧 [Migration] 고유 회독수 기반 통계로 마이그레이션
+  (async () => {
+    try {
+      const result = await StateManager.migrateToUniqueReadsBasedStats();
+      if (result.migrated) {
+        console.log(`✅ [Migration] ${result.message}`);
+      }
+    } catch (error) {
+      console.error('❌ [Migration] 마이그레이션 실행 실패:', error);
+    }
+  })();
 
   // 2. Firebase 인증 초기화
   console.log('🔐 Firebase 인증 초기화 시작...');

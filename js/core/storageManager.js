@@ -263,7 +263,7 @@ export function setFlagState(qid, { flag = false, exclude = false, silent = fals
 // ============================================
 
 const READ_STORE_KEY = 'readSessions_v2';
-const UNIQUE_WINDOW_MS = 5 * 60 * 1000; // 5분
+export const UNIQUE_WINDOW_MS = 5 * 60 * 1000; // 5분
 
 /**
  * Read Store 로드
@@ -370,6 +370,61 @@ export function registerUniqueRead(qid) {
   db[qid] = rec;
   saveReadStore(db);
   return { increased: false, uniqueReads: rec.uniqueReads };
+}
+
+/**
+ * solveHistory에서 고유 회독수 반환 (간단한 래퍼)
+ * @param {Array} solveHistory - solveHistory 배열
+ * @returns {number} 고유 회독수
+ */
+export function getUniqueReadCount(solveHistory) {
+  if (!Array.isArray(solveHistory) || solveHistory.length === 0) {
+    return 0;
+  }
+  return computeUniqueReadsFromHistory(solveHistory).uniqueReads;
+}
+
+/**
+ * 현재 풀이가 새 회독인지 판단
+ * @param {Array} solveHistory - solveHistory 배열 (현재 풀이 제외)
+ * @param {number} currentTime - 현재 시간 (timestamp)
+ * @returns {boolean} 새 회독인지 여부
+ */
+export function shouldCountAsNewRead(solveHistory, currentTime = Date.now()) {
+  if (!Array.isArray(solveHistory) || solveHistory.length === 0) {
+    return true; // 첫 풀이는 항상 새 회독
+  }
+  
+  const times = solveHistory
+    .map(x => +x?.date)
+    .filter(Number.isFinite)
+    .sort((a, b) => b - a); // 최신순 정렬
+  
+  if (times.length === 0) return true;
+  
+  // 가장 최근 풀이 시간 확인
+  const lastTime = times[0];
+  return (currentTime - lastTime) >= UNIQUE_WINDOW_MS;
+}
+
+/**
+ * 전체 questionScores에서 고유 회독수 총합 계산
+ * @param {Object} questionScores - questionScores 객체
+ * @returns {number} 고유 회독수 총합
+ */
+export function getTotalUniqueReads(questionScores) {
+  if (!questionScores || typeof questionScores !== 'object') {
+    return 0;
+  }
+  
+  let total = 0;
+  for (const record of Object.values(questionScores)) {
+    if (record && Array.isArray(record.solveHistory)) {
+      total += getUniqueReadCount(record.solveHistory);
+    }
+  }
+  
+  return total;
 }
 
 // ============================================

@@ -11,6 +11,7 @@ import { ACHIEVEMENTS, ACHIEVEMENTS_LS_KEY, AUDIT_FLOW_MAP } from '../../config/
 import { normId } from '../../utils/helpers.js';
 import { getCurrentUser } from '../auth/authCore.js';
 import { syncAchievementsToFirestore } from '../sync/syncCore.js';
+import { getTotalUniqueReads, getUniqueReadCount } from '../../core/storageManager.js';
 
 // Module state
 let achievementsData = {};
@@ -227,13 +228,8 @@ export function checkAchievements() {
 
   // Check problem count (누적 풀이 횟수 기반 - Achievement System 2.0)
   // 기존: 고유 문제 수 (Object.keys().length)
-  // 변경: 누적 풀이 횟수 (solveHistory.length 총합)
-  let totalSolveCount = 0;
-  Object.values(questionScores).forEach(record => {
-    if (record.solveHistory && Array.isArray(record.solveHistory)) {
-      totalSolveCount += record.solveHistory.length;
-    }
-  });
+  // 변경: 누적 고유 회독수 (5분 윈도우 기반)
+  const totalSolveCount = getTotalUniqueReads(questionScores);
 
   if (totalSolveCount >= 100) unlockAchievement('problems_100');
   if (totalSolveCount >= 300) unlockAchievement('problems_300');
@@ -416,18 +412,40 @@ export function checkVolumeAchievements() {
     let weekCount = 0;
     let monthCount = 0;
 
+    // 고유 회독수 기반으로 날짜별 집계
     Object.values(questionScores).forEach(record => {
-      if (record.solveHistory && Array.isArray(record.solveHistory)) {
-        record.solveHistory.forEach(h => {
-          const hDate = new Date(h.date);
-          hDate.setHours(0, 0, 0, 0);
-          const hTime = hDate.getTime();
-
-          if (hTime === todayTime) todayCount++;
-          if (hTime >= weekAgo) weekCount++;
-          if (hTime >= monthAgo) monthCount++;
-        });
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) {
+        return;
       }
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReads = [];
+      
+      for (const t of times) {
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReads.push(t);
+          lastTime = t;
+        }
+      }
+      
+      // 날짜별로 집계
+      uniqueReads.forEach(t => {
+        const hDate = new Date(t);
+        hDate.setHours(0, 0, 0, 0);
+        const hTime = hDate.getTime();
+
+        if (hTime === todayTime) todayCount++;
+        if (hTime >= weekAgo) weekCount++;
+        if (hTime >= monthAgo) monthCount++;
+      });
     });
 
     // Daily achievements
@@ -519,10 +537,35 @@ export function checkOvercomeWeakness() {
     const questionScores = window.questionScores || {};
 
     Object.entries(questionScores).forEach(([id, record]) => {
-      if (!record.solveHistory || record.solveHistory.length < 2) return;
+      const uniqueReads = getUniqueReadCount(record?.solveHistory || []);
+      if (uniqueReads < 2) return;
 
-      const scores = record.solveHistory.map(h => h.score).filter(s => s !== undefined);
-      const hadLow = scores.some(s => s < 60);
+      // 고유 회독수 기반으로 점수 확인
+      const times = (record.solveHistory || [])
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      // 고유 회독 추출
+      let lastTime = -Infinity;
+      const uniqueReadTimes = [];
+      const uniqueReadScores = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadTimes.push(t);
+          uniqueReadScores.push(h.score);
+          lastTime = t;
+        }
+      }
+      
+      const hadLow = uniqueReadScores.some(s => s !== undefined && s < 60);
       const latestScore = record.score;
 
       if (hadLow && latestScore >= 85) {
@@ -540,9 +583,33 @@ export function checkComeback() {
     const questionScores = window.questionScores || {};
 
     Object.entries(questionScores).forEach(([id, record]) => {
-      if (!record.solveHistory || record.solveHistory.length < 4) return;
+      const uniqueReads = getUniqueReadCount(record?.solveHistory || []);
+      if (uniqueReads < 4) return;
 
-      const scores = record.solveHistory.map(h => h.score).filter(s => s !== undefined);
+      // 고유 회독수 기반으로 점수 확인
+      const times = (record.solveHistory || [])
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      // 고유 회독 추출
+      let lastTime = -Infinity;
+      const uniqueReadScores = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadScores.push(h.score);
+          lastTime = t;
+        }
+      }
+      
+      const scores = uniqueReadScores.filter(s => s !== undefined);
       const lowScores = scores.filter(s => s < 60);
       const latestScore = record.score;
 
@@ -565,13 +632,36 @@ export function checkPerfectDay() {
     const todayProblems = [];
 
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory || !Array.isArray(record.solveHistory)) return;
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
 
-      record.solveHistory.forEach(h => {
-        const hDate = new Date(h.date);
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReadAttempts = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadAttempts.push({ date: t, score: h.score });
+          lastTime = t;
+        }
+      }
+      
+      // 오늘 날짜의 고유 회독만 집계
+      uniqueReadAttempts.forEach(ur => {
+        const hDate = new Date(ur.date);
         hDate.setHours(0, 0, 0, 0);
-        if (hDate.getTime() === todayTime && h.score !== undefined) {
-          todayProblems.push(h.score);
+        if (hDate.getTime() === todayTime && ur.score !== undefined) {
+          todayProblems.push(ur.score);
         }
       });
     });
@@ -654,10 +744,29 @@ export function checkTimeBased() {
     let todayProblemCount = 0;
 
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory || !Array.isArray(record.solveHistory)) return;
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
 
-      record.solveHistory.forEach(h => {
-        const hDate = new Date(h.date);
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReads = [];
+      
+      for (const t of times) {
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReads.push(t);
+          lastTime = t;
+        }
+      }
+      
+      // 오늘 날짜의 고유 회독만 시간대별 집계
+      uniqueReads.forEach(t => {
+        const hDate = new Date(t);
         const hDateOnly = new Date(hDate);
         hDateOnly.setHours(0, 0, 0, 0);
 
@@ -983,17 +1092,44 @@ export function checkRetrySameDay() {
     const todayTime = today.getTime();
 
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory || record.solveHistory.length < 2) return;
+      const uniqueReads = getUniqueReadCount(record?.solveHistory || []);
+      if (uniqueReads < 2) return;
 
-      const todayHistory = record.solveHistory.filter(h => {
-        const hDate = new Date(h.date);
+      // 고유 회독수 기반으로 오늘 날짜의 풀이 확인
+      const times = (record.solveHistory || [])
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      // 고유 회독 추출
+      let lastTime = -Infinity;
+      const uniqueReadTimes = [];
+      const uniqueReadScores = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadTimes.push(t);
+          uniqueReadScores.push({ time: t, score: h.score });
+          lastTime = t;
+        }
+      }
+      
+      // 오늘 날짜의 고유 회독 확인
+      const todayUniqueReads = uniqueReadScores.filter(ur => {
+        const hDate = new Date(ur.time);
         hDate.setHours(0, 0, 0, 0);
         return hDate.getTime() === todayTime;
       });
 
-      if (todayHistory.length >= 2) {
+      if (todayUniqueReads.length >= 2) {
         // Check if first was < 60, then retried
-        const firstScore = todayHistory[0]?.score;
+        const firstScore = todayUniqueReads[0]?.score;
         if (firstScore !== undefined && firstScore < 60) {
           unlockAchievement('retry_same_day');
         }
@@ -1033,9 +1169,33 @@ export function checkPerfectionist() {
     const questionScores = window.questionScores || {};
 
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory || record.solveHistory.length < 3) return;
+      const uniqueReads = getUniqueReadCount(record?.solveHistory || []);
+      if (uniqueReads < 3) return;
 
-      const scores = record.solveHistory.map(h => h.score).filter(s => s !== undefined);
+      // 고유 회독수 기반으로 점수 확인
+      const times = (record.solveHistory || [])
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      // 고유 회독 추출
+      let lastTime = -Infinity;
+      const uniqueReadScores = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadScores.push(h.score);
+          lastTime = t;
+        }
+      }
+      
+      const scores = uniqueReadScores.filter(s => s !== undefined);
       if (scores.length >= 3 && scores.every(s => s >= 90)) {
         unlockAchievement('perfectionist');
       }
@@ -1052,9 +1212,29 @@ export function checkWeekendWarrior() {
     const weekendCounts = {}; // { 'YYYY-WW': {sat: 0, sun: 0} }
 
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        const d = new Date(h.date);
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReads = [];
+      
+      for (const t of times) {
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReads.push(t);
+          lastTime = t;
+        }
+      }
+      
+      // 고유 회독만 주말 통계 집계
+      uniqueReads.forEach(t => {
+        const d = new Date(t);
         const day = d.getDay(); // 0=일, 6=토
         if (day !== 0 && day !== 6) return;
 
@@ -1096,10 +1276,34 @@ export function checkRapidGrowth() {
     const questionScores = window.questionScores || {};
 
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory || record.solveHistory.length < 2) return;
+      const uniqueReads = getUniqueReadCount(record?.solveHistory || []);
+      if (uniqueReads < 2) return;
 
-      const first = record.solveHistory[0]?.score;
-      const second = record.solveHistory[1]?.score;
+      // 고유 회독수 기반으로 첫 두 회독의 점수 확인
+      const times = (record.solveHistory || [])
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      // 고유 회독 추출
+      let lastTime = -Infinity;
+      const uniqueReadScores = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadScores.push(h.score);
+          lastTime = t;
+        }
+      }
+      
+      const first = uniqueReadScores[0];
+      const second = uniqueReadScores[1];
 
       if (first !== undefined && second !== undefined && first <= 70 && second >= 95) {
         unlockAchievement('rapid_growth');
@@ -1117,10 +1321,11 @@ export function checkFlowLearner() {
     const allData = window.allData || [];
     if (!allData || !allData.length) return;
 
-    // Count solved problems per chapter
+    // Count solved problems per chapter (고유 회독수 기반)
     const chapterCounts = {};
     Object.entries(questionScores).forEach(([id, record]) => {
-      if (!record.solveHistory || record.solveHistory.length === 0) return;
+      const uniqueReads = getUniqueReadCount(record?.solveHistory || []);
+      if (uniqueReads === 0) return;
       const q = allData.find(item => normId(item.고유ID) === id);
       if (q) {
         const chapter = String(q.단원).trim();
@@ -1170,14 +1375,43 @@ export function checkLegendaryStart() {
   try {
     const questionScores = window.questionScores || {};
 
-    // Get all first-attempt scores in chronological order
+    // Get all first unique attempt scores in chronological order
     const firstAttempts = Object.values(questionScores)
-      .filter(r => r.solveHistory && r.solveHistory.length > 0)
-      .map(r => ({
-        timestamp: r.solveHistory[0].date,
-        score: r.solveHistory[0].score
-      }))
-      .filter(a => a.score !== undefined)
+      .filter(r => {
+        const uniqueReads = getUniqueReadCount(r?.solveHistory || []);
+        return uniqueReads > 0;
+      })
+      .map(r => {
+        // 첫 고유 회독 찾기
+        const times = (r.solveHistory || [])
+          .map(x => +x?.date)
+          .filter(Number.isFinite)
+          .sort((a, b) => a - b);
+        
+        if (times.length === 0) return null;
+        
+        let lastTime = -Infinity;
+        let firstUniqueAttempt = null;
+        
+        for (let i = 0; i < r.solveHistory.length; i++) {
+          const h = r.solveHistory[i];
+          const t = +h?.date;
+          if (!Number.isFinite(t)) continue;
+          
+          if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+            if (firstUniqueAttempt === null) {
+              firstUniqueAttempt = { date: t, score: h.score };
+            }
+            lastTime = t;
+          }
+        }
+        
+        return firstUniqueAttempt ? {
+          timestamp: firstUniqueAttempt.date,
+          score: firstUniqueAttempt.score
+        } : null;
+      })
+      .filter(a => a !== null && a.score !== undefined)
       .sort((a, b) => a.timestamp - b.timestamp);
 
     // Check for 10 consecutive 95+ scores
@@ -1259,8 +1493,33 @@ export function checkComebackMaster() {
     const questionScores = window.questionScores || {};
 
     const comebackProblems = Object.values(questionScores).filter(record => {
-      if (!record.solveHistory || record.solveHistory.length < 2) return false;
-      const scores = record.solveHistory.map(h => h.score).filter(s => s !== undefined);
+      const uniqueReads = getUniqueReadCount(record?.solveHistory || []);
+      if (uniqueReads < 2) return false;
+      
+      // 고유 회독수 기반으로 점수 확인
+      const times = (record.solveHistory || [])
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return false;
+      
+      // 고유 회독 추출
+      let lastTime = -Infinity;
+      const uniqueReadScores = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadScores.push(h.score);
+          lastTime = t;
+        }
+      }
+      
+      const scores = uniqueReadScores.filter(s => s !== undefined);
       const hadLow = scores.some(s => s < 60);
       const currentScore = record.score;
       return hadLow && currentScore >= 85;
@@ -1296,12 +1555,36 @@ export function checkExtremePerfectionist() {
 
     const todayProblems = [];
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        const hDate = new Date(h.date);
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReadAttempts = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadAttempts.push({ date: t, score: h.score });
+          lastTime = t;
+        }
+      }
+      
+      // 오늘 날짜의 고유 회독만 집계
+      uniqueReadAttempts.forEach(ur => {
+        const hDate = new Date(ur.date);
         hDate.setHours(0, 0, 0, 0);
-        if (hDate.getTime() === todayTime && h.score !== undefined) {
-          todayProblems.push(h.score);
+        if (hDate.getTime() === todayTime && ur.score !== undefined) {
+          todayProblems.push(ur.score);
         }
       });
     });
@@ -1321,9 +1604,29 @@ export function checkTimeTraveler() {
 
     let midnightCount = 0;
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        const d = new Date(h.date);
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReads = [];
+      
+      for (const t of times) {
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReads.push(t);
+          lastTime = t;
+        }
+      }
+      
+      // 고유 회독만 자정 시간대 집계
+      uniqueReads.forEach(t => {
+        const d = new Date(t);
         const hour = d.getHours();
         if (hour === 0) midnightCount++;
       });
@@ -1352,9 +1655,29 @@ export function checkFullCourse() {
     const requiredChapters = [1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20];
 
     Object.entries(questionScores).forEach(([id, record]) => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        const hDate = new Date(h.date);
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReads = [];
+      
+      for (const t of times) {
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReads.push(t);
+          lastTime = t;
+        }
+      }
+      
+      // 오늘 날짜의 고유 회독만 단원 집계
+      uniqueReads.forEach(t => {
+        const hDate = new Date(t);
         hDate.setHours(0, 0, 0, 0);
         if (hDate.getTime() === todayTime) {
           const q = allData.find(item => normId(item.고유ID) === id);
@@ -1383,9 +1706,33 @@ export function checkPerfectCollector() {
 
     let perfectCount = 0;
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        if (h.score === 100) perfectCount++;
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReadAttempts = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadAttempts.push({ score: h.score });
+          lastTime = t;
+        }
+      }
+      
+      // 고유 회독만 100점 집계
+      uniqueReadAttempts.forEach(ur => {
+        if (ur.score === 100) perfectCount++;
       });
     });
 
@@ -1403,7 +1750,8 @@ export function checkPersistenceMaster() {
     const questionScores = window.questionScores || {};
 
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory || record.solveHistory.length < 5) return;
+      const uniqueReads = getUniqueReadCount(record?.solveHistory || []);
+      if (uniqueReads < 5) return;
 
       const latestScore = record.score;
       if (latestScore >= 90) {
@@ -1420,12 +1768,32 @@ export function checkMidnightLearner() {
   try {
     const questionScores = window.questionScores || {};
 
-    // Count problems per day during 2-4am
+    // Count problems per day during 2-4am (고유 회독수 기반)
     const midnightDays = new Set();
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        const d = new Date(h.date);
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReads = [];
+      
+      for (const t of times) {
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReads.push(t);
+          lastTime = t;
+        }
+      }
+      
+      // 고유 회독만 심야 시간대 집계
+      uniqueReads.forEach(t => {
+        const d = new Date(t);
         const hour = d.getHours();
         if (hour >= 2 && hour <= 4) {
           const dayOnly = new Date(d);
@@ -1468,9 +1836,29 @@ export function checkRushHourAvoider() {
 
     let nonRushCount = 0;
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        const d = new Date(h.date);
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReads = [];
+      
+      for (const t of times) {
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReads.push(t);
+          lastTime = t;
+        }
+      }
+      
+      // 고유 회독만 러시아워 제외 집계
+      uniqueReads.forEach(t => {
+        const d = new Date(t);
         const hour = d.getHours();
         // Exclude 9-11 and 18-20 (6pm-8pm)
         if (!((hour >= 9 && hour <= 11) || (hour >= 18 && hour <= 20))) {
@@ -1492,12 +1880,32 @@ export function checkMorningRoutine() {
   try {
     const questionScores = window.questionScores || {};
 
-    // Get first solve time per day (오전만)
+    // Get first solve time per day (오전만, 고유 회독수 기반)
     const dailyFirstSolve = {};
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        const d = new Date(h.date);
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReads = [];
+      
+      for (const t of times) {
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReads.push(t);
+          lastTime = t;
+        }
+      }
+      
+      // 고유 회독만 오전 시간대 집계
+      uniqueReads.forEach(t => {
+        const d = new Date(t);
         const hour = d.getHours();
         if (hour < 12) { // 오전만
           const dayKey = new Date(d);
@@ -1556,11 +1964,35 @@ export function checkRetryNextDay() {
     let retryCount = 0;
 
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory || record.solveHistory.length < 2) return;
+      const uniqueReads = getUniqueReadCount(record?.solveHistory || []);
+      if (uniqueReads < 2) return;
 
-      for (let i = 1; i < record.solveHistory.length; i++) {
-        const prevAttempt = record.solveHistory[i - 1];
-        const currAttempt = record.solveHistory[i];
+      // 고유 회독수 기반으로 날짜 확인
+      const times = (record.solveHistory || [])
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      // 고유 회독 추출
+      let lastTime = -Infinity;
+      const uniqueReadAttempts = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadAttempts.push({ date: t, score: h.score });
+          lastTime = t;
+        }
+      }
+
+      for (let i = 1; i < uniqueReadAttempts.length; i++) {
+        const prevAttempt = uniqueReadAttempts[i - 1];
+        const currAttempt = uniqueReadAttempts[i];
 
         if (prevAttempt.score < 60) {
           const prevDate = new Date(prevAttempt.date);
@@ -1591,11 +2023,35 @@ export function checkMemoryTest() {
     let improvedCount = 0;
 
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory || record.solveHistory.length < 2) return;
+      const uniqueReads = getUniqueReadCount(record?.solveHistory || []);
+      if (uniqueReads < 2) return;
 
-      for (let i = 1; i < record.solveHistory.length; i++) {
-        const prevAttempt = record.solveHistory[i - 1];
-        const currAttempt = record.solveHistory[i];
+      // 고유 회독수 기반으로 날짜 확인
+      const times = (record.solveHistory || [])
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      // 고유 회독 추출
+      let lastTime = -Infinity;
+      const uniqueReadAttempts = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadAttempts.push({ date: t, score: h.score });
+          lastTime = t;
+        }
+      }
+
+      for (let i = 1; i < uniqueReadAttempts.length; i++) {
+        const prevAttempt = uniqueReadAttempts[i - 1];
+        const currAttempt = uniqueReadAttempts[i];
 
         const prevDate = new Date(prevAttempt.date);
         const currDate = new Date(currAttempt.date);
@@ -1623,12 +2079,32 @@ export function checkNonstopLearning() {
   try {
     const questionScores = window.questionScores || {};
 
-    // Get all solve timestamps
+    // Get all unique solve timestamps
     const allSolves = [];
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        allSolves.push(new Date(h.date).getTime());
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReads = [];
+      
+      for (const t of times) {
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReads.push(t);
+          lastTime = t;
+        }
+      }
+      
+      // 고유 회독만 타임스탬프 추가
+      uniqueReads.forEach(t => {
+        allSolves.push(t);
       });
     });
 
@@ -1656,11 +2132,36 @@ export function checkWeaknessAnalyzer() {
     const questionScores = window.questionScores || {};
 
     const retriedWeaknesses = Object.values(questionScores).filter(record => {
-      if (!record.solveHistory || record.solveHistory.length < 2) return false;
+      const uniqueReads = getUniqueReadCount(record?.solveHistory || []);
+      if (uniqueReads < 2) return false;
 
-      // Check if first attempt was < 60 and retried
-      const firstScore = record.solveHistory[0]?.score;
-      return firstScore !== undefined && firstScore < 60;
+      // 고유 회독수 기반으로 첫 회독 점수 확인
+      const times = (record.solveHistory || [])
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return false;
+      
+      // 고유 회독 추출
+      let lastTime = -Infinity;
+      let firstUniqueScore = null;
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          if (firstUniqueScore === null) {
+            firstUniqueScore = h.score;
+          }
+          lastTime = t;
+        }
+      }
+
+      // Check if first unique attempt was < 60 and retried
+      return firstUniqueScore !== undefined && firstUniqueScore < 60;
     });
 
     if (retriedWeaknesses.length >= 30) {
@@ -1726,13 +2227,37 @@ export function checkSpeedHands() {
   try {
     const questionScores = window.questionScores || {};
 
-    // Get all solve timestamps with scores
+    // Get all unique solve timestamps with scores
     const allSolves = [];
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        if (h.score !== undefined) {
-          allSolves.push({ time: new Date(h.date).getTime(), score: h.score });
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReadAttempts = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadAttempts.push({ time: t, score: h.score });
+          lastTime = t;
+        }
+      }
+      
+      // 고유 회독만 타임스탬프와 점수 추가
+      uniqueReadAttempts.forEach(ur => {
+        if (ur.score !== undefined) {
+          allSolves.push({ time: ur.time, score: ur.score });
         }
       });
     });
@@ -1766,11 +2291,35 @@ export function checkMemoryGod() {
     let qualifiedCount = 0;
 
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory || record.solveHistory.length < 2) return;
+      const uniqueReads = getUniqueReadCount(record?.solveHistory || []);
+      if (uniqueReads < 2) return;
 
-      for (let i = 1; i < record.solveHistory.length; i++) {
-        const prevAttempt = record.solveHistory[i - 1];
-        const currAttempt = record.solveHistory[i];
+      // 고유 회독수 기반으로 날짜 확인
+      const times = (record.solveHistory || [])
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      // 고유 회독 추출
+      let lastTime = -Infinity;
+      const uniqueReadAttempts = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadAttempts.push({ date: t, score: h.score });
+          lastTime = t;
+        }
+      }
+
+      for (let i = 1; i < uniqueReadAttempts.length; i++) {
+        const prevAttempt = uniqueReadAttempts[i - 1];
+        const currAttempt = uniqueReadAttempts[i];
 
         const prevDate = new Date(prevAttempt.date);
         const currDate = new Date(currAttempt.date);
@@ -1796,18 +2345,42 @@ export function checkMonthlyMaster() {
   try {
     const questionScores = window.questionScores || {};
 
-    // Calculate daily average scores
+    // Calculate daily average scores (고유 회독수 기반)
     const dailyAverages = {};
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        if (h.score === undefined) return;
-        const d = new Date(h.date);
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReadAttempts = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadAttempts.push({ date: t, score: h.score });
+          lastTime = t;
+        }
+      }
+      
+      // 고유 회독만 날짜별 점수 집계
+      uniqueReadAttempts.forEach(ur => {
+        if (ur.score === undefined) return;
+        const d = new Date(ur.date);
         d.setHours(0, 0, 0, 0);
         const key = d.toDateString();
 
         if (!dailyAverages[key]) dailyAverages[key] = [];
-        dailyAverages[key].push(h.score);
+        dailyAverages[key].push(ur.score);
       });
     });
 
@@ -1852,11 +2425,35 @@ export function checkRetention99() {
     let qualifiedCount = 0;
 
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory || record.solveHistory.length < 2) return;
+      const uniqueReads = getUniqueReadCount(record?.solveHistory || []);
+      if (uniqueReads < 2) return;
 
-      for (let i = 1; i < record.solveHistory.length; i++) {
-        const prevAttempt = record.solveHistory[i - 1];
-        const currAttempt = record.solveHistory[i];
+      // 고유 회독수 기반으로 날짜 확인
+      const times = (record.solveHistory || [])
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      // 고유 회독 추출
+      let lastTime = -Infinity;
+      const uniqueReadAttempts = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadAttempts.push({ date: t, score: h.score });
+          lastTime = t;
+        }
+      }
+
+      for (let i = 1; i < uniqueReadAttempts.length; i++) {
+        const prevAttempt = uniqueReadAttempts[i - 1];
+        const currAttempt = uniqueReadAttempts[i];
 
         if (prevAttempt.score >= 90) {
           const prevDate = new Date(prevAttempt.date);
@@ -1887,18 +2484,42 @@ export function checkFlashLearning() {
   try {
     const questionScores = window.questionScores || {};
 
-    // Group by day
+    // Group by day (고유 회독수 기반)
     const dailyScores = {};
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        if (h.score === undefined) return;
-        const d = new Date(h.date);
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReadAttempts = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadAttempts.push({ date: t, score: h.score });
+          lastTime = t;
+        }
+      }
+      
+      // 고유 회독만 날짜별 점수 집계
+      uniqueReadAttempts.forEach(ur => {
+        if (ur.score === undefined) return;
+        const d = new Date(ur.date);
         d.setHours(0, 0, 0, 0);
         const key = d.toDateString();
 
         if (!dailyScores[key]) dailyScores[key] = [];
-        dailyScores[key].push(h.score);
+        dailyScores[key].push(ur.score);
       });
     });
 
@@ -1923,11 +2544,35 @@ export function checkLongTermMemory() {
     let qualifiedCount = 0;
 
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory || record.solveHistory.length < 2) return;
+      const uniqueReads = getUniqueReadCount(record?.solveHistory || []);
+      if (uniqueReads < 2) return;
 
-      for (let i = 1; i < record.solveHistory.length; i++) {
-        const prevAttempt = record.solveHistory[i - 1];
-        const currAttempt = record.solveHistory[i];
+      // 고유 회독수 기반으로 날짜 확인
+      const times = (record.solveHistory || [])
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      // 고유 회독 추출
+      let lastTime = -Infinity;
+      const uniqueReadAttempts = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadAttempts.push({ date: t, score: h.score });
+          lastTime = t;
+        }
+      }
+
+      for (let i = 1; i < uniqueReadAttempts.length; i++) {
+        const prevAttempt = uniqueReadAttempts[i - 1];
+        const currAttempt = uniqueReadAttempts[i];
 
         const prevDate = new Date(prevAttempt.date);
         const currDate = new Date(currAttempt.date);
@@ -1956,14 +2601,43 @@ export function checkPhotographicMemory() {
   try {
     const questionScores = window.questionScores || {};
 
-    // Get all first-attempt scores in chronological order
+    // Get all first unique attempt scores in chronological order
     const firstAttempts = Object.values(questionScores)
-      .filter(r => r.solveHistory && r.solveHistory.length > 0)
-      .map(r => ({
-        timestamp: r.solveHistory[0].date,
-        score: r.solveHistory[0].score
-      }))
-      .filter(a => a.score !== undefined)
+      .filter(r => {
+        const uniqueReads = getUniqueReadCount(r?.solveHistory || []);
+        return uniqueReads > 0;
+      })
+      .map(r => {
+        // 첫 고유 회독 찾기
+        const times = (r.solveHistory || [])
+          .map(x => +x?.date)
+          .filter(Number.isFinite)
+          .sort((a, b) => a - b);
+        
+        if (times.length === 0) return null;
+        
+        let lastTime = -Infinity;
+        let firstUniqueAttempt = null;
+        
+        for (let i = 0; i < r.solveHistory.length; i++) {
+          const h = r.solveHistory[i];
+          const t = +h?.date;
+          if (!Number.isFinite(t)) continue;
+          
+          if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+            if (firstUniqueAttempt === null) {
+              firstUniqueAttempt = { date: t, score: h.score };
+            }
+            lastTime = t;
+          }
+        }
+        
+        return firstUniqueAttempt ? {
+          timestamp: firstUniqueAttempt.date,
+          score: firstUniqueAttempt.score
+        } : null;
+      })
+      .filter(a => a !== null && a.score !== undefined)
       .sort((a, b) => a.timestamp - b.timestamp);
 
     // Check for 50 consecutive 90+ scores
@@ -1989,13 +2663,37 @@ export function checkScoreStairs() {
   try {
     const questionScores = window.questionScores || {};
 
-    // Get all scores in chronological order
+    // Get all unique scores in chronological order
     const allScores = [];
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        if (h.score !== undefined) {
-          allScores.push({ time: new Date(h.date).getTime(), score: h.score });
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReadAttempts = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadAttempts.push({ time: t, score: h.score });
+          lastTime = t;
+        }
+      }
+      
+      // 고유 회독만 타임스탬프와 점수 추가
+      uniqueReadAttempts.forEach(ur => {
+        if (ur.score !== undefined) {
+          allScores.push({ time: ur.time, score: ur.score });
         }
       });
     });
@@ -2026,13 +2724,37 @@ export function checkDejaVu() {
     const questionScores = window.questionScores || {};
 
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory || record.solveHistory.length < 3) return;
+      const uniqueReads = getUniqueReadCount(record?.solveHistory || []);
+      if (uniqueReads < 3) return;
 
-      // Check if any 3 attempts are approximately 7 days apart
-      for (let i = 0; i < record.solveHistory.length - 2; i++) {
-        const first = new Date(record.solveHistory[i].date);
-        const second = new Date(record.solveHistory[i + 1].date);
-        const third = new Date(record.solveHistory[i + 2].date);
+      // 고유 회독수 기반으로 날짜 확인
+      const times = (record.solveHistory || [])
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      // 고유 회독 추출
+      let lastTime = -Infinity;
+      const uniqueReadAttempts = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadAttempts.push({ date: t });
+          lastTime = t;
+        }
+      }
+
+      // Check if any 3 unique attempts are approximately 7 days apart
+      for (let i = 0; i < uniqueReadAttempts.length - 2; i++) {
+        const first = new Date(uniqueReadAttempts[i].date);
+        const second = new Date(uniqueReadAttempts[i + 1].date);
+        const third = new Date(uniqueReadAttempts[i + 2].date);
 
         const diff1 = Math.floor((second - first) / (1000 * 60 * 60 * 24));
         const diff2 = Math.floor((third - second) / (1000 * 60 * 60 * 24));
@@ -2054,18 +2776,42 @@ export function checkMirroring() {
   try {
     const questionScores = window.questionScores || {};
 
-    // Calculate daily stats
+    // Calculate daily stats (고유 회독수 기반)
     const dailyStats = {};
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        if (h.score === undefined) return;
-        const d = new Date(h.date);
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReadAttempts = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadAttempts.push({ date: t, score: h.score });
+          lastTime = t;
+        }
+      }
+      
+      // 고유 회독만 날짜별 점수 집계
+      uniqueReadAttempts.forEach(ur => {
+        if (ur.score === undefined) return;
+        const d = new Date(ur.date);
         d.setHours(0, 0, 0, 0);
         const key = d.toDateString();
 
         if (!dailyStats[key]) dailyStats[key] = [];
-        dailyStats[key].push(h.score);
+        dailyStats[key].push(ur.score);
       });
     });
 
@@ -2134,12 +2880,32 @@ export function checkPatternBreaker() {
   try {
     const questionScores = window.questionScores || {};
 
-    // Get first solve time slot per day (0-6, 6-12, 12-18, 18-24)
+    // Get first unique solve time slot per day (0-6, 6-12, 12-18, 18-24)
     const dailyTimeSlots = {};
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        const d = new Date(h.date);
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReads = [];
+      
+      for (const t of times) {
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReads.push(t);
+          lastTime = t;
+        }
+      }
+      
+      // 고유 회독만 첫 풀이 시간대 집계
+      uniqueReads.forEach(t => {
+        const d = new Date(t);
         const hour = d.getHours();
         const slot = Math.floor(hour / 6); // 0, 1, 2, 3
 
@@ -2189,13 +2955,33 @@ export function checkDaySpecificAchievements() {
   try {
     const questionScores = window.questionScores || {};
 
-    // Count problems by day of week
+    // Count problems by day of week (고유 회독수 기반)
     const dayProblems = { 1: [], 5: [], 0: [] }; // Monday, Friday, Sunday
 
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        const d = new Date(h.date);
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReads = [];
+      
+      for (const t of times) {
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReads.push(t);
+          lastTime = t;
+        }
+      }
+      
+      // 고유 회독만 요일별 집계
+      uniqueReads.forEach(t => {
+        const d = new Date(t);
         const day = d.getDay();
         const hour = d.getHours();
         const dateKey = new Date(d);
@@ -2251,9 +3037,35 @@ export function checkTimeSlotAchievements() {
     let morningCount = 0; // 7-9
 
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        const hour = new Date(h.date).getHours();
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) {
+        return;
+      }
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReads = [];
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReads.push(t);
+          lastTime = t;
+        }
+      }
+      
+      // 고유 회독만 시간대별 집계
+      uniqueReads.forEach(t => {
+        const hour = new Date(t).getHours();
 
         if (hour >= 12 && hour < 13) lunchCount++;
         if (hour >= 18 && hour < 20) afterWorkCount++;
@@ -2280,13 +3092,33 @@ export function checkHolidayAchievements() {
       '2028-01-26', '2029-02-13', '2030-02-03'
     ];
 
-    // Count by specific dates
+    // Count by specific dates (고유 회독수 기반)
     const holidayProblems = {};
 
     Object.values(questionScores).forEach(record => {
-      if (!record.solveHistory) return;
-      record.solveHistory.forEach(h => {
-        const d = new Date(h.date);
+      if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) return;
+      
+      // 5분 윈도우 기반으로 고유 회독 추출
+      const times = record.solveHistory
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      const uniqueReads = [];
+      
+      for (const t of times) {
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReads.push(t);
+          lastTime = t;
+        }
+      }
+      
+      // 고유 회독만 날짜별 집계
+      uniqueReads.forEach(t => {
+        const d = new Date(t);
         const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
         if (!holidayProblems[dateStr]) holidayProblems[dateStr] = 0;
@@ -2346,7 +3178,7 @@ export function checkRotationAchievements() {
 
     allData.forEach(q => {
       const record = questionScores[normId(q.고유ID)];
-      const solveCount = (record && record.solveHistory) ? record.solveHistory.length : 0;
+      const solveCount = getUniqueReadCount(record?.solveHistory || []);
 
       if (solveCount >= 1) rotation1++;
       if (solveCount >= 3) rotation3++;
@@ -2467,18 +3299,44 @@ export function checkPerfectStraight10() {
   try {
     const questionScores = window.questionScores || {};
 
-    // Get all first attempts sorted by date
+    // Get all first unique attempts sorted by date
     const firstAttempts = [];
     Object.values(questionScores).forEach(record => {
-      if (record.solveHistory && record.solveHistory.length > 0) {
-        const firstAttempt = record.solveHistory[0];
-        firstAttempts.push({ date: firstAttempt.date, score: firstAttempt.score });
+      const uniqueReads = getUniqueReadCount(record?.solveHistory || []);
+      if (uniqueReads === 0) return;
+      
+      // 첫 고유 회독 찾기
+      const times = (record.solveHistory || [])
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      
+      if (times.length === 0) return;
+      
+      let lastTime = -Infinity;
+      let firstUniqueAttempt = null;
+      
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+        
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          if (firstUniqueAttempt === null) {
+            firstUniqueAttempt = { date: t, score: h.score };
+          }
+          lastTime = t;
+        }
+      }
+      
+      if (firstUniqueAttempt) {
+        firstAttempts.push({ date: firstUniqueAttempt.date, score: firstUniqueAttempt.score });
       }
     });
 
     firstAttempts.sort((a, b) => a.date - b.date);
 
-    // Check for 10 consecutive 100-point first attempts
+    // Check for 10 consecutive 100-point first unique attempts
     let consecutivePerfects = 0;
     for (const attempt of firstAttempts) {
       if (attempt.score === 100) {

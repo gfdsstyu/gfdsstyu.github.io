@@ -2134,7 +2134,29 @@
       const caseModeBtn = document.getElementById('case-mode-btn');
 
       if (caseModeBtn) {
-        caseModeBtn.addEventListener('click', () => {
+        caseModeBtn.addEventListener('click', async () => {
+          // 인증 체크
+          try {
+            const { getCurrentUser } = await import('./js/features/auth/authCore.js');
+            const currentUser = getCurrentUser();
+            
+            if (!currentUser) {
+              // 로그인 모달 표시
+              const loginModal = document.getElementById('login-modal');
+              if (loginModal) {
+                if (loginModal.parentNode !== document.body) {
+                  document.body.appendChild(loginModal);
+                }
+                loginModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+              }
+              showToast('기출문제 모드를 사용하려면 로그인이 필요합니다.', 'warning');
+              return;
+            }
+          } catch (error) {
+            console.error('인증 체크 실패:', error);
+          }
+          
           const modal = document.getElementById('case-mode-selection-modal');
           if (modal) {
             modal.classList.remove('hidden');
@@ -2175,6 +2197,32 @@
       // 기출문제 모드 선택
       if (selectExamBtn) {
         selectExamBtn.addEventListener('click', async () => {
+          // 인증 체크
+          try {
+            const { getCurrentUser } = await import('./js/features/auth/authCore.js');
+            const currentUser = getCurrentUser();
+            
+            if (!currentUser) {
+              closeCaseModal();
+              // 로그인 모달 표시
+              const loginModal = document.getElementById('login-modal');
+              if (loginModal) {
+                if (loginModal.parentNode !== document.body) {
+                  document.body.appendChild(loginModal);
+                }
+                loginModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+              }
+              showToast('기출문제 모드를 사용하려면 로그인이 필요합니다.', 'warning');
+              return;
+            }
+          } catch (error) {
+            console.error('인증 체크 실패:', error);
+            closeCaseModal();
+            showToast('인증 확인 중 오류가 발생했습니다.', 'error');
+            return;
+          }
+          
           closeCaseModal();
 
           const apiKey = localStorage.getItem('geminiApiKey') || '';

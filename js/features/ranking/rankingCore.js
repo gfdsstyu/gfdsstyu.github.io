@@ -18,6 +18,7 @@ import {
 
 import { db } from '../../app.js';
 import { getCurrentUser, getNickname, addAuthStateListener } from '../auth/authCore.js';
+import { shouldCountAsNewRead } from '../../core/storageManager.js';
 
 // ============================================
 // Helper Functions
@@ -58,9 +59,10 @@ export function getPeriodKey(period = 'daily') {
  * 사용자 통계 업데이트 (문제 풀이 후 호출)
  * @param {string} userId - 사용자 UID
  * @param {number} score - 문제 점수 (0-100)
+ * @param {string} qKey - 문제 고유ID (고유 회독수 확인용, optional)
  * @returns {Promise<{success: boolean, message: string}>}
  */
-export async function updateUserStats(userId, score) {
+export async function updateUserStats(userId, score, qKey = null) {
   console.log(`🔍 [Ranking DEBUG] updateUserStats 호출됨 - userId: ${userId}, score: ${score}`);
 
   if (!userId) {
@@ -73,7 +75,27 @@ export async function updateUserStats(userId, score) {
     // 기존 사용자가 로그인 없이 바로 문제를 풀 경우를 대비해 여기서도 체크합니다.
     await checkAndMigrateAP(userId);
 
-    console.log(`📊 [Ranking] 사용자 통계 업데이트 시작... (userId: ${userId}, score: ${score})`);
+    // 고유 회독수 확인 (qKey가 제공된 경우)
+    let isNewRead = true;
+    if (qKey) {
+      // registerUniqueRead는 이미 grading.js에서 호출되었을 수 있으므로,
+      // shouldCountAsNewRead로 확인
+      const questionScores = window.questionScores || {};
+      const record = questionScores[qKey];
+      if (record && Array.isArray(record.solveHistory)) {
+        // 현재 풀이를 제외한 solveHistory로 확인
+        const historyWithoutCurrent = record.solveHistory.slice(0, -1);
+        isNewRead = shouldCountAsNewRead(historyWithoutCurrent);
+      }
+    }
+
+    // 새 회독이 아닌 경우 통계 업데이트 스킵
+    if (!isNewRead) {
+      console.log(`📊 [Ranking] 통계 업데이트 스킵 (5분 이내 재풀이): ${qKey || 'unknown'}`);
+      return { success: true, message: '5분 이내 재풀이로 통계 업데이트 스킵' };
+    }
+
+    console.log(`📊 [Ranking] 사용자 통계 업데이트 시작... (userId: ${userId}, score: ${score}, 새 회독: ${isNewRead})`);
 
     const userDocRef = doc(db, 'users', userId);
     const userDocSnap = await getDoc(userDocRef);
@@ -93,7 +115,7 @@ export async function updateUserStats(userId, score) {
       monthly: {}
     };
 
-    // 전체 통계 업데이트
+    // 전체 통계 업데이트 (새 회독인 경우에만)
     const newTotalProblems = currentStats.totalProblems + 1;
     const newTotalScore = currentStats.totalScore + score;
     const newAverageScore = newTotalScore / newTotalProblems;

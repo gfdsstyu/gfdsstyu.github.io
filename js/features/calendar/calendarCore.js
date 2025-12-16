@@ -11,7 +11,9 @@ import {
   getStatsRefDate,
   setStatsRefDate,
   getCalRefDate,
-  setCalRefDate
+  setCalRefDate,
+  computeUniqueReadsFromHistory,
+  UNIQUE_WINDOW_MS
 } from '../../core/storageManager.js';
 import { getScopeFilteredData } from '../filter/filterCore.js';
 
@@ -36,16 +38,36 @@ function getCountsMap(base, scores) {
     return countsCache;
   }
 
-  // Phase 1: 캐시 미스 - 새로 계산
+  // Phase 1: 캐시 미스 - 새로 계산 (고유 회독수 기반)
   const idSet = new Set(base.map(q => String(q.고유ID).trim()));
   const counts = new Map();
 
   for (const [qid, rec] of Object.entries(scores)) {
     if (!idSet.has(qid)) continue;
     const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
-    for (const h of hist) {
-      const t = Number(h?.date);
-      if (!Number.isFinite(t)) continue;
+    if (hist.length === 0) continue;
+    
+    // 5분 윈도우 기반으로 고유 회독수 계산
+    const times = hist
+      .map(x => +x?.date)
+      .filter(Number.isFinite)
+      .sort((a, b) => a - b);
+    
+    if (times.length === 0) continue;
+    
+    // 고유 회독 추출 (5분 윈도우 적용)
+    let lastTime = -Infinity;
+    const uniqueReads = [];
+    
+    for (const t of times) {
+      if (t - lastTime >= UNIQUE_WINDOW_MS) {
+        uniqueReads.push(t);
+        lastTime = t;
+      }
+    }
+    
+    // 날짜별로 집계
+    for (const t of uniqueReads) {
       const d = new Date(t);
       d.setHours(0, 0, 0, 0);
       const k = ymd(d);
@@ -315,12 +337,38 @@ export function renderStats() {
     const ch = String(q.단원).trim();
     const rec = scores[id];
     const hist = Array.isArray(rec?.solveHistory) ? rec.solveHistory : [];
+    
+    if (hist.length === 0) continue;
 
-    for (const h of hist) {
+    // 5분 윈도우 기반으로 고유 회독 추출
+    const times = hist
+      .map(x => +x?.date)
+      .filter(Number.isFinite)
+      .sort((a, b) => a - b);
+    
+    if (times.length === 0) continue;
+    
+    // 고유 회독 추출 (5분 윈도우 적용)
+    let lastTime = -Infinity;
+    const uniqueReads = [];
+    const uniqueReadScores = [];
+    
+    for (let i = 0; i < hist.length; i++) {
+      const h = hist[i];
       const t = +h?.date;
-      const sc = +h?.score;
       if (!Number.isFinite(t)) continue;
-
+      
+      if (t - lastTime >= UNIQUE_WINDOW_MS) {
+        uniqueReads.push({ time: t, score: +h?.score });
+        lastTime = t;
+      }
+    }
+    
+    // 기간 내 고유 회독만 집계
+    for (const ur of uniqueReads) {
+      const t = ur.time;
+      const sc = ur.score;
+      
       // 기간 체크: start <= t <= end
       if (t >= +start && t <= +end) {
         periodSolves++;

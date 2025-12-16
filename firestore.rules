@@ -37,6 +37,16 @@ service cloud.firestore {
       match /kamScores/{caseId} {
         allow read, write: if isOwner(userId);
       }
+
+      // 기출문제 점수 서브컬렉션
+      match /examScores/{year} {
+        allow read, write: if isOwner(userId);
+        
+        // 기출문제 시도별 점수 서브컬렉션
+        match /attempts/{attemptId} {
+          allow read, write: if isOwner(userId);
+        }
+      }
     }
 
     // ============================================
