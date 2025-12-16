@@ -40,7 +40,8 @@ export async function callGeminiAPI(userAnswer, correctAnswer, apiKey, selectedA
         feedback: { type: 'STRING' }
       },
       required: ['score', 'feedback']
-    }
+    },
+    temperature: 0.4  // 채점 일관성과 적절한 유연성의 균형
   };
 
   // Lite 모델일 경우 엄격 모드 추가
@@ -350,7 +351,7 @@ export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemin
  * @param {number} delay - 재시도 대기 시간 (ms)
  * @returns {Promise<object>} 생성된 JSON 객체
  */
-export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selectedAiModel = 'gemini-2.5-flash-lite', retries = 3, delay = 1500) {
+export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selectedAiModel = 'gemini-2.5-flash-lite', retries = 3, delay = 1500, generationConfigOverride = null) {
   console.log('🔑 [geminiApi.js] callGeminiJsonAPI - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
   console.log('🔑 [geminiApi.js] callGeminiJsonAPI - 모델:', selectedAiModel);
 
@@ -359,13 +360,19 @@ export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selected
 
   console.log('🔑 [geminiApi.js] callGeminiJsonAPI - URL:', url.substring(0, 100) + '...');
 
-  const generationConfig = {
+  // 기본 generationConfig (채점 일관성을 위해 낮은 temperature)
+  const defaultGenerationConfig = {
     responseMimeType: 'application/json',
     responseSchema: responseSchema,
     maxOutputTokens: 8000,  // MAX_TOKENS 에러 방지: 2000 → 8000
-    temperature: 0.7,
+    temperature: 0.4,  // 채점 일관성과 적절한 유연성의 균형
     topP: 0.85
   };
+
+  // generationConfigOverride가 있으면 병합
+  const generationConfig = generationConfigOverride 
+    ? { ...defaultGenerationConfig, ...generationConfigOverride }
+    : defaultGenerationConfig;
 
   const payload = {
     contents: [{ parts: [{ text: prompt }] }],
@@ -459,14 +466,14 @@ export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selected
       console.warn(`⚠️ [Gemini JSON API] ${err.message} - ${retryDelaySeconds}초 후 재시도 (남은 횟수: ${retries})`);
 
       await new Promise((r) => setTimeout(r, retryDelay));
-      return callGeminiJsonAPI(prompt, responseSchema, apiKey, selectedAiModel, retries - 1, delay * 1.8);
+      return callGeminiJsonAPI(prompt, responseSchema, apiKey, selectedAiModel, retries - 1, delay * 1.8, generationConfigOverride);
     }
 
     // 503 재시도 모두 실패 시, flash 모델이었다면 lite로 다운그레이드 시도
     if (is503 && selectedAiModel === 'gemini-2.5-flash') {
       console.warn(`⚠️ [Gemini JSON API] 503 에러 지속 → gemini-2.5-flash-lite로 자동 전환 시도`);
       try {
-        return await callGeminiJsonAPI(prompt, responseSchema, apiKey, 'gemini-2.5-flash-lite', 2, 1500);
+        return await callGeminiJsonAPI(prompt, responseSchema, apiKey, 'gemini-2.5-flash-lite', 2, 1500, generationConfigOverride);
       } catch (liteErr) {
         console.error(`❌ [Gemini JSON API] lite 모델도 실패: ${liteErr.message}`);
         throw new Error(`프롬프트가 너무 크거나 복잡합니다. 데이터 범위를 줄여주세요. (원본 에러: ${err.message})`);
