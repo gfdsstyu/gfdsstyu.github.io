@@ -486,6 +486,9 @@ class ExamService {
     const keywords = question.keywords && question.keywords.length > 0
       ? question.keywords
       : [];
+    
+    // Explanation 처리: 문제별 채점 가이드 (참고용)
+    const explanation = question.explanation || '';
 
     const basePrompt = `
 # Role
@@ -506,8 +509,21 @@ ${question.question}
 ## 모범 답안
 ${question.model_answer}
 
-## 핵심 키워드
-${keywords.length > 0 ? keywords.map(k => `• ${k}`).join('\n') : '(키워드 정보 없음)'}
+${explanation ? `## 📌 채점 가이드 (참고용)
+${explanation}
+
+**⚠️ 참고사항**: 위 채점 가이드의 키워드나 채점 포인트는 **참고용**입니다. 기계적으로 일치 여부를 체크하지 마십시오.
+
+---` : ''}
+
+## 🔑 중요 키워드 판단 지침
+**위 [모범 답안]${explanation ? '과 [채점 가이드]' : ''}를 종합적으로 참고하여**, 이 문제에서 평가해야 할 **핵심 개념과 중요 키워드**를 당신이 직접 판단하십시오.
+
+- ✅ 모범 답안에서 핵심 개념을 추출하여 중요 키워드를 식별하십시오.
+${explanation ? '- ✅ 채점 가이드의 키워드는 참고용이므로, 동일한 개념을 다른 표현으로 서술했어도 인정하십시오.' : ''}
+- ✅ 키워드가 정확히 일치하지 않아도 **의미가 통하면** 인정하십시오.
+- ✅ 동의어, 유사 표현, 설명적 서술도 정답으로 인정하십시오.
+- ❌ 기계적인 키워드 매칭을 하지 마십시오. **학생 답안의 논리와 의미**를 종합적으로 평가하십시오.
 
 ---
 
