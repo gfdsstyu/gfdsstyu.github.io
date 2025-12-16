@@ -267,7 +267,8 @@ class ExamService {
       const currentUser = getCurrentUser();
       if (currentUser) {
         const attemptId = `attempt_${attemptNumber}_${Date.now()}`;
-        const examScoreRef = doc(db, 'users', currentUser.uid, 'examScores', year, 'attempts', attemptId);
+        const yearStr = String(year); // Firestore 경로는 문자열이어야 함
+        const examScoreRef = doc(db, 'users', currentUser.uid, 'examScores', yearStr, 'attempts', attemptId);
 
         await setDoc(examScoreRef, {
           totalScore: score,
@@ -451,8 +452,24 @@ class ExamService {
   async gradeQuestion(examCase, question, userAnswer, apiKey, model = 'gemini-2.5-flash') {
     console.log('🔑 [examService.js] gradeQuestion - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
 
-    // Rule vs Case 타입별 프롬프트 전략 분기
-    const systemPrompt = this.buildGradingPrompt(examCase, question);
+    // RAG 검색: 관련 기출문제 검색 (비동기, 실패해도 채점은 진행)
+    let relatedQuestions = [];
+    try {
+      const ragSearchService = (await import('../../services/ragSearch.js')).default;
+      await ragSearchService.initializeRAG();
+      
+      // 문제 내용과 모범 답안을 기반으로 검색 쿼리 생성
+      const searchQuery = `${question.question || ''} ${question.model_answer || question.answer || ''}`.trim();
+      if (searchQuery.length > 0) {
+        relatedQuestions = ragSearchService.retrieveDocuments(searchQuery, 3);
+        console.log('📚 [RAG] 관련 기출문제 검색 결과:', relatedQuestions.length, '개');
+      }
+    } catch (error) {
+      console.warn('⚠️ [RAG] 검색 실패, RAG 없이 채점 진행:', error);
+    }
+
+    // Rule vs Case 타입별 프롬프트 전략 분기 (RAG 결과 포함)
+    const systemPrompt = this.buildGradingPrompt(examCase, question, relatedQuestions);
 
     const userPrompt = `[사용자 답안]\n${userAnswer}\n\n위 답안을 모범 답안과 비교하여 채점해주세요.`;
 
@@ -466,8 +483,12 @@ class ExamService {
    * 실전 채점 트렌드:
    * - 기준서 문제: 후하게 채점 (키워드 중심, 의미 통하면 만점)
    * - 사례/OX 문제: 엄격하게 채점 (논리적 근거 필수)
+   * 
+   * @param {Object} examCase - 시험 케이스
+   * @param {Object} question - 문제 객체
+   * @param {Array} relatedQuestions - RAG로 검색된 관련 기출문제 배열 (옵셔널)
    */
-  buildGradingPrompt(examCase, question) {
+  buildGradingPrompt(examCase, question, relatedQuestions = []) {
     // Type 결정: question 레벨 우선, 없으면 examCase 레벨
     const questionType = question.type || examCase.type;
     const hasType = questionType && questionType.trim() !== '';
@@ -492,15 +513,12 @@ class ExamService {
 
     const basePrompt = `
 # Role
-당신은 대한민국 공인회계사(KICPA) 2차 시험 '회계감사' 과목의 전문 채점관입니다.
-제공된 [문제 정보]와 [학생 답안]을 비교하여, 실제 수험생들의 합격/불합격을 가르는 **실전 채점 기조(Trend)**에 맞춰 채점하십시오.
+KICPA 2차 회계감사 전문 채점관. 실전 채점 기조에 맞춰 채점하십시오.
 
 # 문제 정보
-- 주제: ${examCase.topic}
-- 문제 유형: ${typeDisplay}
-- 배점: ${question.score}점
+- 주제: ${examCase.topic} | 유형: ${typeDisplay} | 배점: ${question.score}점
 
-## 지문 (Scenario)
+## 지문
 ${scenario}
 
 ## 문제
@@ -509,113 +527,50 @@ ${question.question}
 ## 모범 답안
 ${question.model_answer}
 
-${explanation ? `## 📌 채점 가이드 (참고용)
-${explanation}
-
-**⚠️ 참고사항**: 위 채점 가이드의 키워드나 채점 포인트는 **참고용**입니다. 기계적으로 일치 여부를 체크하지 마십시오.
+${relatedQuestions && relatedQuestions.length > 0 ? `## 📚 참고 자료 (RAG)
+${relatedQuestions.slice(0, 2).map((doc, index) => `[${index + 1}] ${doc.problemTitle || doc.question || ''} | ${(doc.answer || '').substring(0, 100)}`).join('\n')}
+⚠️ 현재 문제 지시사항이 명확하면 참고 자료보다 우선시하십시오.
 
 ---` : ''}
 
-## 🔑 중요 키워드 판단 지침
-**위 [모범 답안]${explanation ? '과 [채점 가이드]' : ''}를 종합적으로 참고하여**, 이 문제에서 평가해야 할 **핵심 개념과 중요 키워드**를 당신이 직접 판단하십시오.
+${explanation ? `## 📌 채점 가이드
+${explanation}
+⚠️ 참고용. 기계적 매칭 금지.
 
-- ✅ 모범 답안에서 핵심 개념을 추출하여 중요 키워드를 식별하십시오.
-${explanation ? '- ✅ 채점 가이드의 키워드는 참고용이므로, 동일한 개념을 다른 표현으로 서술했어도 인정하십시오.' : ''}
-- ✅ 키워드가 정확히 일치하지 않아도 **의미가 통하면** 인정하십시오.
-- ✅ 동의어, 유사 표현, 설명적 서술도 정답으로 인정하십시오.
-- ❌ 기계적인 키워드 매칭을 하지 마십시오. **학생 답안의 논리와 의미**를 종합적으로 평가하십시오.
+---` : ''}
 
----
-
-# 🚨 데이터 처리 지침
-제공되는 [모범 답안]에는 **'정답(결론/상단)'**과 **'해설(부연 설명/하단)'**이 섞여 있을 수 있습니다.
-- 채점 시 [모범 답안]에서 **핵심 결론**과 **필수 키워드**만 추출하여 채점 기준으로 삼으십시오.
-- 해설에만 있는 TMI(배경지식, 상세 계산 과정)를 학생이 적지 않았다고 해서 감점하지 마십시오.
-- **절대적 원칙**: 모범 답안에 없는 내용을 당신의 일반 지식으로 요구하지 마십시오.
-
-# 📋 문제 지시사항 준수 원칙
-**문제에서 요구하는 답안 형식을 정확히 따르는 것도 채점 기준입니다.**
-
-## ⚠️ 중요: "적절하지 않은 경우에만 이유를 쓰라"는 지시사항
-문제에서 **"적절하지 않은 경우에만 그 이유를 서술하시오"** 또는 **"적절하지 않은 경우 그 이유를 기재하시오"**와 같은 지시가 있을 때:
-- ✅ **"예, 적절하다"** 또는 **"적절한가? 예"**라고 답한 경우 → **이유를 쓰지 않아도 정상입니다. 이유가 없어도 감점하지 마십시오.**
-- ✅ **"아니오, 적절하지 않다"** 또는 **"적절한가? 아니오"**라고 답한 경우 → **이유를 반드시 써야 합니다. 이유가 없으면 감점하십시오.**
-- ❌ **절대 하지 말 것**: "예, 적절하다"고 답했는데 이유가 없다고 감점하는 것은 **잘못된 채점**입니다. 문제 지시사항을 정확히 따르는 것이 정답입니다.
+# 핵심 원칙
+1. **문제 지시사항 최우선**: "적절하지 않은 경우에만 이유를 쓰라" → "예" 답변은 이유 없어도 만점
+2. **키워드**: 의미 통하면 인정. 기계적 매칭 금지
+3. **모범 답안**: 핵심 결론만 추출. 해설 TMI 요구 금지
 
 ---
 
-# 📝 채점 원칙 (KICPA 실전 채점 트렌드)
+# 채점 기준
 
-문제 유형에 따라 **이원화된 채점 기준**을 적용하십시오:
-
-## 1️⃣ 기준서형 문제 (Rule): "후하게 채점 (Generous Grading)"
-**이 유형은 기준서 원문을 암기해 쓰는 문제입니다. 실제 시험에서는 의미가 통하면 점수를 줍니다.**
-
-### 채점 기준:
-- **키워드 중심 (60%)**: 문장의 조사가 틀리거나 어순이 바뀌어도, 핵심 **키워드**가 포함되어 있고 문맥이 기준서의 의도와 일치하면 **만점** 부여
-  - ✅ "고려한다" vs "반영한다" 같은 동사의 미세한 차이는 감점 사유 아님
-  - ✅ 문장이 완벽하지 않아도 의미가 통하면 정답 처리
-  - ✅ 개조식(bullet points)으로 핵심만 요약해도 정답 인정
-
-- **유연성 (40%)**: 표현의 다양성 인정
-  - 모범 답안과 단어가 달라도 **의미가 같으면** 만점
-  - **법조항/기준서 번호는 불필요**: "700-12", "윤리기준 600.12", "공인회계사법 33조" 같은 조문 번호를 정확히 외우지 못해도 **조문의 취지**를 설명하면 만점 인정
-  - 기준서 번호를 쓰지 않았다고 감점하지 말 것!
-
-### 점수 배분 (배점 ${question.score}점):
-- 완벽한 답안 (모든 키워드 포함 + 표현 정확) → ${question.score}점 (만점)
-- 핵심 키워드 포함 + 의미 일치 (핀트 맞음) → ${(question.score * 0.8).toFixed(1)}점 이상 (최소 80%, 키워드 포함도에 따라 80%~95% 사이 부여)
-- 키워드 일부 + 문맥상 이해 → ${(question.score * 0.6).toFixed(1)}점
-- 키워드 부족 but 방향성 맞음 → ${(question.score * 0.4).toFixed(1)}점
-- 관련 없는 내용 서술 → 0점
-
-## 2️⃣ 사례/OX형 문제 (Case): 
-**이 유형은 상황 판단 능력과 논리를 평가합니다. 키워드 나열만으로는 부족합니다.**
-
-### 채점 기준:
-- **논리적 근거 필수 (70%)**:
-  - OX 문제에서 결론(O/X, 예/아니오)만 맞고 **근거가 틀리거나 없으면** → 배점의 30%부여
-  - 근거가 핵심입니다!
-
-- **정확한 적용 (30%)**:
-  - 단순 기준서 나열 아닌, **주어진 상황/사례**에 맞게 기준서를 적용해야 함
-  - 기출 변형 문제의 경우, 미세한 발문 차이(예: 표본 개수 vs 테스트 항목 개수)를 구분하지 못하면 → 0점
-
-### 점수 배분 (배점 ${question.score}점):
-- 완벽한 답안 (결론 정확 + 논리적 근거 명확 + 상황 적용 정확 + 핵심 키워드 포함) → ${question.score}점 (만점)
-- 핵심 키워드 포함 + 논리적 근거 타당 + 상황 적용 적절 (핀트 맞음) → ${(question.score * 0.8).toFixed(1)}점 이상 (최소 80%, 근거의 타당도와 키워드 포함도에 따라 80%~95% 사이 부여)
-- 결론 정확 + 근거 약함/미약 + 키워드 일부 포함 → ${(question.score * 0.6).toFixed(1)}점
-- 결론 정확 but 근거 없음/틀림 → ${(question.score * 0.3).toFixed(1)}점
-- 결론 틀림 but 근거 타당/논리적 → ${(question.score * 0.15).toFixed(1)}점 (부분점수)
-- 결론 틀림 + 근거 없음/틀림 → 0점
-
-## 🚫 공통 감점 사유:
-- **관련 없는 서술**: 문제에서 묻는 것과 전혀 다른 기준서/내용을 서술 → **0점**
-- **일반론만 나열**: 구체적인 상황 분석 없이 교과서적 내용만 나열 → 배점의 30% 미만
-  - ✅ "재고 실사 시 ABC 품목별 표본 크기 조정" → 구체적
-  - ❌ "재고 관련 절차 수행" → 추상적, 낮은 점수
+## ${isRule ? '기준서형 (Rule)' : isCase ? '사례/OX형 (Case)' : '일반'}
+${isRule ? `- 키워드 중심. 의미 통하면 만점. 기준서 번호 불필요.
+- 점수: 만점/${(question.score * 0.8).toFixed(1)}/${(question.score * 0.6).toFixed(1)}/${(question.score * 0.4).toFixed(1)}/0` : ''}
+${isCase ? `- ⚠️ 문제 지시사항 우선: "적절하지 않은 경우에만 이유" → "예" 답변은 이유 없어도 만점
+- 근거 요구 문제만: 결론만 맞고 근거 없음 → ${(question.score * 0.3).toFixed(1)}점
+- 점수: 만점/${(question.score * 0.8).toFixed(1)}/${(question.score * 0.6).toFixed(1)}/${(question.score * 0.3).toFixed(1)}/0` : ''}
 
 ---
 
-# 📤 출력 형식 (JSON Only)
-반드시 아래 JSON 형식으로만 응답하십시오:
-
+# 출력 형식 (JSON)
 \`\`\`json
 {
-  "score": 획득 점수 (0~${question.score}, 0.5점 단위 가능),
+  "score": 0~${question.score} (0.5단위),
   "question_type": "${typeDisplay}",
-  "feedback": "총평 (2-3문장, 학생 답변의 강점과 약점을 명확히 평가)",
-  "strengths": ["잘한 점 1 (구체적으로)", "잘한 점 2"],
-  "improvements": ["개선할 점 1 (모범 답안 기준)", "개선할 점 2"],
-  "keywordMatch": ["학생이 작성한 핵심 키워드 1", "학생이 작성한 핵심 키워드 2"],
-  "missingKeywords": ["모범 답안에 있으나 학생이 누락한 키워드 1", "누락한 키워드 2"]
+  "feedback": "총평 2-3문장",
+  "strengths": ["강점1", "강점2"],
+  "improvements": ["개선점1", "개선점2"],
+  "keywordMatch": ["키워드1"],
+  "missingKeywords": ["누락키워드1"]
 }
 \`\`\`
 
-## ⚠️ 중요: 채점관의 책무
-- **기준서형(Rule)**: 너무 칼같이 채점하지 말 것. 의미가 통하면 점수를 주는 것이 실전 채점의 정석입니다.
-- **사례/OX형(Case)**: 키워드만 나열하면 높은 점수를 주지 말 것. 논리적 근거가 핵심입니다.
-- **데이터 처리**: 모범 답안의 해설 부분을 학생에게 요구하지 말 것. 핵심 결론만 추출하여 채점하십시오.
+⚠️ ${isRule ? '의미 통하면 점수. ' : isCase ? '문제 지시사항 우선. ' : ''}모범 답안 해설 요구 금지.
 `;
 
     return basePrompt;
@@ -637,6 +592,10 @@ ${explanation ? '- ✅ 채점 가이드의 키워드는 참고용이므로, 동�
     const responseSchema = {
       type: 'OBJECT',
       properties: {
+        reasoning: { 
+          type: 'STRING', 
+          description: '채점 점수를 도출하게 된 논리적 근거 요약' 
+        },
         score: { type: 'NUMBER' },
         question_type: { type: 'STRING' },
         feedback: { type: 'STRING' },
@@ -657,7 +616,7 @@ ${explanation ? '- ✅ 채점 가이드의 키워드는 참고용이므로, 동�
           items: { type: 'STRING' }
         }
       },
-      required: ['score', 'question_type', 'feedback', 'strengths', 'improvements', 'keywordMatch', 'missingKeywords']
+      required: ['reasoning', 'score', 'question_type', 'feedback', 'strengths', 'improvements', 'keywordMatch', 'missingKeywords']
     };
 
     try {
@@ -740,9 +699,13 @@ ${explanation ? '- ✅ 채점 가이드의 키워드는 참고용이므로, 동�
           
           // 점수 검증 및 보정
           if (result && typeof result.score === 'number') {
+            // 소숫점 둘째자리까지 반올림
+            result.score = Math.round(result.score * 100) / 100;
             // 점수가 배점을 초과하거나 음수인 경우 보정
             const maxScore = question.score || 0;
             result.score = Math.max(0, Math.min(result.score, maxScore));
+            // 최종적으로 소숫점 둘째자리까지 반올림 (보정 후에도)
+            result.score = Math.round(result.score * 100) / 100;
           } else {
             // 점수가 없거나 유효하지 않은 경우 0점 처리
             result.score = 0;

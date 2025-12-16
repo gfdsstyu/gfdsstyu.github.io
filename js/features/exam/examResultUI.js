@@ -363,7 +363,7 @@ const totalPossibleScore = examService.getTotalScore(year);
                           물음 ${extractQuestionNumber(question.id)} (${question.score}점)
                         </h5>
                         <span class="text-lg sm:text-xl font-bold ${scoreColor}">
-                          ${score.toFixed(1)}점
+                          ${score.toFixed(2)}점
                         </span>
                       </div>
 
@@ -398,8 +398,8 @@ const totalPossibleScore = examService.getTotalScore(year);
                                   return `
                                     <div class="relative group">
                                       <div class="w-10 h-10 ${historyColor} ${ringClass} rounded-full flex items-center justify-center text-white font-bold text-xs cursor-pointer transition-all hover:scale-110" 
-                                           title="${historyIdx + 1}회전: ${historyScore.toFixed(1)}/${question.score}점">
-                                        ${historyScore.toFixed(1)}
+                                           title="${historyIdx + 1}회전: ${historyScore.toFixed(2)}/${question.score}점">
+                                        ${historyScore.toFixed(2)}
                                       </div>
                                     </div>
                                   `;
