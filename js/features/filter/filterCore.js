@@ -241,10 +241,36 @@ export function getFilteredByUI() {
   if (filter === 'today-review') {
     list = list.filter(q => !questionScores[normId(q.고유ID)]?.userReviewExclude);
 
-    // prioritizeTodayReview는 reviewCore 모듈에서 window로 노출됨 (Phase 4.5)
+    // 플래그된 문제와 플래그되지 않은 문제 분리
+    const flagged = list.filter(q => {
+      const key = normId(q.고유ID);
+      const s = questionScores[key];
+      return s?.userReviewFlag && !s?.userReviewExclude;
+    });
+    const unflagged = list.filter(q => {
+      const key = normId(q.고유ID);
+      const s = questionScores[key];
+      return !s?.userReviewFlag || s?.userReviewExclude;
+    });
+
+    // 플래그되지 않은 문제만 우선순위 정렬 후 10개 제한
+    let unflaggedLimited = unflagged;
     if (typeof window.prioritizeTodayReview === 'function') {
-      list = window.prioritizeTodayReview(list).slice(0, 10);
+      unflaggedLimited = window.prioritizeTodayReview(unflagged).slice(0, 10);
     }
+
+    // 플래그된 문제 + 제한된 플래그되지 않은 문제 병합
+    list = [...flagged, ...unflaggedLimited];
+  }
+
+  // 5-1. 사용자 복습만 필터 (플래그된 문제만, 10개 제한 없음)
+  if (filter === 'user-review') {
+    list = list.filter(q => {
+      const key = normId(q.고유ID);
+      const s = questionScores[key];
+      return s?.userReviewFlag && !s?.userReviewExclude;
+    });
+    // 10개 제한 없음
   }
 
   // 6. 정렬: 1순위 단원, 2순위 고유ID (자연 정렬)
