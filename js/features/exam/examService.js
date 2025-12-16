@@ -545,7 +545,7 @@ ${explanation}
 # 핵심 원칙
 1. **문제 지시사항 최우선**: "적절하지 않은 경우에만 이유를 쓰라" → "예" 답변은 이유 없어도 만점
 2. **키워드**: 의미 통하면 인정. 기계적 매칭 금지
-3. **수험 합의 언어 인정**: "충적감증(충분하고 적합한 감사증거)", "성시범(성격 시기 범위)" 등 수험상 널리 합의된 약어/표현은 정식 용어와 동일하게 인정
+3. **수험상 합의된 언어 인정**: "충적감증(충분하고 적합한 감사증거)", "성시범(성격 시기 범위)" 등 수험상 널리 합의된 약어/표현은 정식 용어와 동일하게 인정
 4. **모범 답안**: 핵심 결론만 추출. 해설 TMI 요구 금지
 5. **괄호 안 내용**: 모범 답안의 괄호 안 영문 키워드 및 부연 설명은 평가 대상이 아님. 학생 답안에 없어도 감점 금지
 
@@ -626,9 +626,9 @@ ${isCase ? `- ⚠️ 문제 지시사항 우선: "적절하지 않은 경우에�
     };
 
     try {
-      // 채점 일관성과 적절한 유연성의 균형을 위해 temperature 0.4 설정
+      // 채점 일관성을 위해 temperature 0.3 설정
       const generationConfigOverride = {
-        temperature: 0.4
+        temperature: 0.3
       };
       const result = await callGeminiJsonAPI(fullPrompt, responseSchema, apiKey, model, 3, 1500, generationConfigOverride);
       return result;

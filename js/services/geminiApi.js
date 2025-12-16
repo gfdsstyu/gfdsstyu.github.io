@@ -41,7 +41,7 @@ export async function callGeminiAPI(userAnswer, correctAnswer, apiKey, selectedA
       },
       required: ['score', 'feedback']
     },
-    temperature: 0.4  // 채점 일관성과 적절한 유연성의 균형
+    temperature: 0.3  // 채점 일관성을 위해 낮은 temperature
   };
 
   // Lite 모델일 경우 엄격 모드 추가
@@ -365,7 +365,7 @@ export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selected
     responseMimeType: 'application/json',
     responseSchema: responseSchema,
     maxOutputTokens: 8000,  // MAX_TOKENS 에러 방지: 2000 → 8000
-    temperature: 0.4,  // 채점 일관성과 적절한 유연성의 균형
+    temperature: 0.3,  // 채점 일관성을 위해 낮은 temperature
     topP: 0.85
   };
 

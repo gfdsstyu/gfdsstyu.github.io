@@ -14,6 +14,7 @@ export class RAGSearchService {
   constructor() {
     this.questionsData = null;
     this.initialized = false;
+    this.fuseIndex = null; // Fuse.js 인덱스
 
     // 유의어/관련어 매핑 (Accounting Ontology)
     // 회계 용어의 특성상 유사한 의미를 가진 단어들을 연결하여 검색 정확도 향상
@@ -59,6 +60,120 @@ export class RAGSearchService {
       console.error('❌ Failed to initialize RAG Search System:', error);
       throw error;
     }
+  }
+
+  /**
+   * Fuse.js 기반 RAG 초기화
+   * questions.json 데이터를 로드하여 검색 가능한 상태로 만듭니다.
+   */
+  async initializeRAG() {
+    if (this.fuseIndex) return; // 이미 초기화됨
+
+    try {
+      // questions.json 로드 (이미 로드되어 있으면 재사용)
+      if (!this.initialized) {
+        await this.initialize();
+      }
+
+      if (!this.questionsData || this.questionsData.length === 0) {
+        console.warn('⚠️ questions.json 데이터가 없습니다.');
+        return;
+      }
+
+      // 데이터 전처리 (검색하기 좋게 평탄화)
+      const searchableData = this.questionsData.map(item => ({
+        id: item.고유ID || item.id,
+        problemTitle: item.problemTitle || '',
+        question: item.물음 || item.question || '',
+        answer: item.정답 || item.answer || '',
+        explanation: item.explanation || '',
+        tags: item.tags || []
+      }));
+
+      // Fuse.js가 전역에 로드되어 있는지 확인
+      if (typeof Fuse === 'undefined') {
+        console.error('❌ Fuse.js가 로드되지 않았습니다. CDN을 확인하세요.');
+        return;
+      }
+
+      // Fuse.js 옵션 설정
+      const options = {
+        includeScore: true,
+        threshold: 0.6, // 0.0(일치) ~ 1.0(불일치), 0.6으로 완화하여 더 많은 결과 반환
+        keys: [
+          { name: 'answer', weight: 0.45 },         // 정답 비중 45% (핵심 키워드와 채점 기준 포함)
+          { name: 'question', weight: 0.35 },      // 문제 비중 35% (문제 내용 중요)
+          { name: 'problemTitle', weight: 0.2 }    // 제목 비중 20% (제목과 문제 텍스트가 겹치는 경우가 많음)
+        ]
+      };
+
+      this.fuseIndex = new Fuse(searchableData, options);
+      console.log('✅ Fuse.js RAG Search Engine Initialized');
+    } catch (error) {
+      console.error('❌ RAG 초기화 실패:', error);
+    }
+  }
+
+  /**
+   * 관련 정보 검색 (Retrieval) - Fuse.js 기반
+   * 사용자 질문과 관련된 문제를 찾아냅니다.
+   * @param {string} query - 검색 쿼리
+   * @param {number} limit - 반환할 최대 결과 수
+   * @returns {Array} 검색된 문제 배열
+   */
+  retrieveDocuments(query, limit = 3) {
+    if (!this.fuseIndex) {
+      console.warn('⚠️ RAG가 초기화되지 않았습니다. initializeRAG()를 먼저 호출하세요.');
+      return [];
+    }
+
+    if (!query || query.trim().length === 0) {
+      return [];
+    }
+
+    // 검색 쿼리 전처리: 너무 긴 경우 핵심 키워드만 추출
+    const processedQuery = this.preprocessQuery(query);
+    
+    const results = this.fuseIndex.search(processedQuery);
+    
+    // 디버깅: 검색 결과가 없을 때 로깅
+    if (results.length === 0) {
+      console.debug('🔍 [RAG] 검색 결과 없음:', {
+        originalQuery: query.substring(0, 100) + (query.length > 100 ? '...' : ''),
+        processedQuery: processedQuery.substring(0, 100) + (processedQuery.length > 100 ? '...' : ''),
+        queryLength: query.length
+      });
+    } else {
+      console.debug('🔍 [RAG] 검색 성공:', {
+        resultsCount: results.length,
+        topScore: results[0]?.score,
+        topItem: results[0]?.item?.id || 'N/A'
+      });
+    }
+    
+    // 검색 결과에서 상위 N개 항목의 원본 데이터만 추출
+    return results.slice(0, limit).map(result => result.item);
+  }
+
+  /**
+   * 검색 쿼리 전처리
+   * 너무 긴 쿼리의 경우 핵심 키워드만 추출하여 검색 정확도 향상
+   * @param {string} query - 원본 검색 쿼리
+   * @returns {string} 전처리된 검색 쿼리
+   */
+  preprocessQuery(query) {
+    if (!query || query.trim().length === 0) {
+      return '';
+    }
+
+    // 쿼리가 너무 긴 경우 (500자 이상) 핵심 키워드만 추출
+    if (query.length > 500) {
+      const keywords = this.extractKeywords(query);
+      // 상위 20개 키워드만 사용
+      return keywords.slice(0, 20).join(' ');
+    }
+
+    return query.trim();
   }
 
   /**
