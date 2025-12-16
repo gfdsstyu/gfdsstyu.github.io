@@ -7,6 +7,7 @@ import { chapterLabelText, PART_INSERTIONS } from '../../config/config.js';
 import { loadReadStore, computeUniqueReadsFromHistory } from '../../core/storageManager.js';
 import { showToast } from '../../ui/domUtils.js';
 import { applySourceFilter } from '../filter/filterCore.js';
+import { normId } from '../../utils/helpers.js';
 
 /**
  * 요약 뷰 업데이트 (단원별 학습 현황)
@@ -72,7 +73,7 @@ export function updateSummary() {
     // 통계 계산
     let sum = 0, cnt = 0, sumRounds = 0, last = 0;
     list.forEach(q => {
-      const id = String(q.고유ID).trim();
+      const id = normId(q.고유ID);
       const s = questionScores[id];
       if (s && Number.isFinite(+s.score)) {
         sum += +s.score;
@@ -124,12 +125,12 @@ export function updateSummary() {
       const fallback = (q.물음번호 ?? q.고유ID ?? '').toString().trim();
       const baseLabel = disp || fallback || '';
 
-      const id = String(q.고유ID).trim();
+      const id = normId(q.고유ID);
       const saved = questionScores[id] || {};
       const excluded = !!saved.userReviewExclude;
       const flagged = !!saved.userReviewFlag && !excluded; // 제외 우선
 
-      const label = excluded ? `➖ ${baseLabel}` : baseLabel;
+      const label = excluded ? `➖ ${baseLabel}` : flagged ? `☆ ${baseLabel}` : baseLabel;
       btn.textContent = label;
       if (baseLabel.length >= 3) btn.style.fontSize = '.72rem';
       if (baseLabel.length >= 4) {

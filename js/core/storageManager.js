@@ -247,6 +247,9 @@ export function setFlagState(qid, { flag = false, exclude = false, silent = fals
 
   questionScores[qid] = { ...rec, userReviewFlag: !!flag, userReviewExclude: !!exclude };
 
+  // StateManager를 통한 상태 업데이트 (중요!)
+  setQuestionScores(questionScores);
+
   try {
     saveQuestionScores();
   } catch (e) {
