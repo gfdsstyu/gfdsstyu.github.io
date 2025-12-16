@@ -6,6 +6,8 @@
 import { examService } from './examService.js';
 import { getGeminiApiKey, getSelectedAiModel } from '../../core/stateManager.js';
 import { renderResultMode } from './examResultUI.js';
+import { getCurrentUser } from '../auth/authCore.js';
+import { showToast } from '../../ui/domUtils.js';
 
 /**
  * 텍스트 정규화: 과도한 줄바꿈 완화
@@ -288,6 +290,46 @@ export function renderExamMode(container) {
  * 연도 선택 화면
  */
 function renderYearSelection(container) {
+  // 인증 체크
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    container.innerHTML = `
+      <div class="exam-selection-container max-w-5xl mx-auto p-6">
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-300 dark:border-yellow-700 rounded-xl p-8 text-center">
+          <div class="text-6xl mb-4">🔒</div>
+          <h2 class="text-2xl font-bold text-yellow-800 dark:text-yellow-300 mb-4">
+            로그인이 필요합니다
+          </h2>
+          <p class="text-gray-600 dark:text-gray-400 mb-6">
+            기출문제 모드를 사용하려면 로그인이 필요합니다.<br>
+            로그인 후 다시 시도해주세요.
+          </p>
+          <button id="exam-login-btn" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors">
+            로그인하기
+          </button>
+        </div>
+      </div>
+    `;
+    
+    // 로그인 버튼 이벤트 리스너
+    const loginBtn = container.querySelector('#exam-login-btn');
+    if (loginBtn) {
+      loginBtn.addEventListener('click', () => {
+        const loginModal = document.getElementById('login-modal');
+        if (loginModal) {
+          if (loginModal.parentNode !== document.body) {
+            document.body.appendChild(loginModal);
+          }
+          loginModal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        }
+      });
+    }
+    
+    showToast('기출문제 모드를 사용하려면 로그인이 필요합니다.', 'warning');
+    return;
+  }
+
   const apiKey = getGeminiApiKey();
   const selectedModel = getSelectedAiModel();
 
@@ -1465,8 +1507,8 @@ async function gradeAndShowResults(container, year, apiKey, selectedModel) {
     // AI 채점 (병렬 처리 + 진행률 표시)
     const result = await examService.gradeExam(year, userAnswers, apiKey, selectedModel, onProgress);
 
-    // 점수 저장
-    examService.saveScore(year, result.totalScore, result.details);
+    // 점수 저장 (localStorage + Firestore)
+    await examService.saveScore(year, result.totalScore, result.details);
 
     // 타이머 초기화
     examService.clearTimer(year);

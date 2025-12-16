@@ -5,6 +5,8 @@
 
 import { examService } from './examService.js';
 import { renderExamMode } from './examUI.js';
+import { getCurrentUser } from '../auth/authCore.js';
+import { showToast } from '../../ui/domUtils.js';
 
 let isExamMode = false;
 let examContainer = null;
@@ -16,6 +18,14 @@ export async function enterExamMode() {
   if (isExamMode) {
     console.warn('이미 기출문제 모드입니다.');
     return;
+  }
+
+  // 인증 체크
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    console.warn('❌ 기출문제 모드를 사용하려면 로그인이 필요합니다.');
+    showToast('기출문제 모드를 사용하려면 로그인이 필요합니다.', 'warning');
+    throw new Error('로그인이 필요합니다.');
   }
 
   console.log('📝 기출문제 모드 진입');

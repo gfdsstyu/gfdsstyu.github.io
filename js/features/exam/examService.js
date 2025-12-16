@@ -234,24 +234,57 @@ class ExamService {
   // ============================================
 
   /**
-   * 점수 저장
+   * 점수 저장 (localStorage + Firestore)
    */
-  saveScore(year, score, details) {
+  async saveScore(year, score, details) {
     const key = `exam_${year}_scores`;
     const existing = this.getScores(year);
+    const attemptNumber = existing.length + 1;
 
-    existing.push({
+    const scoreData = {
       score,
       details, // { questionId: { score, feedback } }
       timestamp: Date.now(),
-      attempt: existing.length + 1
-    });
+      attempt: attemptNumber
+    };
 
+    existing.push(scoreData);
+
+    // localStorage 저장 (기존 로직 유지)
     try {
       localStorage.setItem(key, JSON.stringify(existing));
-      console.log(`📊 점수 저장: ${year}년 - ${score}점 (${existing.length}차 응시)`);
+      console.log(`📊 점수 저장: ${year}년 - ${score}점 (${attemptNumber}차 응시)`);
     } catch (error) {
       console.error('점수 저장 실패:', error);
+    }
+
+    // Firestore 저장 (인증된 사용자만)
+    try {
+      const { getCurrentUser } = await import('../auth/authCore.js');
+      const { db } = await import('../../app.js');
+      const { doc, setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js');
+      
+      const currentUser = getCurrentUser();
+      if (currentUser) {
+        const attemptId = `attempt_${attemptNumber}_${Date.now()}`;
+        const examScoreRef = doc(db, 'users', currentUser.uid, 'examScores', year, 'attempts', attemptId);
+
+        await setDoc(examScoreRef, {
+          totalScore: score,
+          details: details,
+          timestamp: scoreData.timestamp,
+          attempt: attemptNumber,
+          year: year,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+
+        console.log(`✅ [Exam] Firestore 저장 완료: ${year}년 ${attemptNumber}차 응시`);
+      } else {
+        console.log('⚠️ [Exam] 로그인되지 않음 - Firestore 저장 스킵');
+      }
+    } catch (error) {
+      // Firestore 저장 실패해도 localStorage 저장은 성공했으므로 조용히 처리
+      console.error('❌ [Exam] Firestore 저장 실패:', error);
     }
   }
 

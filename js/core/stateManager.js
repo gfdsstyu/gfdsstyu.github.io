@@ -258,6 +258,73 @@ export function migrateQuestionScoresStructure() {
   return fixedCount;
 }
 
+/**
+ * 🔧 [Migration] 고유 회독수 기반 통계로 마이그레이션
+ * - 기존 solveHistory 데이터를 기반으로 5분 윈도우 기반 고유 회독수 재계산
+ * - ReadStore의 uniqueReads 필드 업데이트
+ * - 마이그레이션 완료 플래그 저장
+ */
+export async function migrateToUniqueReadsBasedStats() {
+  const MIGRATION_FLAG_KEY = 'uniqueReadsMigration_v1';
+  
+  // 이미 마이그레이션 완료된 경우 스킵
+  if (localStorage.getItem(MIGRATION_FLAG_KEY) === '1') {
+    console.log('✅ [Migration] 고유 회독수 마이그레이션 이미 완료됨');
+    return { success: true, migrated: false, message: '이미 마이그레이션 완료' };
+  }
+  
+  console.log('🔄 [Migration] 고유 회독수 기반 통계 마이그레이션 시작...');
+  
+  try {
+    const questionScores = getQuestionScores();
+    const { loadReadStore, saveReadStore, computeUniqueReadsFromHistory } = await import('./storageManager.js');
+    
+    const readStore = loadReadStore();
+    let updatedCount = 0;
+    
+    // 모든 questionScores의 solveHistory를 순회하며 고유 회독수 재계산
+    for (const [qid, record] of Object.entries(questionScores)) {
+      if (!record || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) {
+        continue;
+      }
+      
+      // 5분 윈도우 기반으로 고유 회독수 계산
+      const { uniqueReads, lastAt } = computeUniqueReadsFromHistory(record.solveHistory);
+      
+      // ReadStore 업데이트
+      const existing = readStore[qid];
+      if (!existing || existing.uniqueReads !== uniqueReads) {
+        readStore[qid] = { uniqueReads, lastAt };
+        updatedCount++;
+      }
+    }
+    
+    // ReadStore 저장
+    if (updatedCount > 0) {
+      saveReadStore(readStore);
+      console.log(`✅ [Migration] ${updatedCount}개 문제의 고유 회독수 업데이트 완료`);
+    } else {
+      console.log('✅ [Migration] 업데이트할 데이터 없음');
+    }
+    
+    // 마이그레이션 완료 플래그 저장
+    localStorage.setItem(MIGRATION_FLAG_KEY, '1');
+    
+    return { 
+      success: true, 
+      migrated: true, 
+      updatedCount,
+      message: `${updatedCount}개 문제의 고유 회독수 업데이트 완료` 
+    };
+  } catch (error) {
+    console.error('❌ [Migration] 고유 회독수 마이그레이션 실패:', error);
+    return { 
+      success: false, 
+      migrated: false, 
+      message: `마이그레이션 실패: ${error.message}` 
+    };
+  }
+}
 
 /**
  * STT 설정 저장

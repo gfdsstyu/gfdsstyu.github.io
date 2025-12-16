@@ -154,30 +154,38 @@ async function updateGroupsTabUI(currentUser) {
   // 로그인 됨
   loginRequired?.classList.add('hidden');
 
-  // Phase 3.5.3: 실제 그룹 가입 여부 확인
+  // 그룹별 랭킹은 모든 그룹 표시, 그룹 내 랭킹은 가입한 그룹만 표시
   try {
     const myGroups = await getMyGroups();
 
-    if (myGroups && myGroups.length > 0) {
-      // 그룹에 가입되어 있음 - 콘텐츠 표시
+    // 현재 서브탭에 따라 처리
+    if (currentGroupSubtab === 'group-level') {
+      // 그룹별 랭킹: 가입 여부와 관계없이 모든 그룹 표시
       groupsContent?.classList.remove('hidden');
       emptyState?.classList.add('hidden');
-
-      // 현재 서브탭에 따라 데이터 로드
-      if (currentGroupSubtab === 'group-level') {
-        await loadGroupLevelRankings();
-      } else if (currentGroupSubtab === 'intra-group') {
+      await loadGroupLevelRankings();
+    } else if (currentGroupSubtab === 'intra-group') {
+      // 그룹 내 랭킹: 가입한 그룹이 있을 때만 표시
+      if (myGroups && myGroups.length > 0) {
+        groupsContent?.classList.remove('hidden');
+        emptyState?.classList.add('hidden');
         await loadIntraGroupRankings(myGroups);
+      } else {
+        groupsContent?.classList.add('hidden');
+        emptyState?.classList.remove('hidden');
       }
-    } else {
-      // 그룹에 가입하지 않음 - 빈 상태 표시
-      groupsContent?.classList.add('hidden');
-      emptyState?.classList.remove('hidden');
     }
   } catch (error) {
     console.error('❌ [RankingUI] 그룹 목록 조회 실패:', error);
-    groupsContent?.classList.add('hidden');
-    emptyState?.classList.remove('hidden');
+    // 에러 발생 시에도 그룹별 랭킹은 표시 시도
+    if (currentGroupSubtab === 'group-level') {
+      groupsContent?.classList.remove('hidden');
+      emptyState?.classList.add('hidden');
+      await loadGroupLevelRankings();
+    } else {
+      groupsContent?.classList.add('hidden');
+      emptyState?.classList.remove('hidden');
+    }
   }
 }
 
