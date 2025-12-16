@@ -481,7 +481,7 @@ export function initQuizListeners() {
 
     const q = cqd[cqi];
     const key = normId(q.고유ID);
-    const questionScores = window.questionScores || {};
+    const questionScores = getQuestionScores(); // Fix: use getQuestionScores() instead of window.questionScores
     const rec = questionScores[key] || {};
 
     // willFlag: 현재 flag가 활성화될지 여부
@@ -501,7 +501,11 @@ export function initQuizListeners() {
       showToast('복습 추가 해제');
     }
 
-    updateFlagButtonsUI(questionScores[key]);
+    // Update UI with fresh state
+    const updatedScores = getQuestionScores();
+    updateFlagButtonsUI(updatedScores[key]);
+    // 학습현황판 실시간 업데이트
+    updateSummary();
     if (typeof window.refreshPanels === 'function') {
       window.refreshPanels();
     }
@@ -515,7 +519,7 @@ export function initQuizListeners() {
 
     const q = cqd[cqi];
     const key = normId(q.고유ID);
-    const questionScores = window.questionScores || {};
+    const questionScores = getQuestionScores(); // Fix: use getQuestionScores() instead of window.questionScores
     const rec = questionScores[key] || {};
 
     const willExclude = !rec.userReviewExclude;
@@ -534,7 +538,11 @@ export function initQuizListeners() {
       showToast('복습 제외 해제');
     }
 
-    updateFlagButtonsUI(questionScores[key]);
+    // Update UI with fresh state
+    const updatedScores = getQuestionScores();
+    updateFlagButtonsUI(updatedScores[key]);
+    // 학습현황판 실시간 업데이트
+    updateSummary();
     if (typeof window.refreshPanels === 'function') {
       window.refreshPanels();
     }
