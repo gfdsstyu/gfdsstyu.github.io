@@ -6,6 +6,8 @@
 import { getQuestionScores, setQuestionScores, saveQuestionScores, getAllData, getElements } from './stateManager.js';
 import { showToast } from '../ui/domUtils.js';
 import { STATS_DATE_KEY, EXAM_DATE_KEY } from '../config/config.js';
+import { getCurrentUser } from '../auth/authCore.js';
+import { syncToFirestore } from '../sync/syncCore.js';
 
 // ============================================
 // 전역 변수 (statsRefDate, calRefDate - 나중에 StateManager로 이전 고려)
@@ -254,6 +256,25 @@ export function setFlagState(qid, { flag = false, exclude = false, silent = fals
     saveQuestionScores();
   } catch (e) {
     console.error('플래그 상태 저장 실패:', e);
+  }
+
+  // Firestore 동기화 (다른 기기에서도 반영되도록)
+  const currentUser = getCurrentUser();
+  if (currentUser) {
+    console.log('🔄 [FlagState] Firestore 동기화 시도...', qid);
+    syncToFirestore(currentUser.uid, qid)
+      .then(result => {
+        if (result.success) {
+          console.log('   - ✅ Firestore 동기화 성공:', result.message);
+        } else {
+          console.error('   - ❌ Firestore 동기화 실패:', result.message);
+        }
+      })
+      .catch(err => {
+        console.error('   - ❌ Firestore 동기화 에러:', err);
+      });
+  } else {
+    console.log('   - ⏭️ 로그아웃 상태 - Firestore 동기화 스킵');
   }
 
   if (!silent && typeof window.refreshPanels === 'function') {
