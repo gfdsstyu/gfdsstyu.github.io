@@ -478,8 +478,6 @@ export async function syncToFirestore(userId, specificQid = null) {
         hintUsed: !!detailedData.hintUsed,
         memoryTipUsed: !!detailedData.memoryTipUsed,
         memoryTip: detailedData.memoryTip || null, // 암기팁 보존
-        userReviewFlag: !!detailedData.userReviewFlag, // 복습 플래그
-        userReviewExclude: !!detailedData.userReviewExclude, // 복습 제외 플래그
         updatedAt: serverTimestamp()
       }, { merge: true });
 
