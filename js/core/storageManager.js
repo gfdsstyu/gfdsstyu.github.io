@@ -6,8 +6,8 @@
 import { getQuestionScores, setQuestionScores, saveQuestionScores, getAllData, getElements } from './stateManager.js';
 import { showToast } from '../ui/domUtils.js';
 import { STATS_DATE_KEY, EXAM_DATE_KEY } from '../config/config.js';
-import { getCurrentUser } from '../auth/authCore.js';
-import { syncToFirestore } from '../sync/syncCore.js';
+import { getCurrentUser } from '../features/auth/authCore.js';
+import { syncToFirestore } from '../features/sync/syncCore.js';
 
 // ============================================
 // 전역 변수 (statsRefDate, calRefDate - 나중에 StateManager로 이전 고려)
