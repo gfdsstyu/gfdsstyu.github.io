@@ -24,16 +24,17 @@ export function getReviewStrategy() {
  * 오늘의 복습 문제 우선순위 정렬
  * @param {Array} list - 문제 목록
  * @param {object} predictor - HLR predictor 인스턴스
+ * @param {string} sortStrategy - 정렬 전략 (선택적, 없으면 localStorage에서 가져옴)
  * @returns {Array} 우선순위 정렬된 문제 목록
  */
-export function prioritizeTodayReview(list, predictor) {
+export function prioritizeTodayReview(list, predictor, sortStrategy = null) {
   // Access global state via window (NEVER import from stateManager)
   const questionScores = window.questionScores || {};
 
   // 제외된 문제 필터링
   list = (list || []).filter(a => !questionScores[normId(a.고유ID)]?.userReviewExclude);
 
-  const strat = getReviewStrategy();
+  const strat = sortStrategy || getReviewStrategy();
 
   // HLR 전략: 회상 확률 + FSRS 난이도 기반 정렬
   if (strat === 'hlr') {
@@ -121,32 +122,54 @@ export function prioritizeTodayReview(list, predictor) {
     });
   }
 
-  // 최근 오답 우선
+  // 최근 풀이순 (점수 무관, 풀이 날짜만으로 정렬)
   if (strat === 'recentWrong') {
-    return [...list].sort((a, b) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'reviewCore.js:125',message:'recentWrong strategy start',data:{listLength:list.length,strat},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    const sorted = [...list].sort((a, b) => {
       const sa = questionScores[normId(a.고유ID)];
       const sb = questionScores[normId(b.고유ID)];
-      const as = sa?.score ?? 101;
-      const bs = sb?.score ?? 101;
       const ad = sa?.lastSolvedDate ?? 0;
       const bd = sb?.lastSolvedDate ?? 0;
-      // 점수 낮은 순 우선, 같으면 최근 틀린 순 (날짜 높은 것 우선)
-      return (as - bs) || (bd - ad);
+      // 최근 풀이한 순 (날짜 높은 것 우선, 내림차순)
+      const result = bd - ad;
+      // #region agent log
+      if (list.length <= 5) {
+        fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'reviewCore.js:132',message:'recentWrong sort comparison',data:{aId:a.고유ID,bId:b.고유ID,ad,bd,result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      }
+      // #endregion
+      return result;
     });
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'reviewCore.js:140',message:'recentWrong strategy end',data:{sortedLength:sorted.length,firstThreeIds:sorted.slice(0,3).map(q=>q.고유ID)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    return sorted;
   }
 
-  // 오래전 오답 우선
+  // 오래전 풀이순 (점수 무관, 풀이 날짜만으로 정렬)
   if (strat === 'oldWrong') {
-    return [...list].sort((a, b) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'reviewCore.js:145',message:'oldWrong strategy start',data:{listLength:list.length,strat},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    const sorted = [...list].sort((a, b) => {
       const sa = questionScores[normId(a.고유ID)];
       const sb = questionScores[normId(b.고유ID)];
-      const as = sa?.score ?? 101;
-      const bs = sb?.score ?? 101;
       const ad = sa?.lastSolvedDate ?? 0;
       const bd = sb?.lastSolvedDate ?? 0;
-      // 점수 낮은 순 우선, 같으면 오래전 틀린 순 (날짜 낮은 것 우선)
-      return (as - bs) || (ad - bd);
+      // 오래전 풀이한 순 (날짜 낮은 것 우선, 오름차순)
+      const result = ad - bd;
+      // #region agent log
+      if (list.length <= 5) {
+        fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'reviewCore.js:152',message:'oldWrong sort comparison',data:{aId:a.고유ID,bId:b.고유ID,ad,bd,result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      }
+      // #endregion
+      return result;
     });
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'reviewCore.js:160',message:'oldWrong strategy end',data:{sortedLength:sorted.length,firstThreeIds:sorted.slice(0,3).map(q=>q.고유ID)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    return sorted;
   }
 
   // Smart 전략 (기본): 플래그 > 미풀이 > 낮은 점수 > 오래된 순
