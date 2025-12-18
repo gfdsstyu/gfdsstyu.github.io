@@ -416,7 +416,7 @@ const totalPossibleScore = examService.getTotalScore(year);
                       <!-- 문제 내용 -->
                       <div class="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded">
                         <h6 class="font-bold mb-2 text-sm sm:text-base text-gray-800 dark:text-white">📝 문제</h6>
-                        <p class="text-sm sm:text-base break-words text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">${escapeHtml(question.question)}</p>
+                        <div class="text-sm sm:text-base break-words text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">${convertMarkdownTablesToHtml(question.question)}</div>
                       </div>
 
                     <!-- 내 답안 -->
