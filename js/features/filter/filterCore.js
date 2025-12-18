@@ -239,6 +239,9 @@ export function getFilteredByUI() {
 
   // 5. 오늘의 복습 필터 (제외 표시 제거 + 우선순위 정렬)
   if (filter === 'today-review') {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'filterCore.js:241',message:'today-review filter start',data:{listLength:list.length,filter},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'G'})}).catch(()=>{});
+    // #endregion
     list = list.filter(q => !questionScores[normId(q.고유ID)]?.userReviewExclude);
 
     // 플래그된 문제와 플래그되지 않은 문제 분리
@@ -253,28 +256,67 @@ export function getFilteredByUI() {
       return !s?.userReviewFlag || s?.userReviewExclude;
     });
 
-    // 플래그되지 않은 문제만 우선순위 정렬 후 10개 제한
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'filterCore.js:255',message:'today-review after split',data:{flaggedLength:flagged.length,unflaggedLength:unflagged.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'G'})}).catch(()=>{});
+    // #endregion
+
+    // 플래그된 문제와 플래그되지 않은 문제 모두 정렬 적용
+    let flaggedSorted = flagged;
     let unflaggedLimited = unflagged;
     if (typeof window.prioritizeTodayReview === 'function') {
+      // 현재 복습 전략 가져오기
+      const currentStrategy = window.getReviewStrategy ? window.getReviewStrategy() : 'smart';
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'filterCore.js:266',message:'today-review before prioritizeTodayReview',data:{currentStrategy,flaggedLength:flagged.length,unflaggedLength:unflagged.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'H'})}).catch(()=>{});
+      // #endregion
+      // 플래그된 문제도 정렬 적용
+      flaggedSorted = window.prioritizeTodayReview(flagged);
+      // 플래그되지 않은 문제 정렬 후 10개 제한
       unflaggedLimited = window.prioritizeTodayReview(unflagged).slice(0, 10);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'filterCore.js:272',message:'today-review after prioritizeTodayReview',data:{currentStrategy,flaggedSortedLength:flaggedSorted.length,unflaggedLimitedLength:unflaggedLimited.length,flaggedFirstThree:flaggedSorted.slice(0,3).map(q=>q.고유ID),unflaggedFirstThree:unflaggedLimited.slice(0,3).map(q=>q.고유ID)},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'H'})}).catch(()=>{});
+      // #endregion
     }
 
     // 플래그된 문제 + 제한된 플래그되지 않은 문제 병합
-    list = [...flagged, ...unflaggedLimited];
+    list = [...flaggedSorted, ...unflaggedLimited];
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'filterCore.js:270',message:'today-review final list',data:{listLength:list.length,firstThreeIds:list.slice(0,3).map(q=>q.고유ID)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'G'})}).catch(()=>{});
+    // #endregion
   }
 
   // 5-1. 사용자 복습만 필터 (플래그된 문제만, 10개 제한 없음)
   if (filter === 'user-review') {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'filterCore.js:267',message:'user-review filter before',data:{listLength:list.length,filter},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     list = list.filter(q => {
       const key = normId(q.고유ID);
       const s = questionScores[key];
       return s?.userReviewFlag && !s?.userReviewExclude;
     });
-    // 10개 제한 없음
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'filterCore.js:273',message:'user-review filter after',data:{listLength:list.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    // 복습 전략에 따른 정렬 적용
+    if (typeof window.prioritizeTodayReview === 'function') {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'filterCore.js:277',message:'user-review applying prioritizeTodayReview',data:{listLength:list.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+      list = window.prioritizeTodayReview(list);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'filterCore.js:280',message:'user-review after prioritizeTodayReview',data:{listLength:list.length,firstThreeIds:list.slice(0,3).map(q=>q.고유ID)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+    }
   }
 
-  // 6. 정렬: 1순위 단원, 2순위 고유ID (자연 정렬)
-  list.sort((a, b) => {
+  // 6. 정렬: 1순위 단원, 2순위 표시번호 (자연 정렬)
+  // 단, today-review나 user-review 필터의 경우 복습 전략 정렬이 이미 적용되었으므로 스킵
+  if (filter !== 'today-review' && filter !== 'user-review') {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'filterCore.js:287',message:'applying default sort',data:{filter,listLength:list.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    list.sort((a, b) => {
     // 1순위: 단원 비교
     const chA = +a.단원;
     const chB = +b.단원;
@@ -291,7 +333,19 @@ export function getFilteredByUI() {
       if (cmp !== 0) return cmp;
     }
 
-    // 2순위: 고유ID 자연 정렬 (q_1, q_2, ..., q_10)
+    // 2순위: 표시번호 (또는 물음번호)
+    const numA = +(a.표시번호 || a.물음번호 || 0);
+    const numB = +(b.표시번호 || b.물음번호 || 0);
+
+    if (Number.isFinite(numA) && Number.isFinite(numB)) {
+      if (numA !== numB) return numA - numB;
+    } else if (Number.isFinite(numA)) {
+      return -1; // 숫자가 앞
+    } else if (Number.isFinite(numB)) {
+      return 1;
+    }
+
+    // 3순위: 고유ID 자연 정렬 (q_1, q_2, ..., q_10) - 폴백
     const idA = String(a.고유ID || '');
     const idB = String(b.고유ID || '');
 
@@ -305,17 +359,14 @@ export function getFilteredByUI() {
       if (numA !== numB) return numA - numB;
     }
 
-    // 표시번호로 폴백
-    const numA = +(a.표시번호 || a.물음번호 || 0);
-    const numB = +(b.표시번호 || b.물음번호 || 0);
-
-    if (Number.isFinite(numA) && Number.isFinite(numB)) {
-      return numA - numB;
-    }
-
     // 최종 폴백: 문자열 비교
     return idA.localeCompare(idB, 'ko');
-  });
+    });
+  }
+
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'filterCore.js:321',message:'getFilteredByUI return',data:{filter,listLength:list.length,firstThreeIds:list.slice(0,3).map(q=>q.고유ID)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+  // #endregion
 
   return list;
 }
