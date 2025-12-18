@@ -195,7 +195,7 @@ export async function handleGrade() {
     // Lite 모델 감점
     const selectedAiModel = getSelectedAiModel();
     if (selectedAiModel === 'gemini-2.5-flash-lite') {
-      score = clamp(score - 7, 0, 100);
+      score = clamp(score - 5, 0, 100);
     }
 
     // 힌트 사용 감점
@@ -219,20 +219,20 @@ export async function handleGrade() {
       finalScore = Math.min(59, Math.round(score * 0.6));
       deductionReason = '(힌트+암기팁 사용으로 감점)';
     } else if (usedHint) {
-      // 힌트만 사용: 0.8배 감점, 최대 59점
-      finalScore = Math.min(59, Math.round(score * 0.8));
+      // 힌트만 사용: 0.8배 감점, 최대 69점
+      finalScore = Math.min(69, Math.round(score * 0.8));
       deductionReason = '(힌트사용으로 감점)';
     } else if (usedMemoryTip) {
-      // 암기팁만 사용: 0.8배 감점, 최대 59점
-      finalScore = Math.min(59, Math.round(score * 0.8));
+      // 암기팁만 사용: 0.8배 감점, 최대 69점
+      finalScore = Math.min(69, Math.round(score * 0.8));
       deductionReason = '(암기팁 사용으로 감점)';
     }
 
-    // 메모 열람 시 점수 상한 60점 적용
+    // 메모 열람 시 점수 상한 70점 적용
     if (usedMemo) {
-      if (finalScore > 60) {
-        finalScore = 60;
-        deductionReason += deductionReason ? ' (메모 열람으로 60점 제한)' : '(메모 열람으로 60점 제한)';
+      if (finalScore > 70) {
+        finalScore = 70;
+        deductionReason += deductionReason ? ' (메모 열람으로 70점 제한)' : '(메모 열람으로 70점 제한)';
       }
     }
 

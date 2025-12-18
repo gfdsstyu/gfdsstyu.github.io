@@ -578,6 +578,13 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
   if (!selectedModel) {
     selectedModel = getSelectedAiModel();
   }
+  
+  // exam에서는 2.5-flash-lite를 2.5-flash로 자동 변경 (성능 부족 방지)
+  // 단, 2.5-pro나 3-pro-preview는 그대로 사용
+  if (selectedModel === 'gemini-2.5-flash-lite') {
+    selectedModel = 'gemini-2.5-flash';
+    console.log('🔧 [examUI.js] renderExamPaper - 2.5-flash-lite → 2.5-flash로 자동 변경 (exam 성능 최적화)');
+  }
 
   console.log('🔑 [examUI.js] renderExamPaper - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
   console.log('🔍 [examUI.js] renderExamPaper - container:', container);
@@ -1379,7 +1386,14 @@ async function handleTempSave(container, year, apiKey, selectedModel) {
 
   // API 키 확인 (조용히 처리)
   const finalApiKey = apiKey || localStorage.getItem('geminiApiKey') || '';
-  const finalModel = selectedModel || localStorage.getItem('selectedAiModel') || 'gemini-2.5-flash-lite';
+  let finalModel = selectedModel || localStorage.getItem('selectedAiModel') || 'gemini-2.5-flash-lite';
+  
+  // exam에서는 2.5-flash-lite를 2.5-flash로 자동 변경 (성능 부족 방지)
+  // 단, 2.5-pro나 3-pro-preview는 그대로 사용
+  if (finalModel === 'gemini-2.5-flash-lite') {
+    finalModel = 'gemini-2.5-flash';
+    console.log('🔧 [examUI.js] 2.5-flash-lite → 2.5-flash로 자동 변경 (exam 성능 최적화)');
+  }
 
   console.log('🔑 [examUI.js] handleTempSave - 최종 apiKey:', finalApiKey ? `${finalApiKey.substring(0, 10)}...` : '❌ 없음');
 
@@ -1426,7 +1440,14 @@ async function submitExam(container, year, apiKey, selectedModel) {
 
   // API 키를 localStorage에서 다시 확인 (파라미터가 비어있을 경우 대비)
   const finalApiKey = apiKey || localStorage.getItem('geminiApiKey') || '';
-  const finalModel = selectedModel || localStorage.getItem('selectedAiModel') || 'gemini-2.5-flash-lite';
+  let finalModel = selectedModel || localStorage.getItem('selectedAiModel') || 'gemini-2.5-flash-lite';
+  
+  // exam에서는 2.5-flash-lite를 2.5-flash로 자동 변경 (성능 부족 방지)
+  // 단, 2.5-pro나 3-pro-preview는 그대로 사용
+  if (finalModel === 'gemini-2.5-flash-lite') {
+    finalModel = 'gemini-2.5-flash';
+    console.log('🔧 [examUI.js] 2.5-flash-lite → 2.5-flash로 자동 변경 (exam 성능 최적화)');
+  }
 
   console.log('🔑 [examUI.js] submitExam - 최종 apiKey:', finalApiKey ? `${finalApiKey.substring(0, 10)}...` : '❌ 없음');
 
