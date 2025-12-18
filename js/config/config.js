@@ -17,7 +17,7 @@ export const BASE_SYSTEM_PROMPT =
 2. 핵심 키워드 대부분 누락: 50점 미만
 3. 일부 포함이나 설명 부정확: 50~80점
 4. 모든 핵심 키워드 + 의도 일치: 80점 이상
-5. 조사까지 동일할 때만 100점
+5. 조사까지 동일할 때는 100점
 6. 키워드는 모범답안에서 스스로 추출하되, 한국 회계감사 기준·규정(ISA, KSA, 외부감사법, 윤리기준)에 맞는 동의어·표현 변형을 허용
 7. 물음에서의 물음 부분이 굳이 답변에 포함되지 않아도 됨(물음의 내용이 모범답안에서 물음의 내용을 밝히고 답변을 제시하는 구조로 되어있다고해서 굳이 사용자 답안에 해당 내용이 포함되지 않아도됨)
 
@@ -254,7 +254,8 @@ export function getConnectedChapters(chapterNum) {
 export const chapterLabelText = (chStr) => {
   const n = Number(chStr);
   const t = CHAPTER_LABELS[n];
-  return Number.isFinite(n) ? (t ? `${n}. ${t}` : `단원 ${n}`) : String(chStr);
+  if (!Number.isFinite(n)) return String(chStr);
+  return t ? `${n}. ${t}` : `단원 ${n}`;
 };
 
 export const PART_VALUE = (s, e) => `PART:${s}-${e}`;
