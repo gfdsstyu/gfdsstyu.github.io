@@ -559,7 +559,7 @@ ${feedback?.feedback ? escapeHtml(normalizeText(feedback.feedback)) : '<span cla
   `;
 
     // 이벤트 리스너 등록
-    setupEventListeners(container, year, result, exams, metadata, userAnswers, apiKey, selectedModel);
+    await setupEventListeners(container, year, result, exams, metadata, userAnswers, apiKey, selectedModel);
 
     // 플로팅 리모콘을 container 밖에 추가 (body에 직접)
     setupFloatingControlsResult(exams, year, result, container);
@@ -718,7 +718,7 @@ function setupFloatingControlsResult(exams, year, result, container) {
 /**
  * 이벤트 리스너 설정
  */
-function setupEventListeners(container, year, result, exams, metadata, userAnswers, apiKey, selectedModel) {
+async function setupEventListeners(container, year, result, exams, metadata, userAnswers, apiKey, selectedModel) {
   // 종료 버튼
   const exitResultsBtn = container.querySelector('#btn-exit-results');
   if (exitResultsBtn) {
@@ -754,15 +754,21 @@ function setupEventListeners(container, year, result, exams, metadata, userAnswe
 
   // 오답만 다시 풀기 버튼
   const retryWrongOnlyBtn = container.querySelector('#retry-wrong-only-btn');
+  console.log('🔍 [examResultUI] retryWrongOnlyBtn:', retryWrongOnlyBtn);
+
   if (retryWrongOnlyBtn) {
     // 오답 개수 확인
     const { getWrongQuestionIds } = await import('./examRetry.js');
     const wrongQuestionIds = getWrongQuestionIds(examService, year, 80);
 
+    console.log('🔍 [examResultUI] wrongQuestionIds:', wrongQuestionIds);
+    console.log('🔍 [examResultUI] wrongQuestionIds.length:', wrongQuestionIds.length);
+
     // 오답이 있으면 버튼 표시
     if (wrongQuestionIds.length > 0) {
-      retryWrongOnlyBtn.style.display = '';
+      retryWrongOnlyBtn.style.display = 'inline-block';
       retryWrongOnlyBtn.textContent = `📝 오답만 다시 풀기 (${wrongQuestionIds.length}문제)`;
+      console.log('✅ [examResultUI] 오답 버튼 활성화:', wrongQuestionIds.length, '문제');
 
       retryWrongOnlyBtn.replaceWith(retryWrongOnlyBtn.cloneNode(true)); // 기존 리스너 제거
       container.querySelector('#retry-wrong-only-btn')?.addEventListener('click', async () => {
