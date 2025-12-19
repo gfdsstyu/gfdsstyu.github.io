@@ -35,6 +35,19 @@ export const sanitizeModelText = (t) => {
 };
 
 /**
+ * Delimiter 기반 JSON 추출 (Gemma 모델용)
+ * @param {string} text - 응답 텍스트
+ * @returns {string|null} - 추출된 JSON 문자열 또는 null
+ */
+export const extractJsonWithDelimiter = (text) => {
+  const match = text.match(/###JSON###\s*(\{[\s\S]*?\})\s*###END###/);
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+  return null;
+};
+
+/**
  * Date 객체를 YYYY-MM-DD 형식으로 변환
  */
 export const ymd = (d) => {

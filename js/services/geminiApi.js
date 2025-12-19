@@ -2,8 +2,8 @@
 // 감린이 v4.0 - Gemini API 서비스
 // ============================================
 
-import { BASE_SYSTEM_PROMPT, LITE_STRICT_ADDENDUM } from '../config/config.js';
-import { clamp, sanitizeModelText } from '../utils/helpers.js';
+import { BASE_SYSTEM_PROMPT, LITE_STRICT_ADDENDUM, GEMMA_FEW_SHOT_EXAMPLES } from '../config/config.js';
+import { clamp, sanitizeModelText, extractJsonWithDelimiter } from '../utils/helpers.js';
 
 /**
  * AI 모델 매핑
@@ -14,8 +14,20 @@ const MODEL_MAP = {
   'gemini-2.0-flash': 'gemini-2.0-flash',
   'gemini-2.5-pro': 'gemini-2.5-pro',
   'gemini-3-pro-preview': 'gemini-3-pro-preview',
-  'gemini-flash-latest': 'gemini-flash-latest'
+  'gemini-3-flash-preview': 'gemini-3-flash-preview',
+  'gemini-flash-latest': 'gemini-flash-latest',
+  'gemma-3-27b-it': 'gemma-3-27b-it'
 };
+
+/**
+ * Gemma 모델 여부 확인 (systemInstruction 미지원)
+ */
+const isGemmaModel = (model) => model.startsWith('gemma-');
+
+/**
+ * Gemini 3 모델 여부 확인 (temperature 1.0 권장)
+ */
+const isGemini3Model = (model) => model.startsWith('gemini-3-');
 
 /**
  * API 타임아웃 설정 (밀리초)
@@ -31,35 +43,83 @@ export async function callGeminiAPI(userAnswer, correctAnswer, apiKey, selectedA
   const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
-  const generationConfig = {
-    responseMimeType: 'application/json',
-    responseSchema: {
-      type: 'OBJECT',
-      properties: {
-        score: { type: 'NUMBER' },
-        feedback: { type: 'STRING' }
-      },
-      required: ['score', 'feedback']
-    },
-    temperature: 0.3  // 채점 일관성을 위해 낮은 temperature
-  };
-
   // Lite 모델일 경우 엄격 모드 추가
   const systemText = (model === 'gemini-2.5-flash-lite')
     ? `${BASE_SYSTEM_PROMPT}\n\n${LITE_STRICT_ADDENDUM}`
     : BASE_SYSTEM_PROMPT;
 
-  const systemInstruction = {
-    parts: [{ text: systemText }]
-  };
+  // Gemma 모델: JSON mode 미지원, Few-Shot + CoT + Delimiter 사용
+  let userQuery, payload;
+  if (isGemmaModel(model)) {
+    const generationConfig = {
+      temperature: 0.2,  // 낮춤 (0.3 → 0.2)
+      maxOutputTokens: 1024,
+      topP: 0.95,
+      topK: 40
+    };
 
-  const userQuery = `[모범 답안]\n${correctAnswer}\n\n[사용자 답안]\n${userAnswer}\n\n[채점 요청]\n{"score": number, "feedback": string}`;
+    // Pseudo-System Prompt with XML structure + Few-Shot + CoT
+    userQuery = `<Instruction>
+${systemText}
 
-  const payload = {
-    contents: [{ parts: [{ text: userQuery }] }],
-    systemInstruction,
-    generationConfig
-  };
+[제약사항]
+1. 모범답안에 명시된 키워드를 반드시 확인하세요.
+2. 법규의 미묘한 차이('하여야 한다' vs '할 수 있다')를 엄격히 구분하세요.
+3. 추측이나 확장 해석은 감점 대상입니다.
+</Instruction>
+
+${GEMMA_FEW_SHOT_EXAMPLES}
+
+<Context>
+[모범 답안]
+${correctAnswer}
+
+[사용자 답안]
+${userAnswer}
+</Context>
+
+<Task>
+위 예시를 참고하여, 다음 단계로 채점하세요:
+1. 모범답안의 핵심 키워드 추출
+2. 사용자 답안과 비교
+3. 점수와 피드백 결정
+
+반드시 다음 형식으로만 답변하세요 (다른 설명 금지):
+###JSON###
+{"score": number, "feedback": string}
+###END###
+</Task>`;
+
+    payload = {
+      contents: [{ parts: [{ text: userQuery }] }],
+      generationConfig
+    };
+  } else {
+    // Gemini 모델: JSON mode 사용
+    const generationConfig = {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          score: { type: 'NUMBER' },
+          feedback: { type: 'STRING' }
+        },
+        required: ['score', 'feedback']
+      },
+      // Gemini 3 모델: temperature 1.0 권장 (문서 권장사항)
+      // 다른 모델: 0.3 (채점 일관성)
+      temperature: isGemini3Model(model) ? 1.0 : 0.3
+    };
+    const systemInstruction = {
+      parts: [{ text: systemText }]
+    };
+    userQuery = `[모범 답안]\n${correctAnswer}\n\n[사용자 답안]\n${userAnswer}\n\n[채점 요청]\n{"score": number, "feedback": string}`;
+    payload = {
+      contents: [{ parts: [{ text: userQuery }] }],
+      systemInstruction,
+      generationConfig
+    };
+  }
 
   try {
     // AbortController로 타임아웃 설정 (네트워크 지연 및 Pro 모델 응답 시간 고려)
@@ -98,11 +158,24 @@ export async function callGeminiAPI(userAnswer, correctAnswer, apiKey, selectedA
 
     const data = await res.json();
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-    const cleaned = sanitizeModelText(raw);
 
     let parsed;
     try {
-      parsed = JSON.parse(cleaned);
+      // Gemma 모델: Delimiter 우선 파싱
+      if (isGemmaModel(model)) {
+        const delimiterJson = extractJsonWithDelimiter(raw);
+        if (delimiterJson) {
+          parsed = JSON.parse(delimiterJson);
+        } else {
+          // Delimiter 실패 시 기존 sanitize 방식 폴백
+          const cleaned = sanitizeModelText(raw);
+          parsed = JSON.parse(cleaned);
+        }
+      } else {
+        // Gemini 모델: 기존 방식
+        const cleaned = sanitizeModelText(raw);
+        parsed = JSON.parse(cleaned);
+      }
     } catch {
       throw new Error('API 응답 파싱 실패');
     }
@@ -141,30 +214,72 @@ export async function callGeminiHintAPI(userAnswer, correctAnswer, questionText,
   const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
-  const generationConfig = {
-    responseMimeType: 'application/json',
-    responseSchema: {
-      type: 'OBJECT',
-      properties: {
-        hint: { type: 'STRING' }
+  const systemText = `역할: 회계감사 학습 튜터.\n목표: 정답을 노출하지 않고 핵심 개념을 떠올리게 만드는 2~4줄 힌트 제공.\n출력: JSON만.`;
+
+  // Gemma 모델: JSON mode 미지원, 구조화된 프롬프트 사용
+  let userQuery, payload;
+  if (isGemmaModel(model)) {
+    const generationConfig = {
+      temperature: 0.7,
+      maxOutputTokens: 512,
+      topP: 0.95,
+      topK: 40
+    };
+
+    // 구조화된 프롬프트
+    userQuery = `<Instruction>
+${systemText}
+</Instruction>
+
+<Context>
+[문제]
+${questionText}
+
+[모범 답안]
+${correctAnswer}
+
+[사용자 답안]
+${userAnswer || '(미입력)'}
+</Context>
+
+<Task>
+정답을 노출하지 않고, 핵심 개념을 떠올리게 만드는 2~4줄 힌트를 제공하세요.
+
+반드시 다음 형식으로만 답변하세요:
+###JSON###
+{"hint": string}
+###END###
+</Task>`;
+
+    payload = {
+      contents: [{ parts: [{ text: userQuery }] }],
+      generationConfig
+    };
+  } else {
+    // Gemini 모델: JSON mode 사용
+    const generationConfig = {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          hint: { type: 'STRING' }
+        },
+        required: ['hint']
       },
-      required: ['hint']
-    }
-  };
-
-  const systemInstruction = {
-    parts: [{
-      text: `역할: 회계감사 학습 튜터.\n목표: 정답을 노출하지 않고 핵심 개념을 떠올리게 만드는 2~4줄 힌트 제공.\n출력: JSON만.`
-    }]
-  };
-
-  const userQuery = `[문제]\n${questionText}\n\n[모범 답안]\n${correctAnswer}\n\n[사용자 답안]\n${userAnswer || '(미입력)'}\n\n[요청]\n{"hint": string }`;
-
-  const payload = {
-    contents: [{ parts: [{ text: userQuery }] }],
-    systemInstruction,
-    generationConfig
-  };
+      // Gemini 3 모델: temperature 1.0 권장
+      // 힌트는 창의적이어야 하므로 다른 모델도 0.7 유지
+      temperature: isGemini3Model(model) ? 1.0 : 0.7
+    };
+    const systemInstruction = {
+      parts: [{ text: systemText }]
+    };
+    userQuery = `[문제]\n${questionText}\n\n[모범 답안]\n${correctAnswer}\n\n[사용자 답안]\n${userAnswer || '(미입력)'}\n\n[요청]\n{"hint": string }`;
+    payload = {
+      contents: [{ parts: [{ text: userQuery }] }],
+      systemInstruction,
+      generationConfig
+    };
+  }
 
   try {
     // AbortController로 타임아웃 설정 (Pro 모델 응답 시간 고려)
@@ -203,11 +318,24 @@ export async function callGeminiHintAPI(userAnswer, correctAnswer, questionText,
 
     const data = await res.json();
     const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-    const cleaned = sanitizeModelText(raw);
 
     let parsed;
     try {
-      parsed = JSON.parse(cleaned);
+      // Gemma 모델: Delimiter 우선 파싱
+      if (isGemmaModel(model)) {
+        const delimiterJson = extractJsonWithDelimiter(raw);
+        if (delimiterJson) {
+          parsed = JSON.parse(delimiterJson);
+        } else {
+          // Delimiter 실패 시 기존 sanitize 방식 폴백
+          const cleaned = sanitizeModelText(raw);
+          parsed = JSON.parse(cleaned);
+        }
+      } else {
+        // Gemini 모델: 기존 방식
+        const cleaned = sanitizeModelText(raw);
+        parsed = JSON.parse(cleaned);
+      }
     } catch {
       throw new Error('API 응답 파싱 실패');
     }
@@ -251,7 +379,7 @@ export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemin
   // 기본 generationConfig: 출력 길이 제한으로 API 타임아웃 방지
   const defaultGenerationConfig = {
     maxOutputTokens: 1200,  // 과도한 결과 방지 (≈900단어)
-    temperature: 0.7,
+    temperature: isGemini3Model(model) ? 1.0 : 0.7,  // Gemini 3: 1.0 권장
     topP: 0.85
   };
 
@@ -365,7 +493,7 @@ export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selected
     responseMimeType: 'application/json',
     responseSchema: responseSchema,
     maxOutputTokens: 8000,  // MAX_TOKENS 에러 방지: 2000 → 8000
-    temperature: 0.3,  // 채점 일관성을 위해 낮은 temperature
+    temperature: isGemini3Model(model) ? 1.0 : 0.3,  // Gemini 3: 1.0 권장, 다른 모델: 0.3 (채점 일관성)
     topP: 0.85
   };
 
@@ -495,9 +623,9 @@ export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini
 
   // [수정 1] JSON 스키마 제거 및 출력 길이 제한을 3000으로 대폭 상향 (잘림 방지)
   const generationConfig = {
-    responseMimeType: 'text/plain', 
-    maxOutputTokens: 3000,          
-    temperature: 0.8                
+    responseMimeType: 'text/plain',
+    maxOutputTokens: 3000,
+    temperature: isGemini3Model(model) ? 1.0 : 0.8  // Gemini 3: 1.0 권장, 암기팁은 창의성 필요
   };
 
   const payload = {
