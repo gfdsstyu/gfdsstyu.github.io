@@ -483,7 +483,14 @@ export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selected
   console.log('🔑 [geminiApi.js] callGeminiJsonAPI - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
   console.log('🔑 [geminiApi.js] callGeminiJsonAPI - 모델:', selectedAiModel);
 
-  const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash-lite';
+  let model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash-lite';
+
+  // Gemma 모델은 JSON mode를 지원하지 않으므로 Gemini 모델로 자동 전환
+  if (isGemmaModel(model)) {
+    console.warn(`⚠️ [Gemini JSON API] Gemma 모델(${model})은 JSON mode를 지원하지 않습니다. gemini-2.5-flash로 자동 전환합니다.`);
+    model = 'gemini-2.5-flash';
+  }
+
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
   console.log('🔑 [geminiApi.js] callGeminiJsonAPI - URL:', url.substring(0, 100) + '...');
