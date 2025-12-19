@@ -451,6 +451,7 @@ class ExamService {
    */
   async gradeQuestion(examCase, question, userAnswer, apiKey, model = 'gemini-2.5-flash') {
     console.log('🔑 [examService.js] gradeQuestion - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
+    console.log('🔑 [examService.js] gradeQuestion - 받은 model:', model, '| typeof:', typeof model);
 
     // RAG 검색: 관련 기출문제 검색 (비동기, 실패해도 채점은 진행)
     let relatedQuestions = [];
@@ -594,58 +595,298 @@ ${isCase ? `- ⚠️ 예/아니오 문제 채점 절차:
 
   /**
    * Gemini API 호출 (채점)
+   * Gemma 3 모델 지원: JSON mode 미지원으로 text mode 사용
    */
   async callGeminiForGrading(systemPrompt, userPrompt, apiKey, model) {
     console.log('🔑 [examService.js] callGeminiForGrading - API 키:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
     console.log('🔑 [examService.js] callGeminiForGrading - 모델:', model);
 
-    const { callGeminiJsonAPI } = await import('../../services/geminiApi.js');
+    // Gemma 모델 여부 확인
+    const isGemma = model && model.startsWith('gemma-');
+    console.log('🔍 [examService.js] isGemma 체크:', isGemma, '| model:', model, '| typeof:', typeof model);
 
-    // systemPrompt와 userPrompt를 합쳐서 하나의 prompt로 만들기
-    const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+    if (isGemma) {
+      // Gemma 3 모델: Text mode + Delimiter 사용
+      console.log('✅ [examService.js] Gemma 모델 감지 → callGemmaGrading 호출');
+      return await this.callGemmaGrading(systemPrompt, userPrompt, apiKey, model);
+    } else {
+      // Gemini 모델: JSON mode 사용
+      const { callGeminiJsonAPI } = await import('../../services/geminiApi.js');
 
-    // JSON 응답 스키마 정의
-    const responseSchema = {
-      type: 'OBJECT',
-      properties: {
-        reasoning: { 
-          type: 'STRING', 
-          description: '채점 점수를 도출하게 된 논리적 근거 요약' 
+      // systemPrompt와 userPrompt를 합쳐서 하나의 prompt로 만들기
+      const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+
+      // JSON 응답 스키마 정의
+      const responseSchema = {
+        type: 'OBJECT',
+        properties: {
+          reasoning: {
+            type: 'STRING',
+            description: '채점 점수를 도출하게 된 논리적 근거 요약'
+          },
+          score: { type: 'NUMBER' },
+          question_type: { type: 'STRING' },
+          feedback: { type: 'STRING' },
+          strengths: {
+            type: 'ARRAY',
+            items: { type: 'STRING' }
+          },
+          improvements: {
+            type: 'ARRAY',
+            items: { type: 'STRING' }
+          },
+          keywordMatch: {
+            type: 'ARRAY',
+            items: { type: 'STRING' }
+          },
+          missingKeywords: {
+            type: 'ARRAY',
+            items: { type: 'STRING' }
+          }
         },
-        score: { type: 'NUMBER' },
-        question_type: { type: 'STRING' },
-        feedback: { type: 'STRING' },
-        strengths: {
-          type: 'ARRAY',
-          items: { type: 'STRING' }
-        },
-        improvements: {
-          type: 'ARRAY',
-          items: { type: 'STRING' }
-        },
-        keywordMatch: {
-          type: 'ARRAY',
-          items: { type: 'STRING' }
-        },
-        missingKeywords: {
-          type: 'ARRAY',
-          items: { type: 'STRING' }
-        }
-      },
-      required: ['reasoning', 'score', 'question_type', 'feedback', 'strengths', 'improvements', 'keywordMatch', 'missingKeywords']
+        required: ['reasoning', 'score', 'question_type', 'feedback', 'strengths', 'improvements', 'keywordMatch', 'missingKeywords']
+      };
+
+      try {
+        // 채점 일관성을 위해 temperature 0.3 설정
+        const generationConfigOverride = {
+          temperature: 0.3
+        };
+        const result = await callGeminiJsonAPI(fullPrompt, responseSchema, apiKey, model, 3, 1500, generationConfigOverride);
+        return result;
+      } catch (error) {
+        console.error('채점 API 호출 실패:', error);
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * 실제 기출문제 데이터를 활용한 Few-Shot 예시 생성
+   */
+  async generateFewShotExamples() {
+    try {
+      // 2025, 2024 기출문제 데이터 로드
+      const data2025 = this.examData[2025] || [];
+      const data2024 = this.examData[2024] || [];
+
+      const examples = [];
+
+      // 2025년 Rule 타입 예시 (Q1-1-1)
+      const rule2025 = data2025.flatMap(c => c.questions).find(q => q.type === 'Rule' && q.score === 1.0);
+      if (rule2025 && rule2025.keywords && rule2025.keywords.length > 0) {
+        examples.push(`[기출문제 채점 예시 1 - 2025년]
+문제 유형: ${rule2025.type} (기준서형)
+배점: ${rule2025.score}점
+지문: ${(rule2025.scenario || '').substring(0, 150)}
+질문: ${(rule2025.question || '').substring(0, 200)}
+모범답안: ${(rule2025.answer || rule2025.model_answer || '').substring(0, 300)}
+
+핵심 키워드: ${rule2025.keywords.slice(0, 3).join(', ')}
+
+예상 학생 답안 (부분 정답): "${rule2025.keywords[0] || ''}"
+
+분석:
+1. 모범답안 키워드: ${rule2025.keywords.join(', ')}
+2. 학생 답안: 첫 번째 키워드만 포함
+3. 누락: ${rule2025.keywords.slice(1).join(', ')}
+4. 판단: 기준서형이므로 키워드 중심 채점. 부분 점수
+
+결과: {"reasoning": "기준서형 문제로 키워드 ${rule2025.keywords.length}개 중 1개만 포함", "score": ${(rule2025.score / rule2025.keywords.length).toFixed(1)}, "question_type": "기준서형", "feedback": "${rule2025.keywords[0]}는 포함했으나, ${rule2025.keywords.slice(1, 2).join(', ')} 등이 누락되었습니다.", "strengths": ["${rule2025.keywords[0]} 언급"], "improvements": ["${rule2025.keywords.slice(1, 2).join(', ')} 추가 필요"], "keywordMatch": ["${rule2025.keywords[0]}"], "missingKeywords": ${JSON.stringify(rule2025.keywords.slice(1))}}`);
+      }
+
+      // 2024년 Case 타입 예시 (예/아니오 문제)
+      const case2024 = data2024.flatMap(c => c.questions).find(q =>
+        (q.answer || '').toLowerCase().startsWith('아니오') ||
+        (q.answer || '').toLowerCase().startsWith('예')
+      );
+      if (case2024) {
+        const correctAnswer = (case2024.answer || '').toLowerCase().startsWith('예') ? '예' : '아니오';
+        const wrongAnswer = correctAnswer === '예' ? '아니오' : '예';
+        const answerText = (case2024.answer || '').substring(0, 200);
+
+        examples.push(`[기출문제 채점 예시 2 - 2024년]
+문제 유형: Case (사례/OX형)
+배점: ${case2024.score}점
+질문: ${(case2024.question || '').substring(0, 200)}
+모범답안: ${correctAnswer}, ${answerText}
+
+예상 학생 답안 (오답): "${wrongAnswer}"
+
+분석:
+1. 정답 일치 확인: 학생="${wrongAnswer}", 모범="${correctAnswer}" → 불일치
+2. 판단: 예/아니오가 다르므로 즉시 0점 처리 (이유 평가 불필요)
+
+결과: {"reasoning": "정답 불일치 (학생=${wrongAnswer}, 모범=${correctAnswer})", "score": 0, "question_type": "사례/OX형", "feedback": "정답이 모범 답안과 다릅니다. 정답은 '${correctAnswer}'입니다.", "strengths": [], "improvements": ["정답 재검토 필요", "근거 학습 필요"], "keywordMatch": [], "missingKeywords": ["정답"]}`);
+      }
+
+      return examples.join('\n\n');
+    } catch (error) {
+      console.warn('⚠️ [Gemma] Few-Shot 예시 생성 실패, 기본 예시 사용:', error);
+      // 폴백: 기본 예시 사용
+      return `[기출문제 채점 예시]
+실제 기출문제 데이터를 기반으로 Few-Shot 학습을 진행합니다.`;
+    }
+  }
+
+  /**
+   * Gemma 3 전용 채점 로직 (Text mode + Delimiter)
+   */
+  async callGemmaGrading(systemPrompt, userPrompt, apiKey, model) {
+    console.log('🔑 [examService.js] callGemmaGrading - Gemma 3 모델 사용');
+
+    const { extractJsonWithDelimiter, sanitizeModelText } = await import('../../utils/helpers.js');
+
+    // 실제 기출문제 데이터 기반 Few-Shot 예시 생성
+    const fewShotExamples = await this.generateFewShotExamples();
+
+    // Gemma 전용 구조화된 프롬프트 (Few-Shot + CoT + Delimiter)
+    const fullPrompt = `<Instruction>
+${systemPrompt}
+
+[제약사항]
+1. 모범답안에 명시된 키워드를 반드시 확인하세요.
+2. 법규의 미묘한 차이('하여야 한다' vs '할 수 있다')를 엄격히 구분하세요.
+3. 기출문제는 배점이 명확하므로 배점에 맞춰 채점하세요.
+4. 예/아니오 문제는 정답 일치 여부를 먼저 확인하세요.
+</Instruction>
+
+${fewShotExamples}
+
+<Context>
+${userPrompt}
+</Context>
+
+<Task>
+위 예시를 참고하여, 다음 단계로 채점하세요:
+1. 모범답안의 핵심 키워드 추출
+2. 사용자 답안과 비교
+3. 점수와 피드백 결정 (배점 기준)
+
+반드시 다음 형식으로만 답변하세요 (다른 설명 금지):
+
+###JSON###
+{
+  "reasoning": "채점 점수를 도출하게 된 논리적 근거 요약 (1-2문장)",
+  "score": 점수 (숫자),
+  "question_type": "문제 유형",
+  "feedback": "총평 2-3문장",
+  "strengths": ["강점1", "강점2"],
+  "improvements": ["개선점1", "개선점2"],
+  "keywordMatch": ["키워드1"],
+  "missingKeywords": ["누락키워드1"]
+}
+###END###
+</Task>`;
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+    const generationConfig = {
+      temperature: 0.2,  // 채점 일관성을 위해 낮은 temperature
+      maxOutputTokens: 2048,
+      topP: 0.95,
+      topK: 40
     };
 
-    try {
-      // 채점 일관성을 위해 temperature 0.3 설정
-      const generationConfigOverride = {
-        temperature: 0.3
-      };
-      const result = await callGeminiJsonAPI(fullPrompt, responseSchema, apiKey, model, 3, 1500, generationConfigOverride);
-      return result;
-    } catch (error) {
-      console.error('채점 API 호출 실패:', error);
-      throw error;
+    const payload = {
+      contents: [{ parts: [{ text: fullPrompt }] }],
+      generationConfig
+    };
+
+    // 재시도 로직 (최대 3회, 503/429 에러 대응)
+    let retries = 3;
+    let delay = 800;
+
+    while (retries > 0) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60초
+
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          const msg = body?.error?.message || res.statusText;
+
+          // 재시도 가능한 에러: 429(할당량), 503(서버 과부하)
+          if ((res.status === 429 || res.status >= 500) && retries > 1) {
+            const is503 = res.status === 503;
+            const retryDelay = is503 ? delay * 2.5 : delay;
+            console.warn(`⚠️ [Gemma] ${res.status} 에러 - ${(retryDelay / 1000).toFixed(1)}초 후 재시도 (남은 횟수: ${retries - 1})`);
+            await new Promise(r => setTimeout(r, retryDelay));
+            retries--;
+            delay *= 1.8;
+            continue;
+          }
+
+          throw new Error(`Gemma API 오류 (${res.status}): ${msg}`);
+        }
+
+        const data = await res.json();
+        const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+
+        console.log('🔍 [Gemma] 원본 응답:', raw.substring(0, 200));
+
+        // Delimiter 우선 파싱
+        let parsed;
+        const delimiterJson = extractJsonWithDelimiter(raw);
+        if (delimiterJson) {
+          parsed = JSON.parse(delimiterJson);
+        } else {
+          // Delimiter 실패 시 sanitize 방식 폴백
+          const cleaned = sanitizeModelText(raw);
+          parsed = JSON.parse(cleaned);
+        }
+
+        // 필수 필드 검증 및 기본값 설정
+        return {
+          reasoning: parsed.reasoning || '채점 완료',
+          score: typeof parsed.score === 'number' ? parsed.score : 0,
+          question_type: parsed.question_type || '일반',
+          feedback: parsed.feedback || '피드백 없음',
+          strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
+          improvements: Array.isArray(parsed.improvements) ? parsed.improvements : [],
+          keywordMatch: Array.isArray(parsed.keywordMatch) ? parsed.keywordMatch : [],
+          missingKeywords: Array.isArray(parsed.missingKeywords) ? parsed.missingKeywords : []
+        };
+      } catch (error) {
+        // 타임아웃 에러
+        if (error.name === 'AbortError') {
+          throw new Error('API 요청 타임아웃 (60초 초과)');
+        }
+
+        // 재시도 가능한 에러가 아니거나 재시도 횟수 소진
+        if (retries <= 1) {
+          console.error('❌ [Gemma] 채점 최종 실패:', error);
+          throw error;
+        }
+
+        // 503/429 에러면 재시도
+        const is503 = String(error.message).includes('503');
+        const is429 = String(error.message).includes('429');
+        if (is503 || is429) {
+          const retryDelay = is503 ? delay * 2.5 : delay;
+          console.warn(`⚠️ [Gemma] 에러 - ${(retryDelay / 1000).toFixed(1)}초 후 재시도 (남은 횟수: ${retries - 1})`);
+          await new Promise(r => setTimeout(r, retryDelay));
+          retries--;
+          delay *= 1.8;
+          continue;
+        }
+
+        // 그 외 에러는 즉시 throw
+        console.error('❌ [Gemma] 채점 실패:', error);
+        throw error;
+      }
     }
+
+    throw new Error('Gemma API 재시도 횟수 초과');
   }
 
   /**
