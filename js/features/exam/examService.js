@@ -608,8 +608,24 @@ ${isCase ? `- ⚠️ 예/아니오 문제 채점 절차:
     if (isGemma) {
       // Gemma 3 모델: Text mode + Delimiter 사용
       console.log('✅ [examService.js] Gemma 모델 감지 → callGemmaGrading 호출');
-      return await this.callGemmaGrading(systemPrompt, userPrompt, apiKey, model);
-    } else {
+      try {
+        return await this.callGemmaGrading(systemPrompt, userPrompt, apiKey, model);
+      } catch (error) {
+        // 429 에러(quota 초과) 발생 시 Gemini 모델로 자동 폴백
+        if (error.message && error.message.includes('429')) {
+          console.warn(`⚠️ [examService.js] Gemma 모델 quota 초과 감지`);
+          console.warn(`   → gemini-2.5-flash로 자동 전환하여 채점을 계속합니다.`);
+          console.warn(`   💡 Gemma 모델은 무료 tier 토큰 할당량이 15,000개로 제한됩니다.`);
+          console.warn(`   💡 Gemini 모델 사용을 권장합니다 (설정 > AI 모델 선택).`);
+          model = 'gemini-2.5-flash';
+          // Gemini 모델로 재시도 (아래 블록으로 진행)
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    if (!isGemma || model === 'gemini-2.5-flash') {
       // Gemini 모델: JSON mode 사용
       const { callGeminiJsonAPI } = await import('../../services/geminiApi.js');
 
@@ -815,10 +831,15 @@ ${userPrompt}
           const body = await res.json().catch(() => ({}));
           const msg = body?.error?.message || res.statusText;
 
-          // 재시도 가능한 에러: 429(할당량), 503(서버 과부하)
-          if ((res.status === 429 || res.status >= 500) && retries > 1) {
-            const is503 = res.status === 503;
-            const retryDelay = is503 ? delay * 2.5 : delay;
+          // 429 에러(quota 초과)는 재시도하지 않고 즉시 폴백
+          if (res.status === 429) {
+            console.error(`❌ [Gemma] Quota 초과 (429): ${msg}`);
+            throw new Error(`429: ${msg}`);
+          }
+
+          // 재시도 가능한 에러: 503(서버 과부하), 5xx 에러
+          if (res.status >= 500 && retries > 1) {
+            const retryDelay = delay * 2.5;
             console.warn(`⚠️ [Gemma] ${res.status} 에러 - ${(retryDelay / 1000).toFixed(1)}초 후 재시도 (남은 횟수: ${retries - 1})`);
             await new Promise(r => setTimeout(r, retryDelay));
             retries--;
