@@ -103,6 +103,7 @@ import * as Explorer from './features/explorer/explorerCore.js';
 import * as HLRDataset from './features/review/hlrDataset.js';
 import * as ReviewCore from './features/review/reviewCore.js';
 import * as DifficultyTracker from './features/review/difficultyTracker.js';
+import * as CustomReviewLists from './features/review/customReviewLists.js';
 
 // 기능 - STT (음성 인식)
 import * as GoogleSttApi from './services/googleSttApi.js';
@@ -353,6 +354,7 @@ window.filterByChapterSelection = Filter.filterByChapterSelection;
 window.getFilteredByUI = Filter.getFilteredByUI;
 window.getScopeFilteredData = Filter.getScopeFilteredData;
 window.initFilterListeners = Filter.initFilterListeners;
+window.filterByCustomList = Filter.filterByCustomList;
 window.SOURCE_LS = Filter.SOURCE_LS;
 window.BASIC_TAGS = Filter.BASIC_TAGS;
 window.ADV_TAGS = Filter.ADV_TAGS;
@@ -463,6 +465,10 @@ window.ReviewCore = ReviewCore;
 window.getReviewStrategy = ReviewCore.getReviewStrategy;
 window.prioritizeTodayReview = (list) => ReviewCore.prioritizeTodayReview(list, window.hlrPredictor);
 window.initReviewListeners = ReviewCore.initReviewListeners;
+
+// Custom Review Lists (사용자 지정 복습 목록)
+window.CustomReviewLists = CustomReviewLists;
+window.renderCustomListsInDropdown = CustomReviewLists.renderCustomListsInDropdown;
 
 // STT (음성 인식)
 window.transcribeGoogle = GoogleSttApi.transcribeGoogle;
@@ -580,6 +586,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // EmailJS는 Firebase Extensions로 대체되었습니다.
   // 대학교 이메일 인증은 Firebase Console에서 Extensions 설정 필요
   // 자세한 내용은 FIRESTORE_RULES.md 참고
+
+  // 10. 사용자 지정 복습 목록 초기화
+  console.log('📝 사용자 지정 복습 목록 초기화 시작...');
+  CustomReviewLists.initCustomReviewLists();
 
   console.log('✅ DOM 엘리먼트 초기화 완료');
   console.log('✅ 임시 브릿지 설정 완료 - index.html 기존 코드와 연동됨');

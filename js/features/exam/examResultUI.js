@@ -4,18 +4,20 @@
  */
 
 import { examService } from './examService.js';
+import { getAllData } from '../../core/stateManager.js';
+import { normId } from '../../utils/helpers.js';
+import ragSearchService from '../../services/ragSearch.js';
+import { showToast } from '../../ui/domUtils.js';
+import { getAllCustomLists, addQuestionToList, removeQuestionFromList, getQuestionLists } from '../review/customReviewLists.js';
 
 /**
- * 텍스트 정규화: 과도한 줄바꿈 완화 및 불필요한 들여쓰기 제거
+ * 텍스트 정규화: 과도한 줄바꿈 완화 (examUI.js와 동일한 방식)
  */
 function normalizeText(text) {
   if (!text) return text;
-  // 각 줄의 앞뒤 공백 제거
-  const lines = text.split('\n').map(line => line.trim());
-  // 빈 줄 제거 후 다시 결합
-  const cleaned = lines.join('\n').replace(/\n{3,}/g, '\n\n');
-  // 전체 텍스트의 앞뒤 공백 제거
-  return cleaned.trim();
+
+  // 3개 이상의 연속된 줄바꿈을 2개로 축소
+  return text.replace(/\n{3,}/g, '\n\n');
 }
 
 /**
@@ -216,12 +218,52 @@ export function renderResultMode(container, year, result, apiKey, selectedModel,
     };
   });
   
-const totalPossibleScore = examService.getTotalScore(year);
+  const totalPossibleScore = examService.getTotalScore(year);
   const percentage = ((result.totalScore / totalPossibleScore) * 100).toFixed(1);
   const isPassing = result.totalScore >= metadata.passingScore;
   const scoreHistory = examService.getScores(year);
   const bestScore = examService.getBestScore(year);
   const userAnswers = examService.getUserAnswers(year);
+
+  // question.id → question 매핑 (RAG에서 재사용)
+  const questionMap = {};
+  exams.forEach(examCase => {
+    (examCase.questions || []).forEach(q => {
+      if (q && q.id) questionMap[q.id] = q;
+    });
+  });
+
+  // 기준서/RAG 메타데이터 맵 구성: 고유ID → { chapter, displayNo, title, standardText }
+  let standardMetaMap = {};
+  try {
+    const allData = (typeof getAllData === 'function' ? getAllData() : (window.allData || [])) || [];
+    if (Array.isArray(allData)) {
+      standardMetaMap = allData.reduce((acc, row) => {
+        if (!row) return acc;
+        const rawId = row.고유ID || row.id;
+        if (!rawId) return acc;
+
+        const id = normId(rawId);
+        if (!id) return acc;
+
+        const chapter = row.단원 || row.chapter || '';
+        const displayNo = row.표시번호 || row.물음번호 || row.물음 || row.displayNo || '';
+        const title = row.problemTitle || row.title || '';
+        const standardText = row.기준서내용 || row.기준서 || row.정답 || row.answer || row.explanation || '';
+
+        acc[id] = {
+          id,
+          chapter,
+          displayNo,
+          title,
+          standardText
+        };
+        return acc;
+      }, {});
+    }
+  } catch (e) {
+    console.warn('⚠️ [ExamResultUI] 기준서 메타 로딩 실패:', e);
+  }
 
   // 버티컬 뷰 HTML 생성
   container.innerHTML = `
@@ -325,6 +367,11 @@ const totalPossibleScore = examService.getTotalScore(year);
                 const isSameScenario = previousScenario && currentScenario === previousScenario;
                 const isFirstQuestion = qIdx === 0;
 
+                // 관련 기준서/문제 메타 정보 (questions.json 기반, related_q 사용)
+                const relatedKeyRaw = question.related_q || question.relatedQ || '';
+                const relatedKey = relatedKeyRaw ? normId(relatedKeyRaw) : '';
+                const standardMeta = relatedKey ? standardMetaMap[relatedKey] : null;
+
                 return `
                   <div class="border-2 ${borderColor} rounded-lg overflow-hidden">
                     <!-- Scenario Section (지문 토글) -->
@@ -417,6 +464,51 @@ const totalPossibleScore = examService.getTotalScore(year);
                       <div class="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded">
                         <h6 class="font-bold mb-2 text-sm sm:text-base text-gray-800 dark:text-white">📝 문제</h6>
                         <div class="text-sm sm:text-base break-words text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">${convertMarkdownTablesToHtml(question.question)}</div>
+                      </div>
+
+                      <!-- 기준서/RAG 기준 문제 메타 정보 -->
+                      ${standardMeta ? `
+                        <div class="mt-3 p-3 sm:p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-700">
+                          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div class="text-xs sm:text-sm text-yellow-800 dark:text-yellow-200 font-semibold">
+                              📘 기준서 문제:
+                              ${standardMeta.chapter ? `[${standardMeta.chapter}-${standardMeta.displayNo || '?'}]` : `[${standardMeta.displayNo || '?'}]`}
+                              ${standardMeta.title ? escapeHtml(standardMeta.title) : ''}
+                            </div>
+                            <div class="flex gap-2">
+                              <button
+                                class="standard-toggle text-[11px] sm:text-xs px-2 py-1 rounded bg-yellow-100 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-100 hover:bg-yellow-200 dark:hover:bg-yellow-700 transition-colors"
+                                data-related-q="${relatedKey}"
+                              >
+                                기준서 내용 보기
+                              </button>
+                              <button
+                                class="standard-review-add text-[11px] sm:text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-100 hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
+                                data-related-q="${relatedKey}"
+                              >
+                                복습추가
+                              </button>
+                            </div>
+                          </div>
+                          <div
+                            class="standard-content mt-2 text-xs sm:text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap leading-relaxed hidden"
+                            data-related-q="${relatedKey}"
+                          >
+                            ${escapeHtml(standardMeta.standardText || '관련 기준서 내용이 없습니다.')}
+                          </div>
+                        </div>
+                      ` : ''}
+
+                      <!-- 📚 관련 기준서/문제 추천 (related_q 우선, 없으면 RAG) -->
+                      <div class="mt-4 border-t border-gray-200 dark:border-gray-700 pt-3">
+                        <button
+                          class="rag-load-btn text-[11px] sm:text-xs px-2 py-1 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors"
+                          data-question-id="${question.id}"
+                          data-related-q="${relatedKey || ''}"
+                        >
+                          ${relatedKey ? '📘 관련 기준서 불러오기' : '📚 유사 문제 검색하기'}
+                        </button>
+                        <div class="rag-results space-y-2 mt-2 hidden" data-question-id="${question.id}"></div>
                       </div>
 
                     <!-- 내 답안 -->
@@ -758,6 +850,222 @@ function setupEventListeners(container, year, result, exams, metadata, userAnswe
 
 
   // 플로팅 리모콘은 setupFloatingControlsResult에서 처리됨
+
+  // 기준서 내용 토글 버튼
+  const standardToggles = container.querySelectorAll('.standard-toggle');
+  standardToggles.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const relatedQ = btn.getAttribute('data-related-q');
+      if (!relatedQ) return;
+      // 같은 기준서를 여러 물음에서 참조할 수 있으므로, 카드 범위 안에서만 찾는다
+      const card = btn.closest('.border-2');
+      const content = card ? card.querySelector(`.standard-content[data-related-q="${relatedQ}"]`) : null;
+      if (!content) return;
+      const isHidden = content.classList.contains('hidden');
+      if (isHidden) {
+        content.classList.remove('hidden');
+      } else {
+        content.classList.add('hidden');
+      }
+    });
+  });
+
+  // 복습추가 버튼 (기준서 기반 문제 플래그)
+  const standardReviewButtons = container.querySelectorAll('.standard-review-add');
+
+  standardReviewButtons.forEach((btn, idx) => {
+    const relatedQ = btn.getAttribute('data-related-q');
+    if (!relatedQ) return;
+
+    const qid = typeof normId === 'function' ? normId(relatedQ) : (window.normId ? window.normId(relatedQ) : relatedQ.trim());
+
+    // 초기 상태 확인 (이미 복습에 추가된 경우)
+    const questionScores = window.questionScores || {};
+    const isAlreadyFlagged = questionScores[qid]?.userReviewFlag;
+
+    if (isAlreadyFlagged) {
+      btn.textContent = '✓ 복습 중';
+      btn.disabled = true;
+      btn.classList.add('opacity-60', 'cursor-default');
+      btn.classList.remove('hover:bg-blue-200', 'dark:hover:bg-blue-700');
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (typeof window.setFlagState === 'function') {
+        window.setFlagState(qid, { flag: true, exclude: false });
+
+        // 버튼 UI 업데이트 (중복 클릭 방지)
+        btn.textContent = '✓ 복습추가됨';
+        btn.disabled = true;
+        btn.classList.add('opacity-60', 'cursor-default');
+        btn.classList.remove('hover:bg-blue-200', 'dark:hover:bg-blue-700');
+
+        // 토스트 메시지 표시
+        showToast('✓ 복습 목록에 추가되었습니다', 'info');
+      } else {
+        console.error('❌ [ExamResultUI] setFlagState가 정의되지 않았습니다.');
+      }
+    });
+  });
+
+  // 📚 관련 기준서/문제 추천 로딩 (related_q 우선, 없으면 RAG)
+  const ragButtons = container.querySelectorAll('.rag-load-btn');
+  ragButtons.forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const qid = btn.getAttribute('data-question-id');
+      const relatedQRaw = btn.getAttribute('data-related-q');
+      if (!qid) return;
+
+      const resultsEl = container.querySelector(`.rag-results[data-question-id="${qid}"]`);
+      if (!resultsEl) return;
+
+      // 이미 로드된 경우 토글만
+      if (resultsEl.dataset.loaded === 'true') {
+        resultsEl.classList.toggle('hidden');
+        return;
+      }
+
+      btn.textContent = '🔍 관련 기준서 검색 중...';
+      btn.disabled = true;
+
+      try {
+        let relatedDocs = [];
+
+        // 1. related_q가 있으면 해당 문제를 직접 가져오기
+        if (relatedQRaw && relatedQRaw.trim()) {
+          const relatedQId = normId(relatedQRaw);
+          const relatedMeta = standardMetaMap[relatedQId];
+
+          if (relatedMeta) {
+            // standardMetaMap에서 찾은 경우
+            relatedDocs = [{
+              고유ID: relatedMeta.id,
+              id: relatedMeta.id,
+              단원: relatedMeta.chapter,
+              표시번호: relatedMeta.displayNo,
+              problemTitle: relatedMeta.title,
+              물음: relatedMeta.title,
+              정답: relatedMeta.standardText,
+              explanation: relatedMeta.standardText
+            }];
+          } else {
+            // standardMetaMap에 없으면 RAG로 검색
+            await ragSearchService.initializeRAG();
+            relatedDocs = ragSearchService.searchByText(relatedQRaw, 1) || [];
+          }
+        }
+
+        // 2. related_q가 없거나 찾지 못한 경우, RAG로 검색
+        if (relatedDocs.length === 0) {
+          await ragSearchService.initializeRAG();
+
+          const q = exams
+            .flatMap(ec => ec.questions || [])
+            .find(qq => qq.id === qid);
+
+          const queryText = `${q?.question || ''}\n${q?.explanation || ''}`.trim();
+          relatedDocs = queryText
+            ? (ragSearchService.searchByText(queryText, 3) || [])
+            : [];
+        }
+
+        if (!relatedDocs.length) {
+          resultsEl.innerHTML = '<div class="text-xs text-gray-500 dark:text-gray-400">관련 기준서 추천이 없습니다.</div>';
+        } else {
+          resultsEl.innerHTML = relatedDocs.map(doc => {
+            const docId = doc.고유ID || doc.id || '';
+            const normalizedId = normId(docId);
+
+            // 사용자 지정 복습 목록 확인
+            const customLists = getQuestionLists(normalizedId);
+            const listCount = customLists.length;
+
+            let buttonText = '+복습';
+            let buttonClasses = 'text-blue-500 hover:text-blue-700';
+
+            if (listCount > 0) {
+              buttonText = `✓ ${listCount}개 목록`;
+              buttonClasses = 'text-gray-400 opacity-60';
+            }
+
+            return `
+            <div class="border rounded bg-white dark:bg-gray-800 p-2">
+              <div class="flex items-center justify-between cursor-pointer rag-toggle-doc" data-doc-id="${docId}">
+                <div class="flex items-center gap-2">
+                  <span class="text-[11px] font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300">
+                    ${(doc.단원 || '기타')}-${doc.표시번호 || doc.고유ID || doc.id || '?'}
+                  </span>
+                  <span class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200 truncate max-w-[180px]">
+                    ${(doc.problemTitle || doc.물음 || '').slice(0, 24)}...
+                  </span>
+                </div>
+                <button
+                  class="text-[11px] ${buttonClasses} rag-add-review-btn"
+                  data-id="${docId}"
+                >
+                  ${buttonText}
+                </button>
+              </div>
+              <div class="hidden mt-2 text-[11px] text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 p-2 rounded rag-doc-content" data-doc-id="${docId}">
+                <div class="mb-1 font-semibold">[질문]</div>
+                <div class="mb-2 whitespace-pre-wrap">${doc.물음 || ''}</div>
+                <div class="mb-1 font-semibold">[기준서/해설]</div>
+                <div class="whitespace-pre-wrap">${doc.정답 || doc.explanation || ''}</div>
+              </div>
+            </div>
+          `;}).join('');
+        }
+
+        resultsEl.dataset.loaded = 'true';
+        resultsEl.classList.remove('hidden');
+
+        // 복습 추가 버튼들에 클릭 이벤트 리스너 등록
+        const addReviewBtns = resultsEl.querySelectorAll('.rag-add-review-btn');
+
+        addReviewBtns.forEach((addBtn) => {
+          addBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const rawId = addBtn.getAttribute('data-id');
+            if (!rawId) return;
+
+            const nqid = normId(rawId);
+
+            // 사용자 지정 복습 목록 선택 모달 표시
+            showCustomListSelector(nqid, addBtn);
+          });
+        });
+
+        // 토글 버튼 이벤트 리스너 등록
+        const toggleBtns = resultsEl.querySelectorAll('.rag-toggle-doc');
+        toggleBtns.forEach(toggle => {
+          toggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const docId = toggle.getAttribute('data-doc-id');
+            const content = resultsEl.querySelector(`.rag-doc-content[data-doc-id="${docId}"]`);
+            if (content) content.classList.toggle('hidden');
+          });
+        });
+      } catch (error) {
+        console.error('❌ [ExamResultUI] RAG 검색 실패:', error);
+        resultsEl.innerHTML = '<div class="text-xs text-red-500">관련 기준서 로딩 중 오류가 발생했습니다.</div>';
+        resultsEl.classList.remove('hidden');
+      } finally {
+        // 버튼 텍스트 복원 (related_q 여부에 따라 다르게)
+        if (relatedQRaw && relatedQRaw.trim()) {
+          btn.textContent = '📘 관련 기준서';
+        } else {
+          btn.textContent = '📚 유사 문제 검색';
+        }
+        btn.disabled = false;
+      }
+    });
+  });
 }
 
 /**
@@ -851,4 +1159,121 @@ function extractQuestionNumbers(questionId) {
 function extractQuestionNumber(questionId) {
   // "Q" 제거 (대소문자 무시)
   return questionId.replace(/^Q/i, '');
+}
+
+/**
+ * 사용자 지정 복습 목록 선택 모달 표시
+ * @param {string} questionId - 문제 ID (정규화됨)
+ * @param {HTMLElement} triggerBtn - 클릭한 버튼 요소
+ */
+function showCustomListSelector(questionId, triggerBtn) {
+  const lists = getAllCustomLists();
+  const listIds = Object.keys(lists);
+  const currentLists = getQuestionLists(questionId);
+
+  // 목록이 없으면 안내 메시지
+  if (listIds.length === 0) {
+    showToast('먼저 대시보드에서 복습 목록을 생성해주세요', 'info');
+    return;
+  }
+
+  // 모달 HTML 생성
+  const modalHTML = `
+    <div id="custom-list-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" style="backdrop-filter: blur(4px);">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">복습 목록에 추가</h3>
+          <button id="close-modal-btn" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl leading-none">&times;</button>
+        </div>
+        <div class="space-y-2 max-h-96 overflow-y-auto">
+          ${listIds.map(listId => {
+            const list = lists[listId];
+            const isInList = currentLists.includes(listId);
+            return `
+              <label class="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition">
+                <input
+                  type="checkbox"
+                  class="custom-list-checkbox w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  data-list-id="${listId}"
+                  ${isInList ? 'checked' : ''}
+                />
+                <div class="flex-1">
+                  <div class="text-sm font-medium text-gray-800 dark:text-gray-100">${list.name}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">${list.questionCount || 0}문제</div>
+                </div>
+              </label>
+            `;
+          }).join('')}
+        </div>
+        <div class="mt-6 flex gap-2">
+          <button id="save-lists-btn" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+            저장
+          </button>
+          <button id="cancel-lists-btn" class="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-100 rounded-lg font-medium transition">
+            취소
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 모달 추가
+  const modalContainer = document.createElement('div');
+  modalContainer.innerHTML = modalHTML;
+  document.body.appendChild(modalContainer.firstElementChild);
+
+  const modal = document.getElementById('custom-list-modal');
+
+  // 닫기 버튼
+  document.getElementById('close-modal-btn')?.addEventListener('click', () => {
+    modal.remove();
+  });
+
+  // 취소 버튼
+  document.getElementById('cancel-lists-btn')?.addEventListener('click', () => {
+    modal.remove();
+  });
+
+  // 저장 버튼
+  document.getElementById('save-lists-btn')?.addEventListener('click', () => {
+    const checkboxes = modal.querySelectorAll('.custom-list-checkbox');
+    const selectedListIds = Array.from(checkboxes)
+      .filter(cb => cb.checked)
+      .map(cb => cb.getAttribute('data-list-id'));
+
+    // 추가/제거 처리
+    listIds.forEach(listId => {
+      const wasInList = currentLists.includes(listId);
+      const isNowInList = selectedListIds.includes(listId);
+
+      if (isNowInList && !wasInList) {
+        // 새로 추가
+        addQuestionToList(questionId, listId);
+      } else if (!isNowInList && wasInList) {
+        // 제거
+        removeQuestionFromList(questionId, listId);
+      }
+    });
+
+    // 버튼 UI 업데이트
+    const updatedLists = getQuestionLists(questionId);
+    if (updatedLists.length > 0) {
+      triggerBtn.textContent = `✓ ${updatedLists.length}개 목록`;
+      triggerBtn.classList.add('opacity-60', 'text-gray-400');
+      triggerBtn.classList.remove('text-blue-500', 'hover:text-blue-700');
+    } else {
+      triggerBtn.textContent = '+복습';
+      triggerBtn.classList.remove('opacity-60', 'text-gray-400');
+      triggerBtn.classList.add('text-blue-500', 'hover:text-blue-700');
+    }
+
+    modal.remove();
+  });
+
+  // 모달 외부 클릭 시 닫기
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
 }

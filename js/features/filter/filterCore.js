@@ -7,6 +7,7 @@ import { isPartValue, parsePartValue } from '../../config/config.js';
 import { normId } from '../../utils/helpers.js';
 import { getQuestionScores, getAllData } from '../../core/stateManager.js';
 import { eventBus } from '../../core/eventBus.js';
+import { getQuestionsInList } from '../review/customReviewLists.js';
 
 // 필터 설정 저장 키
 export const SOURCE_LS = 'sourceFilterSelectionV1';
@@ -389,5 +390,26 @@ export function initFilterListeners() {
     if (typeof window.startRandomQuiz === 'function') {
       window.startRandomQuiz();
     }
+  });
+}
+
+/**
+ * 사용자 지정 복습 목록으로 필터링
+ * @param {Array} list - 전체 문제 목록
+ * @param {string} listId - 목록 ID
+ * @returns {Array} 필터링된 문제 목록
+ */
+export function filterByCustomList(list, listId) {
+  const questionIds = getQuestionsInList(listId);
+  if (!questionIds || questionIds.length === 0) {
+    return [];
+  }
+
+  // 문제 ID를 Set으로 변환 (빠른 조회)
+  const idSet = new Set(questionIds);
+
+  return list.filter(q => {
+    const qid = normId(q.고유ID || q.id);
+    return idSet.has(qid);
   });
 }
