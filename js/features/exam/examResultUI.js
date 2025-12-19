@@ -545,6 +545,9 @@ ${feedback?.feedback ? escapeHtml(normalizeText(feedback.feedback)) : '<span cla
           <button id="retry-exam-btn" class="flex-1 sm:flex-none px-6 sm:px-8 py-3 sm:py-4 bg-purple-700 hover:bg-purple-800 text-gray-900 dark:text-white font-bold text-base sm:text-lg rounded-xl shadow-lg transition-colors">
             🔄 다시 풀기
           </button>
+          <button id="retry-wrong-only-btn" class="flex-1 sm:flex-none px-6 sm:px-8 py-3 sm:py-4 bg-orange-600 hover:bg-orange-700 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg transition-colors" style="display: none;">
+            📝 오답만 다시 풀기
+          </button>
           <button id="exit-exam-btn" class="flex-1 sm:flex-none px-6 sm:px-8 py-3 sm:py-4 bg-gray-700 hover:bg-gray-800 text-gray-900 dark:text-white font-bold text-base sm:text-lg rounded-xl shadow-lg transition-colors">
             ✕ 종료하기
           </button>
@@ -741,12 +744,67 @@ function setupEventListeners(container, year, result, exams, metadata, userAnswe
       if (existingExamControls) {
         existingExamControls.remove();
       }
-      
+
       examService.clearUserAnswers(year);
       examService.clearTimer(year);
       const { renderExamPaper } = await import('./examUI.js');
       renderExamPaper(container, year, apiKey, selectedModel);
     });
+  }
+
+  // 오답만 다시 풀기 버튼
+  const retryWrongOnlyBtn = container.querySelector('#retry-wrong-only-btn');
+  if (retryWrongOnlyBtn) {
+    // 오답 개수 확인
+    const { getWrongQuestionIds } = await import('./examRetry.js');
+    const wrongQuestionIds = getWrongQuestionIds(examService, year, 80);
+
+    // 오답이 있으면 버튼 표시
+    if (wrongQuestionIds.length > 0) {
+      retryWrongOnlyBtn.style.display = '';
+      retryWrongOnlyBtn.textContent = `📝 오답만 다시 풀기 (${wrongQuestionIds.length}문제)`;
+
+      retryWrongOnlyBtn.replaceWith(retryWrongOnlyBtn.cloneNode(true)); // 기존 리스너 제거
+      container.querySelector('#retry-wrong-only-btn')?.addEventListener('click', async () => {
+        // 기존 플로팅 리모콘 모두 제거
+        const existingResultControls = document.getElementById('floating-controls-result');
+        if (existingResultControls) {
+          existingResultControls.remove();
+        }
+        const existingExamControls = document.getElementById('floating-controls-exam');
+        if (existingExamControls) {
+          existingExamControls.remove();
+        }
+
+        // Retry 모드 시작
+        const { startRetryMode } = await import('./examRetry.js');
+        const sessionInfo = startRetryMode(examService, year, 80);
+
+        if (!sessionInfo) {
+          showToast('오답이 없습니다!', 'success');
+          return;
+        }
+
+        // 알림 메시지
+        const confirmMsg = `오답 ${sessionInfo.questionCount}문제를 다시 풀겠습니까?\n\n` +
+                          `· 총 배점: ${sessionInfo.totalScore}점\n` +
+                          `· 제한 시간: ${sessionInfo.timeLimit}분`;
+
+        if (!confirm(confirmMsg)) {
+          const { exitRetryMode } = await import('./examRetry.js');
+          exitRetryMode(examService);
+          return;
+        }
+
+        // 답안 및 타이머 초기화
+        examService.clearUserAnswers(year);
+        examService.clearTimer(year);
+
+        // 시험 시작
+        const { renderExamPaper } = await import('./examUI.js');
+        renderExamPaper(container, year, apiKey, selectedModel);
+      });
+    }
   }
 
   // 종료하기 버튼

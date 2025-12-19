@@ -10,6 +10,8 @@ class ExamService {
     this.examData = {};
     this.metadata = {};
     this.initialized = false;
+    this.currentMode = 'normal'; // 'normal' | 'retry'
+    this.retryQuestionIds = []; // 오답 풀이 대상 문제 ID 목록
   }
 
   /**
@@ -236,7 +238,7 @@ class ExamService {
   /**
    * 점수 저장 (localStorage + Firestore)
    */
-  async saveScore(year, score, details) {
+  async saveScore(year, score, details, type = 'normal') {
     const key = `exam_${year}_scores`;
     const existing = this.getScores(year);
     const attemptNumber = existing.length + 1;
@@ -245,7 +247,9 @@ class ExamService {
       score,
       details, // { questionId: { score, feedback } }
       timestamp: Date.now(),
-      attempt: attemptNumber
+      attempt: attemptNumber,
+      type, // 'normal' | 'retry'
+      retryQuestions: type === 'retry' ? this.retryQuestionIds.length : undefined
     };
 
     existing.push(scoreData);
@@ -343,6 +347,7 @@ class ExamService {
 
     return scores[scores.length - 1];
   }
+
 
   // ============================================
   // 임시저장 (Temp Save)

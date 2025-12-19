@@ -590,8 +590,27 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
   console.log('🔍 [examUI.js] renderExamPaper - container:', container);
   console.log('🔍 [examUI.js] renderExamPaper - year:', year);
 
+  // Retry 모드 확인
+  const isRetryMode = examService.currentMode === 'retry';
+  const retryQuestionIds = examService.retryQuestionIds || [];
+
+  console.log('🔄 [examUI.js] renderExamPaper - Retry 모드:', isRetryMode);
+  if (isRetryMode) {
+    console.log('🔄 [examUI.js] renderExamPaper - Retry 대상 문제:', retryQuestionIds);
+  }
+
   let exams = examService.getExamByYear(year);
   const metadata = examService.getMetadata(year);
+
+  // Retry 모드일 경우: 오답 문제만 필터링
+  if (isRetryMode && retryQuestionIds.length > 0) {
+    exams = exams.map(exam => ({
+      ...exam,
+      questions: exam.questions.filter(q => retryQuestionIds.includes(q.id))
+    })).filter(exam => exam.questions.length > 0); // 문제가 없는 case는 제외
+
+    console.log('✅ [Retry Mode] 필터링 완료: ${exams.flatMap(e => e.questions).length}개 문제');
+  }
 
   // ⚠️ 중요: exams 배열 자체를 정렬 (Q1, Q2, ..., Q10 순서)
   // "2025_Q1", "2025_Q10" 형식을 올바르게 처리하기 위해 extractQuestionNumbers 사용 필수
@@ -644,7 +663,14 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
           <div class="flex items-center justify-between flex-wrap gap-3">
             <div class="flex items-center gap-3">
               <h3 class="text-lg sm:text-xl font-bold">${year}년 기출문제</h3>
-              <span class="text-xs sm:text-sm px-2 sm:px-3 py-1 bg-purple-200 dark:bg-white/30 rounded-full font-semibold">총 ${examService.getTotalScore(year)}점</span>
+              ${isRetryMode ? `
+              <span class="text-xs sm:text-sm px-2 sm:px-3 py-1 bg-orange-500 text-white rounded-full font-semibold animate-pulse">
+                📝 오답 풀이
+              </span>
+              ` : ''}
+              <span class="text-xs sm:text-sm px-2 sm:px-3 py-1 bg-purple-200 dark:bg-white/30 rounded-full font-semibold">
+                ${isRetryMode ? `오답 ${retryQuestionIds.length}문제` : `총 ${examService.getTotalScore(year)}점`}
+              </span>
             </div>
 
             <!-- Timer and Actions -->
@@ -1529,7 +1555,15 @@ async function gradeAndShowResults(container, year, apiKey, selectedModel) {
     const result = await examService.gradeExam(year, userAnswers, apiKey, selectedModel, onProgress);
 
     // 점수 저장 (localStorage + Firestore)
-    await examService.saveScore(year, result.totalScore, result.details);
+    // Retry 모드 여부 전달
+    const examType = examService.currentMode === 'retry' ? 'retry' : 'normal';
+    await examService.saveScore(year, result.totalScore, result.details, examType);
+
+    // Retry 모드 종료
+    if (examService.currentMode === 'retry') {
+      const { exitRetryMode } = await import('./examRetry.js');
+      exitRetryMode(examService);
+    }
 
     // 타이머 초기화
     examService.clearTimer(year);
