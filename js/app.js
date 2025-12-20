@@ -506,6 +506,11 @@ import * as AuthUI from './features/auth/authUI.js';
 // ============================================
 import * as SyncCore from './features/sync/syncCore.js';
 
+// Firestore 동기화 함수들을 전역으로 노출
+window.flushPendingSync = SyncCore.flushPendingSync;
+window.debouncedSyncToFirestore = SyncCore.debouncedSyncToFirestore;
+window.syncToFirestore = SyncCore.syncToFirestore;
+
 // ============================================
 // 4. [신규] Firebase Ranking 모듈 임포트 (Phase 3)
 // ============================================
@@ -590,6 +595,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // 10. 사용자 지정 복습 목록 초기화
   console.log('📝 사용자 지정 복습 목록 초기화 시작...');
   CustomReviewLists.initCustomReviewLists();
+
+  // 11. 페이지 종료 시 대기 중인 Firestore 동기화 즉시 실행
+  window.addEventListener('beforeunload', async (event) => {
+    const currentUser = AuthCore.getCurrentUser();
+    if (currentUser && window.flushPendingSync) {
+      console.log('🚪 [App] 페이지 종료 감지 → 대기 중인 동기화 실행');
+      try {
+        await window.flushPendingSync(currentUser.uid);
+      } catch (error) {
+        console.error('❌ [App] beforeunload 동기화 실패:', error);
+      }
+    }
+  });
 
   console.log('✅ DOM 엘리먼트 초기화 완료');
   console.log('✅ 임시 브릿지 설정 완료 - index.html 기존 코드와 연동됨');

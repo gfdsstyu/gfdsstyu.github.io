@@ -7,7 +7,7 @@ import { getQuestionScores, setQuestionScores, saveQuestionScores, getAllData, g
 import { showToast } from '../ui/domUtils.js';
 import { STATS_DATE_KEY, EXAM_DATE_KEY } from '../config/config.js';
 import { getCurrentUser } from '../features/auth/authCore.js';
-import { syncToFirestore } from '../features/sync/syncCore.js';
+import { syncToFirestore, debouncedSyncToFirestore } from '../features/sync/syncCore.js';
 
 // ============================================
 // 전역 변수 (statsRefDate, calRefDate - 나중에 StateManager로 이전 고려)
@@ -259,20 +259,11 @@ export function setFlagState(qid, { flag = false, exclude = false, silent = fals
   }
 
   // Firestore 동기화 (다른 기기에서도 반영되도록)
+  // ⚡ 최적화: 디바운스 적용 - 연속 플래그 변경 시 쓰기 횟수 감소
   const currentUser = getCurrentUser();
   if (currentUser) {
-    console.log('🔄 [FlagState] Firestore 동기화 시도...', qid);
-    syncToFirestore(currentUser.uid, qid)
-      .then(result => {
-        if (result.success) {
-          console.log('   - ✅ Firestore 동기화 성공:', result.message);
-        } else {
-          console.error('   - ❌ Firestore 동기화 실패:', result.message);
-        }
-      })
-      .catch(err => {
-        console.error('   - ❌ Firestore 동기화 에러:', err);
-      });
+    console.log('🔄 [FlagState] Firestore 디바운스 동기화 예약...', qid);
+    debouncedSyncToFirestore(currentUser.uid, qid, 5000); // 5초 디바운스
   } else {
     console.log('   - ⏭️ 로그아웃 상태 - Firestore 동기화 스킵');
   }
