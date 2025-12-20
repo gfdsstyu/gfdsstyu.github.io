@@ -39,6 +39,99 @@ const SETTINGS_KEYS = {
 };
 
 // ============================================
+// 디바운싱: 쓰기 횟수 최적화
+// ============================================
+
+/**
+ * Firestore 쓰기 최적화를 위한 디바운스 타이머
+ * - 연속된 변경사항을 한 번에 묶어서 처리
+ * - 기본 5초 대기 후 동기화 (마지막 변경 후 5초 경과 시)
+ */
+let syncDebounceTimer = null;
+let pendingSync = {
+  userId: null,
+  specificQid: null,
+  hasChanges: false
+};
+
+/**
+ * 디바운스된 Firestore 동기화
+ *
+ * 장점:
+ * - 연속된 문제 풀이 시 쓰기 횟수 대폭 감소 (10문제 → 1회 쓰기)
+ * - Firebase 과금 절감
+ * - 네트워크 부하 감소
+ *
+ * @param {string} userId - 사용자 UID
+ * @param {string} specificQid - (선택) 특정 문제 ID
+ * @param {number} delay - 디바운스 지연 시간 (ms, 기본 5000ms = 5초)
+ */
+export function debouncedSyncToFirestore(userId, specificQid = null, delay = 5000) {
+  if (!userId) {
+    console.warn('⚠️ [SyncCore] 디바운스 동기화 스킵: 로그인되지 않음');
+    return;
+  }
+
+  // 기존 타이머 취소
+  if (syncDebounceTimer) {
+    clearTimeout(syncDebounceTimer);
+  }
+
+  // 대기 중인 동기화 정보 업데이트
+  pendingSync.userId = userId;
+  pendingSync.specificQid = specificQid;
+  pendingSync.hasChanges = true;
+
+  console.log(`⏱️ [SyncCore] 디바운스 타이머 시작: ${delay}ms 대기...`);
+
+  // 새 타이머 설정
+  syncDebounceTimer = setTimeout(async () => {
+    if (pendingSync.hasChanges && pendingSync.userId) {
+      console.log('🚀 [SyncCore] 디바운스 타이머 만료 → 동기화 실행');
+      await syncToFirestore(pendingSync.userId, pendingSync.specificQid);
+
+      // 동기화 완료 후 초기화
+      pendingSync = {
+        userId: null,
+        specificQid: null,
+        hasChanges: false
+      };
+    }
+    syncDebounceTimer = null;
+  }, delay);
+}
+
+/**
+ * 즉시 동기화 강제 실행 (디바운스 타이머 무시)
+ *
+ * 사용 시점:
+ * - 페이지 종료 전 (beforeunload)
+ * - 로그아웃 시
+ * - 중요한 작업 완료 후 (시험 제출 등)
+ *
+ * @param {string} userId - 사용자 UID
+ */
+export async function flushPendingSync(userId) {
+  // 대기 중인 타이머 취소
+  if (syncDebounceTimer) {
+    clearTimeout(syncDebounceTimer);
+    syncDebounceTimer = null;
+  }
+
+  // 대기 중인 변경사항이 있으면 즉시 동기화
+  if (pendingSync.hasChanges && pendingSync.userId) {
+    console.log('⚡ [SyncCore] 대기 중인 변경사항 즉시 동기화');
+    await syncToFirestore(pendingSync.userId, pendingSync.specificQid);
+
+    pendingSync = {
+      userId: null,
+      specificQid: null,
+      hasChanges: false
+    };
+  }
+}
+
+// ============================================
 // 데이터 변환 함수
 // ============================================
 
