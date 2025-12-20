@@ -1,8 +1,12 @@
 /**
- * Gemma 3 Few-Shot Example Loader
+ * Gemma 3 Few-Shot Example Loader with RAG Integration
  * gemma_few_shots.json에서 실제 Gemini 채점 데이터를 로드하여
  * Gemma 모델의 few-shot 학습에 활용
+ *
+ * RAG 통합: 문제 내용 기반으로 관련성 높은 few-shot 예시 선택
  */
+
+import ragSearchService from './ragSearch.js';
 
 /**
  * Few-shot 데이터 캐시
@@ -34,12 +38,13 @@ async function loadFewShotData() {
 }
 
 /**
- * 점수대별로 few-shot 예시 선택
+ * 점수대별로 few-shot 예시 선택 (RAG 통합)
  * @param {number} targetScore - 예상 점수대 (0-100)
  * @param {number} count - 선택할 예시 개수 (기본 5개)
+ * @param {string} correctAnswer - 모범 답안 (RAG 검색용, 옵션)
  * @returns {Array} Few-shot 예시 배열
  */
-export async function selectFewShotExamples(targetScore = 70, count = 5) {
+export async function selectFewShotExamples(targetScore = 70, count = 5, correctAnswer = null) {
   const fewShots = await loadFewShotData();
   if (!fewShots) {
     console.warn('⚠️ [FewShot] 데이터 로드 실패, 빈 배열 반환');
@@ -74,6 +79,49 @@ export async function selectFewShotExamples(targetScore = 70, count = 5) {
     medium: scoreGroups.medium.length,
     low: scoreGroups.low.length
   });
+
+  // RAG 기반 관련 문제 필터링 (correctAnswer가 제공된 경우)
+  let relevantExamples = validExamples;
+  if (correctAnswer && correctAnswer.length > 10) {
+    try {
+      // RAG 초기화
+      await ragSearchService.initializeRAG();
+
+      // 유사 문제 검색 (상위 20개)
+      const similarQuestions = ragSearchService.retrieveDocuments(correctAnswer, 20);
+      const similarQuestionIds = similarQuestions.map(q => q.id);
+
+      console.log('🔍 [RAG-FewShot] 유사 문제 검색:', similarQuestionIds.length, '개');
+
+      if (similarQuestionIds.length > 0) {
+        // 유사 문제의 few-shot 예시만 필터링
+        relevantExamples = validExamples.filter(ex =>
+          similarQuestionIds.includes(ex.id)
+        );
+
+        console.log('✅ [RAG-FewShot] 필터링된 예시:', relevantExamples.length, '개');
+
+        // 필터링 결과가 너무 적으면 원본 사용
+        if (relevantExamples.length < count) {
+          console.log('⚠️ [RAG-FewShot] 필터링 결과 부족, 전체 예시 사용');
+          relevantExamples = validExamples;
+        } else {
+          // 필터링된 예시로 점수 그룹 재구성
+          scoreGroups.high = relevantExamples.filter(ex => ex.latestScore >= 80);
+          scoreGroups.medium = relevantExamples.filter(ex => ex.latestScore >= 60 && ex.latestScore < 80);
+          scoreGroups.low = relevantExamples.filter(ex => ex.latestScore < 60);
+
+          console.log('📊 [RAG-FewShot] 필터링 후 점수 분포:', {
+            high: scoreGroups.high.length,
+            medium: scoreGroups.medium.length,
+            low: scoreGroups.low.length
+          });
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ [RAG-FewShot] RAG 검색 실패, 기본 방식 사용:', error.message);
+    }
+  }
 
   // 목표 점수대에 따라 예시 선택 전략
   let selectedExamples = [];
@@ -132,14 +180,15 @@ ${exampleTexts}
 }
 
 /**
- * Gemma API 호출용 few-shot 프롬프트 생성
+ * Gemma API 호출용 few-shot 프롬프트 생성 (RAG 통합)
  * @param {string} userAnswer - 사용자 답안
  * @param {string} correctAnswer - 모범 답안
  * @param {number} estimatedScore - 예상 점수 (옵션, 기본 70점)
  * @returns {Promise<string>} Few-shot 포함 프롬프트
  */
 export async function buildGemmaFewShotPrompt(userAnswer, correctAnswer, estimatedScore = 70) {
-  const examples = await selectFewShotExamples(estimatedScore, 5);
+  // RAG 기반 관련 예시 선택
+  const examples = await selectFewShotExamples(estimatedScore, 5, correctAnswer);
   const fewShotText = formatFewShotPrompt(examples);
 
   return fewShotText;

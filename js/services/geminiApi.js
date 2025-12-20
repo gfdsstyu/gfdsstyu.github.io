@@ -17,7 +17,10 @@ const MODEL_MAP = {
   'gemini-3-pro-preview': 'gemini-3-pro-preview',
   'gemini-3-flash-preview': 'gemini-3-flash-preview',
   'gemini-flash-latest': 'gemini-flash-latest',
-  'gemma-3-27b-it': 'gemma-3-27b-it'
+  'gemma-3-27b-it': 'gemma-3-27b-it',
+  'gemma-3-12b-it': 'gemma-3-12b-it',
+  'gemma-3-4b-it': 'gemma-3-4b-it',
+  'gemma-3-1b-it': 'gemma-3-1b-it'
 };
 
 /**
@@ -196,11 +199,33 @@ ${userAnswer}
       throw new Error('API 요청 타임아웃 (30초 초과)');
     }
 
+    // 400/429/403/503/404 에러 시 gemma-3-27b-it으로 폴백 (quiz 채점만, exam/kam 제외)
+    const errorMsg = String(err.message);
+    const shouldFallbackToGemma = (
+      errorMsg.includes('400') || // Bad Request (모델별 파라미터 차이 가능)
+      errorMsg.includes('429') || // 할당량 초과
+      errorMsg.includes('403') || // 권한 부족
+      errorMsg.includes('503') || // 서버 과부하
+      errorMsg.includes('서버 오류') || // 서버 오류 (5xx)
+      errorMsg.includes('404') || // 모델 없음
+      errorMsg.includes('모델/버전 불일치') // 모델 버전 오류
+    );
+
+    if (shouldFallbackToGemma && selectedAiModel !== 'gemma-3-27b-it' && retries === 2) {
+      console.warn(`⚠️ [Gemini API] ${err.message} → gemma-3-27b-it으로 폴백 시도`);
+      try {
+        return await callGeminiAPI(userAnswer, correctAnswer, apiKey, 'gemma-3-27b-it', 0, delay);
+      } catch (gemmaErr) {
+        console.error(`❌ [Gemini API] gemma-3-27b-it도 실패:`, gemmaErr);
+        throw err; // 원본 에러 throw
+      }
+    }
+
     // 429 또는 서버 오류 시 재시도 (503 포함)
-    const is503 = String(err.message).includes('503');
+    const is503 = errorMsg.includes('503');
     const shouldRetry = retries > 0 && (
-      String(err.message).includes('429') ||
-      /^서버 오류/.test(String(err.message))
+      errorMsg.includes('429') ||
+      /^서버 오류/.test(errorMsg)
     );
 
     if (shouldRetry) {
@@ -353,10 +378,32 @@ ${userAnswer || '(미입력)'}
       throw new Error('API 요청 타임아웃 (30초 초과)');
     }
 
-    const is503 = String(err.message).includes('503');
+    // 400/429/403/503/404 에러 시 gemma-3-27b-it으로 폴백
+    const errorMsg = String(err.message);
+    const shouldFallbackToGemma = (
+      errorMsg.includes('400') || // Bad Request (모델별 파라미터 차이 가능)
+      errorMsg.includes('429') || // 할당량 초과
+      errorMsg.includes('403') || // 권한 부족
+      errorMsg.includes('503') || // 서버 과부하
+      errorMsg.includes('서버 오류') || // 서버 오류 (5xx)
+      errorMsg.includes('404') || // 모델 없음
+      errorMsg.includes('모델/버전 불일치') // 모델 버전 오류
+    );
+
+    if (shouldFallbackToGemma && selectedAiModel !== 'gemma-3-27b-it' && retries === 2) {
+      console.warn(`⚠️ [Gemini Hint API] ${err.message} → gemma-3-27b-it으로 폴백 시도`);
+      try {
+        return await callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, 'gemma-3-27b-it', 0, delay);
+      } catch (gemmaErr) {
+        console.error(`❌ [Gemini Hint API] gemma-3-27b-it도 실패:`, gemmaErr);
+        throw err; // 원본 에러 throw
+      }
+    }
+
+    const is503 = errorMsg.includes('503');
     const shouldRetry = retries > 0 && (
-      String(err.message).includes('429') ||
-      /^서버 오류/.test(String(err.message))
+      errorMsg.includes('429') ||
+      /^서버 오류/.test(errorMsg)
     );
 
     if (shouldRetry) {
@@ -716,8 +763,30 @@ export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini
       throw new Error('API 요청 타임아웃 (30초 초과)');
     }
 
+    // 400/429/403/503/404 에러 시 gemma-3-27b-it으로 폴백
+    const errorMsg = String(err.message);
+    const shouldFallbackToGemma = (
+      errorMsg.includes('400') || // Bad Request (모델별 파라미터 차이 가능)
+      errorMsg.includes('429') || // 할당량 초과
+      errorMsg.includes('403') || // 권한 부족
+      errorMsg.includes('503') || // 서버 과부하
+      errorMsg.includes('서버 오류') || // 서버 오류 (5xx)
+      errorMsg.includes('404') || // 모델 없음
+      errorMsg.includes('모델/버전 불일치') // 모델 버전 오류
+    );
+
+    if (shouldFallbackToGemma && selectedAiModel !== 'gemma-3-27b-it' && retries === 2) {
+      console.warn(`⚠️ [Gemini Tip API] ${err.message} → gemma-3-27b-it으로 폴백 시도`);
+      try {
+        return await callGeminiTipAPI(prompt, apiKey, 'gemma-3-27b-it', 0, 800);
+      } catch (gemmaErr) {
+        console.error(`❌ [Gemini Tip API] gemma-3-27b-it도 실패:`, gemmaErr);
+        throw err; // 원본 에러 throw
+      }
+    }
+
     // 503 에러이고 flash 모델이었다면 lite로 다운그레이드 시도
-    const is503 = String(err.message).includes('503') || String(err.message).includes('서버 오류');
+    const is503 = errorMsg.includes('503') || errorMsg.includes('서버 오류');
     if (is503 && selectedAiModel === 'gemini-2.5-flash' && retries === 0) {
       console.warn(`⚠️ [Tip API] Flash 모델 503 에러 → lite 모델로 전환 시도`);
       try {
