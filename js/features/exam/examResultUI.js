@@ -1,6 +1,7 @@
 /**
  * Past Exam Result UI - Vertical View
  * 채점 결과 화면 (버티컬 뷰 전용)
+ * Updated: 2025-12-20
  */
 
 import { examService } from './examService.js';
@@ -9,6 +10,8 @@ import { normId } from '../../utils/helpers.js';
 import ragSearchService from '../../services/ragSearch.js';
 import { showToast } from '../../ui/domUtils.js';
 import { getAllCustomLists, addQuestionToList, removeQuestionFromList, getQuestionLists } from '../review/customReviewLists.js';
+
+console.log('📄 [examResultUI.js] 모듈 로드됨');
 
 /**
  * 텍스트 정규화: 과도한 줄바꿈 완화 (examUI.js와 동일한 방식)
@@ -169,7 +172,8 @@ function renderTable(headers, alignments, rows) {
 /**
  * 채점 결과 화면 렌더링 (버티컬 뷰)
  */
-export function renderResultMode(container, year, result, apiKey, selectedModel, inheritedViewMode = 'auto') {
+export async function renderResultMode(container, year, result, apiKey, selectedModel, inheritedViewMode = 'auto') {
+  console.log('🎨 [examResultUI.js] renderResultMode 시작');
   try {
     // 컨테이너 초기화 (스크롤 문제 해결: body 스크롤 방지)
     container.className = 'fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden';
@@ -719,14 +723,15 @@ function setupFloatingControlsResult(exams, year, result, container) {
  * 이벤트 리스너 설정
  */
 async function setupEventListeners(container, year, result, exams, metadata, userAnswers, apiKey, selectedModel) {
-  // 종료 버튼
+  // 종료 버튼 (연도 선택 화면으로 돌아가기)
   const exitResultsBtn = container.querySelector('#btn-exit-results');
   if (exitResultsBtn) {
     exitResultsBtn.replaceWith(exitResultsBtn.cloneNode(true)); // 기존 리스너 제거
     container.querySelector('#btn-exit-results')?.addEventListener('click', async () => {
+      console.log('🔘 [examResultUI] 종료 버튼 클릭 - 연도 선택 화면으로 이동');
       document.body.style.overflow = ''; // body 스크롤 복원
-      const { exitExamMode } = await import('./examIntegration.js');
-      exitExamMode();
+      const { renderYearSelection } = await import('./examUI.js');
+      renderYearSelection(container);
     });
   }
 
@@ -772,43 +777,54 @@ async function setupEventListeners(container, year, result, exams, metadata, use
 
       retryWrongOnlyBtn.replaceWith(retryWrongOnlyBtn.cloneNode(true)); // 기존 리스너 제거
       container.querySelector('#retry-wrong-only-btn')?.addEventListener('click', async () => {
-        // 기존 플로팅 리모콘 모두 제거
-        const existingResultControls = document.getElementById('floating-controls-result');
-        if (existingResultControls) {
-          existingResultControls.remove();
+        try {
+          // 기존 플로팅 리모콘 모두 제거
+          const existingResultControls = document.getElementById('floating-controls-result');
+          if (existingResultControls) {
+            existingResultControls.remove();
+          }
+          const existingExamControls = document.getElementById('floating-controls-exam');
+          if (existingExamControls) {
+            existingExamControls.remove();
+          }
+
+          // Retry 모드 시작
+          const { startRetryMode, exitRetryMode } = await import('./examRetry.js');
+          const sessionInfo = startRetryMode(examService, year, 80);
+
+          if (!sessionInfo) {
+            showToast('오답이 없습니다!', 'success');
+            return;
+          }
+
+          // 알림 메시지
+          const confirmMsg = `오답 ${sessionInfo.questionCount}문제를 다시 풀겠습니까?\n\n` +
+                            `· 총 배점: ${sessionInfo.totalScore}점\n` +
+                            `· 제한 시간: ${sessionInfo.timeLimit}분`;
+
+          if (!confirm(confirmMsg)) {
+            exitRetryMode(examService);
+            return;
+          }
+
+          // 답안 및 타이머 초기화
+          examService.clearUserAnswers(year);
+          examService.clearTimer(year);
+
+          // 시험 시작
+          const { renderExamPaper } = await import('./examUI.js');
+          renderExamPaper(container, year, apiKey, selectedModel);
+        } catch (error) {
+          console.error('❌ [examResultUI] 오답 풀이 시작 실패:', error);
+          showToast('오답 풀이를 시작할 수 없습니다. 다시 시도해주세요.', 'error');
+          // 에러 발생 시 retry 모드 정리
+          try {
+            const { exitRetryMode } = await import('./examRetry.js');
+            exitRetryMode(examService);
+          } catch (cleanupError) {
+            console.error('❌ Retry mode cleanup 실패:', cleanupError);
+          }
         }
-        const existingExamControls = document.getElementById('floating-controls-exam');
-        if (existingExamControls) {
-          existingExamControls.remove();
-        }
-
-        // Retry 모드 시작
-        const { startRetryMode } = await import('./examRetry.js');
-        const sessionInfo = startRetryMode(examService, year, 80);
-
-        if (!sessionInfo) {
-          showToast('오답이 없습니다!', 'success');
-          return;
-        }
-
-        // 알림 메시지
-        const confirmMsg = `오답 ${sessionInfo.questionCount}문제를 다시 풀겠습니까?\n\n` +
-                          `· 총 배점: ${sessionInfo.totalScore}점\n` +
-                          `· 제한 시간: ${sessionInfo.timeLimit}분`;
-
-        if (!confirm(confirmMsg)) {
-          const { exitRetryMode } = await import('./examRetry.js');
-          exitRetryMode(examService);
-          return;
-        }
-
-        // 답안 및 타이머 초기화
-        examService.clearUserAnswers(year);
-        examService.clearTimer(year);
-
-        // 시험 시작
-        const { renderExamPaper } = await import('./examUI.js');
-        renderExamPaper(container, year, apiKey, selectedModel);
       });
     }
   }

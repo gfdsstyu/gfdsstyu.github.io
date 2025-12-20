@@ -32,21 +32,27 @@ export function getWrongQuestionIds(examService, year, threshold = 80) {
 
 /**
  * Retry 모드 시간 제한 계산
- * 공식: (90분 * 배점 비율) + 5분 여유, 최소 10분 보장
+ * 공식: (90분 * 배점 비율) + 5분 여유, 최소 10분 보장, 최대 90분
  *
  * @param {number} retryTotalScore - 오답 문제들의 총 배점
  * @param {number} fullTotalScore - 전체 시험 배점
  * @returns {number} 시간 제한 (분)
  */
 export function calculateRetryTimeLimit(retryTotalScore, fullTotalScore) {
+  // Division by zero check
+  if (!fullTotalScore || fullTotalScore === 0) {
+    console.warn('⚠️ [Retry] fullTotalScore is 0, using default 90분');
+    return 90;
+  }
+
   const timeRatio = retryTotalScore / fullTotalScore;
   const calculatedTime = Math.ceil(90 * timeRatio) + 5;
-  const timeLimit = Math.max(10, calculatedTime); // 최소 10분 보장
+  const timeLimit = Math.min(90, Math.max(10, calculatedTime)); // 최소 10분, 최대 90분 보장
 
   console.log(`⏱️ [Retry] 시간 계산: ${retryTotalScore}점 / ${fullTotalScore}점 = ${(timeRatio * 100).toFixed(1)}%`);
   console.log(`   - 기본 시간: ${Math.ceil(90 * timeRatio)}분`);
   console.log(`   - 여유 시간: +5분`);
-  console.log(`   - 최종 시간: ${timeLimit}분`);
+  console.log(`   - 최종 시간: ${timeLimit}분 (최소 10분, 최대 90분)`);
 
   return timeLimit;
 }
@@ -60,7 +66,7 @@ export function calculateRetryTimeLimit(retryTotalScore, fullTotalScore) {
  */
 export function prepareRetrySession(examService, year, questionIds) {
   if (!questionIds || questionIds.length === 0) {
-    throw new Error('오답 문제가 없습니다.');
+    return null; // Return null instead of throwing error
   }
 
   // 해당 문제들의 총 배점 계산

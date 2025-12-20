@@ -3,10 +3,29 @@
  * 메인 앱과 기출문제 모드 연동
  */
 
+console.log('📦 [examIntegration] Step 0: File loaded');
+
+// Step 1: Import examService
+console.log('📦 [examIntegration] Step 1: Importing examService...');
 import { examService } from './examService.js';
+console.log('✅ [examIntegration] Step 1 OK');
+
+// Step 2: Import renderExamMode
+console.log('📦 [examIntegration] Step 2: Importing renderExamMode...');
 import { renderExamMode } from './examUI.js';
+console.log('✅ [examIntegration] Step 2 OK');
+
+// Step 3: Import getCurrentUser
+console.log('📦 [examIntegration] Step 3: Importing getCurrentUser...');
 import { getCurrentUser } from '../auth/authCore.js';
+console.log('✅ [examIntegration] Step 3 OK');
+
+// Step 4: Import showToast
+console.log('📦 [examIntegration] Step 4: Importing showToast...');
 import { showToast } from '../../ui/domUtils.js';
+console.log('✅ [examIntegration] Step 4 OK');
+
+console.log('📦 [examIntegration.js] 모듈 로드 완료');
 
 let isExamMode = false;
 let examContainer = null;
@@ -15,25 +34,35 @@ let examContainer = null;
  * 기출문제 모드 진입
  */
 export async function enterExamMode() {
+  console.log('🚀 [examIntegration.js] enterExamMode 호출됨');
+
   if (isExamMode) {
     console.warn('이미 기출문제 모드입니다.');
     return;
   }
 
   // 인증 체크
+  console.log('🔍 [examIntegration.js] 사용자 인증 체크 중...');
   const currentUser = getCurrentUser();
+  console.log('👤 [examIntegration.js] currentUser:', currentUser);
+
   if (!currentUser) {
     console.warn('❌ 기출문제 모드를 사용하려면 로그인이 필요합니다.');
     showToast('기출문제 모드를 사용하려면 로그인이 필요합니다.', 'warning');
     throw new Error('로그인이 필요합니다.');
   }
 
-  console.log('📝 기출문제 모드 진입');
+  console.log('📝 기출문제 모드 진입 시작');
 
   // 서비스 초기화
   console.log('🔧 [examIntegration.js] examService 초기화 시작');
-  await examService.initialize();
-  console.log('✅ [examIntegration.js] examService 초기화 완료');
+  try {
+    await examService.initialize();
+    console.log('✅ [examIntegration.js] examService 초기화 완료');
+  } catch (error) {
+    console.error('❌ [examIntegration.js] examService 초기화 실패:', error);
+    throw error;
+  }
 
   // 기존 UI 요소 숨기기 (KAM 모드 방식 차용)
   const quizArea = document.querySelector('#quiz-area');
@@ -60,7 +89,7 @@ export async function enterExamMode() {
     // center-core 안의 단원문제모드 선택란 바로 아래에 추가
     const centerCore = document.querySelector('#center-core');
     const filterSelect = document.querySelector('#filter-select');
-    
+
     if (centerCore) {
       // filter-select 다음에 삽입
       if (filterSelect && filterSelect.parentElement) {

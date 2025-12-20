@@ -5,7 +5,6 @@
 
 import { examService } from './examService.js';
 import { getGeminiApiKey, getSelectedAiModel } from '../../core/stateManager.js';
-import { renderResultMode } from './examResultUI.js';
 import { getCurrentUser } from '../auth/authCore.js';
 import { showToast } from '../../ui/domUtils.js';
 
@@ -237,6 +236,7 @@ const examUIState = {
   viewMode: 'auto', // 'split', 'vertical', 'auto'
   isPaused: false, // 타이머 일시정지 상태
   pauseStartTime: null, // 일시정지 시작 시간
+  resizeHandler: null, // Store resize handler to prevent memory leak
 
   reset() {
     this.currentYear = null;
@@ -346,6 +346,18 @@ function renderYearSelection(container) {
   }
   console.log('✅ [examUI.js] renderYearSelection - 타이머 정지');
 
+  // 플로팅 리모콘 제거
+  const floatingExamControls = document.getElementById('floating-controls-exam');
+  const floatingResultControls = document.getElementById('floating-controls-result');
+  if (floatingExamControls) floatingExamControls.remove();
+  if (floatingResultControls) floatingResultControls.remove();
+
+  // Resize handler 제거
+  if (examUIState.resizeHandler) {
+    window.removeEventListener('resize', examUIState.resizeHandler);
+    examUIState.resizeHandler = null;
+  }
+
   // 전체 화면 모드 해제 (연도 선택 화면은 기존 레이아웃 사용)
   container.className = '';
 
@@ -425,13 +437,20 @@ function renderYearSelection(container) {
                 ` : ''}
               </div>
 
-              <div class="mt-4 flex gap-2">
-                <button class="start-exam-btn flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
-                  ${latestAttempt > 0 ? '다시 풀기' : '시작하기'} →
-                </button>
+              <div class="mt-4 flex flex-col gap-2">
+                <div class="flex gap-2">
+                  <button class="start-exam-btn flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
+                    ${latestAttempt > 0 ? '다시 풀기' : '시작하기'} →
+                  </button>
+                  ${latestAttempt > 0 ? `
+                    <button class="view-result-btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors" data-year="${year}">
+                      📊 결과보기
+                    </button>
+                  ` : ''}
+                </div>
                 ${latestAttempt > 0 ? `
-                  <button class="view-result-btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors" data-year="${year}">
-                    📊 결과보기
+                  <button class="retry-wrong-btn hidden w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition-colors" data-year="${year}">
+                    📝 오답만 다시 풀기
                   </button>
                 ` : ''}
               </div>
@@ -500,19 +519,73 @@ function renderYearSelection(container) {
 
       // 결과 화면 렌더링
       try {
-        renderResultMode(container, year, result, apiKey, selectedModel, examUIState.viewMode);
+        const { renderResultMode } = await import('./examResultUI.js');
+        await renderResultMode(container, year, result, apiKey, selectedModel, examUIState.viewMode);
       } catch (error) {
         console.error('❌ [examUI.js] 채점 결과 렌더링 에러:', error);
         alert(`채점 결과를 불러오는 중 오류가 발생했습니다.\n${error.message}`);
       }
     });
   });
+
+  // 오답만 다시 풀기 버튼 - 오답 개수 확인하고 표시
+  container.querySelectorAll('.retry-wrong-btn').forEach(async (btn) => {
+    const year = parseInt(btn.dataset.year, 10);
+
+    // 오답 개수 확인
+    const { getWrongQuestionIds } = await import('./examRetry.js');
+    const wrongQuestionIds = getWrongQuestionIds(examService, year, 80);
+
+    if (wrongQuestionIds.length > 0) {
+      // 오답이 있으면 버튼 표시 및 문제 수 업데이트
+      btn.classList.remove('hidden');
+      btn.textContent = `📝 오답만 다시 풀기 (${wrongQuestionIds.length}문제)`;
+
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+
+        try {
+          // Retry 모드 시작
+          const { startRetryMode, exitRetryMode } = await import('./examRetry.js');
+          const sessionInfo = startRetryMode(examService, year, 80);
+
+          if (!sessionInfo) {
+            showToast('오답이 없습니다!', 'success');
+            return;
+          }
+
+          // 알림 메시지
+          const confirmMsg = `오답 ${sessionInfo.questionCount}문제를 다시 풀겠습니까?\n\n` +
+                            `· 총 배점: ${sessionInfo.totalScore}점\n` +
+                            `· 제한 시간: ${sessionInfo.timeLimit}분`;
+
+          if (!confirm(confirmMsg)) {
+            exitRetryMode(examService);
+            return;
+          }
+
+          // 답안 및 타이머 초기화
+          examService.clearUserAnswers(year);
+          examService.clearTimer(year);
+
+          // 시험 시작 (전체 화면 모드로 전환)
+          startExam(container, year);
+        } catch (error) {
+          console.error('❌ [examUI] 오답 풀이 시작 실패:', error);
+          showToast('오답 풀이를 시작할 수 없습니다. 다시 시도해주세요.', 'error');
+          // 에러 발생 시 retry 모드 정리
+          const { exitRetryMode } = await import('./examRetry.js');
+          exitRetryMode(examService);
+        }
+      });
+    }
+  });
 }
 
 /**
  * 시험 시작
  */
-function startExam(container, year) {
+async function startExam(container, year) {
   const apiKey = getGeminiApiKey();
   const selectedModel = getSelectedAiModel();
 
@@ -564,13 +637,13 @@ function startExam(container, year) {
   }
 
   // 시험지 렌더링
-  renderExamPaper(container, year, apiKey, selectedModel);
+  await renderExamPaper(container, year, apiKey, selectedModel);
 }
 
 /**
  * 시험지 화면 (Split View)
  */
-function renderExamPaper(container, year, apiKey, selectedModel) {
+async function renderExamPaper(container, year, apiKey, selectedModel) {
   // API 키가 전달되지 않았을 경우 StateManager에서 가져오기
   if (!apiKey) {
     apiKey = getGeminiApiKey();
@@ -609,7 +682,7 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
       questions: exam.questions.filter(q => retryQuestionIds.includes(q.id))
     })).filter(exam => exam.questions.length > 0); // 문제가 없는 case는 제외
 
-    console.log('✅ [Retry Mode] 필터링 완료: ${exams.flatMap(e => e.questions).length}개 문제');
+    console.log(`✅ [Retry Mode] 필터링 완료: ${exams.flatMap(e => e.questions).length}개 문제`);
   }
 
   // ⚠️ 중요: exams 배열 자체를 정렬 (Q1, Q2, ..., Q10 순서)
@@ -876,21 +949,40 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
     examService.saveTimerPause(year, pauseEndTime);
   }
 
-  // 타이머 시작
-  startTimer(year, metadata.timeLimit);
+  // 타이머 시작 - Retry 모드일 경우 동적 시간 적용
+  let timeLimit = metadata.timeLimit; // 기본 90분
+  if (isRetryMode && retryQuestionIds.length > 0) {
+    const { calculateRetryTimeLimit } = await import('./examRetry.js');
+    const retryTotalScore = exams.flatMap(e => e.questions).reduce((sum, q) => sum + (q.score || 0), 0);
+    const fullTotalScore = examService.getTotalScore(year);
+    timeLimit = calculateRetryTimeLimit(retryTotalScore, fullTotalScore);
+    console.log(`⏱️ [Retry Mode] 동적 시간 제한 적용: ${timeLimit}분 (오답 배점: ${retryTotalScore}/${fullTotalScore})`);
+  }
+  startTimer(year, timeLimit);
 
   // 답안 자동저장 이벤트
   setupAutoSave(year);
 
   // 헤더 종료 버튼
   const exitHeaderBtn = container.querySelector('#btn-exit-exam-header');
+  console.log('🔍 [examUI] 종료 버튼 찾기:', exitHeaderBtn);
   if (exitHeaderBtn) {
-    exitHeaderBtn.addEventListener('click', async () => {
+    // 기존 리스너 제거 후 새로 등록
+    exitHeaderBtn.replaceWith(exitHeaderBtn.cloneNode(true));
+    const newExitBtn = container.querySelector('#btn-exit-exam-header');
+
+    newExitBtn.addEventListener('click', async () => {
+      console.log('🔘 [examUI] 종료 버튼 클릭됨');
       if (confirm('기출문제 모드를 종료하시겠습니까?')) {
-        const { exitExamMode } = await import('./examIntegration.js');
-        exitExamMode();
+        console.log('✅ [examUI] 사용자 종료 확인 - 연도 선택 화면으로 이동');
+        renderYearSelection(container);
+      } else {
+        console.log('❌ [examUI] 사용자 종료 취소');
       }
     });
+    console.log('✅ [examUI] 종료 버튼 이벤트 리스너 등록 완료');
+  } else {
+    console.warn('⚠️ [examUI] 종료 버튼을 찾을 수 없음');
   }
 
   // Desktop: Floating Navigation Toggle
@@ -1041,8 +1133,11 @@ function renderExamPaper(container, year, apiKey, selectedModel) {
     }
   };
 
-  // 기존 리스너 제거 후 새로 등록 (중복 방지)
-  window.removeEventListener('resize', handleResize);
+  // 기존 리스너 제거 후 새로 등록 (중복 방지 - 메모리 누수 방지)
+  if (examUIState.resizeHandler) {
+    window.removeEventListener('resize', examUIState.resizeHandler);
+  }
+  examUIState.resizeHandler = handleResize;
   window.addEventListener('resize', handleResize);
 
   // 글자 수 카운터 업데이트
@@ -1569,7 +1664,8 @@ async function gradeAndShowResults(container, year, apiKey, selectedModel) {
     examService.clearTimer(year);
 
     // 결과 화면 렌더링 (examResultUI.js 사용)
-    renderResultMode(container, year, result, apiKey, selectedModel, examUIState.viewMode);
+    const { renderResultMode } = await import('./examResultUI.js');
+    await renderResultMode(container, year, result, apiKey, selectedModel, examUIState.viewMode);
   } catch (error) {
     console.error('채점 실패:', error);
     alert('채점 중 오류가 발생했습니다. 다시 시도해주세요.');
