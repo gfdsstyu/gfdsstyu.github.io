@@ -99,11 +99,13 @@ export class RAGSearchService {
       // Fuse.js 옵션 설정
       const options = {
         includeScore: true,
-        threshold: 0.6, // 0.0(일치) ~ 1.0(불일치), 0.6으로 완화하여 더 많은 결과 반환
+        threshold: 0.4, // 0.0(일치) ~ 1.0(불일치), 0.4로 더 정확한 매칭 (0.6 → 0.4)
+        minMatchCharLength: 2, // 최소 2글자 이상 매칭
+        ignoreLocation: true, // 위치 무관하게 매칭
         keys: [
-          { name: 'answer', weight: 0.45 },         // 정답 비중 45% (핵심 키워드와 채점 기준 포함)
+          { name: 'answer', weight: 0.5 },         // 정답 비중 50% (핵심 키워드와 채점 기준 포함) - 45% → 50%
           { name: 'question', weight: 0.35 },      // 문제 비중 35% (문제 내용 중요)
-          { name: 'problemTitle', weight: 0.2 }    // 제목 비중 20% (제목과 문제 텍스트가 겹치는 경우가 많음)
+          { name: 'problemTitle', weight: 0.15 }   // 제목 비중 15% (제목과 문제 텍스트가 겹치는 경우가 많음) - 20% → 15%
         ]
       };
 
@@ -132,9 +134,20 @@ export class RAGSearchService {
     }
 
     // 검색 쿼리 전처리: 너무 긴 경우 핵심 키워드만 추출
-    const processedQuery = this.preprocessQuery(query);
-    
-    const results = this.fuseIndex.search(processedQuery);
+    let processedQuery = this.preprocessQuery(query);
+
+    // 유의어 확장 적용
+    const keywords = this.extractKeywords(processedQuery);
+    const expandedKeywords = this.expandKeywords(keywords);
+    const expandedQuery = Array.from(expandedKeywords).join(' ');
+
+    console.debug('🔍 [RAG] 키워드 확장:', {
+      original: keywords.length,
+      expanded: expandedKeywords.size,
+      keywords: Array.from(expandedKeywords).slice(0, 10).join(', ')
+    });
+
+    const results = this.fuseIndex.search(expandedQuery);
     
     // 디버깅: 검색 결과가 없을 때 로깅
     if (results.length === 0) {

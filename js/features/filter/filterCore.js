@@ -359,6 +359,12 @@ export function initFilterListeners() {
 
   // "기준" 버튼 - 기존 학습하기 기능 복원
   el.loadQuizBtn?.addEventListener('click', () => {
+    // Exam 모드에서 기준 버튼 클릭 시 기출문제 종료
+    if (window.getIsExamMode && window.getIsExamMode()) {
+      if (typeof window.exitExamMode === 'function') {
+        window.exitExamMode();
+      }
+    }
     // KAM 모드에서 기준 버튼 클릭 시 사례 종료
     if (window.getIsKAMMode && window.getIsKAMMode()) {
       if (typeof window.exitKAMMode === 'function') {
@@ -367,6 +373,22 @@ export function initFilterListeners() {
     }
     // quiz 문제 불러오기
     eventBus.emit('quiz:reload');
+  });
+
+  // "사례" 버튼 - Exam 모드 전환 (기출문제)
+  const caseModeBtn = document.querySelector('#case-mode-btn');
+  caseModeBtn?.addEventListener('click', () => {
+    if (window.getIsExamMode && window.getIsExamMode()) {
+      // Exam 모드 -> 퀴즈 모드로 전환
+      if (typeof window.exitExamMode === 'function') {
+        window.exitExamMode();
+      }
+    } else {
+      // 퀴즈 모드 -> Exam 모드로 전환
+      if (typeof window.enterExamMode === 'function') {
+        window.enterExamMode();
+      }
+    }
   });
 
   // "사례" 버튼 - KAM 모드 전환
