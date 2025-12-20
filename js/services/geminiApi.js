@@ -4,6 +4,7 @@
 
 import { BASE_SYSTEM_PROMPT, LITE_STRICT_ADDENDUM, GEMMA_FEW_SHOT_EXAMPLES } from '../config/config.js';
 import { clamp, sanitizeModelText, extractJsonWithDelimiter } from '../utils/helpers.js';
+import { buildGemmaFewShotPrompt } from './gemmaFewShotLoader.js';
 
 /**
  * AI 모델 매핑
@@ -58,6 +59,11 @@ export async function callGeminiAPI(userAnswer, correctAnswer, apiKey, selectedA
       topK: 40
     };
 
+    // Few-shot 예시 로드 (실제 Gemini 채점 데이터 활용)
+    console.log('🔍 [Gemma Few-Shot] 실제 채점 데이터 로드 중...');
+    const fewShotPrompt = await buildGemmaFewShotPrompt(userAnswer, correctAnswer, 70);
+    console.log('✅ [Gemma Few-Shot] 프롬프트 생성 완료');
+
     // Pseudo-System Prompt with XML structure + Few-Shot + CoT
     userQuery = `<Instruction>
 ${systemText}
@@ -68,7 +74,7 @@ ${systemText}
 3. 추측이나 확장 해석은 감점 대상입니다.
 </Instruction>
 
-${GEMMA_FEW_SHOT_EXAMPLES}
+${fewShotPrompt}
 
 <Context>
 [모범 답안]
