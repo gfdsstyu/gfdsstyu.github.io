@@ -1186,6 +1186,135 @@
                             A. 네! <strong>구글 로그인</strong>을 하시면 문제 풀이 기록과 HLR 데이터가 클라우드에 동기화됩니다. PC에서 공부하다 지하철에서 모바일로 복습해보세요.
                         </div>
                     </div>
+
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                        <button class="toggle-button w-full flex justify-between items-center p-5 text-left font-medium bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition" onclick="toggleFaq(this)">
+                            <span>Q. AI 채점 점수가 이상해요.</span>
+                            <svg class="w-5 h-5 rotate-icon text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="toggle-content px-5 pb-5 bg-gray-50 dark:bg-gray-800/50 text-sm text-gray-600 dark:text-gray-300">
+                            <p class="mb-4"><strong>AI는 완벽하지 않으며, 선택한 모델에 따라 채점 결과가 다를 수 있습니다.</strong></p>
+
+                            <div class="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-3 mb-4 text-sm">
+                                <p class="font-bold text-amber-800 dark:text-amber-300 mb-2">⚠️ AI 채점의 한계</p>
+                                <div class="space-y-2 text-xs">
+                                    <p>• 점수는 <strong>'유사도' 기준</strong>으로 산정되므로, 문맥 이해에 한계가 있을 수 있습니다.</p>
+                                    <p>• 같은 답안이라도 모델에 따라 점수가 달라질 수 있습니다.</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-3 mb-4 text-sm">
+                                <p class="font-bold text-blue-800 dark:text-blue-300 mb-2">🤖 모델별 특성</p>
+                                <div class="space-y-2 text-xs">
+                                    <p><strong>Gemini 2.5 Flash (기본):</strong> 피드백 정확도가 높은 경향이 있으나, 응답 속도가 약간 느릴 수 있습니다.</p>
+                                    <p><strong>Gemini 2.5 Flash-Lite (경량):</strong> 응답 속도는 빠르지만, 점수를 약간 더 후하게 주거나 피드백이 덜 상세할 수 있습니다.</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-3 text-sm">
+                                <p class="font-bold text-green-800 dark:text-green-300 mb-2">✅ 권장 활용법</p>
+                                <div class="space-y-1 text-xs">
+                                    <p>• AI 점수는 <strong>참고용 보조 지표</strong>로만 활용하세요.</p>
+                                    <p>• 항상 <strong>모범 답안과 직접 비교</strong>하며 스스로 판단하는 것이 가장 중요합니다.</p>
+                                    <p>• AI 피드백을 통해 놓친 키워드나 논리 흐름을 확인하는 데 활용하세요.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                        <button class="toggle-button w-full flex justify-between items-center p-5 text-left font-medium bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition" onclick="toggleFaq(this)">
+                            <span>Q. 모바일에서 로딩이 느려요.</span>
+                            <svg class="w-5 h-5 rotate-icon text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="toggle-content px-5 pb-5 bg-gray-50 dark:bg-gray-800/50 text-sm text-gray-600 dark:text-gray-300">
+                            <p class="mb-4"><strong>'감린이'는 데스크톱(PC) 환경 및 가로 화면에 최적화되어 있습니다.</strong></p>
+
+                            <div class="bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500 p-3 mb-4 text-sm">
+                                <p class="font-bold text-orange-800 dark:text-orange-300 mb-2">📱 모바일 성능 제한</p>
+                                <div class="space-y-2 text-xs">
+                                    <p>• 모바일 브라우저는 PC에 비해 <strong>성능(CPU/RAM) 제한</strong>이 있습니다.</p>
+                                    <p>• AI 리포트, 학습 캘린더, HLR 복습 알고리즘 등 무거운 기능을 처리할 때 로딩이 길어지거나 느려질 수 있습니다.</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-purple-50 dark:bg-purple-900/20 border-l-4 border-purple-500 p-3 text-sm">
+                                <p class="font-bold text-purple-800 dark:text-purple-300 mb-2">💻 권장 사용 환경</p>
+                                <div class="space-y-1 text-xs">
+                                    <p>• <strong>PC 또는 태블릿</strong> 사용을 권장합니다.</p>
+                                    <p>• UI가 <strong>가로 화면</strong>을 기준으로 설계되어 있어, 가로 모드에서 최적의 경험을 제공합니다.</p>
+                                    <p>• 모바일에서는 간단한 문제 풀이와 복습 기능 위주로 사용하시는 것을 추천합니다.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                        <button class="toggle-button w-full flex justify-between items-center p-5 text-left font-medium bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition" onclick="toggleFaq(this)">
+                            <span>Q. PC/태블릿/모바일에서 연동해서 쓰고 싶어요.</span>
+                            <svg class="w-5 h-5 rotate-icon text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="toggle-content px-5 pb-5 bg-gray-50 dark:bg-gray-800/50 text-sm text-gray-600 dark:text-gray-300">
+                            <p class="mb-4"><strong>감린이는 로그인을 통한 동기화를 지원합니다! 🎉</strong></p>
+
+                            <div class="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-3 mb-4 text-sm">
+                                <p class="font-bold text-green-800 dark:text-green-300 mb-2">✅ 로그인으로 자동 동기화 (권장)</p>
+                                <div class="space-y-2 text-xs">
+                                    <p>• <strong>구글 계정</strong>으로 로그인하면 문제 풀이 기록과 AI 유사도 점수가 <strong>자동으로 서버에 저장</strong>됩니다.</p>
+                                    <p>• PC, 태블릿, 모바일 등 어떤 기기에서든 같은 계정으로 로그인하면 모든 기록을 확인할 수 있습니다.</p>
+                                    <p class="text-amber-700 dark:text-amber-400">⚠️ 단, AI 채점평과 이전에 입력한 답안 내용은 동기화되지 않으니, 필요 시 아래 수동 백업 방법을 활용하세요.</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-3 text-sm">
+                                <p class="font-bold text-blue-800 dark:text-blue-300 mb-2">💾 로그인 없이 사용하는 경우 (수동 백업 필수)</p>
+                                <div class="space-y-2 text-xs">
+                                    <p class="mb-2">로그인 없이 사용하면 데이터가 브라우저에만 저장됩니다. 소중한 답안과 AI 피드백을 잃지 않으려면 수동 백업이 필요합니다:</p>
+                                    <ul class="list-disc list-inside space-y-1 ml-2">
+                                        <li><strong>데이터 내보내기:</strong> [설정(⚙️)] → [데이터 관리] → [📥 데이터 내보내기]로 백업 파일을 저장</li>
+                                        <li><strong>데이터 가져오기:</strong> 새 기기에서 [📤 데이터 가져오기]를 통해 기록 복원</li>
+                                        <li><strong>데이터 병합:</strong> 양쪽 기기의 기록을 합치려면 [🔀 데이터 병합 가져오기] 사용</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                        <button class="toggle-button w-full flex justify-between items-center p-5 text-left font-medium bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition" onclick="toggleFaq(this)">
+                            <span>Q. 저장했던 학습 기록이 사라졌어요.</span>
+                            <svg class="w-5 h-5 rotate-icon text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="toggle-content px-5 pb-5 bg-gray-50 dark:bg-gray-800/50 text-sm text-gray-600 dark:text-gray-300">
+                            <p class="mb-4"><strong>다음 항목들을 확인해보세요:</strong></p>
+
+                            <div class="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-3 mb-4 text-sm">
+                                <p class="font-bold text-amber-800 dark:text-amber-300 mb-2">🔍 로그인 상태 확인</p>
+                                <div class="space-y-2 text-xs">
+                                    <p>• 로그인이 풀려있거나 <strong>다른 계정</strong>으로 로그인했을 수 있습니다.</p>
+                                    <p>• 우측 상단 메뉴에서 로그인 상태를 확인하고, 올바른 계정으로 로그인되어 있는지 확인하세요.</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500 p-3 mb-4 text-sm">
+                                <p class="font-bold text-orange-800 dark:text-orange-300 mb-2">⚠️ 비로그인 상태로 사용한 경우</p>
+                                <div class="space-y-2 text-xs">
+                                    <p>• 로그인을 하지 않으면 데이터가 <strong>브라우저에만 저장</strong>됩니다.</p>
+                                    <p>• 브라우저 캐시 삭제, 시크릿 모드 종료, 브라우저 재설치 등의 경우 데이터가 사라질 수 있습니다.</p>
+                                    <p class="text-red-600 dark:text-red-400">💡 백업한 데이터가 있다면 [데이터 가져오기] 기능으로 복원하세요.</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-3 text-sm">
+                                <p class="font-bold text-blue-800 dark:text-blue-300 mb-2">⏳ 데이터 로딩 지연</p>
+                                <div class="space-y-1 text-xs">
+                                    <p>• 네트워크 상태에 따라 클라우드 데이터를 불러오는 데 시간이 걸릴 수 있습니다.</p>
+                                    <p>• 잠시 기다린 후 <strong>새로고침(F5)</strong>을 해보세요.</p>
+                                    <p>• 인터넷 연결 상태를 확인해보세요.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
