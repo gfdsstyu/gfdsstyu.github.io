@@ -237,27 +237,82 @@
                     <div class="lg:col-span-6 space-y-4">
                         <div class="layout-container p-6 h-full border-brand-400 bg-white dark:bg-gray-900 shadow-xl relative">
                             <span class="layout-label text-brand-600 border-brand-400">Center: 학습 공간</span>
-                            
-                            <div class="space-y-6">
+
+                            <div class="space-y-4">
+                                <!-- 모드 선택 -->
                                 <div class="flex gap-2 justify-center">
                                     <span class="px-2 py-1 bg-brand-100 text-brand-700 rounded text-xs font-bold">퀴즈 모드</span>
                                     <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-bold">플래시카드</span>
                                     <span class="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-bold">실전 모드</span>
                                 </div>
 
-                                <div class="border border-gray-200 dark:border-gray-700 rounded-xl p-5 text-center">
-                                    <h3 class="text-lg font-serif font-bold mb-2">[문제 표시 영역]</h3>
-                                    <p class="text-xs text-gray-500 mb-4">AI가 선별한 최적의 문제가 로드됩니다.</p>
-                                    <div class="bg-gray-100 dark:bg-gray-800 rounded p-3 text-sm text-gray-400">
-                                        답안 입력 또는 음성(STT) 입력...
+                                <!-- 문항 정보 -->
+                                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="font-bold text-blue-800 dark:text-blue-300">문항 23 기본 📚 1회독</span>
+                                        <span class="text-blue-600 dark:text-blue-400">23 / 35</span>
                                     </div>
                                 </div>
 
-                                <div class="bg-slate-50 dark:bg-gray-800 p-4 rounded border-l-4 border-brand-500">
-                                    <h4 class="font-bold text-sm flex items-center gap-2">🤖 Gemini 채점 & 피드백</h4>
-                                    <p class="text-xs text-slate-500 mt-1">
-                                        사용자 답안과 기준 답안의 유사도를 0~100점으로 분석하고, 놓친 키워드를 짚어줍니다.
+                                <!-- 문제 표시 영역 -->
+                                <div class="border border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-gray-50 dark:bg-gray-800/50">
+                                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200 mb-3">
+                                        감사인이 재고자산 실사에 입회하여 수행하는 테스트실사 절차에 대해 서술하시오.
                                     </p>
+
+                                    <!-- 학습 도구 버튼 -->
+                                    <div class="flex gap-2 flex-wrap text-xs">
+                                        <button class="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded hover:bg-yellow-200 transition">💡 힌트</button>
+                                        <button class="px-2 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded hover:bg-pink-200 transition">📌 암기팁</button>
+                                        <button class="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 transition">📝 메모</button>
+                                        <button class="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded hover:bg-green-200 transition">☆ 복습 추가</button>
+                                        <button class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 transition">➖ 복습 제외</button>
+                                    </div>
+                                </div>
+
+                                <!-- 답안 입력 영역 -->
+                                <div class="border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm font-bold text-gray-700 dark:text-gray-300">답안 입력</span>
+                                        <button class="text-xs text-blue-600 dark:text-blue-400 hover:underline">이전 답안 불러오기</button>
+                                    </div>
+                                    <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 text-sm text-gray-400 min-h-[100px] flex items-center">
+                                        여기에 정답을 입력하세요... (Enter=채점, Shift+Enter=줄바꿈, Ctrl+[=이전위치, Ctrl+]=포커스/현황판)
+                                    </div>
+                                    <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-2">
+                                        단축키: Ctrl+←/→ 이전/다음 · Enter/G 채점 · H 힌트 · L 이전답안 · R 랜덤 · X 복습제외 · S 현황판 · Ctrl+[ 이전위치 · Ctrl+] 포커스
+                                    </p>
+                                </div>
+
+                                <!-- 네비게이션 버튼 -->
+                                <div class="flex gap-2 justify-center">
+                                    <button class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 transition font-medium text-sm">← 이전</button>
+                                    <button class="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition font-bold text-sm flex-grow">채점하기</button>
+                                    <button class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 transition font-medium text-sm">다음 →</button>
+                                </div>
+
+                                <!-- AI 채점 결과 -->
+                                <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-xl border border-green-200 dark:border-green-800">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <h4 class="font-bold text-sm text-green-800 dark:text-green-300">채점 결과</h4>
+                                        <span class="text-2xl font-bold text-green-600 dark:text-green-400">70.0점</span>
+                                    </div>
+
+                                    <div class="bg-white/50 dark:bg-gray-800/50 rounded-lg p-3 mb-3">
+                                        <p class="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">🤖 AI 총평</p>
+                                        <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                                            ㉠은 핵심 키워드와 의도가 잘 일치하여 높은 점수를 받았습니다. 다만, 일부 조사 및 단어(예: '실사', '된')가 생략되었습니다.
+                                            ㉡은 완전성 확인을 위해 실제 재고에서 기록으로 추적한다는 큰 방향은 맞으나, <strong>'감사' 증거, '선정된 항목', '경영진의 실사' 기록</strong> 등 핵심적인 세부 키워드가 누락되어 감점되었습니다.
+                                        </p>
+                                    </div>
+
+                                    <div class="bg-blue-50/50 dark:bg-blue-900/20 rounded-lg p-3">
+                                        <p class="text-xs font-bold text-blue-800 dark:text-blue-300 mb-2">📘 모범 답안</p>
+                                        <div class="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+                                            <p>㉠ 실사기록의 정확성에 대한 감사증거를 입수하기 위해 실사기록에서 선정된 항목을 실제의 재고로 추적하거나,</p>
+                                            <p>㉡ 실사기록의 완전성에 대한 감사증거를 입수하기 위해 실제의 재고에서 선정된 항목을 경영진의 실사기록으로 추적</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
