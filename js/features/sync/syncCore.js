@@ -344,7 +344,7 @@ export async function syncOnLogin(userId) {
   try {
     console.log('🔄 로그인 시 데이터 동기화 시작...', userId);
 
-    // 1. Firestore에서 사용자 데이터 가져오기
+    // 1. Firestore에서 사용자 메타데이터만 먼저 확인 (읽기 횟수 절감)
     const userDocRef = doc(db, 'users', userId);
     const userDocSnap = await getDoc(userDocRef);
 
@@ -354,10 +354,29 @@ export async function syncOnLogin(userId) {
     }
 
     const userData = userDocSnap.data();
+
+    // ⚡ 읽기 최적화: lastSyncAt 비교로 스킵 가능 여부 체크
+    const cloudLastSyncAt = userData.profile?.lastSyncAt?.toMillis?.() || 0;
+    const localLastSyncAt = parseInt(localStorage.getItem('lastSyncAt') || '0');
+    const timeDiffMinutes = (Date.now() - cloudLastSyncAt) / 1000 / 60;
+
+    console.log(`   - Cloud lastSyncAt: ${new Date(cloudLastSyncAt).toLocaleString()}`);
+    console.log(`   - Local lastSyncAt: ${new Date(localLastSyncAt).toLocaleString()}`);
+    console.log(`   - 시간 차이: ${timeDiffMinutes.toFixed(1)}분`);
+
+    // Cloud가 더 최신이거나, 5분 이상 경과한 경우에만 상세 동기화
+    const needsDetailedSync = cloudLastSyncAt > localLastSyncAt || timeDiffMinutes > 5;
+
+    if (!needsDetailedSync && cloudLastSyncAt > 0) {
+      console.log('⏭️ 동기화 스킵: Cloud와 Local이 최신 상태');
+      return { success: true, message: '이미 최신 상태' };
+    }
+
     const cloudScores = userData.userScores || {};
     const localScores = getQuestionScores();
 
     // ⚠️ CRITICAL: Subcollection 데이터 로드 (memoryTip, feedback, user_answer 복원용)
+    // 읽기 최적화: 필요할 때만 로드
     console.log('🔄 Subcollection 데이터 로드 중...');
     const subcollectionData = await loadSubcollectionData(userId);
 
@@ -505,6 +524,9 @@ export async function syncOnLogin(userId) {
       syncMessage += `, featured: 다운로드`;
     }
 
+    // 동기화 완료 후 타임스탬프 저장 (다음 로그인 시 스킵 판단용)
+    localStorage.setItem('lastSyncAt', Date.now().toString());
+
     console.log('✅ 전체 동기화 완료');
     return { success: true, message: syncMessage };
   } catch (error) {
@@ -541,20 +563,33 @@ export async function syncToFirestore(userId, specificQid = null) {
     const localCount = Object.keys(localScores).length;
     console.log(`   - Local 문제 수: ${localCount}개`);
 
-    // 1️⃣ 메인 문서 업데이트: 경량 데이터만 (user_answer, feedback 제외)
-    const convertedScores = toFirestoreFormat(localScores);
-    const convertedCount = Object.keys(convertedScores).length;
-    console.log(`   - 변환 후 문제 수: ${convertedCount}개`);
-
     const userDocRef = doc(db, 'users', userId);
     console.log(`   - Firestore 경로: users/${userId}`);
 
-    await updateDoc(userDocRef, {
-      userScores: convertedScores,
-      'profile.lastSyncAt': serverTimestamp()
-    });
+    // 1️⃣ 메인 문서 업데이트: 차분 업데이트 vs 전체 업데이트
+    if (specificQid && localScores[specificQid]) {
+      // ⚡ 차분 업데이트: 특정 문제의 필드만 업데이트 (쓰기 비용 절감)
+      const specificScore = toFirestoreFormat({ [specificQid]: localScores[specificQid] });
+      const updateData = {
+        [`userScores.${specificQid}`]: specificScore[specificQid],
+        'profile.lastSyncAt': serverTimestamp()
+      };
 
-    console.log(`✅ [SyncCore] 메인 문서 동기화 완료: ${convertedCount}개 문제`);
+      console.log(`   - 차분 업데이트: userScores.${specificQid}`);
+      await updateDoc(userDocRef, updateData);
+      console.log(`✅ [SyncCore] 차분 업데이트 완료: ${specificQid}`);
+    } else {
+      // 전체 업데이트: 모든 문제 동기화 (초기 동기화, 전체 백업 등)
+      const convertedScores = toFirestoreFormat(localScores);
+      const convertedCount = Object.keys(convertedScores).length;
+      console.log(`   - 전체 업데이트: ${convertedCount}개 문제`);
+
+      await updateDoc(userDocRef, {
+        userScores: convertedScores,
+        'profile.lastSyncAt': serverTimestamp()
+      });
+      console.log(`✅ [SyncCore] 전체 동기화 완료: ${convertedCount}개 문제`);
+    }
 
     // 2️⃣ 서브컬렉션 업데이트: specificQid가 있으면 상세 데이터 저장
     if (specificQid && localScores[specificQid]) {
@@ -577,7 +612,10 @@ export async function syncToFirestore(userId, specificQid = null) {
       console.log(`✅ [SyncCore] 서브컬렉션 저장 완료: ${specificQid}`);
     }
 
-    return { success: true, message: `${convertedCount}개 문제 동기화${specificQid ? ' + 상세 데이터 저장' : ''}` };
+    const syncMessage = specificQid
+      ? `차분 업데이트: ${specificQid}`
+      : `전체 동기화: ${Object.keys(toFirestoreFormat(localScores)).length}개 문제`;
+    return { success: true, message: syncMessage };
   } catch (error) {
     console.error('❌ [SyncCore] Firestore 동기화 실패:', error);
     console.error('   - 에러 코드:', error.code);
@@ -592,6 +630,63 @@ export async function syncToFirestore(userId, specificQid = null) {
 
     return { success: false, message };
   }
+}
+
+// ============================================
+// 업적 동기화 최적화 (배치 처리)
+// ============================================
+
+/**
+ * 업적 동기화를 위한 디바운스 타이머
+ * - 여러 업적이 동시에 해제될 때 한 번에 처리
+ */
+let achievementSyncTimer = null;
+let pendingAchievementSync = {
+  userId: null,
+  hasChanges: false
+};
+
+/**
+ * 디바운스된 업적 동기화
+ *
+ * 장점:
+ * - 여러 업적 동시 해제 시 한 번의 쓰기로 처리
+ * - checkAchievements() 실행 시 모든 업적을 한 번에 동기화
+ *
+ * @param {string} userId - 사용자 UID
+ * @param {number} delay - 디바운스 지연 시간 (ms, 기본 2000ms = 2초)
+ */
+export function debouncedSyncAchievements(userId, delay = 2000) {
+  if (!userId) {
+    console.warn('⚠️ [SyncCore] 디바운스 업적 동기화 스킵: 로그인되지 않음');
+    return;
+  }
+
+  // 기존 타이머 취소
+  if (achievementSyncTimer) {
+    clearTimeout(achievementSyncTimer);
+  }
+
+  // 대기 중인 동기화 정보 업데이트
+  pendingAchievementSync.userId = userId;
+  pendingAchievementSync.hasChanges = true;
+
+  console.log(`⏱️ [SyncCore] 업적 디바운스 타이머 시작: ${delay}ms 대기...`);
+
+  // 새 타이머 설정
+  achievementSyncTimer = setTimeout(async () => {
+    if (pendingAchievementSync.hasChanges && pendingAchievementSync.userId) {
+      console.log('🚀 [SyncCore] 업적 디바운스 타이머 만료 → 동기화 실행');
+      await syncAchievementsToFirestore(pendingAchievementSync.userId);
+
+      // 동기화 완료 후 초기화
+      pendingAchievementSync = {
+        userId: null,
+        hasChanges: false
+      };
+    }
+    achievementSyncTimer = null;
+  }, delay);
 }
 
 /**

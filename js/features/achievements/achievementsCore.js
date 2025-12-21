@@ -10,7 +10,7 @@ import { showToast } from '../../ui/domUtils.js';
 import { ACHIEVEMENTS, ACHIEVEMENTS_LS_KEY, AUDIT_FLOW_MAP } from '../../config/config.js';
 import { normId } from '../../utils/helpers.js';
 import { getCurrentUser } from '../auth/authCore.js';
-import { syncAchievementsToFirestore } from '../sync/syncCore.js';
+import { syncAchievementsToFirestore, debouncedSyncAchievements } from '../sync/syncCore.js';
 import { getTotalUniqueReads, getUniqueReadCount } from '../../core/storageManager.js';
 
 // Module state
@@ -129,20 +129,11 @@ export function unlockAchievement(achievementId) {
   updateAchievementBadge();
 
   // Sync to Firestore (Phase 2.5: Option C)
+  // ⚡ 최적화: 디바운스 적용 - 여러 업적 동시 해제 시 배치 처리
   const currentUser = getCurrentUser();
   if (currentUser) {
-    console.log(`🏆 [Achievements] 업적 "${achievement.name}" 달성 - Firestore 동기화 시작`);
-    syncAchievementsToFirestore(currentUser.uid)
-      .then(result => {
-        if (result.success) {
-          console.log(`✅ [Achievements] Firestore 동기화 성공: ${result.message}`);
-        } else {
-          console.warn(`⚠️ [Achievements] Firestore 동기화 실패: ${result.message}`);
-        }
-      })
-      .catch(error => {
-        console.error(`❌ [Achievements] Firestore 동기화 에러:`, error);
-      });
+    console.log(`🏆 [Achievements] 업적 "${achievement.name}" 달성 - Firestore 디바운스 동기화 예약`);
+    debouncedSyncAchievements(currentUser.uid, 2000); // 2초 디바운스
   } else {
     console.log('⚠️ [Achievements] 로그아웃 상태 - Firestore 동기화 스킵');
   }
