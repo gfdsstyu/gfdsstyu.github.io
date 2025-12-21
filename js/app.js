@@ -10,7 +10,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-analytics.js";
+import { getAnalytics, isSupported } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-analytics.js";
 
 // 사장님이 제공해주신 Firebase 설정 객체
 const firebaseConfig = {
@@ -29,7 +29,21 @@ const app = initializeApp(firebaseConfig);
 // 다른 모듈(랭킹, 인증)에서 사용할 수 있도록 주요 서비스 export
 export const auth = getAuth(app); // 인증 기능
 export const db = getFirestore(app); // Firestore DB 기능
-export const analytics = getAnalytics(app); // 애널리틱스
+
+// Analytics는 지원되는 환경에서만 초기화
+let analytics = null;
+isSupported().then(supported => {
+  if (supported) {
+    analytics = getAnalytics(app);
+    console.log('📊 Firebase Analytics Initialized');
+  } else {
+    console.warn('⚠️ Firebase Analytics not supported in this environment');
+  }
+}).catch(error => {
+  console.warn('⚠️ Firebase Analytics initialization skipped:', error.message);
+});
+
+export { analytics };
 
 console.log('🔥 Firebase Initialized (v10+ SDK)');
 
