@@ -542,8 +542,11 @@ ${userAnswer ? escapeHtml(normalizeText(userAnswer)) : '<em class="text-gray-500
 
                     <!-- AI 피드백 -->
                     <div class="p-3 sm:p-4 bg-purple-50 dark:bg-purple-900/20 rounded">
-                      <h6 class="font-bold mb-2 text-sm sm:text-base text-purple-700 dark:text-purple-400">🎯 AI 선생님의 총평</h6>
-                      <p class="text-sm sm:text-base text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                      <h6 class="font-bold mb-2 text-sm sm:text-base text-purple-700 dark:text-purple-400 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-4 h-4 sm:w-5 sm:h-5 inline-block"><rect width="100" height="100" rx="20" fill="#6D28D9"/><rect x="20" y="20" width="60" height="60" rx="10" fill="white"/><circle cx="36" cy="43" r="9" fill="#8B5CF6"/><text x="36" y="46" font-size="14" fill="white" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="900" text-anchor="middle" dominant-baseline="central">ㄱ</text><g transform="translate(64, 43)"><path d="M0 0 L 4 10 L 14 14 L 4 18 L 0 28 L -4 18 L -14 14 L -4 10 Z" fill="#FACC15" transform="scale(0.8) translate(0, -14)"/></g><path d="M30 60 H 70 V 72 H 30 Z M35 60 V 72 M 40 60 V 72 M 45 60 V 72 M 50 60 V 72 M 55 60 V 72 M 60 60 V 72 M 65 60 V 72" fill="none" stroke="#4F46E5" stroke-width="2"/></svg>
+                        AI 선생님의 총평
+                      </h6>
+                      <p class="text-sm sm:text-base text-gray-700 dark:text-gray-100 whitespace-pre-wrap leading-relaxed">
 ${feedback?.feedback ? escapeHtml(normalizeText(feedback.feedback)) : '<span class="text-gray-500 dark:text-gray-400">채점 정보 없음</span>'}
                       </p>
                     </div>
@@ -554,7 +557,7 @@ ${feedback?.feedback ? escapeHtml(normalizeText(feedback.feedback)) : '<span cla
                       <div class="bg-purple-100/50 dark:bg-purple-900/30 rounded-t-lg border-2 border-purple-200 dark:border-purple-700 overflow-hidden">
                         <button class="ai-tutor-toggle w-full px-4 py-3 text-left flex items-center justify-between hover:bg-purple-200/50 dark:hover:bg-purple-900/50 transition-colors" data-question-id="${question.id}">
                           <div class="flex items-center gap-2">
-                            <span class="text-base sm:text-lg">🤖</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-4 h-4 sm:w-5 sm:h-5 inline-block"><rect width="100" height="100" rx="20" fill="#6D28D9"/><rect x="20" y="20" width="60" height="60" rx="10" fill="white"/><circle cx="36" cy="43" r="9" fill="#8B5CF6"/><text x="36" y="46" font-size="14" fill="white" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="900" text-anchor="middle" dominant-baseline="central">ㄱ</text><g transform="translate(64, 43)"><path d="M0 0 L 4 10 L 14 14 L 4 18 L 0 28 L -4 18 L -14 14 L -4 10 Z" fill="#FACC15" transform="scale(0.8) translate(0, -14)"/></g><path d="M30 60 H 70 V 72 H 30 Z M35 60 V 72 M 40 60 V 72 M 45 60 V 72 M 50 60 V 72 M 55 60 V 72 M 60 60 V 72 M 65 60 V 72" fill="none" stroke="#4F46E5" stroke-width="2"/></svg>
                             <span class="text-sm sm:text-base font-semibold text-purple-700 dark:text-purple-300">AI 선생님께 이 문제 더 물어보기</span>
                           </div>
                           <span class="ai-tutor-arrow text-purple-700 dark:text-purple-300 transition-transform" data-question-id="${question.id}">▼</span>
@@ -1680,7 +1683,7 @@ function addAiMessage(container, message) {
   messageEl.innerHTML = `
     <div class="max-w-[85%] px-4 py-3 rounded-lg rounded-bl-sm" style="background-color: #ffffff; border: 1px solid #e9d5ff; color: #1f2937;">
       <div class="flex items-start gap-2">
-        <span class="text-base">🤖</span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-4 h-4 flex-shrink-0" style="margin-top: 2px;"><rect width="100" height="100" rx="20" fill="#6D28D9"/><rect x="20" y="20" width="60" height="60" rx="10" fill="white"/><circle cx="36" cy="43" r="9" fill="#8B5CF6"/><text x="36" y="46" font-size="14" fill="white" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="900" text-anchor="middle" dominant-baseline="central">ㄱ</text><g transform="translate(64, 43)"><path d="M0 0 L 4 10 L 14 14 L 4 18 L 0 28 L -4 18 L -14 14 L -4 10 Z" fill="#FACC15" transform="scale(0.8) translate(0, -14)"/></g><path d="M30 60 H 70 V 72 H 30 Z M35 60 V 72 M 40 60 V 72 M 45 60 V 72 M 50 60 V 72 M 55 60 V 72 M 60 60 V 72 M 65 60 V 72" fill="none" stroke="#4F46E5" stroke-width="2"/></svg>
         <div class="flex-1 text-sm whitespace-pre-wrap leading-relaxed">${escapeHtml(message)}</div>
       </div>
     </div>
@@ -1700,7 +1703,7 @@ function addAiLoadingMessage(container) {
   messageEl.innerHTML = `
     <div class="max-w-[85%] bg-white dark:bg-gray-700 border border-purple-200 dark:border-purple-600 px-4 py-3 rounded-lg">
       <div class="flex items-start gap-2">
-        <span class="text-base">🤖</span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-4 h-4 flex-shrink-0" style="margin-top: 2px;"><rect width="100" height="100" rx="20" fill="#6D28D9"/><rect x="20" y="20" width="60" height="60" rx="10" fill="white"/><circle cx="36" cy="43" r="9" fill="#8B5CF6"/><text x="36" y="46" font-size="14" fill="white" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="900" text-anchor="middle" dominant-baseline="central">ㄱ</text><g transform="translate(64, 43)"><path d="M0 0 L 4 10 L 14 14 L 4 18 L 0 28 L -4 18 L -14 14 L -4 10 Z" fill="#FACC15" transform="scale(0.8) translate(0, -14)"/></g><path d="M30 60 H 70 V 72 H 30 Z M35 60 V 72 M 40 60 V 72 M 45 60 V 72 M 50 60 V 72 M 55 60 V 72 M 60 60 V 72 M 65 60 V 72" fill="none" stroke="#4F46E5" stroke-width="2"/></svg>
         <div class="flex-1 text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
           <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
