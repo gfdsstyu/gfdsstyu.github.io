@@ -536,6 +536,62 @@ ${userAnswer ? escapeHtml(normalizeText(userAnswer)) : '<em class="text-gray-500
 ${feedback?.feedback ? escapeHtml(normalizeText(feedback.feedback)) : '<span class="text-gray-500 dark:text-gray-400">채점 정보 없음</span>'}
                       </p>
                     </div>
+
+                    <!-- AI 튜터 질의응답 영역 -->
+                    <div class="mt-4 ai-tutor-section" data-question-id="${question.id}">
+                      <!-- 헤더 (토글) -->
+                      <div class="bg-purple-100/50 dark:bg-purple-900/30 rounded-t-lg border-2 border-purple-200 dark:border-purple-700 overflow-hidden">
+                        <button class="ai-tutor-toggle w-full px-4 py-3 text-left flex items-center justify-between hover:bg-purple-200/50 dark:hover:bg-purple-900/50 transition-colors" data-question-id="${question.id}">
+                          <div class="flex items-center gap-2">
+                            <span class="text-base sm:text-lg">🤖</span>
+                            <span class="text-sm sm:text-base font-semibold text-purple-700 dark:text-purple-300">AI 선생님께 이 문제 더 물어보기</span>
+                          </div>
+                          <span class="ai-tutor-arrow text-purple-700 dark:text-purple-300 transition-transform" data-question-id="${question.id}">▼</span>
+                        </button>
+                      </div>
+
+                      <!-- 대화 영역 (초기: 숨김) -->
+                      <div class="ai-tutor-content hidden border-x-2 border-b-2 border-purple-200 dark:border-purple-700 rounded-b-lg bg-white dark:bg-gray-800 p-4" data-question-id="${question.id}">
+                        <!-- 컨텍스트 정보 표시 -->
+                        <div class="mb-3 p-2 bg-purple-50 dark:bg-purple-900/20 rounded text-xs text-purple-700 dark:text-purple-300">
+                          <span class="font-semibold">맥락:</span> ${year}년 물음 ${extractQuestionNumber(question.id)} / ${score.toFixed(2)}점 (${question.score}점 만점)
+                        </div>
+
+                        <!-- 빠른 질문 칩 -->
+                        <div class="mb-4">
+                          <div class="flex flex-wrap gap-2 ai-tutor-quick-questions" data-question-id="${question.id}">
+                            <!-- 빠른 질문 버튼은 JavaScript에서 동적으로 추가됨 -->
+                          </div>
+                        </div>
+
+                        <!-- 대화 메시지 영역 -->
+                        <div class="ai-tutor-messages space-y-3 mb-4 max-h-96 overflow-y-auto" data-question-id="${question.id}">
+                          <!-- 메시지는 JavaScript에서 동적으로 추가됨 -->
+                        </div>
+
+                        <!-- 입력 영역 -->
+                        <div class="flex gap-2">
+                          <textarea
+                            class="ai-tutor-input flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg resize-none bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                            rows="2"
+                            placeholder="AI 선생님께 궁금한 점을 물어보세요..."
+                            data-question-id="${question.id}"
+                          ></textarea>
+                          <button
+                            class="ai-tutor-send-btn px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            data-question-id="${question.id}"
+                          >
+                            전송
+                          </button>
+                        </div>
+
+                        <!-- 도움말 -->
+                        <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                          💡 Tip: 위의 빠른 질문 버튼을 눌러 자주 묻는 질문을 바로 할 수 있습니다.
+                        </div>
+                      </div>
+                    </div>
+
                     </div>
                   </div>
                 `;
@@ -1146,6 +1202,104 @@ async function setupEventListeners(container, year, result, exams, metadata, use
       }
     });
   });
+
+  // ============================================
+  // AI 튜터 질의응답 이벤트 리스너
+  // ============================================
+
+  // AI 튜터 섹션 토글
+  const aiTutorToggles = container.querySelectorAll('.ai-tutor-toggle');
+  aiTutorToggles.forEach(toggle => {
+    toggle.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const questionId = toggle.dataset.questionId;
+      const content = container.querySelector(`.ai-tutor-content[data-question-id="${questionId}"]`);
+      const arrow = container.querySelector(`.ai-tutor-arrow[data-question-id="${questionId}"]`);
+
+      if (content && arrow) {
+        const isHidden = content.classList.contains('hidden');
+
+        if (isHidden) {
+          // 펼치기
+          content.classList.remove('hidden');
+          arrow.style.transform = 'rotate(180deg)';
+
+          // 빠른 질문 버튼 초기화 (처음 열 때만)
+          const quickQuestionsContainer = content.querySelector(`.ai-tutor-quick-questions[data-question-id="${questionId}"]`);
+          if (quickQuestionsContainer && quickQuestionsContainer.children.length === 0) {
+            await initQuickQuestions(questionId, quickQuestionsContainer, exams, userAnswers, result);
+          }
+        } else {
+          // 접기
+          content.classList.add('hidden');
+          arrow.style.transform = 'rotate(0deg)';
+        }
+      }
+    });
+  });
+
+  // AI 튜터 전송 버튼 클릭
+  const aiTutorSendButtons = container.querySelectorAll('.ai-tutor-send-btn');
+  aiTutorSendButtons.forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const questionId = btn.dataset.questionId;
+      const input = container.querySelector(`.ai-tutor-input[data-question-id="${questionId}"]`);
+      const messagesContainer = container.querySelector(`.ai-tutor-messages[data-question-id="${questionId}"]`);
+
+      if (!input || !messagesContainer) return;
+
+      const userQuestion = input.value.trim();
+      if (!userQuestion) {
+        showToast('질문을 입력해주세요.', 'warn');
+        return;
+      }
+
+      // 사용자 질문 메시지 추가
+      addUserMessage(messagesContainer, userQuestion);
+      input.value = '';
+      btn.disabled = true;
+
+      // 로딩 메시지 표시
+      const loadingEl = addAiLoadingMessage(messagesContainer);
+
+      try {
+        // AI 답변 요청
+        const response = await askAiTutor(questionId, userQuestion, exams, userAnswers, result, apiKey, selectedModel);
+
+        // 로딩 메시지 제거
+        removeAiLoadingMessage(loadingEl);
+
+        // AI 답변 메시지 추가
+        addAiMessage(messagesContainer, response);
+
+        // 스크롤 하단으로 이동
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      } catch (error) {
+        console.error('❌ [AI Tutor] 질문 실패:', error);
+
+        // 로딩 메시지 제거
+        removeAiLoadingMessage(loadingEl);
+
+        addAiMessage(messagesContainer, '죄송합니다. 답변 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        showToast('AI 답변 생성 중 오류가 발생했습니다.', 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+
+  // AI 튜터 입력창 Enter 키 처리 (Shift+Enter는 줄바꿈)
+  const aiTutorInputs = container.querySelectorAll('.ai-tutor-input');
+  aiTutorInputs.forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        const questionId = input.dataset.questionId;
+        const sendBtn = container.querySelector(`.ai-tutor-send-btn[data-question-id="${questionId}"]`);
+        if (sendBtn) sendBtn.click();
+      }
+    });
+  });
 }
 
 /**
@@ -1356,4 +1510,197 @@ function showCustomListSelector(questionId, triggerBtn) {
       modal.remove();
     }
   });
+}
+
+// ============================================
+// AI 튜터 관련 헬퍼 함수
+// ============================================
+
+/**
+ * 빠른 질문 버튼 초기화
+ */
+async function initQuickQuestions(questionId, container, exams, userAnswers, result) {
+  // 문제 데이터 찾기
+  const questionData = findQuestionData(questionId, exams);
+  if (!questionData) return;
+
+  const { question, examCase } = questionData;
+  const userAnswer = userAnswers[questionId]?.answer || '';
+  const feedback = result.details[questionId];
+
+  // AI Tutor 세션 가져오기
+  const { getAiTutorSession } = await import('./examAiTutor.js');
+  const session = getAiTutorSession(questionId, question, userAnswer, feedback, examCase);
+
+  // 빠른 질문 목록 가져오기
+  const quickQuestions = session.getQuickQuestions();
+
+  // 버튼 렌더링
+  container.innerHTML = quickQuestions.map(q => `
+    <button
+      class="quick-question-btn px-3 py-2 bg-white dark:bg-gray-700 border-2 border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-800 rounded-lg text-xs sm:text-sm font-medium transition-colors"
+      data-question-id="${questionId}"
+      data-prompt="${escapeHtml(q.prompt)}"
+    >
+      ${q.icon} ${q.label}
+    </button>
+  `).join('');
+
+  // 빠른 질문 버튼 클릭 이벤트
+  container.querySelectorAll('.quick-question-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const qid = btn.dataset.questionId;
+      const prompt = btn.dataset.prompt;
+
+      // 입력창에 질문 텍스트 설정하고 전송
+      const input = document.querySelector(`.ai-tutor-input[data-question-id="${qid}"]`);
+      const messagesContainer = document.querySelector(`.ai-tutor-messages[data-question-id="${qid}"]`);
+      const sendBtn = document.querySelector(`.ai-tutor-send-btn[data-question-id="${qid}"]`);
+
+      if (!input || !messagesContainer || !sendBtn) return;
+
+      // 사용자 질문 메시지 추가
+      addUserMessage(messagesContainer, prompt);
+
+      // 버튼 비활성화
+      sendBtn.disabled = true;
+      btn.disabled = true;
+
+      // 로딩 메시지 표시
+      const loadingEl = addAiLoadingMessage(messagesContainer);
+
+      try {
+        // AI 답변 요청
+        const apiKey = (await import('../../core/stateManager.js')).getApiKey();
+        const selectedModel = (await import('../../core/stateManager.js')).getSelectedModel() || 'gemini-2.5-flash';
+        const response = await askAiTutor(qid, prompt, exams, userAnswers, result, apiKey, selectedModel);
+
+        // 로딩 메시지 제거
+        removeAiLoadingMessage(loadingEl);
+
+        // AI 답변 메시지 추가
+        addAiMessage(messagesContainer, response);
+
+        // 스크롤 하단으로 이동
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      } catch (error) {
+        console.error('❌ [AI Tutor] 빠른 질문 실패:', error);
+
+        // 로딩 메시지 제거
+        removeAiLoadingMessage(loadingEl);
+
+        addAiMessage(messagesContainer, '죄송합니다. 답변 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        showToast('AI 답변 생성 중 오류가 발생했습니다.', 'error');
+      } finally {
+        sendBtn.disabled = false;
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+/**
+ * 사용자 메시지 추가
+ */
+function addUserMessage(container, message) {
+  const messageEl = document.createElement('div');
+  messageEl.className = 'flex justify-end';
+  messageEl.innerHTML = `
+    <div class="max-w-[80%] bg-indigo-600 dark:bg-indigo-700 text-white px-4 py-2 rounded-lg">
+      <div class="text-sm whitespace-pre-wrap">${escapeHtml(message)}</div>
+    </div>
+  `;
+  container.appendChild(messageEl);
+  container.scrollTop = container.scrollHeight;
+}
+
+/**
+ * AI 메시지 추가
+ */
+function addAiMessage(container, message) {
+  const messageEl = document.createElement('div');
+  messageEl.className = 'flex justify-start';
+  messageEl.innerHTML = `
+    <div class="max-w-[85%] bg-white dark:bg-gray-700 border border-purple-200 dark:border-purple-600 px-4 py-3 rounded-lg">
+      <div class="flex items-start gap-2">
+        <span class="text-base">🤖</span>
+        <div class="flex-1 text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">${escapeHtml(message)}</div>
+      </div>
+    </div>
+  `;
+  container.appendChild(messageEl);
+  container.scrollTop = container.scrollHeight;
+}
+
+/**
+ * AI 로딩 메시지 추가 (생각 중...)
+ * @returns {HTMLElement} 로딩 메시지 요소 (나중에 제거하기 위해 반환)
+ */
+function addAiLoadingMessage(container) {
+  const messageEl = document.createElement('div');
+  messageEl.className = 'flex justify-start ai-loading-message';
+  messageEl.innerHTML = `
+    <div class="max-w-[85%] bg-white dark:bg-gray-700 border border-purple-200 dark:border-purple-600 px-4 py-3 rounded-lg">
+      <div class="flex items-start gap-2">
+        <span class="text-base">🤖</span>
+        <div class="flex-1 text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+          <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span>AI 선생님이 답변을 생각 중입니다...</span>
+        </div>
+      </div>
+    </div>
+  `;
+  container.appendChild(messageEl);
+  container.scrollTop = container.scrollHeight;
+  return messageEl;
+}
+
+/**
+ * AI 로딩 메시지 제거
+ */
+function removeAiLoadingMessage(loadingEl) {
+  if (loadingEl && loadingEl.parentNode) {
+    loadingEl.remove();
+  }
+}
+
+/**
+ * AI 튜터에게 질문하기
+ */
+async function askAiTutor(questionId, userQuestion, exams, userAnswers, result, apiKey, selectedModel) {
+  // 문제 데이터 찾기
+  const questionData = findQuestionData(questionId, exams);
+  if (!questionData) {
+    throw new Error('문제 데이터를 찾을 수 없습니다.');
+  }
+
+  const { question, examCase } = questionData;
+  const userAnswer = userAnswers[questionId]?.answer || '';
+  const feedback = result.details[questionId];
+
+  // AI Tutor 세션 가져오기
+  const { getAiTutorSession } = await import('./examAiTutor.js');
+  const session = getAiTutorSession(questionId, question, userAnswer, feedback, examCase);
+
+  // 질문 전송 및 답변 받기
+  const response = await session.askQuestion(userQuestion, apiKey, selectedModel);
+
+  return response;
+}
+
+/**
+ * 문제 데이터 찾기 (questionId로 question과 examCase 반환)
+ */
+function findQuestionData(questionId, exams) {
+  for (const examCase of exams) {
+    for (const question of examCase.questions) {
+      if (question.id === questionId) {
+        return { question, examCase };
+      }
+    }
+  }
+  return null;
 }
