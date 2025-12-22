@@ -105,10 +105,17 @@ ${this.feedback.missingKeywords && this.feedback.missingKeywords.length > 0 ? `-
       // Gemini API 호출
       const { callGeminiTextAPI } = await import('../../services/geminiApi.js');
 
-      const response = await callGeminiTextAPI(fullPrompt, apiKey, model, {
-        temperature: 0.7, // 대화형이므로 약간 높은 temperature
-        maxOutputTokens: 2048
-      });
+      const response = await callGeminiTextAPI(
+        fullPrompt,
+        apiKey,
+        model,
+        3, // retries
+        1500, // delay
+        { // generationConfigOverride
+          temperature: 0.7, // 대화형이므로 약간 높은 temperature
+          maxOutputTokens: 16384 // AI 튜터 답변이 길어질 수 있으므로 충분한 토큰 할당
+        }
+      );
 
       // 대화 이력에 AI 답변 추가
       this.conversationHistory.push({

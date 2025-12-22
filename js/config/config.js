@@ -64,6 +64,23 @@ export const EXAM_DATE_KEY = 'examDate_v1';
 export const ACHIEVEMENTS_LS_KEY = 'achievements_v1';
 
 // ========================================
+// AI 모델 목록 (AI Tutor, 채점 등에서 사용)
+// ========================================
+export const AI_MODELS = [
+  { value: 'gemini-2.5-flash', label: '⚡ Gemini 2.5 Flash', category: 'recommended' },
+  { value: 'gemini-2.5-flash-lite', label: '💨 Gemini 2.5 Flash Lite', category: 'recommended' },
+  { value: 'gemini-2.5-pro', label: '💎 Gemini 2.5 Pro', category: 'recommended' },
+  { value: 'gemini-2.0-flash', label: '⚡ Gemini 2.0 Flash', category: 'stable' },
+  { value: 'gemini-3-pro-preview', label: '🧪 Gemini 3 Pro Preview', category: 'experimental' },
+  { value: 'gemini-3-flash-preview', label: '🧪 Gemini 3 Flash Preview', category: 'experimental' },
+  { value: 'gemini-flash-latest', label: '🆕 Gemini Flash Latest', category: 'stable' },
+  { value: 'gemma-3-27b-it', label: '🤖 Gemma 3 27B', category: 'experimental' },
+  { value: 'gemma-3-12b-it', label: '🤖 Gemma 3 12B', category: 'experimental' },
+  { value: 'gemma-3-4b-it', label: '🤖 Gemma 3 4B', category: 'experimental' },
+  { value: 'gemma-3-1b-it', label: '🤖 Gemma 3 1B', category: 'experimental' }
+];
+
+// ========================================
 // 단원 및 파트 정의
 // ========================================
 export const CHAPTER_LABELS = {

@@ -169,7 +169,7 @@ function renderTable(headers, alignments, rows) {
 /**
  * HTML 이스케이프 유틸리티
  */
-function escapeHtml(text) {
+export function escapeHtml(text) {
   if (!text) return '';
   const div = document.createElement('div');
   div.textContent = text;
@@ -523,7 +523,9 @@ function renderYearSelection(container) {
         await renderResultMode(container, year, result, apiKey, selectedModel, examUIState.viewMode);
       } catch (error) {
         console.error('❌ [examUI.js] 채점 결과 렌더링 에러:', error);
-        alert(`채점 결과를 불러오는 중 오류가 발생했습니다.\n${error.message}`);
+        console.error('에러 스택:', error.stack);
+        console.error('에러 메시지:', error.message);
+        alert(`채점 결과를 불러오는 중 오류가 발생했습니다.\n${error.message}\n\n자세한 내용은 콘솔을 확인해주세요.`);
       }
     });
   });
