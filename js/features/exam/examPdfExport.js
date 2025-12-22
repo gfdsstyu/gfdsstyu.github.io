@@ -28,7 +28,7 @@ function safeText(text) {
   }
 }
 
-export async function exportExamResultsToPdf(year, result, exams, metadata, userAnswers, questionScores = null, options = { includeScenario: true, includeQuestion: true }) {
+export async function exportExamResultsToPdf(year, result, exams, metadata, userAnswers, questionScores = null, options = { includeScenario: true, includeQuestion: true, includeFeedback: true, includeAiQA: false }, aiQAData = {}) {
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examPdfExport.js:22',message:'PDF export started',data:{year,yearType:typeof year,resultKeys:Object.keys(result),examsLength:exams?.length,metadataKeys:Object.keys(metadata)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
   // #endregion
@@ -52,7 +52,7 @@ export async function exportExamResultsToPdf(year, result, exams, metadata, user
     fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examPdfExport.js:45',message:'QuestionScores loaded',data:{questionScoresKeys:Object.keys(qScores).slice(0, 10),questionScoresCount:Object.keys(qScores).length,hasQuestionScoresParam:!!questionScores},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
     // #endregion
     
-    const pdfHtml = generatePdfHtml(year, result, exams, metadata, userAnswers, qScores, options);
+    const pdfHtml = generatePdfHtml(year, result, exams, metadata, userAnswers, qScores, options, aiQAData);
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examPdfExport.js:40',message:'PDF HTML generated',data:{htmlLength:pdfHtml.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
     // #endregion
@@ -227,7 +227,7 @@ function extractQuestionNumber(questionId) {
  * PDF용 HTML 생성 (더 이상 사용하지 않음 - jsPDF 직접 사용으로 대체됨)
  * @deprecated
  */
-function generatePdfHtml(year, result, exams, metadata, userAnswers, questionScores = {}, options = { includeScenario: true, includeQuestion: true }) {
+function generatePdfHtml(year, result, exams, metadata, userAnswers, questionScores = {}, options = { includeScenario: true, includeQuestion: true, includeFeedback: true, includeAiQA: false }, aiQAData = {}) {
   const totalPossibleScoreRaw = metadata.totalScore || 100;
   const totalPossibleScore = Math.round(totalPossibleScoreRaw * 10) / 10; // 소수점 첫째자리로 반올림
   const roundedScore = Math.round(result.totalScore * 10) / 10; // 소수점 첫째자리로 반올림
@@ -696,14 +696,14 @@ function generateCaseSection(examCase, caseIdx, result, userAnswers, questionSco
               <div class="content-text">${convertMarkdownTablesToHtml(question.model_answer)}</div>
             </div>
 
-            ${feedback?.feedback ? `
+            ${options.includeFeedback !== false && feedback?.feedback ? `
               <div class="content-box feedback">
                 <div class="content-label">🎯 AI 선생님의 총평</div>
                 <div class="content-text">${convertMarkdownTablesToHtml(feedback.feedback)}</div>
               </div>
             ` : ''}
 
-            ${feedback?.strengths && feedback.strengths.length > 0 ? `
+            ${options.includeFeedback !== false && feedback?.strengths && feedback.strengths.length > 0 ? `
               <div style="margin-top: 2mm;">
                 <div class="content-label">✅ 잘한 점</div>
                 <ul style="margin: 2mm 0; padding-left: 6mm; font-size: 10pt;">
@@ -712,12 +712,32 @@ function generateCaseSection(examCase, caseIdx, result, userAnswers, questionSco
               </div>
             ` : ''}
 
-            ${feedback?.improvements && feedback.improvements.length > 0 ? `
+            ${options.includeFeedback !== false && feedback?.improvements && feedback.improvements.length > 0 ? `
               <div style="margin-top: 2mm;">
                 <div class="content-label">💡 개선할 점</div>
                 <ul style="margin: 2mm 0; padding-left: 6mm; font-size: 10pt;">
                   ${feedback.improvements.map(i => `<li style="margin-bottom: 1mm;">${escapeHtml(i)}</li>`).join('')}
                 </ul>
+              </div>
+            ` : ''}
+
+            ${options.includeAiQA && aiQAData[question.id] && aiQAData[question.id].length > 0 ? `
+              <div class="content-box" style="background-color: #faf5ff; border-left: 4px solid #9333ea;">
+                <div class="content-label" style="color: #7e22ce;">💬 AI 선생님과의 질의응답</div>
+                <div style="margin-top: 2mm;">
+                  ${aiQAData[question.id].map(msg => `
+                    <div style="margin-bottom: 3mm; ${msg.role === 'user' ? 'text-align: right;' : ''}">
+                      <div style="display: inline-block; max-width: 85%; text-align: left; padding: 2mm 3mm; border-radius: 2mm; ${msg.role === 'user' ? 'background-color: #4f46e5; color: white;' : 'background-color: white; border: 1px solid #e9d5ff;'}">
+                        <div style="font-weight: bold; font-size: 9pt; margin-bottom: 1mm; ${msg.role === 'user' ? 'color: #e0e7ff;' : 'color: #7e22ce;'}">
+                          ${msg.role === 'user' ? '👤 학생' : '🤖 AI 선생님'}
+                        </div>
+                        <div style="font-size: 9pt; line-height: 1.5; white-space: pre-wrap;">
+                          ${escapeHtml(msg.content)}
+                        </div>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
               </div>
             ` : ''}
           </div>
