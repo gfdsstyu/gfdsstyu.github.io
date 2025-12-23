@@ -7,9 +7,13 @@
  * Gemini SDK를 동적으로 로드
  */
 async function loadGeminiSDK() {
-  if (window.google?.generativeai) {
-    return window.google.generativeai;
+  // 이미 로드되어 있으면 반환
+  if (window.GoogleGenerativeAI) {
+    console.log('✅ [Gemini SDK] 이미 로드됨');
+    return window.GoogleGenerativeAI;
   }
+
+  console.log('🔄 [Gemini SDK] 동적 로드 시작...');
 
   // SDK 스크립트 동적 로드
   return new Promise((resolve, reject) => {
@@ -18,16 +22,28 @@ async function loadGeminiSDK() {
     script.textContent = `
       import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
       window.GoogleGenerativeAI = GoogleGenerativeAI;
+      console.log('✅ [Gemini SDK] 로드 완료');
       window.dispatchEvent(new Event('gemini-sdk-loaded'));
     `;
 
+    script.onerror = (error) => {
+      console.error('❌ [Gemini SDK] 스크립트 로드 실패:', error);
+      reject(new Error('Gemini SDK 스크립트 로드 실패'));
+    };
+
     const timeout = setTimeout(() => {
-      reject(new Error('Gemini SDK 로드 타임아웃'));
+      console.error('❌ [Gemini SDK] 로드 타임아웃 (10초)');
+      reject(new Error('Gemini SDK 로드 타임아웃 - 네트워크를 확인해주세요.'));
     }, 10000);
 
     window.addEventListener('gemini-sdk-loaded', () => {
       clearTimeout(timeout);
-      resolve(window.GoogleGenerativeAI);
+      if (window.GoogleGenerativeAI) {
+        console.log('✅ [Gemini SDK] 이벤트 수신 성공');
+        resolve(window.GoogleGenerativeAI);
+      } else {
+        reject(new Error('SDK 로드되었으나 GoogleGenerativeAI를 찾을 수 없음'));
+      }
     }, { once: true });
 
     document.head.appendChild(script);
@@ -95,13 +111,16 @@ export class GeminiChatSession {
    */
   async sendMessage(message) {
     if (!this.initialized) {
+      console.log('🔄 [Gemini Chat] SDK 초기화 중...');
       await this.initialize();
     }
 
     try {
+      console.log('📤 [Gemini Chat] 메시지 전송 중...');
       const result = await this.chat.sendMessage(message);
       const response = result.response;
       const text = response.text();
+      console.log('✅ [Gemini Chat] 응답 받음:', text.substring(0, 100) + '...');
       return text;
     } catch (error) {
       console.error('❌ [Gemini Chat] 메시지 전송 실패:', error);

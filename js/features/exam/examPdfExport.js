@@ -53,10 +53,19 @@ export async function exportExamResultsToPdf(year, result, exams, metadata, user
     // #endregion
     
     const pdfHtml = generatePdfHtml(year, result, exams, metadata, userAnswers, qScores, options, aiQAData);
+
+    console.log('📄 [PDF Export] HTML 생성 완료:', pdfHtml.length, 'bytes');
+
+    // HTML이 비어있으면 에러
+    if (!pdfHtml || pdfHtml.length < 100) {
+      console.error('❌ [PDF Export] HTML이 비어있습니다!');
+      throw new Error('PDF 내용 생성에 실패했습니다.');
+    }
+
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examPdfExport.js:40',message:'PDF HTML generated',data:{htmlLength:pdfHtml.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
     // #endregion
-    
+
     // 새 창 열기
     const printWindow = window.open('', '_blank', 'width=800,height=600');
     if (!printWindow) {
