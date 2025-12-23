@@ -1386,7 +1386,7 @@ async function setupEventListeners(container, year, result, exams, metadata, use
 /**
  * PDF 내보내기 처리
  */
-async function handlePdfExport(year, result, exams, metadata, userAnswers, options = { includeScenario: true, includeQuestion: true }) {
+async function handlePdfExport(year, result, exams, metadata, userAnswers, options = { includeScenario: true, includeQuestion: true, includeFeedback: true, includeAiQA: false }) {
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:700',message:'handlePdfExport called',data:{year,yearType:typeof year,resultKeys:Object.keys(result),examsLength:exams?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
   // #endregion

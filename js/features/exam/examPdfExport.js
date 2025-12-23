@@ -228,6 +228,16 @@ function extractQuestionNumber(questionId) {
  * @deprecated
  */
 function generatePdfHtml(year, result, exams, metadata, userAnswers, questionScores = {}, options = { includeScenario: true, includeQuestion: true, includeFeedback: true, includeAiQA: false }, aiQAData = {}) {
+  // 안전하게 options와 aiQAData 처리
+  const safeOptions = {
+    includeScenario: true,
+    includeQuestion: true,
+    includeFeedback: true,
+    includeAiQA: false,
+    ...options
+  };
+  const safeAiQAData = aiQAData || {};
+
   const totalPossibleScoreRaw = metadata.totalScore || 100;
   const totalPossibleScore = Math.round(totalPossibleScoreRaw * 10) / 10; // 소수점 첫째자리로 반올림
   const roundedScore = Math.round(result.totalScore * 10) / 10; // 소수점 첫째자리로 반올림
@@ -672,14 +682,14 @@ function generateCaseSection(examCase, caseIdx, result, userAnswers, questionSco
             </div>
             ${historyHtml}
 
-            ${options.includeScenario && currentScenario && !isSameScenario ? `
+            ${safeOptions.includeScenario && currentScenario && !isSameScenario ? `
               <div class="content-box scenario">
                 <div class="content-label">📄 지문</div>
                 <div class="content-text">${convertMarkdownTablesToHtml(currentScenario)}</div>
               </div>
             ` : ''}
 
-            ${options.includeQuestion ? `
+            ${safeOptions.includeQuestion ? `
             <div class="content-box question">
               <div class="content-label">📝 문제</div>
               <div class="content-text">${convertMarkdownTablesToHtml(question.question)}</div>
@@ -696,14 +706,14 @@ function generateCaseSection(examCase, caseIdx, result, userAnswers, questionSco
               <div class="content-text">${convertMarkdownTablesToHtml(question.model_answer)}</div>
             </div>
 
-            ${options.includeFeedback !== false && feedback?.feedback ? `
+            ${safeOptions.includeFeedback !== false && feedback?.feedback ? `
               <div class="content-box feedback">
                 <div class="content-label">🎯 AI 선생님의 총평</div>
                 <div class="content-text">${convertMarkdownTablesToHtml(feedback.feedback)}</div>
               </div>
             ` : ''}
 
-            ${options.includeFeedback !== false && feedback?.strengths && feedback.strengths.length > 0 ? `
+            ${safeOptions.includeFeedback !== false && feedback?.strengths && feedback.strengths.length > 0 ? `
               <div style="margin-top: 2mm;">
                 <div class="content-label">✅ 잘한 점</div>
                 <ul style="margin: 2mm 0; padding-left: 6mm; font-size: 10pt;">
@@ -712,7 +722,7 @@ function generateCaseSection(examCase, caseIdx, result, userAnswers, questionSco
               </div>
             ` : ''}
 
-            ${options.includeFeedback !== false && feedback?.improvements && feedback.improvements.length > 0 ? `
+            ${safeOptions.includeFeedback !== false && feedback?.improvements && feedback.improvements.length > 0 ? `
               <div style="margin-top: 2mm;">
                 <div class="content-label">💡 개선할 점</div>
                 <ul style="margin: 2mm 0; padding-left: 6mm; font-size: 10pt;">
@@ -721,11 +731,11 @@ function generateCaseSection(examCase, caseIdx, result, userAnswers, questionSco
               </div>
             ` : ''}
 
-            ${options.includeAiQA && aiQAData[question.id] && aiQAData[question.id].length > 0 ? `
+            ${safeOptions.includeAiQA && safeAiQAData[question.id] && safeAiQAData[question.id].length > 0 ? `
               <div class="content-box" style="background-color: #faf5ff; border-left: 4px solid #9333ea;">
                 <div class="content-label" style="color: #7e22ce;">💬 AI 선생님과의 질의응답</div>
                 <div style="margin-top: 2mm;">
-                  ${aiQAData[question.id].map(msg => {
+                  ${safeAiQAData[question.id].map(msg => {
                     const role = msg.role || 'user';
                     const content = safeText(msg.content || '');
                     const isUser = role === 'user';
