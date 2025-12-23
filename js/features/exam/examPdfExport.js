@@ -52,14 +52,23 @@ export async function exportExamResultsToPdf(year, result, exams, metadata, user
     fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examPdfExport.js:45',message:'QuestionScores loaded',data:{questionScoresKeys:Object.keys(qScores).slice(0, 10),questionScoresCount:Object.keys(qScores).length,hasQuestionScoresParam:!!questionScores},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
     // #endregion
     
-    const pdfHtml = generatePdfHtml(year, result, exams, metadata, userAnswers, qScores, options, aiQAData);
-
-    console.log('📄 [PDF Export] HTML 생성 완료:', pdfHtml.length, 'bytes');
+    let pdfHtml;
+    try {
+      console.log('🔄 [PDF Export] HTML 생성 시작...');
+      console.log('📊 [PDF Export] 옵션:', options);
+      console.log('📊 [PDF Export] AI Q&A 데이터:', Object.keys(aiQAData || {}));
+      pdfHtml = generatePdfHtml(year, result, exams, metadata, userAnswers, qScores, options, aiQAData);
+      console.log('📄 [PDF Export] HTML 생성 완료:', pdfHtml.length, 'bytes');
+    } catch (htmlError) {
+      console.error('❌ [PDF Export] HTML 생성 중 오류:', htmlError);
+      console.error('❌ [PDF Export] 스택:', htmlError.stack);
+      throw new Error(`PDF 내용 생성 실패: ${htmlError.message}`);
+    }
 
     // HTML이 비어있으면 에러
     if (!pdfHtml || pdfHtml.length < 100) {
-      console.error('❌ [PDF Export] HTML이 비어있습니다!');
-      throw new Error('PDF 내용 생성에 실패했습니다.');
+      console.error('❌ [PDF Export] HTML이 비어있습니다! 길이:', pdfHtml?.length);
+      throw new Error('PDF 내용이 비어있습니다. 채점 결과를 다시 확인해주세요.');
     }
 
     // #region agent log
