@@ -599,7 +599,7 @@ function generatePdfHtml(year, result, exams, metadata, userAnswers, questionSco
 
       <!-- 문제별 상세 결과 -->
       ${exams.map((examCase, caseIdx) => {
-        return generateCaseSection(examCase, caseIdx, result, userAnswers, questionScores, year, options);
+        return generateCaseSection(examCase, caseIdx, result, userAnswers, questionScores, year, safeOptions, safeAiQAData);
       }).join('')}
 
       <!-- 푸터 -->
@@ -616,7 +616,16 @@ function generatePdfHtml(year, result, exams, metadata, userAnswers, questionSco
 /**
  * Case별 섹션 생성
  */
-function generateCaseSection(examCase, caseIdx, result, userAnswers, questionScores = {}, year, options = { includeScenario: true, includeQuestion: true }) {
+function generateCaseSection(examCase, caseIdx, result, userAnswers, questionScores = {}, year, options = { includeScenario: true, includeQuestion: true, includeFeedback: true, includeAiQA: false }, aiQAData = {}) {
+  // options와 aiQAData를 안전하게 처리
+  const safeOptions = {
+    includeScenario: true,
+    includeQuestion: true,
+    includeFeedback: true,
+    includeAiQA: false,
+    ...options
+  };
+  const safeAiQAData = aiQAData || {};
   return `
     <div class="case-section">
       <div class="case-header">
