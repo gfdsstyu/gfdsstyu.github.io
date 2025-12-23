@@ -725,18 +725,23 @@ function generateCaseSection(examCase, caseIdx, result, userAnswers, questionSco
               <div class="content-box" style="background-color: #faf5ff; border-left: 4px solid #9333ea;">
                 <div class="content-label" style="color: #7e22ce;">💬 AI 선생님과의 질의응답</div>
                 <div style="margin-top: 2mm;">
-                  ${aiQAData[question.id].map(msg => `
-                    <div style="margin-bottom: 3mm; ${msg.role === 'user' ? 'text-align: right;' : ''}">
-                      <div style="display: inline-block; max-width: 85%; text-align: left; padding: 2mm 3mm; border-radius: 2mm; ${msg.role === 'user' ? 'background-color: #4f46e5; color: white;' : 'background-color: white; border: 1px solid #e9d5ff;'}">
-                        <div style="font-weight: bold; font-size: 9pt; margin-bottom: 1mm; ${msg.role === 'user' ? 'color: #e0e7ff;' : 'color: #7e22ce;'}">
-                          ${msg.role === 'user' ? '👤 학생' : '🤖 AI 선생님'}
+                  ${aiQAData[question.id].map(msg => {
+                    const role = msg.role || 'user';
+                    const content = safeText(msg.content || '');
+                    const isUser = role === 'user';
+                    return `
+                    <div style="margin-bottom: 3mm; ${isUser ? 'text-align: right;' : ''}">
+                      <div style="display: inline-block; max-width: 85%; text-align: left; padding: 2mm 3mm; border-radius: 2mm; ${isUser ? 'background-color: #4f46e5; color: white;' : 'background-color: white; border: 1px solid #e9d5ff;'}">
+                        <div style="font-weight: bold; font-size: 9pt; margin-bottom: 1mm; ${isUser ? 'color: #e0e7ff;' : 'color: #7e22ce;'}">
+                          ${isUser ? '👤 학생' : '🤖 AI 선생님'}
                         </div>
                         <div style="font-size: 9pt; line-height: 1.5; white-space: pre-wrap;">
-                          ${escapeHtml(msg.content)}
+                          ${escapeHtml(content)}
                         </div>
                       </div>
                     </div>
-                  `).join('')}
+                  `;
+                  }).join('')}
                 </div>
               </div>
             ` : ''}

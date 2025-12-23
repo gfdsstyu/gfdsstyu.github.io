@@ -536,9 +536,27 @@ ${userAnswer ? escapeHtml(normalizeText(userAnswer)) : '<em class="text-gray-500
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-4 h-4 sm:w-5 sm:h-5 inline-block"><rect width="100" height="100" rx="20" fill="#6D28D9"/><rect x="20" y="20" width="60" height="60" rx="10" fill="white"/><circle cx="36" cy="43" r="9" fill="#8B5CF6"/><text x="36" y="46" font-size="14" fill="white" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="900" text-anchor="middle" dominant-baseline="central">ㄱ</text><g transform="translate(64, 43)"><path d="M0 0 L 4 10 L 14 14 L 4 18 L 0 28 L -4 18 L -14 14 L -4 10 Z" fill="#FACC15" transform="scale(0.8) translate(0, -14)"/></g><path d="M30 60 H 70 V 72 H 30 Z M35 60 V 72 M 40 60 V 72 M 45 60 V 72 M 50 60 V 72 M 55 60 V 72 M 60 60 V 72 M 65 60 V 72" fill="none" stroke="#4F46E5" stroke-width="2"/></svg>
                         AI 선생님의 총평
                       </h6>
-                      <p class="text-sm sm:text-base text-gray-700 dark:text-gray-100 whitespace-pre-wrap leading-relaxed">
+                      <p class="text-sm sm:text-base text-gray-700 dark:text-gray-100 whitespace-pre-wrap leading-relaxed mb-3">
 ${feedback?.feedback ? escapeHtml(normalizeText(feedback.feedback)) : '<span class="text-gray-500 dark:text-gray-400">채점 정보 없음</span>'}
                       </p>
+
+                      ${feedback?.strengths && feedback.strengths.length > 0 ? `
+                        <div class="mt-3 pt-3 border-t border-purple-200 dark:border-purple-700">
+                          <div class="font-semibold text-sm text-green-700 dark:text-green-400 mb-2">✅ 잘한 점</div>
+                          <ul class="text-sm text-gray-700 dark:text-gray-200 list-disc list-inside space-y-1">
+                            ${feedback.strengths.map(s => `<li>${escapeHtml(s)}</li>`).join('')}
+                          </ul>
+                        </div>
+                      ` : ''}
+
+                      ${feedback?.improvements && feedback.improvements.length > 0 ? `
+                        <div class="mt-3 pt-3 border-t border-purple-200 dark:border-purple-700">
+                          <div class="font-semibold text-sm text-yellow-700 dark:text-yellow-400 mb-2">💡 개선할 점</div>
+                          <ul class="text-sm text-gray-700 dark:text-gray-200 list-disc list-inside space-y-1">
+                            ${feedback.improvements.map(i => `<li>${escapeHtml(i)}</li>`).join('')}
+                          </ul>
+                        </div>
+                      ` : ''}
                     </div>
 
                     <!-- AI 튜터 질의응답 영역 -->
