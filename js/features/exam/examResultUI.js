@@ -292,19 +292,9 @@ export async function renderResultMode(container, year, result, apiKey, selected
           <span class="px-3 sm:px-4 py-1.5 sm:py-2 bg-white dark:bg-gray-800 rounded-lg font-bold text-sm sm:text-base">
             ${result.totalScore.toFixed(1)} / ${totalPossibleScore}점
           </span>
-          <div class="relative inline-block">
-            <button id="btn-export-pdf" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-sm sm:text-base transition-colors flex items-center gap-1.5">
-              📄 PDF <span class="text-xs">▼</span>
-            </button>
-            <div id="pdf-export-menu" class="hidden absolute right-0 mt-1 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700" style="z-index: 99999;">
-              <button class="pdf-export-option w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700" data-options='{"includeScenario":true,"includeQuestion":true}'>
-                📄 전체 내보내기
-              </button>
-              <button class="pdf-export-option w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700" data-options='{"includeScenario":false,"includeQuestion":false}'>
-                📄 지문, 물음 제외 (해설만)
-              </button>
-            </div>
-          </div>
+          <button id="btn-export-pdf" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-sm sm:text-base transition-colors">
+            📄 PDF
+          </button>
           <button id="btn-exit-results" class="px-3 sm:px-4 py-1.5 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-sm sm:text-base transition-colors">
             ✕ 종료
           </button>
@@ -546,9 +536,27 @@ ${userAnswer ? escapeHtml(normalizeText(userAnswer)) : '<em class="text-gray-500
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-4 h-4 sm:w-5 sm:h-5 inline-block"><rect width="100" height="100" rx="20" fill="#6D28D9"/><rect x="20" y="20" width="60" height="60" rx="10" fill="white"/><circle cx="36" cy="43" r="9" fill="#8B5CF6"/><text x="36" y="46" font-size="14" fill="white" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="900" text-anchor="middle" dominant-baseline="central">ㄱ</text><g transform="translate(64, 43)"><path d="M0 0 L 4 10 L 14 14 L 4 18 L 0 28 L -4 18 L -14 14 L -4 10 Z" fill="#FACC15" transform="scale(0.8) translate(0, -14)"/></g><path d="M30 60 H 70 V 72 H 30 Z M35 60 V 72 M 40 60 V 72 M 45 60 V 72 M 50 60 V 72 M 55 60 V 72 M 60 60 V 72 M 65 60 V 72" fill="none" stroke="#4F46E5" stroke-width="2"/></svg>
                         AI 선생님의 총평
                       </h6>
-                      <p class="text-sm sm:text-base text-gray-700 dark:text-gray-100 whitespace-pre-wrap leading-relaxed">
+                      <p class="text-sm sm:text-base text-gray-700 dark:text-gray-100 whitespace-pre-wrap leading-relaxed mb-3">
 ${feedback?.feedback ? escapeHtml(normalizeText(feedback.feedback)) : '<span class="text-gray-500 dark:text-gray-400">채점 정보 없음</span>'}
                       </p>
+
+                      ${feedback?.strengths && feedback.strengths.length > 0 ? `
+                        <div class="mt-3 pt-3 border-t border-purple-200 dark:border-purple-700">
+                          <div class="font-semibold text-sm text-green-700 dark:text-green-400 mb-2">✅ 잘한 점</div>
+                          <ul class="text-sm text-gray-700 dark:text-gray-200 list-disc list-inside space-y-1">
+                            ${feedback.strengths.map(s => `<li>${escapeHtml(s)}</li>`).join('')}
+                          </ul>
+                        </div>
+                      ` : ''}
+
+                      ${feedback?.improvements && feedback.improvements.length > 0 ? `
+                        <div class="mt-3 pt-3 border-t border-purple-200 dark:border-purple-700">
+                          <div class="font-semibold text-sm text-yellow-700 dark:text-yellow-400 mb-2">💡 개선할 점</div>
+                          <ul class="text-sm text-gray-700 dark:text-gray-200 list-disc list-inside space-y-1">
+                            ${feedback.improvements.map(i => `<li>${escapeHtml(i)}</li>`).join('')}
+                          </ul>
+                        </div>
+                      ` : ''}
                     </div>
 
                     <!-- AI 튜터 질의응답 영역 -->
@@ -637,6 +645,41 @@ ${feedback?.feedback ? escapeHtml(normalizeText(feedback.feedback)) : '<span cla
 
       </div>
     </main>
+
+    <!-- PDF 내보내기 옵션 모달 -->
+    <div id="pdf-export-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50" style="z-index: 99999;">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white">PDF 내보내기 옵션</h3>
+        </div>
+        <div class="px-6 py-4 space-y-3">
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" id="pdf-option-scenario" class="w-5 h-5 text-purple-600 rounded" checked />
+            <span class="text-sm text-gray-700 dark:text-gray-300">지문 포함</span>
+          </label>
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" id="pdf-option-question" class="w-5 h-5 text-purple-600 rounded" checked />
+            <span class="text-sm text-gray-700 dark:text-gray-300">물음 포함</span>
+          </label>
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" id="pdf-option-feedback" class="w-5 h-5 text-purple-600 rounded" checked />
+            <span class="text-sm text-gray-700 dark:text-gray-300">AI 채점평 포함</span>
+          </label>
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" id="pdf-option-aiqa" class="w-5 h-5 text-purple-600 rounded" />
+            <span class="text-sm text-gray-700 dark:text-gray-300">AI 질답 포함</span>
+          </label>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+          <button id="pdf-modal-cancel" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors">
+            취소
+          </button>
+          <button id="pdf-modal-confirm" class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+            내보내기
+          </button>
+        </div>
+      </div>
+    </div>
 
   `;
 
@@ -945,62 +988,48 @@ async function setupEventListeners(container, year, result, exams, metadata, use
     });
   });
 
-  // PDF 내보내기 버튼 (헤더) - 드롭다운 메뉴
+  // PDF 내보내기 버튼 (헤더) - 모달 열기
   const pdfExportBtn = container.querySelector('#btn-export-pdf');
-  const pdfExportMenu = container.querySelector('#pdf-export-menu');
-  
-  if (pdfExportBtn && pdfExportMenu) {
-    // 기존 이벤트 리스너 제거를 위해 부모 요소에서 교체
-    const pdfExportContainer = pdfExportBtn.parentElement;
-    if (pdfExportContainer) {
-      pdfExportContainer.replaceWith(pdfExportContainer.cloneNode(true));
-    }
-    
-    const newPdfExportBtn = container.querySelector('#btn-export-pdf');
-    const newPdfExportMenu = container.querySelector('#pdf-export-menu');
-    
-    if (newPdfExportBtn && newPdfExportMenu) {
-      // 드롭다운 메뉴를 body에 직접 추가하고 fixed positioning 사용
-      const menuClone = newPdfExportMenu.cloneNode(true);
-      menuClone.id = 'pdf-export-menu-floating';
-      menuClone.style.position = 'fixed';
-      menuClone.style.zIndex = '99999';
-      document.body.appendChild(menuClone);
-      
-      // 원본 메뉴는 숨김
-      newPdfExportMenu.style.display = 'none';
-      
-      // 버튼 클릭 시 메뉴 토글 및 위치 계산
-      newPdfExportBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isHidden = menuClone.classList.contains('hidden');
-        menuClone.classList.toggle('hidden');
-        
-        if (!isHidden) {
-          // 메뉴 표시 시 버튼 위치에 맞춰 배치
-          const btnRect = newPdfExportBtn.getBoundingClientRect();
-          menuClone.style.right = `${window.innerWidth - btnRect.right}px`;
-          menuClone.style.top = `${btnRect.bottom + 4}px`;
-        }
+  const pdfExportModal = container.querySelector('#pdf-export-modal');
+  const pdfModalCancel = container.querySelector('#pdf-modal-cancel');
+  const pdfModalConfirm = container.querySelector('#pdf-modal-confirm');
+
+  if (pdfExportBtn && pdfExportModal) {
+    // PDF 버튼 클릭 시 모달 열기
+    pdfExportBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      pdfExportModal.classList.remove('hidden');
+    });
+
+    // 취소 버튼
+    if (pdfModalCancel) {
+      pdfModalCancel.addEventListener('click', () => {
+        pdfExportModal.classList.add('hidden');
       });
-      
-      // 메뉴 외부 클릭 시 닫기
-      const handleOutsideClick = (e) => {
-        if (newPdfExportBtn && menuClone && 
-            !newPdfExportBtn.contains(e.target) && !menuClone.contains(e.target)) {
-          menuClone.classList.add('hidden');
-        }
-      };
-      document.addEventListener('click', handleOutsideClick);
-      
-      // 옵션 선택 시 PDF 내보내기
-      const options = menuClone.querySelectorAll('.pdf-export-option');
-      options.forEach(option => {
-        option.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          menuClone.classList.add('hidden');
-          const optionsData = JSON.parse(option.dataset.options);
-          await handlePdfExport(year, result, exams, metadata, userAnswers, optionsData);
+    }
+
+    // 모달 배경 클릭 시 닫기
+    pdfExportModal.addEventListener('click', (e) => {
+      if (e.target === pdfExportModal) {
+        pdfExportModal.classList.add('hidden');
+      }
+    });
+
+    // 확인 버튼 - PDF 내보내기
+    if (pdfModalConfirm) {
+      pdfModalConfirm.addEventListener('click', async () => {
+        const includeScenario = container.querySelector('#pdf-option-scenario')?.checked ?? true;
+        const includeQuestion = container.querySelector('#pdf-option-question')?.checked ?? true;
+        const includeFeedback = container.querySelector('#pdf-option-feedback')?.checked ?? true;
+        const includeAiQA = container.querySelector('#pdf-option-aiqa')?.checked ?? false;
+
+        pdfExportModal.classList.add('hidden');
+
+        await handlePdfExport(year, result, exams, metadata, userAnswers, {
+          includeScenario,
+          includeQuestion,
+          includeFeedback,
+          includeAiQA
         });
       });
     }
@@ -1357,7 +1386,7 @@ async function setupEventListeners(container, year, result, exams, metadata, use
 /**
  * PDF 내보내기 처리
  */
-async function handlePdfExport(year, result, exams, metadata, userAnswers, options = { includeScenario: true, includeQuestion: true }) {
+async function handlePdfExport(year, result, exams, metadata, userAnswers, options = { includeScenario: true, includeQuestion: true, includeFeedback: true, includeAiQA: false }) {
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:700',message:'handlePdfExport called',data:{year,yearType:typeof year,resultKeys:Object.keys(result),examsLength:exams?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
   // #endregion
@@ -1380,8 +1409,20 @@ async function handlePdfExport(year, result, exams, metadata, userAnswers, optio
     // questionScores 가져오기
     const { getQuestionScores } = await import('../../core/stateManager.js');
     const questionScores = getQuestionScores();
-    
-    await exportExamResultsToPdf(year, resultWithHistory, exams, metadata, userAnswers, questionScores, options);
+
+    // AI Q&A 데이터 수집 (includeAiQA가 true일 때만)
+    let aiQAData = {};
+    if (options.includeAiQA) {
+      const { aiTutorManager } = await import('./examAiTutor.js');
+      // 각 질문별 AI 대화 이력 수집
+      for (const [questionId, session] of aiTutorManager.sessions) {
+        if (session.conversationHistory && session.conversationHistory.length > 0) {
+          aiQAData[questionId] = session.conversationHistory;
+        }
+      }
+    }
+
+    await exportExamResultsToPdf(year, resultWithHistory, exams, metadata, userAnswers, questionScores, options, aiQAData);
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:713',message:'exportExamResultsToPdf completed',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
     // #endregion

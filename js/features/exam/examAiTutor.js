@@ -5,7 +5,10 @@
  * - 특정 문제에 대해 AI와 대화하며 궁금증 해소
  * - 자동 컨텍스트 주입 (지문, 물음, 모범답안, 채점기준, 사용자답안)
  * - 단계적 설명 (Step-by-Step Reasoning)
+ * - Gemini Chat SDK 사용으로 효율적인 대화 관리
  */
+
+import { GeminiChatSession } from '../../services/geminiChatApi.js';
 
 /**
  * AI 튜터 대화 세션 클래스
@@ -17,6 +20,7 @@ class AiTutorSession {
     this.userAnswer = userAnswer;
     this.feedback = feedback; // { score, feedback, strengths, improvements, keywordMatch, missingKeywords }
     this.examCase = examCase; // { topic, scenario, type }
+    this.chatSession = null; // Gemini Chat SDK 세션
     this.conversationHistory = []; // { role: 'user' | 'assistant', content: string }
   }
 
@@ -78,46 +82,40 @@ ${this.feedback.missingKeywords && this.feedback.missingKeywords.length > 0 ? `-
   }
 
   /**
-   * AI에게 질문 전송
+   * AI에게 질문 전송 (Chat SDK 사용)
    * @param {string} userQuestion - 사용자 질문
    * @param {string} apiKey - Gemini API 키
    * @param {string} model - 사용할 모델 (기본: gemini-2.5-flash)
    * @returns {Promise<string>} - AI 답변
    */
   async askQuestion(userQuestion, apiKey, model = 'gemini-2.5-flash') {
-    // 대화 이력에 추가
-    this.conversationHistory.push({
-      role: 'user',
-      content: userQuestion
-    });
-
-    // 프롬프트 구성
-    const systemPrompt = this.buildContextPrompt();
-
-    // 대화 이력을 포함한 전체 프롬프트 생성
-    const conversationText = this.conversationHistory.map(msg => {
-      return msg.role === 'user' ? `[학생 질문]\n${msg.content}` : `[AI 선생님 답변]\n${msg.content}`;
-    }).join('\n\n');
-
-    const fullPrompt = `${systemPrompt}\n\n---\n\n# 대화 이력\n${conversationText}`;
-
     try {
-      // Gemini API 호출
-      const { callGeminiTextAPI } = await import('../../services/geminiApi.js');
+      // 첫 질문이면 Chat 세션 초기화
+      if (!this.chatSession) {
+        const systemInstruction = this.buildContextPrompt();
 
-      const response = await callGeminiTextAPI(
-        fullPrompt,
-        apiKey,
-        model,
-        3, // retries
-        1500, // delay
-        { // generationConfigOverride
-          temperature: 0.7, // 대화형이므로 약간 높은 temperature
-          maxOutputTokens: 16384 // AI 튜터 답변이 길어질 수 있으므로 충분한 토큰 할당
-        }
-      );
+        this.chatSession = new GeminiChatSession(
+          apiKey,
+          model,
+          systemInstruction,
+          {
+            temperature: 0.7,
+            maxOutputTokens: 16384
+          }
+        );
 
-      // 대화 이력에 AI 답변 추가
+        await this.chatSession.initialize();
+      }
+
+      // Chat SDK로 메시지 전송 (자동으로 히스토리 관리됨)
+      const response = await this.chatSession.sendMessage(userQuestion);
+
+      // 로컬 히스토리에도 저장 (PDF 내보내기용)
+      this.conversationHistory.push({
+        role: 'user',
+        content: userQuestion
+      });
+
       this.conversationHistory.push({
         role: 'assistant',
         content: response
@@ -125,7 +123,7 @@ ${this.feedback.missingKeywords && this.feedback.missingKeywords.length > 0 ? `-
 
       return response;
     } catch (error) {
-      console.error('❌ [AI Tutor] API 호출 실패:', error);
+      console.error('❌ [AI Tutor] Chat API 호출 실패:', error);
       throw error;
     }
   }
@@ -137,14 +135,17 @@ ${this.feedback.missingKeywords && this.feedback.missingKeywords.length > 0 ? `-
   getQuickQuestions() {
     const scorePercent = (this.feedback.score / this.questionData.score) * 100;
 
-    const questions = [
-      {
+    const questions = [];
+
+    // 만점이 아닌 경우 (0~99점)
+    if (scorePercent < 100) {
+      questions.push({
         id: 'detail-deduction',
         icon: '📉',
         label: '감점 상세 분석',
         prompt: '내 답안에서 어떤 요건이 빠져서 감점된 건가요? 구체적으로 분석해주세요.'
-      }
-    ];
+      });
+    }
 
     // 부분 점수를 받은 경우
     if (scorePercent > 0 && scorePercent < 100) {
@@ -156,13 +157,15 @@ ${this.feedback.missingKeywords && this.feedback.missingKeywords.length > 0 ? `-
       });
     }
 
-    // 오답인 경우
-    if (scorePercent === 0) {
+    // 오답인 경우 또는 만점인 경우 - 올바른 접근법 확인
+    if (scorePercent === 0 || scorePercent === 100) {
       questions.push({
         id: 'correct-approach',
         icon: '💡',
         label: '올바른 접근법',
-        prompt: '이 문제의 올바른 접근법과 핵심 논리를 단계별로 설명해주세요.'
+        prompt: scorePercent === 100
+          ? '이 문제의 핵심 논리와 올바른 접근법을 정리해주세요. 다음에도 확실하게 맞출 수 있도록 요점을 알려주세요.'
+          : '이 문제의 올바른 접근법과 핵심 논리를 단계별로 설명해주세요.'
       });
     }
 
