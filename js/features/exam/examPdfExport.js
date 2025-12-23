@@ -57,11 +57,14 @@ export async function exportExamResultsToPdf(year, result, exams, metadata, user
       console.log('🔄 [PDF Export] HTML 생성 시작...');
       console.log('📊 [PDF Export] 옵션:', options);
       console.log('📊 [PDF Export] AI Q&A 데이터:', Object.keys(aiQAData || {}));
+      alert('🔄 [DEBUG] generatePdfHtml 호출 직전!');
       pdfHtml = generatePdfHtml(year, result, exams, metadata, userAnswers, qScores, options, aiQAData);
+      alert('✅ [DEBUG] generatePdfHtml 완료! HTML 길이: ' + pdfHtml.length);
       console.log('📄 [PDF Export] HTML 생성 완료:', pdfHtml.length, 'bytes');
     } catch (htmlError) {
       console.error('❌ [PDF Export] HTML 생성 중 오류:', htmlError);
       console.error('❌ [PDF Export] 스택:', htmlError.stack);
+      alert('❌ [DEBUG] HTML 생성 실패: ' + htmlError.message + '\n스택: ' + htmlError.stack);
       throw new Error(`PDF 내용 생성 실패: ${htmlError.message}`);
     }
 
