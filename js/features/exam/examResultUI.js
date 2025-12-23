@@ -665,10 +665,6 @@ ${feedback?.feedback ? escapeHtml(normalizeText(feedback.feedback)) : '<span cla
             <input type="checkbox" id="pdf-option-feedback" class="w-5 h-5 text-purple-600 rounded" checked />
             <span class="text-sm text-gray-700 dark:text-gray-300">AI 채점평 포함</span>
           </label>
-          <label class="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" id="pdf-option-aiqa" class="w-5 h-5 text-purple-600 rounded" />
-            <span class="text-sm text-gray-700 dark:text-gray-300">AI 질답 포함</span>
-          </label>
         </div>
         <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
           <button id="pdf-modal-cancel" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors">
@@ -1021,15 +1017,13 @@ async function setupEventListeners(container, year, result, exams, metadata, use
         const includeScenario = container.querySelector('#pdf-option-scenario')?.checked ?? true;
         const includeQuestion = container.querySelector('#pdf-option-question')?.checked ?? true;
         const includeFeedback = container.querySelector('#pdf-option-feedback')?.checked ?? true;
-        const includeAiQA = container.querySelector('#pdf-option-aiqa')?.checked ?? false;
 
         pdfExportModal.classList.add('hidden');
 
         await handlePdfExport(year, result, exams, metadata, userAnswers, {
           includeScenario,
           includeQuestion,
-          includeFeedback,
-          includeAiQA
+          includeFeedback
         });
       });
     }
@@ -1386,10 +1380,7 @@ async function setupEventListeners(container, year, result, exams, metadata, use
 /**
  * PDF 내보내기 처리
  */
-async function handlePdfExport(year, result, exams, metadata, userAnswers, options = { includeScenario: true, includeQuestion: true, includeFeedback: true, includeAiQA: false }) {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:700',message:'handlePdfExport called',data:{year,yearType:typeof year,resultKeys:Object.keys(result),examsLength:exams?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
+async function handlePdfExport(year, result, exams, metadata, userAnswers, options = { includeScenario: true, includeQuestion: true, includeFeedback: true }) {
   try {
     // 점수 히스토리 추가
     const scoreHistory = examService.getScores(year);
@@ -1397,39 +1388,16 @@ async function handlePdfExport(year, result, exams, metadata, userAnswers, optio
       ...result,
       scoreHistory: scoreHistory
     };
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:707',message:'Before import',data:{scoreHistoryLength:scoreHistory?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
 
     // PDF 내보내기 함수 호출
     const { exportExamResultsToPdf } = await import('./examPdfExport.js');
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:711',message:'Before exportExamResultsToPdf call',data:{hasExportFunction:typeof exportExamResultsToPdf === 'function'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
+
     // questionScores 가져오기
     const { getQuestionScores } = await import('../../core/stateManager.js');
     const questionScores = getQuestionScores();
 
-    // AI Q&A 데이터 수집 (includeAiQA가 true일 때만)
-    let aiQAData = {};
-    if (options.includeAiQA) {
-      const { aiTutorManager } = await import('./examAiTutor.js');
-      // 각 질문별 AI 대화 이력 수집
-      for (const [questionId, session] of aiTutorManager.sessions) {
-        if (session.conversationHistory && session.conversationHistory.length > 0) {
-          aiQAData[questionId] = session.conversationHistory;
-        }
-      }
-    }
-
-    await exportExamResultsToPdf(year, resultWithHistory, exams, metadata, userAnswers, questionScores, options, aiQAData);
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:713',message:'exportExamResultsToPdf completed',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
+    await exportExamResultsToPdf(year, resultWithHistory, exams, metadata, userAnswers, questionScores, options);
   } catch (error) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/169d67f2-e384-4729-9ce9-d3ef8e71205b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'examResultUI.js:715',message:'PDF export error caught',data:{errorMessage:error.message,errorStack:error.stack,errorName:error.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     console.error('PDF 내보내기 실패:', error);
     alert('PDF 내보내기 중 오류가 발생했습니다: ' + error.message);
   }
