@@ -135,14 +135,17 @@ ${this.feedback.missingKeywords && this.feedback.missingKeywords.length > 0 ? `-
   getQuickQuestions() {
     const scorePercent = (this.feedback.score / this.questionData.score) * 100;
 
-    const questions = [
-      {
+    const questions = [];
+
+    // 만점이 아닌 경우 (0~99점)
+    if (scorePercent < 100) {
+      questions.push({
         id: 'detail-deduction',
         icon: '📉',
         label: '감점 상세 분석',
         prompt: '내 답안에서 어떤 요건이 빠져서 감점된 건가요? 구체적으로 분석해주세요.'
-      }
-    ];
+      });
+    }
 
     // 부분 점수를 받은 경우
     if (scorePercent > 0 && scorePercent < 100) {
@@ -154,13 +157,15 @@ ${this.feedback.missingKeywords && this.feedback.missingKeywords.length > 0 ? `-
       });
     }
 
-    // 오답인 경우
-    if (scorePercent === 0) {
+    // 오답인 경우 또는 만점인 경우 - 올바른 접근법 확인
+    if (scorePercent === 0 || scorePercent === 100) {
       questions.push({
         id: 'correct-approach',
         icon: '💡',
         label: '올바른 접근법',
-        prompt: '이 문제의 올바른 접근법과 핵심 논리를 단계별로 설명해주세요.'
+        prompt: scorePercent === 100
+          ? '이 문제의 핵심 논리와 올바른 접근법을 정리해주세요. 다음에도 확실하게 맞출 수 있도록 요점을 알려주세요.'
+          : '이 문제의 올바른 접근법과 핵심 논리를 단계별로 설명해주세요.'
       });
     }
 
