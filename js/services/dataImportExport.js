@@ -16,6 +16,7 @@ import {
 import { showToast, applyDarkMode } from '../ui/domUtils.js';
 import { enforceExclusiveFlagsOnAll } from '../core/storageManager.js';
 import { unlockAchievement } from '../features/achievements/achievementsCore.js';
+import { getCurrentUser } from '../features/auth/authCore.js';
 
 /**
  * 퀴즈 점수 데이터 병합
@@ -85,6 +86,67 @@ export function mergeQuizScores(existing, imported) {
 }
 
 /**
+ * Exam 데이터 수집 (모든 연도)
+ */
+function collectExamData() {
+  const examData = {};
+  const keys = Object.keys(localStorage);
+  const examKeys = keys.filter(key => key.startsWith('exam_') && key.endsWith('_scores'));
+
+  examKeys.forEach(key => {
+    try {
+      const data = localStorage.getItem(key);
+      if (data) {
+        examData[key] = JSON.parse(data);
+      }
+    } catch (error) {
+      console.error(`Exam 데이터 수집 실패: ${key}`, error);
+    }
+  });
+
+  return examData;
+}
+
+/**
+ * KAM 데이터 수집
+ */
+function collectKamData() {
+  const kamData = {
+    scores: {},
+    answers: {},
+    feedbacks: {}
+  };
+
+  try {
+    // KAM 점수
+    const kamScores = localStorage.getItem('kam_scores');
+    if (kamScores) {
+      kamData.scores = JSON.parse(kamScores);
+    }
+
+    // KAM 답안 및 피드백 (개별 케이스)
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith('kam_answer_')) {
+        const data = localStorage.getItem(key);
+        if (data) {
+          kamData.answers[key] = JSON.parse(data);
+        }
+      } else if (key.startsWith('kam_feedback_')) {
+        const data = localStorage.getItem(key);
+        if (data) {
+          kamData.feedbacks[key] = JSON.parse(data);
+        }
+      }
+    });
+  } catch (error) {
+    console.error('KAM 데이터 수집 실패:', error);
+  }
+
+  return kamData;
+}
+
+/**
  * 데이터 내보내기 (백업 파일 생성)
  */
 export function exportData() {
@@ -92,12 +154,17 @@ export function exportData() {
     const questionScores = getQuestionScores();
     const selectedAiModel = getSelectedAiModel();
     const darkMode = getDarkMode();
+    const currentUser = getCurrentUser();
 
     const data = {
-      version: '3.x',
+      version: '4.0',
       schemaVersion: +(localStorage.getItem('schemaVersion') || 2),
       exportDate: new Date().toISOString(),
+      userId: currentUser?.uid || null,
+      userEmail: currentUser?.email || null,
       auditQuizScores: questionScores,
+      examData: collectExamData(),
+      kamData: collectKamData(),
       geminiApiKey: localStorage.getItem('geminiApiKey') || '',
       aiModel: selectedAiModel,
       darkMode: darkMode
@@ -114,10 +181,58 @@ export function exportData() {
     // Unlock data backup achievement
     unlockAchievement('data_backup_1');
 
-    showToast('데이터 내보내기 완료');
+    showToast('데이터 내보내기 완료 (Quiz + Exam + KAM)');
   } catch (err) {
     console.error(err);
     showToast('데이터 내보내기 실패', 'error');
+  }
+}
+
+/**
+ * Exam 데이터 복원
+ */
+function restoreExamData(examData) {
+  if (!examData) return;
+
+  try {
+    Object.entries(examData).forEach(([key, value]) => {
+      localStorage.setItem(key, JSON.stringify(value));
+    });
+    console.log(`✅ Exam 데이터 복원 완료: ${Object.keys(examData).length}개 연도`);
+  } catch (error) {
+    console.error('Exam 데이터 복원 실패:', error);
+  }
+}
+
+/**
+ * KAM 데이터 복원
+ */
+function restoreKamData(kamData) {
+  if (!kamData) return;
+
+  try {
+    // KAM 점수 복원
+    if (kamData.scores && Object.keys(kamData.scores).length > 0) {
+      localStorage.setItem('kam_scores', JSON.stringify(kamData.scores));
+    }
+
+    // KAM 답안 복원
+    if (kamData.answers) {
+      Object.entries(kamData.answers).forEach(([key, value]) => {
+        localStorage.setItem(key, JSON.stringify(value));
+      });
+    }
+
+    // KAM 피드백 복원
+    if (kamData.feedbacks) {
+      Object.entries(kamData.feedbacks).forEach(([key, value]) => {
+        localStorage.setItem(key, JSON.stringify(value));
+      });
+    }
+
+    console.log(`✅ KAM 데이터 복원 완료`);
+  } catch (error) {
+    console.error('KAM 데이터 복원 실패:', error);
   }
 }
 
@@ -135,13 +250,43 @@ export function importData(file) {
     try {
       const data = JSON.parse(ev.target.result);
 
-      if (!data.auditQuizScores) {
+      if (!data.auditQuizScores && !data.examData && !data.kamData) {
         throw new Error('올바른 백업 파일이 아닙니다.');
       }
 
-      // 점수 데이터 저장
-      localStorage.setItem('auditQuizScores', JSON.stringify(data.auditQuizScores));
-      setQuestionScores(data.auditQuizScores);
+      // 사용자 확인
+      const currentUser = getCurrentUser();
+      if (data.userId && currentUser?.uid && data.userId !== currentUser.uid) {
+        const backupUserInfo = data.userEmail || data.userId;
+        const currentUserInfo = currentUser.email || currentUser.uid;
+        const confirmed = confirm(
+          `⚠️ 다른 사용자의 백업 파일입니다.\n\n` +
+          `백업 파일 사용자: ${backupUserInfo}\n` +
+          `현재 로그인 사용자: ${currentUserInfo}\n\n` +
+          `계속하면 현재 데이터가 모두 덮어씌워집니다.\n` +
+          `정말 가져오시겠습니까?`
+        );
+        if (!confirmed) {
+          showToast('데이터 가져오기 취소됨');
+          return;
+        }
+      }
+
+      // Quiz 점수 데이터 저장
+      if (data.auditQuizScores) {
+        localStorage.setItem('auditQuizScores', JSON.stringify(data.auditQuizScores));
+        setQuestionScores(data.auditQuizScores);
+      }
+
+      // Exam 데이터 복원
+      if (data.examData) {
+        restoreExamData(data.examData);
+      }
+
+      // KAM 데이터 복원
+      if (data.kamData) {
+        restoreKamData(data.kamData);
+      }
 
       // API 키 복원
       if (data.geminiApiKey) {
@@ -173,7 +318,7 @@ export function importData(file) {
       // 가져오자마자 상호배타 보정
       enforceExclusiveFlagsOnAll();
 
-      showToast('데이터 가져오기 완료');
+      showToast('데이터 가져오기 완료 (Quiz + Exam + KAM)');
       setTimeout(() => location.reload(), 600);
     } catch (err) {
       console.error(err);
@@ -182,6 +327,108 @@ export function importData(file) {
   };
 
   reader.readAsText(file);
+}
+
+/**
+ * Exam 데이터 병합 (연도별 점수 배열)
+ * @param {Object} existing - 기존 examData (key: exam_YYYY_scores, value: array)
+ * @param {Object} imported - 가져온 examData
+ */
+function mergeExamData(existing, imported) {
+  if (!imported) return existing;
+
+  const result = { ...existing };
+
+  Object.entries(imported).forEach(([key, importedScores]) => {
+    if (!result[key]) {
+      // 새로운 연도 데이터 - 그냥 추가
+      result[key] = importedScores;
+    } else {
+      // 기존 연도 데이터가 있음 - 배열 병합 (날짜 기준 중복 제거)
+      const existingScores = result[key] || [];
+      const combined = [...existingScores, ...importedScores];
+
+      // 날짜 기준 중복 제거 (같은 날짜의 시도는 최신 것만 유지)
+      const uniqueScores = Array.from(
+        new Map(combined.map(score => [score.date || score.timestamp, score])).values()
+      ).sort((a, b) => (b.date || b.timestamp || 0) - (a.date || a.timestamp || 0));
+
+      result[key] = uniqueScores;
+    }
+  });
+
+  return result;
+}
+
+/**
+ * KAM 데이터 병합 (점수, 답안, 피드백)
+ * @param {Object} existing - 기존 kamData
+ * @param {Object} imported - 가져온 kamData
+ */
+function mergeKamData(existing, imported) {
+  if (!imported) return existing;
+
+  const result = {
+    scores: { ...(existing.scores || {}) },
+    answers: { ...(existing.answers || {}) },
+    feedbacks: { ...(existing.feedbacks || {}) }
+  };
+
+  // 1. KAM 점수 병합 (높은 점수 유지)
+  if (imported.scores) {
+    Object.entries(imported.scores).forEach(([caseNum, importedScore]) => {
+      const existingScore = result.scores[caseNum];
+      if (!existingScore || (importedScore && importedScore > existingScore)) {
+        result.scores[caseNum] = importedScore;
+      }
+    });
+  }
+
+  // 2. KAM 답안 병합 (최신 것 유지)
+  if (imported.answers) {
+    Object.entries(imported.answers).forEach(([key, importedAnswer]) => {
+      const existingAnswer = result.answers[key];
+
+      // 날짜 비교
+      const importDate = importedAnswer?.timestamp || importedAnswer?.date || 0;
+      const existDate = existingAnswer?.timestamp || existingAnswer?.date || 0;
+
+      // 내용 존재 여부
+      const hasImportedContent = importedAnswer?.userAnswer && String(importedAnswer.userAnswer).trim() !== '';
+      const hasExistingContent = existingAnswer?.userAnswer && String(existingAnswer.userAnswer).trim() !== '';
+
+      // 최신 것 또는 내용이 있는 것 우선
+      const shouldUseImported = (importDate > existDate && hasImportedContent) || (!hasExistingContent && hasImportedContent);
+
+      if (shouldUseImported) {
+        result.answers[key] = importedAnswer;
+      }
+    });
+  }
+
+  // 3. KAM 피드백 병합 (최신 것 유지)
+  if (imported.feedbacks) {
+    Object.entries(imported.feedbacks).forEach(([key, importedFeedback]) => {
+      const existingFeedback = result.feedbacks[key];
+
+      // 날짜 비교
+      const importDate = importedFeedback?.timestamp || importedFeedback?.date || 0;
+      const existDate = existingFeedback?.timestamp || existingFeedback?.date || 0;
+
+      // 내용 존재 여부
+      const hasImportedContent = importedFeedback?.feedback && String(importedFeedback.feedback).trim() !== '';
+      const hasExistingContent = existingFeedback?.feedback && String(existingFeedback.feedback).trim() !== '';
+
+      // 최신 것 또는 내용이 있는 것 우선
+      const shouldUseImported = (importDate > existDate && hasImportedContent) || (!hasExistingContent && hasImportedContent);
+
+      if (shouldUseImported) {
+        result.feedbacks[key] = importedFeedback;
+      }
+    });
+  }
+
+  return result;
 }
 
 /**
@@ -199,14 +446,66 @@ export function mergeData(file) {
     try {
       const data = JSON.parse(ev.target.result);
 
-      if (!data.auditQuizScores) {
+      if (!data.auditQuizScores && !data.examData && !data.kamData) {
         throw new Error('올바른 백업 파일이 아닙니다.');
       }
 
-      // 기존 데이터와 병합
-      const mergedScores = mergeQuizScores(questionScores, data.auditQuizScores);
-      localStorage.setItem('auditQuizScores', JSON.stringify(mergedScores));
-      setQuestionScores(mergedScores);
+      // 사용자 확인
+      const currentUser = getCurrentUser();
+      if (data.userId && currentUser?.uid && data.userId !== currentUser.uid) {
+        const backupUserInfo = data.userEmail || data.userId;
+        const currentUserInfo = currentUser.email || currentUser.uid;
+        const confirmed = confirm(
+          `⚠️ 다른 사용자의 백업 파일입니다.\n\n` +
+          `백업 파일 사용자: ${backupUserInfo}\n` +
+          `현재 로그인 사용자: ${currentUserInfo}\n\n` +
+          `계속하면 두 사용자의 데이터가 병합됩니다.\n` +
+          `정말 병합하시겠습니까?`
+        );
+        if (!confirmed) {
+          showToast('데이터 병합 취소됨');
+          return;
+        }
+      }
+
+      // 1. Quiz 데이터 병합
+      if (data.auditQuizScores) {
+        const mergedScores = mergeQuizScores(questionScores, data.auditQuizScores);
+        localStorage.setItem('auditQuizScores', JSON.stringify(mergedScores));
+        setQuestionScores(mergedScores);
+      }
+
+      // 2. Exam 데이터 병합
+      if (data.examData) {
+        const existingExamData = collectExamData();
+        const mergedExamData = mergeExamData(existingExamData, data.examData);
+
+        // localStorage에 저장
+        Object.entries(mergedExamData).forEach(([key, value]) => {
+          localStorage.setItem(key, JSON.stringify(value));
+        });
+      }
+
+      // 3. KAM 데이터 병합
+      if (data.kamData) {
+        const existingKamData = collectKamData();
+        const mergedKamData = mergeKamData(existingKamData, data.kamData);
+
+        // KAM 점수 저장
+        if (mergedKamData.scores && Object.keys(mergedKamData.scores).length > 0) {
+          localStorage.setItem('kam_scores', JSON.stringify(mergedKamData.scores));
+        }
+
+        // KAM 답안 저장
+        Object.entries(mergedKamData.answers).forEach(([key, value]) => {
+          localStorage.setItem(key, JSON.stringify(value));
+        });
+
+        // KAM 피드백 저장
+        Object.entries(mergedKamData.feedbacks).forEach(([key, value]) => {
+          localStorage.setItem(key, JSON.stringify(value));
+        });
+      }
 
       // 설정은 가져온 파일의 값으로 업데이트 (있는 경우)
       if (data.geminiApiKey) {
@@ -235,7 +534,7 @@ export function mergeData(file) {
       // 병합 후 상호배타 보정
       enforceExclusiveFlagsOnAll();
 
-      showToast('데이터 병합 완료');
+      showToast('데이터 병합 완료 (Quiz + Exam + KAM)');
       setTimeout(() => location.reload(), 600);
     } catch (err) {
       console.error(err);

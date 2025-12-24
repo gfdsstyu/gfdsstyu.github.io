@@ -98,6 +98,12 @@
                         <p class="px-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Features</p>
                     </div>
                     
+                    <a href="#exam-mode" class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg dark:text-gray-400 dark:hover:bg-gray-800 transition">
+                        📝 기출문제 실전 모드
+                    </a>
+                    <a href="#kam-mode" class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg dark:text-gray-400 dark:hover:bg-gray-800 transition">
+                        🔍 KAM 사례형 훈련
+                    </a>
                     <a href="#ai-report" class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg dark:text-gray-400 dark:hover:bg-gray-800 transition">
                         📊 AI 리포트
                     </a>
@@ -106,12 +112,6 @@
                     </a>
                     <a href="#voice-input" class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg dark:text-gray-400 dark:hover:bg-gray-800 transition">
                         🎙️ 말터디 (음성 입력)
-                    </a>
-                    <a href="#exam-mode" class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg dark:text-gray-400 dark:hover:bg-gray-800 transition">
-                        📝 기출문제 실전 모드
-                    </a>
-                    <a href="#kam-mode" class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg dark:text-gray-400 dark:hover:bg-gray-800 transition">
-                        🔍 KAM 사례형 훈련
                     </a>
 
                     <div class="pt-4 pb-2">
@@ -678,6 +678,12 @@
                 <div id="exam-mode" class="scroll-mt-24">
                     <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">📝 기출문제 실전 모드</h3>
                     <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <div class="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6">
+                            <p class="text-sm text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                                <span class="text-lg">⚠️</span>
+                                <span><strong>GCP 결제 활성화 필요:</strong> AI 채점은 토큰 사용량이 많아 Google Cloud Platform에서 결제를 활성화해야 사용할 수 있습니다.</span>
+                            </p>
+                        </div>
                         <p class="text-gray-600 dark:text-gray-300 mb-6">
                             <strong>실전처럼 연습하세요.</strong> 연도별 CPA 회계감사 기출문제를 시험장과 동일한 환경에서 풀어볼 수 있습니다.
                         </p>
@@ -864,16 +870,33 @@
                                                 <!-- AI Feedback -->
                                                 <div class="bg-purple-50 dark:bg-purple-900/20 p-3 rounded border border-purple-100 dark:border-purple-800">
                                                     <span class="text-[10px] font-bold text-purple-700 dark:text-purple-300">🤖 AI 선생님의 총평</span>
-                                                    <p class="text-xs mt-2 text-gray-700 dark:text-gray-300">
+                                                    <p class="text-xs mt-2 text-gray-700 dark:text-gray-300 mb-3">
                                                         핵심 키워드인 '실재성'과 '권리와 의무'를 정확히 언급했습니다.
                                                         다만 '외부조회의 신뢰성 한계'에 대한 언급이 있었다면 만점이었을 것입니다.
                                                     </p>
+
+                                                    <!-- Strengths & Improvements -->
+                                                    <div class="border-t border-purple-200 dark:border-purple-700 pt-2 space-y-2">
+                                                        <div>
+                                                            <div class="text-[10px] font-bold text-green-700 dark:text-green-400 mb-1">✅ 잘한 점</div>
+                                                            <ul class="text-[10px] text-gray-700 dark:text-gray-300 list-disc list-inside space-y-0.5">
+                                                                <li>실재성 확인 목적을 정확히 언급</li>
+                                                                <li>권리와 의무 검증 절차 포함</li>
+                                                            </ul>
+                                                        </div>
+                                                        <div>
+                                                            <div class="text-[10px] font-bold text-yellow-700 dark:text-yellow-400 mb-1">💡 개선할 점</div>
+                                                            <ul class="text-[10px] text-gray-700 dark:text-gray-300 list-disc list-inside space-y-0.5">
+                                                                <li>외부조회의 신뢰성 한계 언급 필요</li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
                                                 </div>
 
-                                                <!-- Related Standards (RAG) -->
+                                                <!-- Related Standards -->
                                                 <div class="border-t border-gray-200 dark:border-gray-700 pt-3">
                                                     <div class="flex justify-between items-center mb-2">
-                                                        <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">📘 관련 기준서 (RAG 자동 검색)</span>
+                                                        <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">📘 관련 기준서 (유사도 검색)</span>
                                                         <button class="text-[10px] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded hover:bg-indigo-200 dark:hover:bg-indigo-800 transition">복습 목록 추가</button>
                                                     </div>
                                                     <div class="text-[10px] text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 rounded">
@@ -901,8 +924,83 @@
                                 </p>
                                 <p class="flex items-start gap-2">
                                     <span>📚</span>
-                                    <span><strong>RAG 기반 기준서:</strong> 답안 내용을 분석하여 관련 감사기준서를 자동으로 검색하고 추천합니다.</span>
+                                    <span><strong>관련 기준서 추천:</strong> 답안 내용을 분석하여 관련 감사기준서를 자동으로 검색하고 추천합니다.</span>
                                 </p>
+                            </div>
+                        </div>
+
+                        <!-- AI Tutor: Chat Q&A -->
+                        <div class="mb-6">
+                            <h4 class="font-bold text-lg mb-3 flex items-center gap-2">
+                                <span class="text-indigo-600">💬 4단계: AI 선생님께 질문하기</span>
+                            </h4>
+                            <div class="border-2 border-indigo-300 dark:border-indigo-700 rounded-xl p-5 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20">
+                                <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                                    채점 결과를 보고도 이해가 안 되는 부분이 있나요? <strong>AI 선생님과 1:1 대화</strong>하며 문제를 완벽히 이해할 수 있습니다.
+                                </p>
+
+                                <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-indigo-200 dark:border-indigo-700 shadow-sm mb-4">
+                                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                                        <span class="text-xs font-bold text-indigo-700 dark:text-indigo-300">💬 AI 선생님께 이 문제 더 물어보기</span>
+                                        <span class="text-[10px] text-gray-500 dark:text-gray-400">맥락: 2024년 물음 1-2-3 / 0.00점</span>
+                                    </div>
+
+                                    <!-- Quick Question Buttons -->
+                                    <div class="grid grid-cols-2 gap-2 mb-3">
+                                        <button class="bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-800 text-orange-700 dark:text-orange-300 px-3 py-2 rounded text-xs font-medium transition">
+                                            📉 감점 상세 분석
+                                        </button>
+                                        <button class="bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-800 text-purple-700 dark:text-purple-300 px-3 py-2 rounded text-xs font-medium transition">
+                                            💡 올바른 접근법
+                                        </button>
+                                    </div>
+
+                                    <!-- Chat Messages -->
+                                    <div class="space-y-3 mb-3 max-h-64 overflow-y-auto">
+                                        <!-- User Message -->
+                                        <div class="flex justify-end">
+                                            <div class="bg-indigo-500 text-white px-3 py-2 rounded-lg max-w-[80%]">
+                                                <div class="text-[10px] font-bold mb-1">👤 학생</div>
+                                                <div class="text-xs">이 문제의 올바른 접근법과 핵심 논리를 단계별로 설명해주세요.</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- AI Response -->
+                                        <div class="flex justify-start">
+                                            <div class="bg-white dark:bg-gray-700 border border-indigo-200 dark:border-indigo-700 px-3 py-2 rounded-lg max-w-[85%]">
+                                                <div class="text-[10px] font-bold mb-1 text-indigo-600 dark:text-indigo-400">🤖 AI 선생님</div>
+                                                <div class="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                                                    이 문제는 전산 환경에서의 <strong>직무 분리(Segregation of Duties)</strong> 원칙에 대한 이해를 묻는 문제입니다.<br><br>
+                                                    <strong>핵심 포인트:</strong><br>
+                                                    1. 프로그래머와 오퍼레이터의 공동 개발 금지는 적절한 통제입니다.<br>
+                                                    2. 그러나 '입력 방식 효율성 논의' 금지는 과도한 통제일 수 있습니다.<br>
+                                                    3. 논의와 실제 변경을 구분해야 하며, 공식 절차(시스템 분석가 경유)를 통한 변경이 중요합니다.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Input Area -->
+                                    <div class="flex gap-2">
+                                        <input type="text" placeholder="추가로 궁금한 점을 물어보세요..." class="flex-1 px-3 py-2 text-xs border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+                                        <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-xs font-medium transition">전송</button>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <p class="flex items-start gap-2">
+                                        <span>🎯</span>
+                                        <span><strong>맥락 유지 대화:</strong> AI는 해당 문제의 지문, 모범답안, 채점평을 모두 기억하고 있어 정확한 답변을 제공합니다.</span>
+                                    </p>
+                                    <p class="flex items-start gap-2">
+                                        <span>⚡</span>
+                                        <span><strong>빠른 질문 버튼:</strong> 감점 분석, 올바른 접근법 등 자주 묻는 질문을 원클릭으로 물어볼 수 있습니다.</span>
+                                    </p>
+                                    <p class="flex items-start gap-2">
+                                        <span>🔁</span>
+                                        <span><strong>연속 질문 가능:</strong> 한 번 질문을 시작하면 추가 질문을 계속 이어나갈 수 있어 깊이 있는 학습이 가능합니다.</span>
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
@@ -911,6 +1009,7 @@
                             <ul class="text-sm text-gray-700 dark:text-gray-300 space-y-1">
                                 <li>• 실전처럼 90분 타이머를 지키며 연습하세요</li>
                                 <li>• AI 피드백을 바탕으로 놓친 키워드를 복습 노트에 정리하세요</li>
+                                <li>• 이해 안 되는 부분은 AI 선생님께 바로 질문하여 완벽히 이해하세요</li>
                                 <li>• 오답만 다시 풀기 기능으로 약점을 집중 보완하세요</li>
                                 <li>• PDF 내보내기로 나만의 오답 노트를 만들어보세요</li>
                             </ul>
@@ -954,11 +1053,11 @@
 
                         <div class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4">
                             <h4 class="font-bold text-indigo-700 dark:text-indigo-300 text-sm mb-2 flex items-center gap-2">
-                                📚 RAG 기반 기준서 자동 연계
+                                📚 관련 기준서 자동 추천
                             </h4>
                             <p class="text-sm text-gray-700 dark:text-gray-300">
                                 답안을 분석하여 관련 감사기준서를 자동으로 검색하고 추천합니다.
-                                답안 > 제목 > 지문 순으로 가중치를 적용한 지능형 검색이 작동합니다.
+                                답안 > 제목 > 지문 순으로 가중치를 적용한 유사도 검색이 작동합니다.
                             </p>
                             <div class="mt-2 text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 p-2 rounded">
                                 예: [기준서 505호] 외부조회: 감사인은 조회처로부터...
