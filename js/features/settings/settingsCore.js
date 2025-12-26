@@ -68,7 +68,8 @@ export function openApiModal(initial = false) {
   el.apiModal.classList.remove('hidden');
   el.apiModal.classList.add('flex');
   el.apiModalInput.value = getGeminiApiKey() || '';
-  el.apiModalRemember.checked = !!localStorage.getItem('gemini_api_key');
+  // 기본값으로 체크박스 선택 (사용자 편의성 향상)
+  el.apiModalRemember.checked = true;
 
   setTimeout(() => el.apiModalInput.focus(), 0);
 }
