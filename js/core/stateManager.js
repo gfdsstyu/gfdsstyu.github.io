@@ -137,8 +137,8 @@ export const setKAMSelectedCase = (caseData) => { state.kamSelectedCase = caseDa
 
 const STORAGE_KEYS = {
   questionScores: 'auditQuizScores',
-  geminiApiKeyLocal: 'geminiApiKey',
-  geminiApiKeySession: 'geminiApiKey',
+  geminiApiKeyLocal: 'gemini_api_key',
+  geminiApiKeySession: 'gemini_api_key',
   selectedAiModel: 'aiModel',
   darkMode: 'darkMode',
   statsView: 'statsView_v1',

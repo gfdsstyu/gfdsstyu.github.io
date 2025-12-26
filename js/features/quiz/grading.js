@@ -184,18 +184,66 @@ export async function handleGrade() {
   setGradeLoading(true);
 
   try {
-    // AI 채점 요청
-    let { score, feedback } = await callGeminiAPI(
-      answer,
-      q.정답,
-      geminiApiKey,
-      getSelectedAiModel()
-    );
+    // Groq 모델 사용 여부 확인
+    const groqModel = localStorage.getItem('groq_model');
+    const useGroq = groqModel && groqModel.trim() !== '';
 
-    // Lite 모델 감점
-    const selectedAiModel = getSelectedAiModel();
-    if (selectedAiModel === 'gemini-2.5-flash-lite') {
-      score = clamp(score - 5, 0, 100);
+    let score, feedback;
+
+    if (useGroq) {
+      // Groq API 사용 (Quiz 채점 전용)
+      const groqApiKey = localStorage.getItem('grok_api_key');
+      if (!groqApiKey) {
+        throw new Error('Groq API 키가 설정되지 않았습니다. 설정에서 Groq API 키를 입력해주세요.');
+      }
+
+      console.log('🧪 [Quiz Grading] Groq 모델 사용:', groqModel);
+
+      // Groq API를 사용한 간단한 채점 (OpenRouterChatSession 사용하지 않고 직접 호출)
+      const { OpenRouterChatSession } = await import('../../services/openRouterApi.js');
+
+      const systemPrompt = `회계감사 전문가. 학생 답안을 채점.
+모범답안: ${q.정답}
+
+다음 형식으로만 응답:
+점수: [0-100]
+피드백: [간단한 피드백]`;
+
+      const chatSession = new OpenRouterChatSession(
+        groqApiKey,
+        groqModel,
+        systemPrompt,
+        { temperature: 0.2, max_tokens: 2048 } // Quiz 채점은 짧은 응답이므로 2048로 충분
+      );
+
+      await chatSession.initialize();
+      const response = await chatSession.sendMessage(`학생 답안: ${answer}\n\n채점해주세요.`);
+
+      // 응답 파싱
+      const scoreMatch = response.match(/점수[:\s]*(\d+)/);
+      const feedbackMatch = response.match(/피드백[:\s]*(.+)/s);
+
+      score = scoreMatch ? parseInt(scoreMatch[1]) : 0;
+      feedback = feedbackMatch ? feedbackMatch[1].trim() : response;
+
+      console.log('✅ [Quiz Grading] Groq 채점 완료 -', score, '점');
+
+    } else {
+      // 기존 Gemini API 사용
+      const result = await callGeminiAPI(
+        answer,
+        q.정답,
+        geminiApiKey,
+        getSelectedAiModel()
+      );
+      score = result.score;
+      feedback = result.feedback;
+
+      // Lite 모델 감점
+      const selectedAiModel = getSelectedAiModel();
+      if (selectedAiModel === 'gemini-2.5-flash-lite') {
+        score = clamp(score - 5, 0, 100);
+      }
     }
 
     // 힌트 사용 감점

@@ -11,6 +11,7 @@ import ragSearchService from '../../services/ragSearch.js';
 import { showToast } from '../../ui/domUtils.js';
 import { getAllCustomLists, addQuestionToList, removeQuestionFromList, getQuestionLists } from '../review/customReviewLists.js';
 import { AI_MODELS } from '../../config/config.js';
+import { initializeGamliniDrawer, openGamliniDrawer } from './gamliniDrawer.js'; // 🆕 Gamlini 2.0
 
 console.log('📄 [examResultUI.js] 모듈 로드됨');
 
@@ -186,9 +187,16 @@ function renderTable(headers, alignments, rows) {
 export async function renderResultMode(container, year, result, apiKey, selectedModel, inheritedViewMode = 'auto') {
   console.log('🎨 [examResultUI.js] renderResultMode 시작');
   try {
+    // 🆕 Gamlini 2.0 초기화 (최초 1회만)
+    if (!window.__gamliniInitialized) {
+      initializeGamliniDrawer();
+      window.__gamliniInitialized = true;
+      console.log('✅ [Gamlini 2.0] 초기화 완료');
+    }
+
     // 컨테이너 초기화 (스크롤 문제 해결: body 스크롤 방지)
     container.className = 'fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden';
-    
+
     // body 스크롤 방지
     document.body.style.overflow = 'hidden';
     
@@ -559,67 +567,19 @@ ${feedback?.feedback ? escapeHtml(normalizeText(feedback.feedback)) : '<span cla
                       ` : ''}
                     </div>
 
-                    <!-- AI 튜터 질의응답 영역 -->
+                    <!-- 감린이 AI 튜터 (통합) -->
                     <div class="mt-4 ai-tutor-section" data-question-id="${question.id}">
-                      <!-- 헤더 (토글) -->
-                      <div class="bg-purple-100/50 dark:bg-purple-900/30 rounded-t-lg border-2 border-purple-200 dark:border-purple-700 overflow-hidden">
-                        <button class="ai-tutor-toggle w-full px-4 py-3 text-left flex items-center justify-between hover:bg-purple-200/50 dark:hover:bg-purple-900/50 transition-colors" data-question-id="${question.id}">
-                          <div class="flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-4 h-4 sm:w-5 sm:h-5 inline-block"><rect width="100" height="100" rx="20" fill="#6D28D9"/><rect x="20" y="20" width="60" height="60" rx="10" fill="white"/><circle cx="36" cy="43" r="9" fill="#8B5CF6"/><text x="36" y="46" font-size="14" fill="white" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="900" text-anchor="middle" dominant-baseline="central">ㄱ</text><g transform="translate(64, 43)"><path d="M0 0 L 4 10 L 14 14 L 4 18 L 0 28 L -4 18 L -14 14 L -4 10 Z" fill="#FACC15" transform="scale(0.8) translate(0, -14)"/></g><path d="M30 60 H 70 V 72 H 30 Z M35 60 V 72 M 40 60 V 72 M 45 60 V 72 M 50 60 V 72 M 55 60 V 72 M 60 60 V 72 M 65 60 V 72" fill="none" stroke="#4F46E5" stroke-width="2"/></svg>
-                            <span class="text-sm sm:text-base font-semibold text-purple-700 dark:text-purple-300">AI 선생님께 이 문제 더 물어보기</span>
-                          </div>
-                          <span class="ai-tutor-arrow text-purple-700 dark:text-purple-300 transition-transform" data-question-id="${question.id}">▼</span>
-                        </button>
-                      </div>
-
-                      <!-- 대화 영역 (초기: 숨김) -->
-                      <div class="ai-tutor-content hidden border-x-2 border-b-2 border-purple-200 dark:border-purple-700 rounded-b-lg bg-white dark:bg-gray-800 p-4" data-question-id="${question.id}">
-                        <!-- 컨텍스트 정보 표시 -->
-                        <div class="mb-3 p-2 bg-purple-50 dark:bg-purple-900/20 rounded text-xs text-purple-700 dark:text-purple-300">
-                          <span class="font-semibold">맥락:</span> ${year}년 물음 ${extractQuestionNumber(question.id)} / ${score.toFixed(2)}점 (${question.score}점 만점)
-                        </div>
-
-                        <!-- 빠른 질문 칩 -->
-                        <div class="mb-4">
-                          <div class="flex flex-wrap gap-2 ai-tutor-quick-questions" data-question-id="${question.id}">
-                            <!-- 빠른 질문 버튼은 JavaScript에서 동적으로 추가됨 -->
-                          </div>
-                        </div>
-
-                        <!-- 대화 메시지 영역 -->
-                        <div class="ai-tutor-messages mb-4 max-h-96 overflow-y-auto min-h-[100px] flex flex-col gap-3" data-question-id="${question.id}"></div>
-
-                        <!-- 입력 영역 -->
-                        <div class="space-y-2">
-                          <div class="flex gap-2">
-                            <textarea
-                              class="ai-tutor-input flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg resize-none bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                              rows="2"
-                              placeholder="AI 선생님께 궁금한 점을 물어보세요..."
-                              data-question-id="${question.id}"
-                            ></textarea>
-                            <button
-                              class="ai-tutor-send-btn px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                              data-question-id="${question.id}"
-                            >
-                              전송
-                            </button>
-                          </div>
-
-                          <!-- 하단 툴바: 모델 선택 + 도움말 -->
-                          <div class="flex items-center justify-between">
-                            <select
-                              class="ai-tutor-model-select text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-purple-500 focus:outline-none"
-                              data-question-id="${question.id}"
-                            >
-                              ${AI_MODELS.map(model => `<option value="${model.value}">${model.label}</option>`).join('')}
-                            </select>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">
-                              💡 빠른 질문 버튼 활용 가능
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                      <button
+                        class="gamlini-open-btn w-full px-4 py-3 bg-white dark:bg-gray-800 border-2 border-purple-300 dark:border-purple-600 hover:border-purple-500 dark:hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-gray-700 text-purple-700 dark:text-purple-300 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                        data-question-id="${question.id}"
+                        data-case-topic="${escapeHtml(examCase.topic)}"
+                        data-case-type="${question.type || ''}"
+                      >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        <span>감린이로 깊이 학습하기</span>
+                      </button>
                     </div>
 
                     </div>
@@ -1249,132 +1209,9 @@ async function setupEventListeners(container, year, result, exams, metadata, use
   });
 
   // ============================================
-  // AI 튜터 질의응답 이벤트 리스너
+  // Gamlini 2.0 이벤트 리스너
   // ============================================
-
-  // AI 튜터 섹션 토글
-  const aiTutorToggles = container.querySelectorAll('.ai-tutor-toggle');
-  aiTutorToggles.forEach(toggle => {
-    toggle.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const questionId = toggle.dataset.questionId;
-      const content = container.querySelector(`.ai-tutor-content[data-question-id="${questionId}"]`);
-      const arrow = container.querySelector(`.ai-tutor-arrow[data-question-id="${questionId}"]`);
-
-      if (content && arrow) {
-        const isHidden = content.classList.contains('hidden');
-
-        if (isHidden) {
-          // 펼치기
-          content.classList.remove('hidden');
-          arrow.style.transform = 'rotate(180deg)';
-
-          // 빠른 질문 버튼 초기화 (처음 열 때만)
-          const quickQuestionsContainer = content.querySelector(`.ai-tutor-quick-questions[data-question-id="${questionId}"]`);
-          if (quickQuestionsContainer && quickQuestionsContainer.children.length === 0) {
-            await initQuickQuestions(questionId, quickQuestionsContainer, exams, userAnswers, result);
-          }
-        } else {
-          // 접기
-          content.classList.add('hidden');
-          arrow.style.transform = 'rotate(0deg)';
-        }
-      }
-    });
-  });
-
-  // AI 튜터 전송 버튼 클릭
-  const aiTutorSendButtons = container.querySelectorAll('.ai-tutor-send-btn');
-  console.log('📌 [AI Tutor] 전송 버튼 개수:', aiTutorSendButtons.length);
-  aiTutorSendButtons.forEach(btn => {
-    btn.addEventListener('click', async () => {
-      console.log('🔵 [AI Tutor] 전송 버튼 클릭됨');
-      const questionId = btn.dataset.questionId;
-      const input = container.querySelector(`.ai-tutor-input[data-question-id="${questionId}"]`);
-      const messagesContainer = container.querySelector(`.ai-tutor-messages[data-question-id="${questionId}"]`);
-      const modelSelect = container.querySelector(`.ai-tutor-model-select[data-question-id="${questionId}"]`);
-
-      console.log('📍 [AI Tutor] questionId:', questionId);
-      console.log('📍 [AI Tutor] input:', input);
-      console.log('📍 [AI Tutor] messagesContainer:', messagesContainer);
-
-      if (!input || !messagesContainer) {
-        console.error('❌ [AI Tutor] input 또는 messagesContainer가 없습니다!');
-        return;
-      }
-
-      const userQuestion = input.value.trim();
-      console.log('📝 [AI Tutor] 사용자 질문:', userQuestion);
-
-      if (!userQuestion) {
-        showToast('질문을 입력해주세요.', 'warn');
-        return;
-      }
-
-      // 선택된 모델 가져오기 (없으면 기본값 사용)
-      const currentModel = modelSelect?.value || selectedModel || 'gemini-2.0-flash-exp';
-      console.log('🤖 [AI Tutor] 선택된 모델:', currentModel);
-
-      // 사용자 질문 메시지 추가
-      console.log('➡️ [AI Tutor] addUserMessage 호출 직전');
-
-      // 디버깅: 부모 영역이 hidden인지 확인하고 강제로 표시
-      const contentArea = document.querySelector(`.ai-tutor-content[data-question-id="${questionId}"]`);
-      if (contentArea) {
-        const wasHidden = contentArea.classList.contains('hidden');
-        console.log('🔍 [AI Tutor] contentArea hidden 상태:', wasHidden);
-        if (wasHidden) {
-          console.warn('⚠️ [AI Tutor] 컨텐츠 영역이 숨겨져 있습니다! 강제로 표시합니다.');
-          contentArea.classList.remove('hidden');
-        }
-      }
-
-      addUserMessage(messagesContainer, userQuestion);
-      console.log('✅ [AI Tutor] addUserMessage 호출 완료');
-      input.value = '';
-      btn.disabled = true;
-
-      // 로딩 메시지 표시
-      const loadingEl = addAiLoadingMessage(messagesContainer);
-
-      try {
-        // AI 답변 요청
-        const response = await askAiTutor(questionId, userQuestion, exams, userAnswers, result, apiKey, currentModel);
-
-        // 로딩 메시지 제거
-        removeAiLoadingMessage(loadingEl);
-
-        // AI 답변 메시지 추가
-        addAiMessage(messagesContainer, response);
-
-        // 스크롤 하단으로 이동
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-      } catch (error) {
-        console.error('❌ [AI Tutor] 질문 실패:', error);
-
-        // 로딩 메시지 제거
-        removeAiLoadingMessage(loadingEl);
-
-        addAiMessage(messagesContainer, '죄송합니다. 답변 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
-        showToast('AI 답변 생성 중 오류가 발생했습니다.', 'error');
-      } finally {
-        btn.disabled = false;
-      }
-    });
-  });
-
-  // AI 튜터 입력창 Enter 키 처리 (Shift+Enter는 줄바꿈)
-  const aiTutorInputs = container.querySelectorAll('.ai-tutor-input');
-  aiTutorInputs.forEach(input => {
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        const questionId = input.dataset.questionId;
-        const sendBtn = container.querySelector(`.ai-tutor-send-btn[data-question-id="${questionId}"]`);
-        if (sendBtn) sendBtn.click();
-      }
-    });
-  });
+  setupGamliniListeners(container, exams, userAnswers, result, apiKey);
 }
 
 /**
@@ -1568,201 +1405,8 @@ function showCustomListSelector(questionId, triggerBtn) {
 // ============================================
 
 /**
- * 빠른 질문 버튼 초기화
- */
-async function initQuickQuestions(questionId, container, exams, userAnswers, result) {
-  // 문제 데이터 찾기
-  const questionData = findQuestionData(questionId, exams);
-  if (!questionData) return;
-
-  const { question, examCase } = questionData;
-  const userAnswer = userAnswers[questionId]?.answer || '';
-  const feedback = result.details[questionId];
-
-  // AI Tutor 세션 가져오기
-  const { getAiTutorSession } = await import('./examAiTutor.js');
-  const session = getAiTutorSession(questionId, question, userAnswer, feedback, examCase);
-
-  // 빠른 질문 목록 가져오기
-  const quickQuestions = session.getQuickQuestions();
-
-  // 버튼 렌더링
-  container.innerHTML = quickQuestions.map(q => `
-    <button
-      class="quick-question-btn px-3 py-2 bg-white dark:bg-gray-700 border-2 border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-800 rounded-lg text-xs sm:text-sm font-medium transition-colors"
-      data-question-id="${questionId}"
-      data-prompt="${escapeHtml(q.prompt)}"
-    >
-      ${q.icon} ${q.label}
-    </button>
-  `).join('');
-
-  // 빠른 질문 버튼 클릭 이벤트
-  container.querySelectorAll('.quick-question-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const qid = btn.dataset.questionId;
-      const prompt = btn.dataset.prompt;
-
-      // 입력창에 질문 텍스트 설정하고 전송
-      const input = document.querySelector(`.ai-tutor-input[data-question-id="${qid}"]`);
-      const messagesContainer = document.querySelector(`.ai-tutor-messages[data-question-id="${qid}"]`);
-      const sendBtn = document.querySelector(`.ai-tutor-send-btn[data-question-id="${qid}"]`);
-      const modelSelect = document.querySelector(`.ai-tutor-model-select[data-question-id="${qid}"]`);
-
-      if (!input || !messagesContainer || !sendBtn) return;
-
-      // 사용자 질문 메시지 추가
-      addUserMessage(messagesContainer, prompt);
-
-      // 버튼 비활성화
-      sendBtn.disabled = true;
-      btn.disabled = true;
-
-      // 로딩 메시지 표시
-      const loadingEl = addAiLoadingMessage(messagesContainer);
-
-      try {
-        // AI 답변 요청
-        const apiKey = (await import('../../core/stateManager.js')).getGeminiApiKey();
-        const defaultModel = (await import('../../core/stateManager.js')).getSelectedAiModel() || 'gemini-2.0-flash-exp';
-        const currentModel = modelSelect?.value || defaultModel;
-        const response = await askAiTutor(qid, prompt, exams, userAnswers, result, apiKey, currentModel);
-
-        // 로딩 메시지 제거
-        removeAiLoadingMessage(loadingEl);
-
-        // AI 답변 메시지 추가
-        addAiMessage(messagesContainer, response);
-
-        // 스크롤 하단으로 이동
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-      } catch (error) {
-        console.error('❌ [AI Tutor] 빠른 질문 실패:', error);
-
-        // 로딩 메시지 제거
-        removeAiLoadingMessage(loadingEl);
-
-        addAiMessage(messagesContainer, '죄송합니다. 답변 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
-        showToast('AI 답변 생성 중 오류가 발생했습니다.', 'error');
-      } finally {
-        sendBtn.disabled = false;
-        btn.disabled = false;
-      }
-    });
-  });
-}
-
-/**
- * 사용자 메시지 추가
- */
-function addUserMessage(container, message) {
-  console.log('🟦 [AI Tutor] 사용자 메시지 추가:', message, 'container:', container);
-  console.log('🟦 [AI Tutor] 컨테이너 children 개수 (before):', container.children.length);
-
-  const messageEl = document.createElement('div');
-  messageEl.className = 'flex justify-end';
-  messageEl.innerHTML = `
-    <div class="max-w-[80%] px-4 py-2 rounded-lg rounded-br-sm" style="background-color: #4f46e5; color: #ffffff;">
-      <div class="text-sm whitespace-pre-wrap">${escapeHtml(message)}</div>
-    </div>
-  `;
-  container.appendChild(messageEl);
-
-  console.log('✅ [AI Tutor] 사용자 메시지 DOM에 추가됨');
-  console.log('✅ [AI Tutor] 추가된 요소:', messageEl);
-  console.log('✅ [AI Tutor] 메시지 offsetHeight:', messageEl.offsetHeight);
-  console.log('✅ [AI Tutor] 메시지 clientHeight:', messageEl.clientHeight);
-  console.log('✅ [AI Tutor] 컨테이너 children 개수 (after):', container.children.length);
-  console.log('✅ [AI Tutor] 컨테이너 scrollHeight:', container.scrollHeight);
-  console.log('✅ [AI Tutor] 컨테이너 clientHeight:', container.clientHeight);
-
-  container.scrollTop = container.scrollHeight;
-
-  // 강제로 화면에 보이도록 스크롤
-  messageEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-/**
- * AI 메시지 추가
- */
-function addAiMessage(container, message) {
-  console.log('🤖 [AI Tutor] AI 메시지 추가:', message.substring(0, 100) + '...', 'container:', container);
-  const messageEl = document.createElement('div');
-  messageEl.className = 'flex justify-start';
-  messageEl.innerHTML = `
-    <div class="max-w-[85%] px-4 py-3 rounded-lg rounded-bl-sm" style="background-color: #ffffff; border: 1px solid #e9d5ff; color: #1f2937;">
-      <div class="flex items-start gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-4 h-4 flex-shrink-0" style="margin-top: 2px;"><rect width="100" height="100" rx="20" fill="#6D28D9"/><rect x="20" y="20" width="60" height="60" rx="10" fill="white"/><circle cx="36" cy="43" r="9" fill="#8B5CF6"/><text x="36" y="46" font-size="14" fill="white" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="900" text-anchor="middle" dominant-baseline="central">ㄱ</text><g transform="translate(64, 43)"><path d="M0 0 L 4 10 L 14 14 L 4 18 L 0 28 L -4 18 L -14 14 L -4 10 Z" fill="#FACC15" transform="scale(0.8) translate(0, -14)"/></g><path d="M30 60 H 70 V 72 H 30 Z M35 60 V 72 M 40 60 V 72 M 45 60 V 72 M 50 60 V 72 M 55 60 V 72 M 60 60 V 72 M 65 60 V 72" fill="none" stroke="#4F46E5" stroke-width="2"/></svg>
-        <div class="flex-1 text-sm whitespace-pre-wrap leading-relaxed">${escapeHtml(message)}</div>
-      </div>
-    </div>
-  `;
-  container.appendChild(messageEl);
-  console.log('✅ [AI Tutor] AI 메시지 DOM에 추가됨');
-  container.scrollTop = container.scrollHeight;
-}
-
-/**
- * AI 로딩 메시지 추가 (생각 중...)
- * @returns {HTMLElement} 로딩 메시지 요소 (나중에 제거하기 위해 반환)
- */
-function addAiLoadingMessage(container) {
-  const messageEl = document.createElement('div');
-  messageEl.className = 'flex justify-start ai-loading-message';
-  messageEl.innerHTML = `
-    <div class="max-w-[85%] bg-white dark:bg-gray-700 border border-purple-200 dark:border-purple-600 px-4 py-3 rounded-lg">
-      <div class="flex items-start gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-4 h-4 flex-shrink-0" style="margin-top: 2px;"><rect width="100" height="100" rx="20" fill="#6D28D9"/><rect x="20" y="20" width="60" height="60" rx="10" fill="white"/><circle cx="36" cy="43" r="9" fill="#8B5CF6"/><text x="36" y="46" font-size="14" fill="white" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="900" text-anchor="middle" dominant-baseline="central">ㄱ</text><g transform="translate(64, 43)"><path d="M0 0 L 4 10 L 14 14 L 4 18 L 0 28 L -4 18 L -14 14 L -4 10 Z" fill="#FACC15" transform="scale(0.8) translate(0, -14)"/></g><path d="M30 60 H 70 V 72 H 30 Z M35 60 V 72 M 40 60 V 72 M 45 60 V 72 M 50 60 V 72 M 55 60 V 72 M 60 60 V 72 M 65 60 V 72" fill="none" stroke="#4F46E5" stroke-width="2"/></svg>
-        <div class="flex-1 text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
-          <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <span>AI 선생님이 답변을 생각 중입니다...</span>
-        </div>
-      </div>
-    </div>
-  `;
-  container.appendChild(messageEl);
-  container.scrollTop = container.scrollHeight;
-  return messageEl;
-}
-
-/**
- * AI 로딩 메시지 제거
- */
-function removeAiLoadingMessage(loadingEl) {
-  if (loadingEl && loadingEl.parentNode) {
-    loadingEl.remove();
-  }
-}
-
-/**
- * AI 튜터에게 질문하기
- */
-async function askAiTutor(questionId, userQuestion, exams, userAnswers, result, apiKey, selectedModel) {
-  // 문제 데이터 찾기
-  const questionData = findQuestionData(questionId, exams);
-  if (!questionData) {
-    throw new Error('문제 데이터를 찾을 수 없습니다.');
-  }
-
-  const { question, examCase } = questionData;
-  const userAnswer = userAnswers[questionId]?.answer || '';
-  const feedback = result.details[questionId];
-
-  // AI Tutor 세션 가져오기
-  const { getAiTutorSession } = await import('./examAiTutor.js');
-  const session = getAiTutorSession(questionId, question, userAnswer, feedback, examCase);
-
-  // 질문 전송 및 답변 받기
-  const response = await session.askQuestion(userQuestion, apiKey, selectedModel);
-
-  return response;
-}
-
-/**
  * 문제 데이터 찾기 (questionId로 question과 examCase 반환)
+ * (Gamlini 2.0 버튼에서 사용)
  */
 function findQuestionData(questionId, exams) {
   for (const examCase of exams) {
@@ -1773,4 +1417,53 @@ function findQuestionData(questionId, exams) {
     }
   }
   return null;
+}
+
+/**
+ * 🆕 Gamlini 2.0 버튼 이벤트 리스너 설정
+ */
+function setupGamliniListeners(container, exams, userAnswers, result, apiKey) {
+  // Gamlini 버튼 클릭 이벤트 (이벤트 위임)
+  container.addEventListener('click', (e) => {
+    const gamliniBtn = e.target.closest('.gamlini-open-btn');
+    if (!gamliniBtn) return;
+
+    const questionId = gamliniBtn.dataset.questionId;
+    const caseTopic = gamliniBtn.dataset.caseTopic;
+    const caseType = gamliniBtn.dataset.caseType;
+
+    console.log('🤖 [Gamlini 2.0] 버튼 클릭:', questionId);
+
+    // 문제 데이터 찾기
+    const questionData = findQuestionData(questionId, exams);
+    if (!questionData) {
+      showToast('문제 데이터를 찾을 수 없습니다.', 'error');
+      return;
+    }
+
+    const { question, examCase } = questionData;
+    const userAnswer = userAnswers[questionId]?.answer || '';
+    const feedback = result.details[questionId];
+
+    // Gamlini 드로어 열기 (전체 exams와 userAnswers, result 전달)
+    openGamliniDrawer(
+      questionId,
+      question,
+      userAnswer,
+      feedback,
+      examCase,
+      apiKey,
+      exams,  // 전체 exam 데이터 (물음 선택용)
+      userAnswers,
+      result
+    );
+
+    // AI 튜터 섹션 자동으로 닫기 (선택사항)
+    const aiTutorContent = container.querySelector(`.ai-tutor-content[data-question-id="${questionId}"]`);
+    if (aiTutorContent && !aiTutorContent.classList.contains('hidden')) {
+      aiTutorContent.classList.add('hidden');
+      const arrow = container.querySelector(`.ai-tutor-arrow[data-question-id="${questionId}"]`);
+      if (arrow) arrow.textContent = '▼';
+    }
+  });
 }

@@ -98,6 +98,9 @@
                         <p class="px-3 text-xs font-bold text-gray-400 uppercase tracking-wider">Features</p>
                     </div>
                     
+                    <a href="#ai-models" class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg dark:text-gray-400 dark:hover:bg-gray-800 transition">
+                        🤖 AI 모델 & 챗봇 2.0
+                    </a>
                     <a href="#exam-mode" class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg dark:text-gray-400 dark:hover:bg-gray-800 transition">
                         📝 기출문제 실전 모드
                     </a>
@@ -138,7 +141,7 @@
 
             <section id="intro" class="text-center space-y-6 pt-8">
                 <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 text-xs font-bold mb-4">
-                    ✨ New: Gemini 3.0 Flash 사용 가능
+                    ✨ New: Groq AI 모델 추가 & 감린이 챗봇 2.0
                 </div>
                 <h1 class="text-4xl md:text-6xl font-black text-gray-900 dark:text-white leading-tight">
                     '감'에 의존하는<br>
@@ -198,7 +201,7 @@
                             </div>
                             <div class="bg-white dark:bg-gray-800 p-2 rounded border">
                                 <p class="font-bold text-blue-700 dark:text-blue-300 mb-1">🤖 AI 모델</p>
-                                <p class="text-gray-500 dark:text-gray-400">Gemini 2.5 / 3, Flash Lite, Gemma 3 선택</p>
+                                <p class="text-gray-500 dark:text-gray-400">Gemini, Groq, Gemma 선택 가능</p>
                             </div>
                             <div class="bg-white dark:bg-gray-800 p-2 rounded border">
                                 <p class="font-bold text-purple-700 dark:text-purple-300 mb-1">⚙️ 설정</p>
@@ -319,7 +322,7 @@
                     </div>
 
                     <div class="lg:col-span-3 space-y-4">
-                        <div class="layout-container p-5 h-full bg-slate-50/50 dark:bg-gray-800/50 border-brand-200 dark:border-brand-900">
+                        <div class="layout-container p-5 h-full bg-slate-50/50 dark:bg-gray-800/50 border-brand-200 dark:border-brand-900 relative">
                             <span class="layout-label text-brand-500">Right: 탐색기</span>
                             <div class="space-y-4">
                                 <div class="bg-white dark:bg-gray-800 p-3 rounded shadow-sm">
@@ -329,6 +332,20 @@
                                 <div class="bg-white dark:bg-gray-800 p-3 rounded shadow-sm">
                                     <h4 class="font-bold text-sm mb-1">🔍 문제 목록</h4>
                                     <p class="text-xs text-slate-500">특정 문제를 검색하거나 클릭하여 바로 이동합니다.</p>
+                                </div>
+                            </div>
+
+                            <!-- AI 챗봇 파비콘 (우하단) -->
+                            <div class="absolute bottom-3 right-3">
+                                <div class="relative group">
+                                    <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg cursor-pointer hover:scale-110 transition-transform">
+                                        ㄱ
+                                    </div>
+                                    <!-- 툴팁 -->
+                                    <div class="absolute bottom-14 right-0 bg-gray-900 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                        💬 AI 챗봇 (감린이)
+                                        <div class="absolute -bottom-1 right-4 w-2 h-2 bg-gray-900 transform rotate-45"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -399,281 +416,211 @@
 
             <section class="space-y-16">
                 
-                <div id="ai-report" class="scroll-mt-24">
-                    <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">📊 AI 학습 리포트</h3>
+                <div id="ai-models" class="scroll-mt-24">
+                    <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">🤖 AI 모델 & 감린이 챗봇 2.0</h3>
                     <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-                        <p class="text-gray-600 dark:text-gray-300 mb-6">
-                            단순히 맞고 틀리고를 떠나, AI가 당신의 학습 데이터를 심층 분석합니다. <strong>최소 20문제 이상 풀이 시 정확한 분석</strong>이 가능하며, 5개의 탭으로 구성된 종합 리포트를 제공합니다.
-                        </p>
 
-                        <!-- 탭별 설명 -->
-                        <div class="space-y-4 mb-6">
-                            <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-l-4 border-blue-500 p-4 rounded-r-lg">
-                                <h4 class="font-bold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2">
-                                    <span>📋</span>
-                                    <span>탭 1: 종합 개요 (Overview)</span>
-                                </h4>
-                                <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                                    <p><strong>한눈에 보는 학습 현황</strong></p>
-                                    <ul class="list-disc list-inside space-y-1 ml-2 text-xs">
-                                        <li>총 문제 풀이 수, 평균 점수, 정답률 등 핵심 지표</li>
-                                        <li>과목별/챕터별 학습 진도율 시각화</li>
-                                        <li>최근 7일/30일 학습량 트렌드</li>
-                                        <li>AI가 생성한 종합 코멘트 및 격려 메시지</li>
-                                    </ul>
+                        <!-- Groq AI 모델 -->
+                        <div class="mb-8">
+                            <h4 class="font-bold text-lg mb-3 flex items-center gap-2">
+                                <span class="text-emerald-600">⚡ Groq AI 모델 추가</span>
+                                <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded">NEW</span>
+                            </h4>
+                            <div class="border-2 border-emerald-300 dark:border-emerald-700 rounded-xl p-5 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20">
+                                <div class="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4">
+                                    <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                                        <strong>Groq</strong>은 초고속 AI 추론 플랫폼으로, <strong>무료</strong>이면서도 <strong>빠른 응답 속도</strong>를 제공합니다.
+                                    </p>
+                                    <div class="grid md:grid-cols-2 gap-4 mb-4">
+                                        <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded border border-green-200 dark:border-green-800">
+                                            <div class="text-xs font-bold text-green-700 dark:text-green-300 mb-2">✅ 장점</div>
+                                            <ul class="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+                                                <li>• <strong>무료:</strong> API 키 무료 발급 가능</li>
+                                                <li>• <strong>빠른 속도:</strong> 빠른 응답 시간</li>
+                                                <li>• <strong>API 발급:</strong> <a href="https://console.groq.com/" target="_blank" class="text-blue-600 dark:text-blue-400 underline">console.groq.com</a>에서 발급</li>
+                                            </ul>
+                                        </div>
+                                        <div class="bg-amber-50 dark:bg-amber-900/20 p-3 rounded border border-amber-200 dark:border-amber-800">
+                                            <div class="text-xs font-bold text-amber-700 dark:text-amber-300 mb-2">⚠️ 제한사항</div>
+                                            <ul class="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+                                                <li>• <strong>기준서 채점 전용:</strong> 낮은 TPM (분당 토큰) 한도로 인해 Exam 모드에서는 사용 불가</li>
+                                                <li>• <strong>단답형 문제:</strong> 짧은 답안에 최적화</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-3 rounded-r-lg">
+                                        <p class="text-xs text-blue-800 dark:text-blue-300">
+                                            <strong>💡 추천 사용법:</strong> 기준서 모드에서 빠르게 채점받고 싶을 때, Exam 모드에서는 Gemini 사용을 권장합니다.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-l-4 border-green-500 p-4 rounded-r-lg">
-                                <h4 class="font-bold text-green-800 dark:text-green-300 mb-2 flex items-center gap-2">
-                                    <span>📈</span>
-                                    <span>탭 2: 성적 추이 분석 (Trends)</span>
-                                </h4>
-                                <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                                    <p><strong>시간에 따른 실력 변화를 그래프로 확인</strong></p>
-                                    <ul class="list-disc list-inside space-y-1 ml-2 text-xs">
-                                        <li><strong>단기 이동평균선 (7일):</strong> 최근 컨디션과 단기 성과 추이</li>
-                                        <li><strong>장기 이동평균선 (30일):</strong> 전반적인 실력 향상 추세</li>
-                                        <li>두 선의 교차점으로 슬럼프/성장기 파악 가능</li>
-                                        <li>과목별 점수 변화 비교 차트</li>
-                                    </ul>
+                        <!-- 감린이 챗봇 2.0 -->
+                        <div class="mb-8">
+                            <h4 class="font-bold text-lg mb-3 flex items-center gap-2">
+                                <span class="text-purple-600">💬 감린이 챗봇 2.0 (AI 튜터)</span>
+                                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">업그레이드</span>
+                            </h4>
+                            <div class="border-2 border-purple-300 dark:border-purple-700 rounded-xl p-5 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
+                                <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                                    이제 감린이가 <strong>우측 하단 파비콘 챗봇</strong>으로 제공되며, 어디서든 바로 질문할 수 있습니다.
+                                </p>
+
+                                <!-- 기준서 모드 챗봇 -->
+                                <div class="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4">
+                                    <h5 class="font-bold text-sm mb-3 text-indigo-700 dark:text-indigo-300">📚 기준서 모드</h5>
+                                    <div class="space-y-2 text-xs text-gray-700 dark:text-gray-300">
+                                        <p>• <strong>우측 하단 파비콘 클릭:</strong> 현재 보고 있는 기준서 항목을 자동으로 인식하여 대화 시작</p>
+                                        <p>• <strong>📝 현재 문제 버튼:</strong> 빠른 컨텍스트 주입 (다른 문제로 전환 시 다시 클릭하여 갱신)</p>
+                                        <p>• <strong>빠른 질문:</strong> "기준서 원문", "함정 포인트", "사례로 이해" 등 원클릭 질문</p>
+                                        <p>• <strong>학습 기록 저장:</strong> 대화 내용이 자동 저장되어 나중에 다시 볼 수 있음</p>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-l-4 border-amber-500 p-4 rounded-r-lg">
-                                <h4 class="font-bold text-amber-800 dark:text-amber-300 mb-2 flex items-center gap-2">
-                                    <span>🎯</span>
-                                    <span>탭 3: 강점/약점 분석 (Strengths & Weaknesses)</span>
-                                </h4>
-                                <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                                    <p><strong>어떤 유형에 강하고 약한지 자동 진단</strong></p>
-                                    <ul class="list-disc list-inside space-y-1 ml-2 text-xs">
-                                        <li>챕터별/개념별 정답률 히트맵</li>
-                                        <li><strong>취약 개념 TOP 5:</strong> 집중 보완이 필요한 영역</li>
-                                        <li><strong>강점 개념 TOP 5:</strong> 자신감을 가져도 되는 영역</li>
-                                        <li>오답 패턴 분석 (계산 실수 vs 개념 부족 등)</li>
-                                        <li>AI가 제안하는 맞춤형 학습 전략</li>
-                                    </ul>
+                                <!-- Exam 모드 챗봇 -->
+                                <div class="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4">
+                                    <h5 class="font-bold text-sm mb-3 text-green-700 dark:text-green-300">📝 Exam 모드</h5>
+                                    <div class="space-y-2 text-xs text-gray-700 dark:text-gray-300">
+                                        <p>• <strong>우측 하단 파비콘 숨김:</strong> 실전 시험 환경을 위해 플로팅 버튼 미표시</p>
+                                        <p>• <strong>유일한 진입점:</strong> 채점 결과 화면의 각 문제별 "감린이로 깊이 학습하기" 버튼</p>
+                                        <p>• <strong>문제 컨텍스트 자동 주입:</strong> 해당 문제의 지문, 모범답안, 채점평 모두 기억</p>
+                                        <p>• <strong>물음 선택 드롭다운:</strong> 다른 물음으로 컨텍스트 전환 가능</p>
+                                        <p>• <strong>빠른 질문:</strong> "오답 원인 분석", "올바른 접근법", "암기법" 등 시험 전용 버튼</p>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div class="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-l-4 border-purple-500 p-4 rounded-r-lg">
-                                <h4 class="font-bold text-purple-800 dark:text-purple-300 mb-2 flex items-center gap-2">
-                                    <span>📝</span>
-                                    <span>탭 4: 액션 플랜 (Action Plan)</span>
-                                </h4>
-                                <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                                    <p><strong>지금 당장 무엇을 공부해야 할까?</strong></p>
-                                    <ul class="list-disc list-inside space-y-1 ml-2 text-xs">
-                                        <li><strong>우선순위 문제 세트:</strong> 취약점 보완을 위한 추천 문제 목록</li>
-                                        <li><strong>복습 필요 문제:</strong> HLR 알고리즘 기반 망각 예정 문제</li>
-                                        <li><strong>미풀이 핵심 문제:</strong> 아직 안 풀었지만 중요한 문제</li>
-                                        <li>단계별 학습 로드맵 (초급 → 중급 → 고급)</li>
-                                        <li>클릭 한 번으로 해당 문제로 바로 이동 가능</li>
-                                    </ul>
+                                <!-- 챗봇 UI 미리보기 -->
+                                <div class="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4">
+                                    <h5 class="font-bold text-sm mb-3 text-indigo-700 dark:text-indigo-300">🖼️ 챗봇 인터페이스 미리보기</h5>
+                                    <div class="grid md:grid-cols-2 gap-4">
+                                        <!-- 왼쪽: 설명 -->
+                                        <div class="space-y-2 text-xs text-gray-700 dark:text-gray-300">
+                                            <p><strong class="text-purple-600">① 상단 헤더:</strong></p>
+                                            <ul class="ml-4 space-y-1">
+                                                <li>• <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">💬 현재 대화</code> / <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">📚 학습 기록</code> 탭 전환</li>
+                                                <li>• <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">⇲</code> 크기 조절 (작게/보통/크게)</li>
+                                                <li>• <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">✕</code> 닫기</li>
+                                            </ul>
+
+                                            <p class="pt-2"><strong class="text-indigo-600">② 컨텍스트 정보:</strong></p>
+                                            <ul class="ml-4 space-y-1">
+                                                <li>• <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">💬 일반 대화 모드</code> 현재 모드 표시</li>
+                                                <li>• <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">📝 현재 문제</code> 컨텍스트 갱신 버튼</li>
+                                            </ul>
+
+                                            <p class="pt-2"><strong class="text-emerald-600">③ 빠른 질문 버튼:</strong></p>
+                                            <ul class="ml-4 space-y-1">
+                                                <li>• 기준서 모드: <code class="bg-emerald-100 dark:bg-emerald-900/30 px-1 rounded text-emerald-700 dark:text-emerald-300">기준서 원문</code>, <code class="bg-emerald-100 dark:bg-emerald-900/30 px-1 rounded text-emerald-700 dark:text-emerald-300">함정 포인트</code>, <code class="bg-emerald-100 dark:bg-emerald-900/30 px-1 rounded text-emerald-700 dark:text-emerald-300">사례로 이해</code>, <code class="bg-emerald-100 dark:bg-emerald-900/30 px-1 rounded text-emerald-700 dark:text-emerald-300">반대 상황</code></li>
+                                                <li>• Exam 모드: <code class="bg-blue-100 dark:bg-blue-900/30 px-1 rounded text-blue-700 dark:text-blue-300">오답 원인 분석</code>, <code class="bg-blue-100 dark:bg-blue-900/30 px-1 rounded text-blue-700 dark:text-blue-300">올바른 접근법</code>, <code class="bg-blue-100 dark:bg-blue-900/30 px-1 rounded text-blue-700 dark:text-blue-300">암기법</code></li>
+                                            </ul>
+
+                                            <p class="pt-2"><strong class="text-pink-600">④ 대화 영역:</strong></p>
+                                            <ul class="ml-4 space-y-1">
+                                                <li>• 환영 메시지 및 사용 가이드</li>
+                                                <li>• 사용자 질문 / AI 답변 스레드</li>
+                                            </ul>
+
+                                            <p class="pt-2"><strong class="text-orange-600">⑤ 하단 입력창:</strong></p>
+                                            <ul class="ml-4 space-y-1">
+                                                <li>• <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">⚡ Flash</code> 모델 선택 드롭다운</li>
+                                                <li>• 질문 입력창 및 <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">⏎</code> 전송 버튼</li>
+                                            </ul>
+                                        </div>
+
+                                        <!-- 오른쪽: UI 시각화 -->
+                                        <div class="border-2 border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-lg bg-white dark:bg-gray-800 relative" style="width: 100%; max-width: 420px;">
+                                            <div class="font-sans text-[10px] leading-snug">
+                                                <!-- 헤더 -->
+                                                <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-3 py-2.5 flex justify-between items-center">
+                                                    <div class="flex gap-3 text-[11px]">
+                                                        <span class="text-purple-600 dark:text-purple-400 font-semibold border-b-2 border-purple-600 pb-1">💬 현재 대화</span>
+                                                        <span class="text-gray-400 dark:text-gray-500">📚 학습 기록</span>
+                                                    </div>
+                                                    <div class="flex gap-2 text-gray-500 text-sm">
+                                                        <span class="cursor-pointer hover:text-gray-700">⇲</span>
+                                                        <span class="cursor-pointer hover:text-gray-700">✕</span>
+                                                    </div>
+                                                </div>
+
+                                                <!-- 컨텍스트 정보 -->
+                                                <div class="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800 px-3 py-2.5">
+                                                    <div class="flex items-center gap-2 mb-2">
+                                                        <span class="inline-flex items-center gap-1 bg-blue-100 dark:bg-blue-800/50 text-blue-700 dark:text-blue-200 px-2.5 py-1 rounded-md text-[9px] font-medium">💬 일반 대화 모드</span>
+                                                    </div>
+                                                    <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-[10px] font-medium shadow-sm transition">📝 현재 문제</button>
+                                                </div>
+
+                                                <!-- 빠른 질문 버튼 -->
+                                                <div class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-3 py-2.5">
+                                                    <div class="grid grid-cols-2 gap-2">
+                                                        <button class="bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 px-2.5 py-2 rounded-lg text-[9px] font-medium border border-emerald-200 dark:border-emerald-800 transition">기준서 원문</button>
+                                                        <button class="bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 px-2.5 py-2 rounded-lg text-[9px] font-medium border border-emerald-200 dark:border-emerald-800 transition">함정 포인트</button>
+                                                        <button class="bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 px-2.5 py-2 rounded-lg text-[9px] font-medium border border-emerald-200 dark:border-emerald-800 transition">사례로 이해</button>
+                                                        <button class="bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 px-2.5 py-2 rounded-lg text-[9px] font-medium border border-emerald-200 dark:border-emerald-800 transition">반대 상황</button>
+                                                    </div>
+                                                </div>
+
+                                                <!-- 대화 영역 -->
+                                                <div class="bg-gray-50 dark:bg-gray-900 px-3 py-3 min-h-[150px] max-h-[150px] overflow-y-auto">
+                                                    <div class="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-l-4 border-purple-500 px-3 py-2.5 rounded-r-lg shadow-sm">
+                                                        <div class="flex items-center gap-2 mb-2">
+                                                            <div class="w-7 h-7 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-md">ㄱ</div>
+                                                            <span class="text-[9px] text-gray-500 dark:text-gray-400 font-medium">감린이</span>
+                                                        </div>
+                                                        <div class="text-[10px] text-gray-700 dark:text-gray-300 leading-relaxed mb-2.5">
+                                                            안녕하세요, 감린이입니다!<br/>
+                                                            이 문제에 대해 궁금한 점을 자유롭게 물어보세요.
+                                                        </div>
+                                                        <div class="bg-purple-100 dark:bg-purple-800/30 border-l-2 border-purple-400 px-2.5 py-1.5 rounded text-[9px] text-purple-700 dark:text-purple-300">
+                                                            💡 위의 버튼을 눌러 빠르게 시작할 수 있어요
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- 입력창 -->
+                                                <div class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-3 py-2.5">
+                                                    <div class="flex items-center gap-2">
+                                                        <select class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2.5 py-1.5 rounded-lg text-[9px] font-medium border border-gray-200 dark:border-gray-600 cursor-pointer">
+                                                            <option>⚡ Flash</option>
+                                                        </select>
+                                                        <input type="text" placeholder="질문을 입력하세요..." class="flex-1 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-1.5 rounded-lg text-[10px] border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                                                        <button class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg text-[11px] font-medium shadow-sm transition">⏎</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div class="bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-900/20 dark:to-violet-900/20 border-l-4 border-indigo-500 p-4 rounded-r-lg">
-                                <h4 class="font-bold text-indigo-800 dark:text-indigo-300 mb-2 flex items-center gap-2">
-                                    <span>📊</span>
-                                    <span>탭 5: 상세 통계 (Detailed Stats)</span>
-                                </h4>
-                                <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                                    <p><strong>데이터로 보는 나의 학습 패턴</strong></p>
-                                    <ul class="list-disc list-inside space-y-1 ml-2 text-xs">
-                                        <li>시간대별 학습 집중도 분석 (언제 공부할 때 점수가 높은가?)</li>
-                                        <li>요일별 학습량 및 성과 비교</li>
-                                        <li>문제 유형별 소요 시간 분석</li>
-                                        <li>반복 학습 효과 측정 (1회차 vs 2회차 vs 3회차 점수 변화)</li>
-                                        <li>전체 문제 풀이 히스토리 테이블 (날짜, 문제, 점수, 소요 시간)</li>
+                                <!-- 챗봇 UI 주요 기능 -->
+                                <div class="bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-indigo-500 p-4 rounded-r-lg">
+                                    <h5 class="font-bold text-sm mb-2 text-indigo-800 dark:text-indigo-300">🎨 챗봇 UI 주요 기능</h5>
+                                    <ul class="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+                                        <li>• <strong>탭 전환:</strong> 💬 현재 대화 / 📚 학습 기록 (저장된 대화 목록)</li>
+                                        <li>• <strong>즐겨찾기:</strong> 중요한 대화는 ⭐ 표시하여 빠르게 찾기</li>
+                                        <li>• <strong>대화 삭제:</strong> 학습 기록 탭에서 ✕ 버튼으로 불필요한 대화 삭제</li>
+                                        <li>• <strong>크기 조절:</strong> 작게/보통/크게 3단계 크기 조절 가능</li>
+                                        <li>• <strong>로딩 인디케이터:</strong> AI 응답 대기 중 움직이는 점(...) 표시</li>
+                                        <li>• <strong>z-index 최적화:</strong> 플로팅 리모콘보다 상위 레이어에 표시</li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-sm">
-                            <p class="font-bold text-yellow-800 dark:text-yellow-300 mb-2">💡 효과적인 활용 팁</p>
-                            <ul class="space-y-1 text-xs text-gray-700 dark:text-gray-300">
-                                <li>• <strong>주 1회 정기 점검:</strong> 매주 일요일 저녁, 리포트를 보며 다음 주 학습 계획 수립</li>
-                                <li>• <strong>탭 3 → 탭 4 연계:</strong> 취약점 파악 후 바로 액션 플랜으로 실행</li>
-                                <li>• <strong>탭 2로 동기부여:</strong> 슬럼프일 땐 장기 추세선을 보며 성장을 확인</li>
-                                <li>• <strong>최소 20문제 이상:</strong> 데이터가 적으면 AI 분석 정확도가 떨어지니 꾸준히 풀어보세요</li>
+                        <div class="bg-purple-50 dark:bg-purple-900/20 border-l-4 border-purple-500 p-4 rounded-r-lg">
+                            <h4 class="font-bold text-purple-800 dark:text-purple-300 text-sm mb-2">💡 효과적인 챗봇 활용 팁</h4>
+                            <ul class="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+                                <li>• <strong>기준서 모드:</strong> 문제 바꿀 때마다 "📝 현재 문제" 버튼 클릭하여 컨텍스트 갱신</li>
+                                <li>• <strong>Exam 모드:</strong> 채점 후 이해 안 되는 문제만 집중적으로 질문</li>
+                                <li>• <strong>학습 기록:</strong> 중요한 대화는 즐겨찾기하여 시험 직전 복습 자료로 활용</li>
+                                <li>• <strong>빠른 질문:</strong> 먼저 빠른 질문 버튼 사용 후, 추가 질문으로 깊이 학습</li>
                             </ul>
                         </div>
-
-                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-xs text-center text-gray-500 dark:text-gray-400 mt-4">
-                            <p>💻 <strong>리포트 생성 방법:</strong> 우측 상단 메뉴 → [📊 AI 리포트 생성] 클릭</p>
-                            <p class="mt-1">⚡ 첫 생성 시 10~30초 정도 소요될 수 있습니다.</p>
-                        </div>
                     </div>
                 </div>
 
-                <div id="smart-review" class="scroll-mt-24">
-                    <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">🧠 스마트 복습 (HLR 알고리즘)</h3>
-                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-                        <p class="text-gray-600 dark:text-gray-300 mb-6">
-                            <strong>"언제 복습해야 할까?"</strong> 고민하지 마세요. 망각 곡선 이론(Half-Life Regression)을 적용해,
-                            기억에서 사라지기 직전인 문제를 우선적으로 추천합니다.
-                        </p>
-
-                        <!-- 다양한 복습 옵션 -->
-                        <div class="mb-6">
-                            <h4 class="font-bold text-lg mb-3 text-brand-600 dark:text-brand-400">📋 다양한 복습 기준 제공</h4>
-                            <div class="grid md:grid-cols-2 gap-4">
-                                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                                    <h5 class="font-bold text-sm mb-2 flex items-center gap-2">
-                                        <span class="text-brand-600">🧠</span>
-                                        <span>HLR 기반 (지능형 추천)</span>
-                                    </h5>
-                                    <p class="text-xs text-gray-600 dark:text-gray-400">
-                                        망각 확률을 계산하여 지금 까먹기 직전인 문제를 우선 추천합니다.
-                                        가장 효율적인 복습 방법입니다.
-                                    </p>
-                                </div>
-                                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                                    <h5 class="font-bold text-sm mb-2 flex items-center gap-2">
-                                        <span class="text-red-600">📉</span>
-                                        <span>점수 낮은 순</span>
-                                    </h5>
-                                    <p class="text-xs text-gray-600 dark:text-gray-400">
-                                        내가 가장 약한 문제부터 집중 공략합니다.
-                                        약점을 빠르게 보완하고 싶을 때 사용하세요.
-                                    </p>
-                                </div>
-                                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                                    <h5 class="font-bold text-sm mb-2 flex items-center gap-2">
-                                        <span class="text-blue-600">🕐</span>
-                                        <span>최근 푼 순</span>
-                                    </h5>
-                                    <p class="text-xs text-gray-600 dark:text-gray-400">
-                                        방금 풀었던 문제를 다시 확인할 때 유용합니다.
-                                        오늘 공부한 내용을 빠르게 복습하세요.
-                                    </p>
-                                </div>
-                                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                                    <h5 class="font-bold text-sm mb-2 flex items-center gap-2">
-                                        <span class="text-purple-600">⏰</span>
-                                        <span>오래된 순</span>
-                                    </h5>
-                                    <p class="text-xs text-gray-600 dark:text-gray-400">
-                                        오랫동안 안 풀어본 문제를 찾아줍니다.
-                                        장기 기억 전환을 위한 복습에 효과적입니다.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- HLR 알고리즘 설명 -->
-                        <div class="bg-gradient-to-r from-brand-50 to-indigo-50 dark:from-brand-900/20 dark:to-indigo-900/20 border-l-4 border-brand-500 p-5 rounded-r-lg mb-6">
-                            <h4 class="font-bold text-brand-800 dark:text-brand-300 text-sm mb-3">🔬 HLR 알고리즘이란?</h4>
-                            <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                                <p>
-                                    <strong>Half-Life Regression (반감기 회귀)</strong>는 에빙하우스의 망각곡선 이론을
-                                    개인별로 맞춤화한 지능형 알고리즘입니다.
-                                </p>
-                                <div class="grid md:grid-cols-3 gap-3 mt-3">
-                                    <div class="bg-white dark:bg-gray-800 p-3 rounded border border-brand-100 dark:border-brand-800">
-                                        <div class="text-xs font-bold text-brand-700 dark:text-brand-300 mb-1">1️⃣ 난이도 기록</div>
-                                        <p class="text-xs text-gray-600 dark:text-gray-400">
-                                            문제를 풀 때마다 체감 난이도(쉬움/보통/어려움)를 기록합니다.
-                                        </p>
-                                    </div>
-                                    <div class="bg-white dark:bg-gray-800 p-3 rounded border border-brand-100 dark:border-brand-800">
-                                        <div class="text-xs font-bold text-brand-700 dark:text-brand-300 mb-1">2️⃣ 망각 확률 계산</div>
-                                        <p class="text-xs text-gray-600 dark:text-gray-400">
-                                            시간 경과, 난이도, 반복 횟수를 종합해 현재 기억 확률을 예측합니다.
-                                        </p>
-                                    </div>
-                                    <div class="bg-white dark:bg-gray-800 p-3 rounded border border-brand-100 dark:border-brand-800">
-                                        <div class="text-xs font-bold text-brand-700 dark:text-brand-300 mb-1">3️⃣ 최적 타이밍 추천</div>
-                                        <p class="text-xs text-gray-600 dark:text-gray-400">
-                                            망각 직전(회상 확률 20~40%)인 문제를 우선 보여줍니다.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 플래시카드 모드 사용법 -->
-                        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg">
-                            <h4 class="font-bold text-yellow-800 dark:text-yellow-300 text-sm mb-2">💡 플래시카드 모드에서 사용하기</h4>
-                            <p class="text-sm text-gray-700 dark:text-gray-300 mb-3">
-                                정답 확인 후, 솔직하게 난이도를 평가하세요. 이 데이터가 알고리즘의 핵심입니다.
-                            </p>
-                            <div class="flex gap-2 flex-wrap">
-                                <span class="bg-green-500 text-white px-3 py-1.5 rounded text-xs font-bold">😊 쉬움 (1)</span>
-                                <span class="bg-blue-500 text-white px-3 py-1.5 rounded text-xs font-bold">🤔 보통 (2)</span>
-                                <span class="bg-red-500 text-white px-3 py-1.5 rounded text-xs font-bold">😰 어려움 (3)</span>
-                            </div>
-                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-3">
-                                ✅ 쉬움: 다음 복습까지 간격이 길어집니다<br>
-                                🔄 보통: 적절한 간격으로 다시 등장합니다<br>
-                                ⚠️ 어려움: 빠른 시간 내에 다시 복습하게 됩니다
-                            </p>
-                        </div>
-
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center">
-                            💡 설정에서 '복습 기준'을 <strong>[HLR 기반]</strong>으로 선택하면 가장 강력한 효과를 발휘합니다.
-                        </p>
-                    </div>
-                </div>
-
-                <div id="voice-input" class="scroll-mt-24">
-                    <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">🎙️ 말터디 (음성 입력)</h3>
-                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-                        <p class="text-gray-600 dark:text-gray-300 mb-6">
-                            긴 서술형 답안, 타자 치지 말고 말하세요. <strong>모바일 기기의 키보드 음성 입력</strong>을 활용하는 것이 가장 효율적입니다.
-                        </p>
-                        <div class="grid md:grid-cols-2 gap-6 mb-6">
-                            <div class="border border-gray-100 dark:border-gray-700 rounded-lg p-4">
-                                <h4 class="font-bold mb-2 text-sm">📱 모바일 활용 (권장)</h4>
-                                <ol class="list-decimal list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                                    <li>키보드를 띄우고 <strong>마이크 아이콘(🎤)</strong> 터치</li>
-                                    <li>답안을 말하면 텍스트로 자동 변환</li>
-                                    <li><strong>Tip:</strong> '중요왜곡표시위험' 등 전문 용어를 키보드 단축어에 등록하면 인식률 급상승!</li>
-                                </ol>
-                            </div>
-                            <div class="border border-gray-100 dark:border-gray-700 rounded-lg p-4 opacity-75">
-                                <h4 class="font-bold mb-2 text-sm">🖥️ PC 내장 기능 (고급)</h4>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">
-                                    Google Cloud STT API 키가 있다면 설정에서 등록하여 PC에서도 고품질 음성 인식을 쓸 수 있습니다. (설정 > 실험실 기능)
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- 안드로이드 Gboard 추천 -->
-                        <div class="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-4 rounded-r-lg mb-4">
-                            <h4 class="font-bold text-green-800 dark:text-green-300 text-sm mb-2">🤖 안드로이드 사용자 추천: Gboard</h4>
-                            <p class="text-sm text-gray-700 dark:text-gray-300 mb-3">
-                                안드로이드에서는 <strong>Google 키보드(Gboard)</strong> 사용을 강력히 추천합니다.
-                                회계감사 전문 용어 인식률이 삼성 키보드 대비 월등히 높습니다.
-                            </p>
-                            <div class="space-y-2 text-xs text-gray-600 dark:text-gray-400">
-                                <p>✅ <strong>설치:</strong> Play 스토어에서 "Gboard" 검색 후 설치</p>
-                                <p>✅ <strong>활성화:</strong> 설정 > 언어 및 입력 > 가상 키보드 > Gboard 선택</p>
-                                <p>✅ <strong>음성 입력:</strong> Gboard 사용 시 마이크 버튼 눌러 음성 입력 시작</p>
-                            </div>
-                        </div>
-
-                        <!-- 전문 용어 사전 -->
-                        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                            <h4 class="font-bold text-blue-800 dark:text-blue-300 text-sm mb-2">📖GBoard(안드로이드) 전용 용어 사전</h4>
-                            <p class="text-sm text-gray-700 dark:text-gray-300 mb-3">
-                                음성 인식률을 높이기 위한 회계감사 전문 용어 목록을 제공합니다.
-                                다음 파일을 GBoard 에 적용시 음성인식률이 높아집니다.
-                            </p>
-                            <div class="flex items-center gap-2">
-                                <a href="dictionary.txt" target="_blank" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-bold transition">
-                                    📥 dictionary.txt 다운로드
-                                </a>
-                                <span class="text-xs text-gray-500 dark:text-gray-400">
-                                    (중요왜곡표시위험, 계속기업, 특수관계자 등 200+ 용어 수록)
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <div id="exam-mode" class="scroll-mt-24">
                     <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">📝 기출문제 실전 모드</h3>
@@ -681,7 +628,7 @@
                         <div class="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6">
                             <p class="text-sm text-amber-800 dark:text-amber-300 flex items-start gap-2">
                                 <span class="text-lg">⚠️</span>
-                                <span><strong>GCP 결제 활성화 필요:</strong> AI 채점은 토큰 사용량이 많아 Google Cloud Platform에서 결제를 활성화해야 사용할 수 있습니다.</span>
+                                <span><strong>GCP 결제 활성화 필요:</strong> AI 채점은 토큰 사용량이 많아 Google Cloud Platform에서 결제를 활성화해야 사용할 수 있습니다. 결제 활성화 시 <strong>$300 무료 크레딧</strong>을 제공하기에 수험 기간 동안 넉넉히 사용하려면 활성화를 권장합니다.</span>
                             </p>
                         </div>
                         <p class="text-gray-600 dark:text-gray-300 mb-6">
@@ -1017,6 +964,7 @@
                     </div>
                 </div>
 
+
                 <div id="kam-mode" class="scroll-mt-24">
                     <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">🔍 KAM 사례형 훈련</h3>
                     <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -1075,6 +1023,285 @@
                     </div>
                 </div>
             </section>
+
+                <div id="ai-report" class="scroll-mt-24">
+                    <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">📊 AI 학습 리포트</h3>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <p class="text-gray-600 dark:text-gray-300 mb-6">
+                            단순히 맞고 틀리고를 떠나, AI가 당신의 학습 데이터를 심층 분석합니다. <strong>최소 20문제 이상 풀이 시 정확한 분석</strong>이 가능하며, 5개의 탭으로 구성된 종합 리포트를 제공합니다.
+                        </p>
+
+                        <!-- 탭별 설명 -->
+                        <div class="space-y-4 mb-6">
+                            <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                                <h4 class="font-bold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2">
+                                    <span>📋</span>
+                                    <span>탭 1: 종합 개요 (Overview)</span>
+                                </h4>
+                                <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                                    <p><strong>한눈에 보는 학습 현황</strong></p>
+                                    <ul class="list-disc list-inside space-y-1 ml-2 text-xs">
+                                        <li>총 문제 풀이 수, 평균 점수, 정답률 등 핵심 지표</li>
+                                        <li>과목별/챕터별 학습 진도율 시각화</li>
+                                        <li>최근 7일/30일 학습량 트렌드</li>
+                                        <li>AI가 생성한 종합 코멘트 및 격려 메시지</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-l-4 border-green-500 p-4 rounded-r-lg">
+                                <h4 class="font-bold text-green-800 dark:text-green-300 mb-2 flex items-center gap-2">
+                                    <span>📈</span>
+                                    <span>탭 2: 성적 추이 분석 (Trends)</span>
+                                </h4>
+                                <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                                    <p><strong>시간에 따른 실력 변화를 그래프로 확인</strong></p>
+                                    <ul class="list-disc list-inside space-y-1 ml-2 text-xs">
+                                        <li><strong>단기 이동평균선 (7일):</strong> 최근 컨디션과 단기 성과 추이</li>
+                                        <li><strong>장기 이동평균선 (30일):</strong> 전반적인 실력 향상 추세</li>
+                                        <li>두 선의 교차점으로 슬럼프/성장기 파악 가능</li>
+                                        <li>과목별 점수 변화 비교 차트</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-l-4 border-amber-500 p-4 rounded-r-lg">
+                                <h4 class="font-bold text-amber-800 dark:text-amber-300 mb-2 flex items-center gap-2">
+                                    <span>🎯</span>
+                                    <span>탭 3: 강점/약점 분석 (Strengths & Weaknesses)</span>
+                                </h4>
+                                <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                                    <p><strong>어떤 유형에 강하고 약한지 자동 진단</strong></p>
+                                    <ul class="list-disc list-inside space-y-1 ml-2 text-xs">
+                                        <li>챕터별/개념별 정답률 히트맵</li>
+                                        <li><strong>취약 개념 TOP 5:</strong> 집중 보완이 필요한 영역</li>
+                                        <li><strong>강점 개념 TOP 5:</strong> 자신감을 가져도 되는 영역</li>
+                                        <li>오답 패턴 분석 (계산 실수 vs 개념 부족 등)</li>
+                                        <li>AI가 제안하는 맞춤형 학습 전략</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-l-4 border-purple-500 p-4 rounded-r-lg">
+                                <h4 class="font-bold text-purple-800 dark:text-purple-300 mb-2 flex items-center gap-2">
+                                    <span>📝</span>
+                                    <span>탭 4: 액션 플랜 (Action Plan)</span>
+                                </h4>
+                                <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                                    <p><strong>지금 당장 무엇을 공부해야 할까?</strong></p>
+                                    <ul class="list-disc list-inside space-y-1 ml-2 text-xs">
+                                        <li><strong>우선순위 문제 세트:</strong> 취약점 보완을 위한 추천 문제 목록</li>
+                                        <li><strong>복습 필요 문제:</strong> HLR 알고리즘 기반 망각 예정 문제</li>
+                                        <li><strong>미풀이 핵심 문제:</strong> 아직 안 풀었지만 중요한 문제</li>
+                                        <li>단계별 학습 로드맵 (초급 → 중급 → 고급)</li>
+                                        <li>클릭 한 번으로 해당 문제로 바로 이동 가능</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-900/20 dark:to-violet-900/20 border-l-4 border-indigo-500 p-4 rounded-r-lg">
+                                <h4 class="font-bold text-indigo-800 dark:text-indigo-300 mb-2 flex items-center gap-2">
+                                    <span>📊</span>
+                                    <span>탭 5: 상세 통계 (Detailed Stats)</span>
+                                </h4>
+                                <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                                    <p><strong>데이터로 보는 나의 학습 패턴</strong></p>
+                                    <ul class="list-disc list-inside space-y-1 ml-2 text-xs">
+                                        <li>시간대별 학습 집중도 분석 (언제 공부할 때 점수가 높은가?)</li>
+                                        <li>요일별 학습량 및 성과 비교</li>
+                                        <li>문제 유형별 소요 시간 분석</li>
+                                        <li>반복 학습 효과 측정 (1회차 vs 2회차 vs 3회차 점수 변화)</li>
+                                        <li>전체 문제 풀이 히스토리 테이블 (날짜, 문제, 점수, 소요 시간)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-sm">
+                            <p class="font-bold text-yellow-800 dark:text-yellow-300 mb-2">💡 효과적인 활용 팁</p>
+                            <ul class="space-y-1 text-xs text-gray-700 dark:text-gray-300">
+                                <li>• <strong>주 1회 정기 점검:</strong> 매주 일요일 저녁, 리포트를 보며 다음 주 학습 계획 수립</li>
+                                <li>• <strong>탭 3 → 탭 4 연계:</strong> 취약점 파악 후 바로 액션 플랜으로 실행</li>
+                                <li>• <strong>탭 2로 동기부여:</strong> 슬럼프일 땐 장기 추세선을 보며 성장을 확인</li>
+                                <li>• <strong>최소 20문제 이상:</strong> 데이터가 적으면 AI 분석 정확도가 떨어지니 꾸준히 풀어보세요</li>
+                            </ul>
+                        </div>
+
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-xs text-center text-gray-500 dark:text-gray-400 mt-4">
+                            <p>💻 <strong>리포트 생성 방법:</strong> 우측 상단 메뉴 → [📊 AI 리포트 생성] 클릭</p>
+                            <p class="mt-1">⚡ 첫 생성 시 10~30초 정도 소요될 수 있습니다.</p>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div id="smart-review" class="scroll-mt-24">
+                    <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">🧠 스마트 복습 (HLR 알고리즘)</h3>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <p class="text-gray-600 dark:text-gray-300 mb-6">
+                            <strong>"언제 복습해야 할까?"</strong> 고민하지 마세요. 망각 곡선 이론(Half-Life Regression)을 적용해,
+                            기억에서 사라지기 직전인 문제를 우선적으로 추천합니다.
+                        </p>
+
+                        <!-- 다양한 복습 옵션 -->
+                        <div class="mb-6">
+                            <h4 class="font-bold text-lg mb-3 text-brand-600 dark:text-brand-400">📋 다양한 복습 기준 제공</h4>
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-sm mb-2 flex items-center gap-2">
+                                        <span class="text-brand-600">🧠</span>
+                                        <span>HLR 기반 (지능형 추천)</span>
+                                    </h5>
+                                    <p class="text-xs text-gray-600 dark:text-gray-400">
+                                        망각 확률을 계산하여 지금 까먹기 직전인 문제를 우선 추천합니다.
+                                        가장 효율적인 복습 방법입니다.
+                                    </p>
+                                </div>
+                                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-sm mb-2 flex items-center gap-2">
+                                        <span class="text-red-600">📉</span>
+                                        <span>점수 낮은 순</span>
+                                    </h5>
+                                    <p class="text-xs text-gray-600 dark:text-gray-400">
+                                        내가 가장 약한 문제부터 집중 공략합니다.
+                                        약점을 빠르게 보완하고 싶을 때 사용하세요.
+                                    </p>
+                                </div>
+                                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-sm mb-2 flex items-center gap-2">
+                                        <span class="text-blue-600">🕐</span>
+                                        <span>최근 푼 순</span>
+                                    </h5>
+                                    <p class="text-xs text-gray-600 dark:text-gray-400">
+                                        방금 풀었던 문제를 다시 확인할 때 유용합니다.
+                                        오늘 공부한 내용을 빠르게 복습하세요.
+                                    </p>
+                                </div>
+                                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                    <h5 class="font-bold text-sm mb-2 flex items-center gap-2">
+                                        <span class="text-purple-600">⏰</span>
+                                        <span>오래된 순</span>
+                                    </h5>
+                                    <p class="text-xs text-gray-600 dark:text-gray-400">
+                                        오랫동안 안 풀어본 문제를 찾아줍니다.
+                                        장기 기억 전환을 위한 복습에 효과적입니다.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- HLR 알고리즘 설명 -->
+                        <div class="bg-gradient-to-r from-brand-50 to-indigo-50 dark:from-brand-900/20 dark:to-indigo-900/20 border-l-4 border-brand-500 p-5 rounded-r-lg mb-6">
+                            <h4 class="font-bold text-brand-800 dark:text-brand-300 text-sm mb-3">🔬 HLR 알고리즘이란?</h4>
+                            <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                                <p>
+                                    <strong>Half-Life Regression (반감기 회귀)</strong>는 에빙하우스의 망각곡선 이론을
+                                    개인별로 맞춤화한 지능형 알고리즘입니다.
+                                </p>
+                                <div class="grid md:grid-cols-3 gap-3 mt-3">
+                                    <div class="bg-white dark:bg-gray-800 p-3 rounded border border-brand-100 dark:border-brand-800">
+                                        <div class="text-xs font-bold text-brand-700 dark:text-brand-300 mb-1">1️⃣ 난이도 기록</div>
+                                        <p class="text-xs text-gray-600 dark:text-gray-400">
+                                            문제를 풀 때마다 체감 난이도(쉬움/보통/어려움)를 기록합니다.
+                                        </p>
+                                    </div>
+                                    <div class="bg-white dark:bg-gray-800 p-3 rounded border border-brand-100 dark:border-brand-800">
+                                        <div class="text-xs font-bold text-brand-700 dark:text-brand-300 mb-1">2️⃣ 망각 확률 계산</div>
+                                        <p class="text-xs text-gray-600 dark:text-gray-400">
+                                            시간 경과, 난이도, 반복 횟수를 종합해 현재 기억 확률을 예측합니다.
+                                        </p>
+                                    </div>
+                                    <div class="bg-white dark:bg-gray-800 p-3 rounded border border-brand-100 dark:border-brand-800">
+                                        <div class="text-xs font-bold text-brand-700 dark:text-brand-300 mb-1">3️⃣ 최적 타이밍 추천</div>
+                                        <p class="text-xs text-gray-600 dark:text-gray-400">
+                                            망각 직전(회상 확률 20~40%)인 문제를 우선 보여줍니다.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 플래시카드 모드 사용법 -->
+                        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg">
+                            <h4 class="font-bold text-yellow-800 dark:text-yellow-300 text-sm mb-2">💡 플래시카드 모드에서 사용하기</h4>
+                            <p class="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                                정답 확인 후, 솔직하게 난이도를 평가하세요. 이 데이터가 알고리즘의 핵심입니다.
+                            </p>
+                            <div class="flex gap-2 flex-wrap">
+                                <span class="bg-green-500 text-white px-3 py-1.5 rounded text-xs font-bold">😊 쉬움 (1)</span>
+                                <span class="bg-blue-500 text-white px-3 py-1.5 rounded text-xs font-bold">🤔 보통 (2)</span>
+                                <span class="bg-red-500 text-white px-3 py-1.5 rounded text-xs font-bold">😰 어려움 (3)</span>
+                            </div>
+                            <p class="text-xs text-gray-600 dark:text-gray-400 mt-3">
+                                ✅ 쉬움: 다음 복습까지 간격이 길어집니다<br>
+                                🔄 보통: 적절한 간격으로 다시 등장합니다<br>
+                                ⚠️ 어려움: 빠른 시간 내에 다시 복습하게 됩니다
+                            </p>
+                        </div>
+
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center">
+                            💡 설정에서 '복습 기준'을 <strong>[HLR 기반]</strong>으로 선택하면 가장 강력한 효과를 발휘합니다.
+                        </p>
+                    </div>
+                </div>
+
+
+                <div id="voice-input" class="scroll-mt-24">
+                    <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">🎙️ 말터디 (음성 입력)</h3>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <p class="text-gray-600 dark:text-gray-300 mb-6">
+                            긴 서술형 답안, 타자 치지 말고 말하세요. <strong>모바일 기기의 키보드 음성 입력</strong>을 활용하는 것이 가장 효율적입니다.
+                        </p>
+                        <div class="grid md:grid-cols-2 gap-6 mb-6">
+                            <div class="border border-gray-100 dark:border-gray-700 rounded-lg p-4">
+                                <h4 class="font-bold mb-2 text-sm">📱 모바일 활용 (권장)</h4>
+                                <ol class="list-decimal list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                    <li>키보드를 띄우고 <strong>마이크 아이콘(🎤)</strong> 터치</li>
+                                    <li>답안을 말하면 텍스트로 자동 변환</li>
+                                    <li><strong>Tip:</strong> '중요왜곡표시위험' 등 전문 용어를 키보드 단축어에 등록하면 인식률 급상승!</li>
+                                </ol>
+                            </div>
+                            <div class="border border-gray-100 dark:border-gray-700 rounded-lg p-4 opacity-75">
+                                <h4 class="font-bold mb-2 text-sm">🖥️ PC 내장 기능 (고급)</h4>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">
+                                    Google Cloud STT API 키가 있다면 설정에서 등록하여 PC에서도 고품질 음성 인식을 쓸 수 있습니다. (설정 > 실험실 기능)
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 안드로이드 Gboard 추천 -->
+                        <div class="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-4 rounded-r-lg mb-4">
+                            <h4 class="font-bold text-green-800 dark:text-green-300 text-sm mb-2">🤖 안드로이드 사용자 추천: Gboard</h4>
+                            <p class="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                                안드로이드에서는 <strong>Google 키보드(Gboard)</strong> 사용을 강력히 추천합니다.
+                                회계감사 전문 용어 인식률이 삼성 키보드 대비 월등히 높습니다.
+                            </p>
+                            <div class="space-y-2 text-xs text-gray-600 dark:text-gray-400">
+                                <p>✅ <strong>설치:</strong> Play 스토어에서 "Gboard" 검색 후 설치</p>
+                                <p>✅ <strong>활성화:</strong> 설정 > 언어 및 입력 > 가상 키보드 > Gboard 선택</p>
+                                <p>✅ <strong>음성 입력:</strong> Gboard 사용 시 마이크 버튼 눌러 음성 입력 시작</p>
+                            </div>
+                        </div>
+
+                        <!-- 전문 용어 사전 -->
+                        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                            <h4 class="font-bold text-blue-800 dark:text-blue-300 text-sm mb-2">📖GBoard(안드로이드) 전용 용어 사전</h4>
+                            <p class="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                                음성 인식률을 높이기 위한 회계감사 전문 용어 목록을 제공합니다.
+                                다음 파일을 GBoard 에 적용시 음성인식률이 높아집니다.
+                            </p>
+                            <div class="flex items-center gap-2">
+                                <a href="dictionary.txt" target="_blank" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-bold transition">
+                                    📥 dictionary.txt 다운로드
+                                </a>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">
+                                    (중요왜곡표시위험, 계속기업, 특수관계자 등 200+ 용어 수록)
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
 
             <section id="ranking" class="scroll-mt-24 pt-8 border-t dark:border-gray-800">
                 <div class="flex items-center gap-3 mb-6">

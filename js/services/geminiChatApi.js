@@ -105,27 +105,61 @@ export class GeminiChatSession {
   }
 
   /**
-   * 메시지 전송 (SDK의 sendMessage 사용)
+   * 메시지 전송 (SDK의 sendMessage 사용) - 자동 재시도 포함
    * @param {string} message - 사용자 메시지
+   * @param {number} maxRetries - 최대 재시도 횟수 (기본: 3)
    * @returns {Promise<string>} - AI 응답
    */
-  async sendMessage(message) {
+  async sendMessage(message, maxRetries = 3) {
     if (!this.initialized) {
       console.log('🔄 [Gemini Chat] SDK 초기화 중...');
       await this.initialize();
     }
 
-    try {
-      console.log('📤 [Gemini Chat] 메시지 전송 중...');
-      const result = await this.chat.sendMessage(message);
-      const response = result.response;
-      const text = response.text();
-      console.log('✅ [Gemini Chat] 응답 받음:', text.substring(0, 100) + '...');
-      return text;
-    } catch (error) {
-      console.error('❌ [Gemini Chat] 메시지 전송 실패:', error);
-      throw error;
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`📤 [Gemini Chat] 메시지 전송 중... (시도 ${attempt}/${maxRetries})`);
+        const result = await this.chat.sendMessage(message);
+        const response = result.response;
+        const text = response.text();
+        console.log('✅ [Gemini Chat] 응답 받음:', text.substring(0, 100) + '...');
+        return text;
+      } catch (error) {
+        lastError = error;
+        const errorMessage = error.message || String(error);
+
+        // 500 에러 또는 일시적 오류인 경우에만 재시도
+        const isRetryable = errorMessage.includes('[500]') ||
+                           errorMessage.includes('internal error') ||
+                           errorMessage.includes('timeout') ||
+                           errorMessage.includes('network');
+
+        if (!isRetryable) {
+          console.error('❌ [Gemini Chat] 재시도 불가능한 오류:', error);
+          throw error;
+        }
+
+        if (attempt < maxRetries) {
+          // 지수 백오프: 1초, 2초, 4초...
+          const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          console.warn(`⚠️ [Gemini Chat] 오류 발생, ${waitTime}ms 후 재시도... (${attempt}/${maxRetries})`, errorMessage);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+
+          // 세션이 만료된 것 같으면 재초기화
+          if (attempt === 2) {
+            console.log('🔄 [Gemini Chat] 세션 재초기화 시도...');
+            this.initialized = false;
+            await this.initialize();
+          }
+        } else {
+          console.error(`❌ [Gemini Chat] 최대 재시도 횟수 초과 (${maxRetries}회)`, error);
+        }
+      }
     }
+
+    throw lastError;
   }
 
   /**
