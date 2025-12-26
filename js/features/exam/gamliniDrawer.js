@@ -1106,6 +1106,11 @@ export class GamliniDrawer {
           width: 100vw;
           height: 60vh;
           max-height: none;
+          box-sizing: border-box;
+        }
+
+        .gamlini-panel {
+          box-sizing: border-box;
         }
 
         .gamlini-drawer.size-small {
