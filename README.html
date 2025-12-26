@@ -1794,6 +1794,88 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                        <button class="toggle-button w-full flex justify-between items-center p-5 text-left font-medium bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition" onclick="toggleFaq(this)">
+                            <span>Q. 데이터 내보내기/가져오기/병합 기능은 어떻게 사용하나요?</span>
+                            <svg class="w-5 h-5 rotate-icon text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="toggle-content px-5 pb-5 bg-gray-50 dark:bg-gray-800/50 text-sm text-gray-600 dark:text-gray-300">
+                            <p class="mb-4"><strong>데이터 관리 기능을 통해 학습 기록을 백업하고 복원할 수 있습니다.</strong></p>
+
+                            <div class="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-3 mb-4 text-sm">
+                                <p class="font-bold text-green-800 dark:text-green-300 mb-2">📥 데이터 내보내기 (백업)</p>
+                                <div class="space-y-2 text-xs">
+                                    <p><strong>사용법:</strong></p>
+                                    <ol class="list-decimal list-inside space-y-1 ml-2">
+                                        <li>우측 상단 [⚙️ 설정] 클릭</li>
+                                        <li>[데이터 관리] 섹션에서 [📥 데이터 내보내기] 버튼 클릭</li>
+                                        <li>JSON 파일이 자동으로 다운로드됩니다 (파일명: gamlin-backup-날짜.json)</li>
+                                    </ol>
+                                    <p class="mt-2"><strong>포함 데이터:</strong></p>
+                                    <ul class="list-disc list-inside space-y-1 ml-2">
+                                        <li>Quiz 모드: 문제 풀이 기록, 답안, AI 채점 결과</li>
+                                        <li>Exam 모드: 시험 응시 기록, 답안, 채점 결과, AI 피드백</li>
+                                        <li>KAM 모드: 핵심감사사항 작성 기록</li>
+                                        <li>HLR 데이터: 문제별 복습 일정 및 통계</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-3 mb-4 text-sm">
+                                <p class="font-bold text-blue-800 dark:text-blue-300 mb-2">📤 데이터 가져오기 (복원 - 덮어쓰기)</p>
+                                <div class="space-y-2 text-xs">
+                                    <p><strong>사용법:</strong></p>
+                                    <ol class="list-decimal list-inside space-y-1 ml-2">
+                                        <li>[설정] → [데이터 관리] → [📤 데이터 가져오기] 클릭</li>
+                                        <li>이전에 내보낸 JSON 파일 선택</li>
+                                        <li>확인 메시지에서 [확인] 클릭</li>
+                                    </ol>
+                                    <p class="mt-2 text-amber-700 dark:text-amber-400"><strong>⚠️ 주의:</strong> 현재 기기의 모든 데이터가 백업 파일로 <strong>완전히 교체</strong>됩니다!</p>
+                                    <p><strong>사용 예시:</strong></p>
+                                    <ul class="list-disc list-inside space-y-1 ml-2">
+                                        <li>PC에서 모바일로 데이터 옮기기</li>
+                                        <li>브라우저 캐시 삭제 후 복원</li>
+                                        <li>새 기기에서 기록 복원</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="bg-purple-50 dark:bg-purple-900/20 border-l-4 border-purple-500 p-3 mb-4 text-sm">
+                                <p class="font-bold text-purple-800 dark:text-purple-300 mb-2">🔀 데이터 병합 가져오기 (중복 제거 병합)</p>
+                                <div class="space-y-2 text-xs">
+                                    <p><strong>사용법:</strong></p>
+                                    <ol class="list-decimal list-inside space-y-1 ml-2">
+                                        <li>[설정] → [데이터 관리] → [🔀 데이터 병합 가져오기] 클릭</li>
+                                        <li>백업 파일 선택</li>
+                                        <li>병합 결과 확인 후 [확인] 클릭</li>
+                                    </ol>
+                                    <p class="mt-2"><strong>병합 규칙:</strong></p>
+                                    <ul class="list-disc list-inside space-y-1 ml-2">
+                                        <li><strong>중복 제거:</strong> 같은 문제 ID는 최신 기록으로 자동 병합</li>
+                                        <li><strong>데이터 보존:</strong> 현재 기기와 백업 파일의 기록을 모두 유지</li>
+                                        <li><strong>충돌 해결:</strong> 같은 문제를 양쪽에서 풀었다면 타임스탬프가 최신인 것을 우선</li>
+                                    </ul>
+                                    <p class="mt-2"><strong>사용 예시:</strong></p>
+                                    <ul class="list-disc list-inside space-y-1 ml-2">
+                                        <li>PC와 모바일에서 각각 공부한 기록 합치기</li>
+                                        <li>여러 백업 파일을 하나로 통합</li>
+                                        <li>실수로 일부 데이터를 삭제한 경우 이전 백업과 병합</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded p-3 text-xs">
+                                <p class="font-bold text-yellow-800 dark:text-yellow-300 mb-2">💡 권장 사용 패턴</p>
+                                <ul class="space-y-1 text-gray-700 dark:text-gray-300">
+                                    <li>• <strong>정기 백업:</strong> 주 1회 데이터 내보내기로 백업 파일 생성</li>
+                                    <li>• <strong>기기 전환:</strong> 새 기기로 옮길 때 "데이터 가져오기" 사용</li>
+                                    <li>• <strong>멀티 디바이스:</strong> 로그인 없이 여러 기기 사용 시 "병합 가져오기"로 동기화</li>
+                                    <li>• <strong>로그인 추천:</strong> 구글 로그인 시 Quiz/Exam 점수가 자동 동기화되어 백업이 더 편리합니다</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
