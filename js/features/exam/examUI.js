@@ -653,7 +653,7 @@ async function renderExamPaper(container, year, apiKey, selectedModel) {
   if (!selectedModel) {
     selectedModel = getSelectedAiModel();
   }
-  
+
   // exam에서는 2.5-flash-lite를 2.5-flash로 자동 변경 (성능 부족 방지)
   // 단, 2.5-pro나 3-pro-preview는 그대로 사용
   if (selectedModel === 'gemini-2.5-flash-lite') {
@@ -1505,10 +1505,10 @@ function updateCharCounters() {
  */
 async function handleTempSave(container, year, apiKey, selectedModel) {
   console.log('🔑 [examUI.js] handleTempSave - 파라미터 apiKey:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
-  console.log('🔑 [examUI.js] handleTempSave - localStorage geminiApiKey:', localStorage.getItem('geminiApiKey') ? '✅ 있음' : '❌ 없음');
+  console.log('🔑 [examUI.js] handleTempSave - localStorage gemini_api_key:', localStorage.getItem('gemini_api_key') ? '✅ 있음' : '❌ 없음');
 
   // API 키 확인 (조용히 처리)
-  const finalApiKey = apiKey || localStorage.getItem('geminiApiKey') || '';
+  const finalApiKey = apiKey || localStorage.getItem('gemini_api_key') || '';
   let finalModel = selectedModel || localStorage.getItem('selectedAiModel') || 'gemini-2.5-flash-lite';
   
   // exam에서는 2.5-flash-lite를 2.5-flash로 자동 변경 (성능 부족 방지)
@@ -1559,10 +1559,10 @@ async function submitExam(container, year, apiKey, selectedModel) {
   }
 
   console.log('🔑 [examUI.js] submitExam - 파라미터 apiKey:', apiKey ? `${apiKey.substring(0, 10)}...` : '❌ 없음');
-  console.log('🔑 [examUI.js] submitExam - localStorage geminiApiKey:', localStorage.getItem('geminiApiKey') ? '✅ 있음' : '❌ 없음');
+  console.log('🔑 [examUI.js] submitExam - localStorage gemini_api_key:', localStorage.getItem('gemini_api_key') ? '✅ 있음' : '❌ 없음');
 
   // API 키를 localStorage에서 다시 확인 (파라미터가 비어있을 경우 대비)
-  const finalApiKey = apiKey || localStorage.getItem('geminiApiKey') || '';
+  const finalApiKey = apiKey || localStorage.getItem('gemini_api_key') || '';
   let finalModel = selectedModel || localStorage.getItem('selectedAiModel') || 'gemini-2.5-flash-lite';
   
   // exam에서는 2.5-flash-lite를 2.5-flash로 자동 변경 (성능 부족 방지)

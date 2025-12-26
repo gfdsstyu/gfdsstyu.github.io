@@ -165,7 +165,7 @@ export function exportData() {
       auditQuizScores: questionScores,
       examData: collectExamData(),
       kamData: collectKamData(),
-      geminiApiKey: localStorage.getItem('geminiApiKey') || '',
+      geminiApiKey: localStorage.getItem('gemini_api_key') || '',
       aiModel: selectedAiModel,
       darkMode: darkMode
     };

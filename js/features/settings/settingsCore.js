@@ -68,7 +68,7 @@ export function openApiModal(initial = false) {
   el.apiModal.classList.remove('hidden');
   el.apiModal.classList.add('flex');
   el.apiModalInput.value = getGeminiApiKey() || '';
-  el.apiModalRemember.checked = !!localStorage.getItem('geminiApiKey');
+  el.apiModalRemember.checked = !!localStorage.getItem('gemini_api_key');
 
   setTimeout(() => el.apiModalInput.focus(), 0);
 }
@@ -175,12 +175,12 @@ export function initApiModalListeners() {
     }
 
     setGeminiApiKey(key);
-    sessionStorage.setItem('geminiApiKey', key);
+    sessionStorage.setItem('gemini_api_key', key);
 
     if (el.apiModalRemember.checked) {
-      localStorage.setItem('geminiApiKey', key);
+      localStorage.setItem('gemini_api_key', key);
     } else {
-      localStorage.removeItem('geminiApiKey');
+      localStorage.removeItem('gemini_api_key');
     }
 
     closeApiModal();
@@ -249,6 +249,73 @@ export function initSettingsModalListeners() {
   el.openApiKeyModalBtn?.addEventListener('click', () => {
     closeSettingsModal();
     openApiModal(false);
+  });
+
+  // Groq 설정 토글 버튼
+  const groqSettingsToggle = document.getElementById('groq-settings-toggle');
+  const groqSettingsContent = document.getElementById('groq-settings-content');
+  const groqSettingsArrow = document.getElementById('groq-settings-arrow');
+
+  groqSettingsToggle?.addEventListener('click', () => {
+    const isHidden = groqSettingsContent.classList.contains('hidden');
+
+    if (isHidden) {
+      groqSettingsContent.classList.remove('hidden');
+      groqSettingsArrow.textContent = '▼';
+    } else {
+      groqSettingsContent.classList.add('hidden');
+      groqSettingsArrow.textContent = '▶';
+    }
+  });
+
+  // Groq 모델 선택
+  const groqModelSelect = document.getElementById('groq-model-select');
+  if (groqModelSelect) {
+    const savedGroqModel = localStorage.getItem('groq_model');
+    if (savedGroqModel) {
+      groqModelSelect.value = savedGroqModel;
+    }
+  }
+
+  groqModelSelect?.addEventListener('change', (e) => {
+    const model = e.target.value;
+    localStorage.setItem('groq_model', model);
+    if (model) {
+      showToast(`Groq 모델 변경: ${model} (Quiz 채점 전용)`, 'success');
+    } else {
+      showToast('Groq 사용 안 함 (기본 Gemini 사용)', 'info');
+    }
+    syncSettings();
+  });
+
+  // Groq API 키 저장 버튼
+  const saveGrokApiKeyBtn = document.getElementById('save-grok-api-key-btn');
+  const grokApiKeyInput = document.getElementById('grok-api-key-input');
+
+  // Groq API 키 불러오기
+  if (grokApiKeyInput) {
+    const savedGrokKey = localStorage.getItem('grok_api_key');
+    if (savedGrokKey) {
+      grokApiKeyInput.value = savedGrokKey;
+    }
+  }
+
+  saveGrokApiKeyBtn?.addEventListener('click', () => {
+    const apiKey = grokApiKeyInput.value.trim();
+    if (!apiKey) {
+      showToast('Groq API 키를 입력해주세요.', 'warning');
+      return;
+    }
+
+    if (!apiKey.startsWith('gsk_')) {
+      showToast('올바른 Groq API 키 형식이 아닙니다. (gsk_...)', 'warning');
+      return;
+    }
+
+    localStorage.setItem('grok_api_key', apiKey);
+    showToast('Groq API 키가 저장되었습니다! 🧪', 'success');
+    console.log('✅ [Settings] Groq API 키 저장됨:', apiKey.substring(0, 15) + '...');
+    syncSettings(); // Sync to Firestore
   });
 
   // AI 모델 변경

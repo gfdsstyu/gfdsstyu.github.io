@@ -1280,7 +1280,7 @@
 
       <div class="mb-6 pb-6 border-b">
         <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">API 키 설정</h3>
-        <button id="open-api-key-modal-btn" class="w-full bg-blue-50 border border-blue-300 text-blue-700 font-medium py-2 px-4 rounded-lg hover:bg-blue-100 transition">API 키 변경/설정</button>
+        <button id="open-api-key-modal-btn" class="w-full bg-blue-50 border border-blue-300 text-blue-700 font-medium py-2 px-4 rounded-lg hover:bg-blue-100 transition mb-3">Gemini API 키 변경/설정</button>
       </div>
 
       <!-- Phase 3.6: Firebase Extensions를 통한 이메일 발송 (EmailJS 설정 제거됨) -->
@@ -1312,6 +1312,48 @@
           <option value="gemma-3-27b-it">🔬 Gemma 3 27B (저성능, 무료(제한X), 실험실)</option>
         </select>
         <p class="text-xs text-gray-500 mt-2">💡 일관된 채점 기준을 위해 성향에 맞는 모델(2.5 - 3.0 flash 사용 권장) 선택하는 것을 추천하나, 사용량 초과시 다른 모델 사용을 고려할 것. 명시된 사용량 제한은 구글정책변동에 따라 달라질 가능성이 있습니다. Gemma 3 27B는 무료티어 제한 거의 없음.</p>
+      </div>
+
+      <!-- Groq AI 모델 설정 (Quiz 채점 전용 실험실) -->
+      <div class="mb-6 pb-6 border-b">
+        <button id="groq-settings-toggle" class="w-full flex items-center justify-between mb-3 hover:opacity-70 transition text-left">
+          <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">🧪 실험실: Groq AI 모델 (Quiz 채점 전용)</h3>
+          <span id="groq-settings-arrow" class="text-gray-500 dark:text-gray-400 text-lg">▶</span>
+        </button>
+
+        <div id="groq-settings-content" class="hidden">
+          <p class="text-xs text-yellow-600 dark:text-yellow-400 mb-4">
+            ⚠️ <strong>주의:</strong> Groq 모델은 Quiz 채점에만 사용됩니다. Exam/KAM 모드는 데이터가 커서 지원하지 않습니다.
+          </p>
+
+          <label for="groq-model-select" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Groq 모델 선택</label>
+          <select id="groq-model-select" name="groq-model" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700" aria-label="Groq 모델 선택">
+            <option value="">사용 안 함 (기본 Gemini 사용)</option>
+            <option value="llama-3.1-8b-instant">🦙 Llama 3.1 8B Instant (빠름, TPM 12K) ✅추천</option>
+            <option value="llama-3.3-70b-versatile">🦙 Llama 3.3 70B Versatile (고성능, TPM 12K) ✅추천</option>
+            <option value="qwen/qwen3-32b">🎯 Qwen 3 32B (TPM 12K)</option>
+            <option value="meta-llama/llama-4-maverick-17b-128e-instruct">🦙 Llama 4 Maverick 17B (실험, TPM 10K)</option>
+            <option value="meta-llama/llama-4-scout-17b-16e-instruct">🦙 Llama 4 Scout 17B (실험, TPM 10K)</option>
+            <option value="moonshotai/kimi-k2-instruct">🌙 Kimi K2 Instruct (TPM 10K)</option>
+            <option value="moonshotai/kimi-k2-instruct-0905">🌙 Kimi K2 Instruct 0905 (TPM 10K)</option>
+            <option value="openai/gpt-oss-120b">🤖 GPT OSS 120B (실험)</option>
+          </select>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+            <strong>TPM:</strong> Tokens Per Minute (분당 토큰 제한)<br>
+            <strong>권장:</strong> Llama 3.1 8B 또는 Llama 3.3 70B (안정적인 TPM)
+          </p>
+
+          <form id="groq-api-key-form" class="mt-4">
+            <label for="grok-api-key-input" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Groq API Key</label>
+            <div class="flex gap-2">
+              <input type="password" id="grok-api-key-input" name="grok-api-key" class="flex-1 p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400 dark:border-gray-700" placeholder="gsk_..." autocomplete="off">
+              <button type="button" id="save-grok-api-key-btn" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">저장</button>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              Groq API 키는 <a href="https://console.groq.com/keys" target="_blank" class="text-blue-500 hover:underline">console.groq.com/keys</a>에서 발급받을 수 있습니다.
+            </p>
+          </form>
+        </div>
       </div>
 
       <div class="mb-6 pb-6 border-b">
@@ -2662,6 +2704,22 @@
       </div>
     </div>
   </div>
+
+  <!-- Gamlini 2.0 AI Tutor -->
+  <script type="module">
+    import { GamliniDrawer } from './js/features/exam/gamliniDrawer.js';
+
+    // 페이지 로드 시 Gamlini Drawer 초기화
+    document.addEventListener('DOMContentLoaded', () => {
+      const gamliniDrawer = new GamliniDrawer();
+      gamliniDrawer.initialize();
+
+      // 전역으로 접근 가능하도록 (디버깅용)
+      window.gamliniDrawer = gamliniDrawer;
+
+      console.log('✅ Gamlini 2.0 AI Tutor 초기화 완료');
+    });
+  </script>
 
 </body>
 </html>

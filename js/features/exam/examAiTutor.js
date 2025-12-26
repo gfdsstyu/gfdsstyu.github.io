@@ -1,17 +1,22 @@
 /**
- * AI Tutor Service - 채점 결과에 대한 AI 질의응답 기능
+ * AI Tutor Service (Gamlini 2.0) - 채점 결과에 대한 AI 질의응답 기능
  *
  * 기능:
  * - 특정 문제에 대해 AI와 대화하며 궁금증 해소
  * - 자동 컨텍스트 주입 (지문, 물음, 모범답안, 채점기준, 사용자답안)
- * - 단계적 설명 (Step-by-Step Reasoning)
+ * - RAG 기반 실증절차/기준서/유사문제 검색
+ * - 대화 보관 및 복습
+ * - Context Injection Preset Buttons
  * - Gemini Chat SDK 사용으로 효율적인 대화 관리
  */
 
 import { GeminiChatSession } from '../../services/geminiChatApi.js';
+import { OpenRouterChatSession } from '../../services/openRouterApi.js';
+import { ragService } from '../../services/ragService.js';
+import { chatStorage } from '../../services/chatStorageManager.js';
 
 /**
- * AI 튜터 대화 세션 클래스
+ * AI 튜터 대화 세션 클래스 (Gamlini 2.0)
  */
 class AiTutorSession {
   constructor(questionId, questionData, userAnswer, feedback, examCase) {
@@ -22,6 +27,8 @@ class AiTutorSession {
     this.examCase = examCase; // { topic, scenario, type }
     this.chatSession = null; // Gemini Chat SDK 세션
     this.conversationHistory = []; // { role: 'user' | 'assistant', content: string }
+    this.currentChatId = null; // Chat Storage ID
+    this.ragContext = null; // RAG 검색 결과 캐시
   }
 
   /**
@@ -82,17 +89,21 @@ ${this.feedback.missingKeywords && this.feedback.missingKeywords.length > 0 ? `-
   }
 
   /**
-   * AI에게 질문 전송 (Chat SDK 사용)
+   * AI에게 질문 전송 (Chat SDK 사용) - Gamlini 2.0 Enhanced
    * @param {string} userQuestion - 사용자 질문
-   * @param {string} apiKey - Gemini API 키
+   * @param {string} apiKey - API 키 (Gemini 또는 OpenRouter)
    * @param {string} model - 사용할 모델 (기본: gemini-2.5-flash)
+   * @param {boolean} enableRAG - RAG Context 활성화 여부 (기본: true)
    * @returns {Promise<string>} - AI 답변
    */
-  async askQuestion(userQuestion, apiKey, model = 'gemini-2.5-flash') {
+  async askQuestion(userQuestion, apiKey, model = 'gemini-2.5-flash', enableRAG = true) {
     try {
       // 첫 질문이면 Chat 세션 초기화
       if (!this.chatSession) {
-        const systemInstruction = this.buildContextPrompt();
+        // Exam/KAM은 Gemini만 지원 (Groq는 Quiz 전용)
+        const systemInstruction = this.buildContextPrompt(); // 전체 모드
+
+        console.log('🔑 [AI Tutor] Gemini API 키 사용:', apiKey ? apiKey.substring(0, 10) + '...' : '❌ 없음');
 
         this.chatSession = new GeminiChatSession(
           apiKey,
@@ -107,19 +118,30 @@ ${this.feedback.missingKeywords && this.feedback.missingKeywords.length > 0 ? `-
         await this.chatSession.initialize();
       }
 
-      // Chat SDK로 메시지 전송 (자동으로 히스토리 관리됨)
-      const response = await this.chatSession.sendMessage(userQuestion);
+      // 🆕 [Gamlini 2.0] RAG Context 주입
+      let enrichedQuestion = userQuestion;
+      if (enableRAG) {
+        enrichedQuestion = await this.enrichWithRAGContext(userQuestion);
+      }
 
-      // 로컬 히스토리에도 저장 (PDF 내보내기용)
+      // Chat SDK로 메시지 전송 (자동으로 히스토리 관리됨)
+      const response = await this.chatSession.sendMessage(enrichedQuestion);
+
+      // 로컬 히스토리에도 저장 (원본 질문 저장, RAG Context는 내부 처리)
       this.conversationHistory.push({
         role: 'user',
-        content: userQuestion
+        content: userQuestion,
+        timestamp: Date.now()
       });
 
       this.conversationHistory.push({
         role: 'assistant',
-        content: response
+        content: response,
+        timestamp: Date.now()
       });
+
+      // 🆕 [Gamlini 2.0] Chat Storage에 자동 저장
+      this.saveToStorage();
 
       return response;
     } catch (error) {
@@ -190,6 +212,161 @@ ${this.feedback.missingKeywords && this.feedback.missingKeywords.length > 0 ? `-
     }
 
     return questions;
+  }
+
+  /**
+   * 대화 이력 초기화
+   */
+  clearHistory() {
+    this.conversationHistory = [];
+  }
+
+  /**
+   * Chat Session 초기화 (모델 변경 시 호출)
+   */
+  resetSession() {
+    this.chatSession = null;
+    this.conversationHistory = []; // 대화 히스토리도 함께 초기화 (중요!)
+    this.ragContext = null; // RAG 캐시도 초기화
+    console.log('🔄 [AI Tutor] Chat Session + History 완전 초기화됨 (모델 변경)');
+  }
+
+  /**
+   * 🆕 [Gamlini 2.0] RAG Context 검색 및 프롬프트 주입
+   * @param {string} userQuestion - 사용자 질문
+   * @returns {Promise<string>} - RAG Context가 추가된 질문
+   */
+  async enrichWithRAGContext(userQuestion) {
+    try {
+      // 이미 캐시된 Context가 있으면 재사용
+      if (!this.ragContext) {
+        console.log('🔍 [Gamlini 2.0] RAG Context 검색 중...');
+
+        // 문제 텍스트와 키워드로 검색
+        const questionText = this.questionData.question || '';
+        const keywords = this.questionData.keywords || [];
+
+        this.ragContext = await ragService.searchAll(questionText, keywords);
+
+        console.log('✅ [Gamlini 2.0] RAG Context 검색 완료:', {
+          procedures: this.ragContext.procedures.length,
+          standards: this.ragContext.standards.length,
+          examQuestions: this.ragContext.examQuestions.length
+        });
+      }
+
+      // Context가 있으면 질문에 추가
+      if (this.ragContext.context && this.ragContext.context.trim()) {
+        return `${userQuestion}\n\n---\n\n# 참고 자료 (RAG Context)\n${this.ragContext.context}`;
+      }
+
+      return userQuestion;
+    } catch (error) {
+      console.error('❌ [Gamlini 2.0] RAG Context 검색 실패:', error);
+      // 실패해도 원래 질문은 전달
+      return userQuestion;
+    }
+  }
+
+  /**
+   * 🆕 [Gamlini 2.0] 대화를 Chat Storage에 저장
+   * @returns {boolean} - 성공 여부
+   */
+  saveToStorage() {
+    try {
+      if (this.conversationHistory.length === 0) {
+        console.log('⚠️ [Gamlini 2.0] 저장할 대화 없음');
+        return false;
+      }
+
+      // 새 대화 세션이면 생성
+      if (!this.currentChatId) {
+        const chat = chatStorage.createChat(
+          this.questionId,
+          this.questionData.question || '문제 없음',
+          {
+            ...this.questionData,
+            examCase: this.examCase,
+            feedback: this.feedback
+          }
+        );
+
+        this.currentChatId = chat.id;
+
+        // 메시지 추가
+        this.conversationHistory.forEach(msg => {
+          chat.messages.push(msg);
+        });
+
+        chatStorage.saveChat(chat);
+        console.log('✅ [Gamlini 2.0] 새 대화 저장:', this.currentChatId);
+      } else {
+        // 기존 대화 업데이트
+        const chat = chatStorage.loadChat(this.currentChatId);
+        if (chat) {
+          chat.messages = [...this.conversationHistory];
+          chatStorage.saveChat(chat);
+          console.log('✅ [Gamlini 2.0] 대화 업데이트:', this.currentChatId);
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('❌ [Gamlini 2.0] 대화 저장 실패:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 🆕 [Gamlini 2.0] Context Injection Preset Buttons
+   * 기획서에서 제안한 프리셋 버튼들
+   * @returns {Array<{id: string, icon: string, label: string, prompt: string}>}
+   */
+  getContextInjectionPresets() {
+    return [
+      {
+        id: 'kam-original-text',
+        icon: '📘',
+        label: '기준서 원문',
+        prompt: '이 문제와 관련된 회계감사기준서(KAM) 원문을 보여주고 요약해주세요. 핵심 조문을 인용해주세요.',
+        requiresRAG: true
+      },
+      {
+        id: 'trap-analysis',
+        icon: '🔍',
+        label: '함정 포인트',
+        prompt: '이 문제에서 수험생들이 가장 많이 실수하는 "단어 살짝 바꾸기" 함정 포인트를 분석해주세요. 어떤 부분을 주의해야 하나요?',
+        requiresRAG: false
+      },
+      {
+        id: 'case-example',
+        icon: '✍️',
+        label: '사례로 이해',
+        prompt: '이 이론이 실제 감사 현장에서 어떻게 적용되는지 아주 쉬운 사례를 들어 설명해주세요. 실증절차와 연결해주세요.',
+        requiresRAG: true
+      },
+      {
+        id: 'mnemonic-code',
+        icon: '💡',
+        label: '암기 코드',
+        prompt: '이 문제의 핵심 키워드 3개를 뽑아서 절대 안 까먹는 두문자(Mnemonics) 암기법을 만들어주세요.',
+        requiresRAG: false
+      },
+      {
+        id: 'reverse-scenario',
+        icon: '❓',
+        label: '반대 상황',
+        prompt: '이 문장이 틀린 지문으로 출제된다면 어떻게 변형될 수 있을까요? 옳은/틀린 반대 케이스를 만들어주세요.',
+        requiresRAG: false
+      },
+      {
+        id: 'substantive-procedures',
+        icon: '🔗',
+        label: '관련 실증절차',
+        prompt: '이 이론과 연결되는 실제 감사 실증절차를 kamData에서 찾아서 설명해주세요. 어떤 절차를 수행하나요?',
+        requiresRAG: true
+      }
+    ];
   }
 
   /**
