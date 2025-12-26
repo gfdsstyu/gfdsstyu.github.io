@@ -1100,11 +1100,16 @@ export class GamliniDrawer {
       /* 반응형 */
       @media (max-width: 768px) {
         .gamlini-drawer {
-          bottom: 80px;
-          right: 16px;
-          width: calc(100vw - 32px);
-          height: calc(100vh - 120px);
+          bottom: 0;
+          right: 0;
+          left: 0;
+          width: 100vw;
+          height: calc(100vh - 60px);
           max-height: none;
+        }
+
+        .gamlini-drawer.open {
+          bottom: 0;
         }
 
         .gamlini-fab {
@@ -1115,7 +1120,7 @@ export class GamliniDrawer {
         }
 
         .gamlini-panel {
-          border-radius: 12px;
+          border-radius: 12px 12px 0 0;
         }
 
         .gamlini-header {
