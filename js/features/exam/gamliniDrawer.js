@@ -1117,9 +1117,20 @@ export class GamliniDrawer {
           height: 40vh;
         }
 
+        /* 모바일 large 모드 = 전체화면 모달 */
         .gamlini-drawer.size-large {
-          height: 85vh;
-          max-height: 85vh;
+          top: 0;
+          bottom: 0;
+          height: 100vh;
+          max-height: 100vh;
+        }
+
+        .gamlini-drawer.size-large .gamlini-panel {
+          border-radius: 0;
+        }
+
+        .gamlini-drawer.size-large .gamlini-header {
+          border-radius: 0;
         }
 
         .gamlini-drawer.open {
