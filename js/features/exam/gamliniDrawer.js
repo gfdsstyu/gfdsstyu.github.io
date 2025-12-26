@@ -1104,8 +1104,17 @@ export class GamliniDrawer {
           right: 0;
           left: 0;
           width: 100vw;
-          height: calc(100vh - 60px);
+          height: 60vh;
           max-height: none;
+        }
+
+        .gamlini-drawer.size-small {
+          height: 40vh;
+        }
+
+        .gamlini-drawer.size-large {
+          height: 85vh;
+          max-height: 85vh;
         }
 
         .gamlini-drawer.open {
