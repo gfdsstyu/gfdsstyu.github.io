@@ -143,7 +143,8 @@ export class RAGService {
   }
 
   /**
-   * 데이터 파일 로드
+   * 데이터 파일 로드 (Lazy Loading 적용 - 모바일 성능 개선)
+   * examData는 필요할 때 로딩 (검색 시점)
    */
   async initialize() {
     if (this.initialized) return;
@@ -151,22 +152,21 @@ export class RAGService {
     try {
       console.log('🔄 [RAG Service] 데이터 로딩 시작...');
 
-      // 병렬 로딩
-      const [kamDataRes, standardsRes, examDataRes] = await Promise.all([
+      // 가벼운 데이터만 먼저 로드 (kamData, standards)
+      const [kamDataRes, standardsRes] = await Promise.all([
         fetch('/js/data/kamData.json').then(r => r.json()), // 실증절차
-        fetch('/questions.json').then(r => r.json()), // 기준서 데이터
-        this.loadExamData() // examData 로딩
+        fetch('/questions.json').then(r => r.json()) // 기준서 데이터
       ]);
 
       this.kamData = kamDataRes;
       this.standardsData = standardsRes; // questions.json = 회계감사기준서 정리
-      this.examData = examDataRes;
+      // examData는 여기서 로드하지 않음 (Lazy Load)
 
       this.initialized = true;
-      console.log('✅ [RAG Service] 데이터 로딩 완료:', {
+      console.log('✅ [RAG Service] 초기 데이터 로딩 완료 (Lazy Loading):', {
         kamData: this.kamData.length,
         standards: this.standardsData.length,
-        examData: this.examData.length
+        examData: 'Lazy Load (필요 시 로딩)'
       });
     } catch (error) {
       console.error('❌ [RAG Service] 데이터 로딩 실패:', error);
@@ -265,14 +265,21 @@ export class RAGService {
 
   /**
    * 🆕 examData에서 유사 문제 검색 (2025, 2024... 모든 연도)
+   * Lazy Loading: examData가 없으면 그때 로드
    * @param {string} questionText - 현재 문제 텍스트
    * @param {number} limit - 반환할 최대 결과 수
    * @returns {Array} - 유사 문제 배열 (examData 구조)
    */
-  searchExamQuestions(questionText, limit = 3) {
-    if (!this.initialized || !this.examData) {
-      console.warn('⚠️ [RAG Service] examData 초기화되지 않음');
+  async searchExamQuestions(questionText, limit = 3) {
+    if (!this.initialized) {
+      console.warn('⚠️ [RAG Service] 초기화되지 않음');
       return [];
+    }
+
+    // examData가 없으면 그때 로드 (Lazy Load)
+    if (!this.examData || this.examData.length === 0) {
+      console.log('⚡ [RAG Service] examData Lazy Loading 시작...');
+      await this.loadExamData();
     }
 
     // 현재 문제에서 키워드 추출
