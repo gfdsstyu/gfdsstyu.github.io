@@ -1121,12 +1121,18 @@ export class GamliniDrawer {
         .gamlini-drawer.size-large {
           top: 0;
           bottom: 0;
+          left: 0;
+          right: 0;
+          width: 100vw;
           height: 100vh;
           max-height: 100vh;
+          max-width: 100vw;
         }
 
         .gamlini-drawer.size-large .gamlini-panel {
           border-radius: 0;
+          width: 100%;
+          max-width: 100%;
         }
 
         .gamlini-drawer.size-large .gamlini-header {
