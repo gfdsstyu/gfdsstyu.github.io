@@ -1850,7 +1850,21 @@ export class GamliniDrawer {
     `;
 
     messagesContainer.appendChild(messageEl);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    // UX 개선: AI 답변 완료 시 질문과 답변 시작이 보이도록 스크롤
+    if (role === 'assistant') {
+      // 모든 메시지 요소들
+      const allMessages = messagesContainer.querySelectorAll('.message');
+      if (allMessages.length >= 2) {
+        // 마지막 2개 메시지 = 사용자 질문 + AI 답변
+        const userQuestion = allMessages[allMessages.length - 2];
+        // 사용자 질문이 보이도록 스크롤 (부드럽게)
+        userQuestion.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } else {
+      // 사용자 메시지는 바로 스크롤 (기존 동작)
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
   }
 
   /**
