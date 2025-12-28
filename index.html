@@ -297,6 +297,7 @@
 
   <!-- 상단 네비 -->
   <header id="fixed-header" class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200 dark:bg-gray-900/80 dark:border-gray-800">
+    <!-- 메인 네비게이션 -->
     <div class="mx-auto max-w-[1400px] 2xl:max-w-[1600px] px-4 lg:px-6 xl:px-8 py-2 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <span class="text-xl font-extrabold tracking-tight text-blue-700 dark:text-blue-400">감린이</span>
@@ -352,26 +353,27 @@
         <button id="hamburger" class="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600" aria-label="메뉴">≡</button>
       </nav>
     </div>
-  </header>
 
-  <!-- 공지사항 배너 -->
-  <div id="announcement-banner" class="fixed top-14 left-0 right-0 z-40 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800">
-    <div class="mx-auto max-w-[1400px] 2xl:max-w-[1600px] px-4 lg:px-6 xl:px-8 py-2">
-      <div class="flex items-center justify-between gap-4">
-        <div class="flex items-center gap-2 text-sm">
-          <span class="text-blue-600 dark:text-blue-400 font-semibold">📢</span>
-          <span class="text-blue-800 dark:text-blue-300">
-            <strong>업데이트:</strong> 12. 특정항목별 감사절차: 부정 까지 업데이트 완료
-          </span>
+    <!-- 공지사항 배너 -->
+    <div id="announcement-banner" class="border-t border-gray-200 dark:border-gray-700 bg-blue-50/80 dark:bg-blue-900/10">
+      <div class="mx-auto max-w-[1400px] 2xl:max-w-[1600px] px-4 lg:px-6 xl:px-8 py-1.5">
+        <div class="flex items-center justify-between gap-4">
+          <div class="flex items-center gap-2 text-xs">
+            <span class="text-blue-600 dark:text-blue-400">📢</span>
+            <span class="text-blue-800 dark:text-blue-300">
+              <strong>업데이트:</strong> 12. 특정항목별 감사절차: 부정 까지 업데이트 완료
+            </span>
+          </div>
+          <button id="close-announcement" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 text-xs font-medium px-1" aria-label="공지 닫기">
+            ✕
+          </button>
         </div>
-        <button id="close-announcement" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 text-sm font-medium" aria-label="공지 닫기">
-          ✕
-        </button>
       </div>
     </div>
-  </div>
+  </header>
+
   <div class="h-14"></div>
-  <div id="announcement-spacer" class="h-10"></div>
+  <div id="announcement-spacer" class="h-7"></div>
 
   <div id="drawer-backdrop" class="fixed inset-0 bg-black/40 hidden z-[1099]"></div>
 
