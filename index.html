@@ -302,6 +302,17 @@
       <div class="flex items-center gap-3">
         <span class="text-xl font-extrabold tracking-tight text-blue-700 dark:text-blue-400">감린이</span>
         <span class="hidden sm:inline text-xs text-gray-500 dark:text-gray-400">Beta</span>
+
+        <!-- 공지사항 박스 -->
+        <div id="announcement-banner" class="hidden xl:flex items-center gap-2 px-3 py-1 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700">
+          <span class="text-blue-600 dark:text-blue-400 text-xs">📢</span>
+          <span class="text-blue-800 dark:text-blue-300 text-xs whitespace-nowrap">
+            <strong>업데이트:</strong> 12. 특정항목별 감사절차: 부정 까지 업데이트 완료
+          </span>
+          <button id="close-announcement" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 text-xs ml-1" aria-label="공지 닫기">
+            ✕
+          </button>
+        </div>
       </div>
       <nav class="flex items-center gap-2">
         <span id="dday-display" class="hidden sm:inline text-sm font-semibold px-3 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-900/50 transition" title="시험날짜 설정은 설정 메뉴에서">D-DAY</span>
@@ -353,27 +364,9 @@
         <button id="hamburger" class="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600" aria-label="메뉴">≡</button>
       </nav>
     </div>
-
-    <!-- 공지사항 배너 -->
-    <div id="announcement-banner" class="border-t border-gray-200 dark:border-gray-700 bg-blue-50/80 dark:bg-blue-900/10">
-      <div class="mx-auto max-w-[1400px] 2xl:max-w-[1600px] px-4 lg:px-6 xl:px-8 py-1.5">
-        <div class="flex items-center justify-between gap-4">
-          <div class="flex items-center gap-2 text-xs">
-            <span class="text-blue-600 dark:text-blue-400">📢</span>
-            <span class="text-blue-800 dark:text-blue-300">
-              <strong>업데이트:</strong> 12. 특정항목별 감사절차: 부정 까지 업데이트 완료
-            </span>
-          </div>
-          <button id="close-announcement" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 text-xs font-medium px-1" aria-label="공지 닫기">
-            ✕
-          </button>
-        </div>
-      </div>
-    </div>
   </header>
 
   <div class="h-14"></div>
-  <div id="announcement-spacer" class="h-7"></div>
 
   <div id="drawer-backdrop" class="fixed inset-0 bg-black/40 hidden z-[1099]"></div>
 
@@ -2136,12 +2129,10 @@
 
       // 공지사항 닫기 기능
       const announcementBanner = document.getElementById('announcement-banner');
-      const announcementSpacer = document.getElementById('announcement-spacer');
       const closeAnnouncementBtn = document.getElementById('close-announcement');
 
       closeAnnouncementBtn?.addEventListener('click', () => {
         announcementBanner?.classList.add('hidden');
-        announcementSpacer?.classList.add('hidden');
       });
 
       initSettings();
