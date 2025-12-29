@@ -42,6 +42,11 @@
       color: #666;
       margin-bottom: 15px;
     }
+    ul {
+      color: #666;
+      margin-bottom: 15px;
+      padding-left: 20px;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -73,16 +78,33 @@
       color: #999;
       font-size: 14px;
     }
+    .btn-close {
+      display: block;
+      margin: 30px auto 0;
+      padding: 12px 40px;
+      background-color: #4F46E5;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .btn-close:hover {
+      background-color: #4338CA;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>감린이 개인정보 수집 및 이용 동의</h1>
-    <p style="color: #999; font-size: 14px;">최종 업데이트: 2025년 1월 20일</p>
+    <p style="color: #999; font-size: 14px;">최종 업데이트: 2025년 12월 29일</p>
 
     <div class="highlight">
-      <strong>⚠️ 필수 동의 사항</strong><br>
-      감린이 서비스 이용을 위해서는 아래 개인정보 수집 및 이용에 대한 동의가 필요합니다.
+      <strong>📌 서비스 안내</strong><br>
+      감린이는 <strong>무료 교육 서비스</strong>로, 금전적 거래가 발생하지 않습니다.<br>
+      서비스 이용을 위해서는 아래 개인정보 수집 및 이용에 대한 동의가 필요합니다.
       동의를 거부할 권리가 있으나, 동의하지 않을 경우 회원가입 및 서비스 이용이 제한됩니다.
     </div>
 
@@ -123,6 +145,11 @@
           <td>Google 계정 연동</td>
           <td>선택</td>
         </tr>
+        <tr>
+          <td>소속 대학교 및 대학교 이메일</td>
+          <td>대학생 인증 시 직접 입력</td>
+          <td>선택</td>
+        </tr>
       </tbody>
     </table>
 
@@ -132,24 +159,49 @@
         <tr>
           <th>수집 항목</th>
           <th>수집 방법</th>
+          <th>저장 위치</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td>학습 기록 (문제 풀이 데이터, 점수, 날짜)</td>
+          <td>학습 기록 (문제 풀이 데이터, 점수, 날짜, 오답 노트)</td>
           <td>서비스 이용 중 자동 수집</td>
+          <td>Firebase Firestore Database</td>
+        </tr>
+        <tr>
+          <td>Exam 모드 답안 및 채점 결과</td>
+          <td>Exam 모드 이용 시 자동 저장</td>
+          <td>Firebase Firestore Database</td>
+        </tr>
+        <tr>
+          <td>KAM 작성 답안 및 AI 피드백</td>
+          <td>KAM 모드 이용 시 자동 저장</td>
+          <td>Firebase Firestore Database</td>
+        </tr>
+        <tr>
+          <td>HLR 복습 알고리즘 데이터 (난이도 평가, 복습 일정)</td>
+          <td>플래시카드 모드 이용 시 자동 수집</td>
+          <td>Firebase Firestore Database</td>
         </tr>
         <tr>
           <td>그룹 가입 및 활동 기록</td>
           <td>그룹 참여 시 자동 수집</td>
+          <td>Firebase Firestore Database</td>
         </tr>
         <tr>
           <td>업적 달성 기록</td>
           <td>서비스 이용 중 자동 수집</td>
+          <td>Firebase Firestore Database</td>
         </tr>
         <tr>
           <td>로그인 일시 및 접속 로그</td>
           <td>서비스 이용 중 자동 수집</td>
+          <td>Firebase Authentication</td>
+        </tr>
+        <tr>
+          <td>서비스 이용 기록, 쿠키, 접속 IP 정보</td>
+          <td>웹사이트 접속 시 자동 수집</td>
+          <td>브라우저 로컬 스토리지 및 서버 로그</td>
         </tr>
       </tbody>
     </table>
@@ -173,8 +225,20 @@
           <td>학습 기록, 문제 풀이 데이터, 점수</td>
         </tr>
         <tr>
-          <td>학습 분석 및 통계 제공</td>
-          <td>학습 기록, 점수, 날짜</td>
+          <td>AI 기반 학습 분석 및 맞춤형 리포트 제공</td>
+          <td>학습 기록, 점수, 날짜, AI 채점 데이터</td>
+        </tr>
+        <tr>
+          <td>Exam 모드 모의시험 기능 제공 및 결과 저장</td>
+          <td>답안 내용, 채점 결과, AI 피드백</td>
+        </tr>
+        <tr>
+          <td>KAM 작성 훈련 및 AI 피드백 제공</td>
+          <td>KAM 답안, AI 분석 결과, 모범사례 비교 데이터</td>
+        </tr>
+        <tr>
+          <td>HLR 복습 알고리즘 기반 학습 추천</td>
+          <td>난이도 평가, 복습 주기 데이터</td>
         </tr>
         <tr>
           <td>그룹 학습 기능 제공</td>
@@ -195,7 +259,22 @@
       </tbody>
     </table>
 
-    <h2>3. 개인정보 보유 및 이용 기간</h2>
+    <h2>3. AI 서비스 이용 및 데이터 처리</h2>
+    <div class="highlight">
+      <strong>🤖 AI 기반 학습 분석 서비스</strong><br>
+      감린이는 Google Gemini API를 활용하여 다음의 AI 기반 서비스를 제공합니다:
+    </div>
+    <ul>
+      <li><strong>Exam 모드 자동 채점:</strong> 사용자가 작성한 주관식/서술형 답안을 AI가 자동으로 채점하고 피드백을 제공합니다.</li>
+      <li><strong>KAM 작성 분석:</strong> 핵심감사사항(KAM) 답안을 AI가 분석하여 개선점을 제시합니다.</li>
+      <li><strong>학습 리포트 생성:</strong> 개인별 학습 패턴을 분석하여 맞춤형 학습 가이드를 제공합니다.</li>
+    </ul>
+    <p>
+      <strong>⚠️ 중요:</strong> AI 분석을 위해 사용자의 답안 내용이 Google Gemini API로 전송됩니다.
+      Google의 데이터 처리 정책에 따라 처리되며, 개인 식별 정보는 최소화하여 전송됩니다.
+    </p>
+
+    <h2>4. 개인정보 보유 및 이용 기간</h2>
 
     <table>
       <thead>
@@ -210,7 +289,7 @@
           <td>회원 탈퇴 시까지</td>
         </tr>
         <tr>
-          <td>학습 기록</td>
+          <td>학습 기록 (문제 풀이, Exam, KAM 답안 등)</td>
           <td>회원 탈퇴 후 30일까지</td>
         </tr>
         <tr>
@@ -219,7 +298,7 @@
         </tr>
         <tr>
           <td>로그인 기록</td>
-          <td>최근 6개월</td>
+          <td>최근 3개월 (통신비밀보호법)</td>
         </tr>
       </tbody>
     </table>
@@ -227,11 +306,12 @@
     <div class="highlight">
       <strong>✓ 회원 탈퇴 시 처리 방침</strong><br>
       - 회원 탈퇴 즉시 개인정보는 익명화 처리됩니다.<br>
-      - 학습 통계를 위한 집계 데이터는 30일간 보관 후 삭제됩니다.<br>
-      - 법령에 의해 보관이 필요한 경우, 해당 기간 동안 별도 보관됩니다.
+      - 학습 통계를 위한 집계 데이터는 30일간 보관 후 완전 삭제됩니다.<br>
+      - Firebase Database에 저장된 모든 개인 데이터가 삭제됩니다.<br>
+      - 로그 기록은 통신비밀보호법에 따라 3개월간 보관 후 삭제됩니다.
     </div>
 
-    <h2>4. 개인정보 제3자 제공</h2>
+    <h2>5. 개인정보 제3자 제공</h2>
     <p>
       감린이는 사용자의 개인정보를 <strong>원칙적으로 제3자에게 제공하지 않습니다.</strong>
       다만, 다음의 경우 예외로 합니다:
@@ -241,7 +321,7 @@
       <li>법령의 규정에 의거하거나, 수사 목적으로 법령에 정해진 절차와 방법에 따라 수사기관의 요구가 있는 경우</li>
     </ul>
 
-    <h2>5. 개인정보 처리 위탁</h2>
+    <h2>6. 개인정보 처리 위탁</h2>
     <p>
       감린이는 서비스 제공을 위해 다음의 업체에 개인정보 처리를 위탁하고 있습니다:
     </p>
@@ -254,26 +334,31 @@
       </thead>
       <tbody>
         <tr>
-          <td>Google LLC (Firebase)</td>
-          <td>사용자 인증, 데이터 저장 및 관리</td>
+          <td>Google LLC (Firebase Authentication)</td>
+          <td>사용자 인증 및 로그인 관리</td>
+        </tr>
+        <tr>
+          <td>Google LLC (Firebase Firestore)</td>
+          <td>학습 데이터, 그룹 정보, 업적 기록 저장 및 관리</td>
         </tr>
         <tr>
           <td>Google LLC (Gemini API)</td>
-          <td>AI 기반 학습 분석 및 채점</td>
+          <td>AI 기반 학습 분석, Exam 자동 채점, KAM 피드백 생성</td>
         </tr>
       </tbody>
     </table>
 
-    <h2>6. 사용자의 권리 및 행사 방법</h2>
+    <h2>7. 사용자의 권리 및 행사 방법</h2>
     <p>사용자는 언제든지 다음의 권리를 행사할 수 있습니다:</p>
     <ul>
       <li><strong>개인정보 열람 요구권:</strong> 프로필 페이지에서 본인의 정보 확인</li>
       <li><strong>개인정보 수정 요구권:</strong> 프로필 페이지에서 닉네임, 상태 메시지 등 수정</li>
       <li><strong>개인정보 삭제 요구권:</strong> 프로필 페이지에서 회원 탈퇴 가능</li>
       <li><strong>처리 정지 요구권:</strong> 서비스 이용 중단 또는 회원 탈퇴</li>
+      <li><strong>AI 처리 거부권:</strong> Exam 모드, KAM 모드 등 AI 기능 이용을 선택적으로 사용 가능</li>
     </ul>
 
-    <h2>7. 개인정보 보호 책임자</h2>
+    <h2>8. 개인정보 보호 책임자</h2>
     <p>
       감린이는 사용자의 개인정보를 보호하고 개인정보와 관련한 불만 처리를 위해 아래와 같이 개인정보 보호 책임자를 지정하고 있습니다.
     </p>
@@ -282,143 +367,38 @@
       <li><strong>문의:</strong> GitHub Issues (<a href="https://github.com/gfdsstyu/gfdsstyu.github.io/issues" target="_blank">https://github.com/gfdsstyu/gfdsstyu.github.io/issues</a>)</li>
     </ul>
 
-    <h2>8. 쿠키(Cookie) 사용</h2>
+    <h2>9. 쿠키(Cookie) 및 로컬 스토리지 사용</h2>
     <p>
-      감린이는 사용자의 편의를 위해 쿠키를 사용합니다. 쿠키는 웹사이트 서버가 사용자의 브라우저에 전송하는 소량의 정보입니다.
+      감린이는 사용자의 편의를 위해 쿠키 및 브라우저 로컬 스토리지를 사용합니다.
     </p>
     <ul>
-      <li><strong>사용 목적:</strong> 로그인 상태 유지, 사용자 설정 저장</li>
-      <li><strong>쿠키 거부 방법:</strong> 브라우저 설정에서 쿠키 저장을 거부할 수 있으나, 서비스 이용에 제한이 있을 수 있습니다.</li>
+      <li><strong>사용 목적:</strong> 로그인 상태 유지, 사용자 설정 저장, 학습 진행 상태 임시 보관</li>
+      <li><strong>저장 항목:</strong> Firebase 인증 토큰, 다크모드 설정, 최근 학습 기록</li>
+      <li><strong>거부 방법:</strong> 브라우저 설정에서 쿠키 저장을 거부할 수 있으나, 서비스 이용에 제한이 있을 수 있습니다.</li>
     </ul>
 
-    <h2>9. 개인정보 처리방침 변경</h2>
+    <h2>10. 개인정보 처리방침 변경</h2>
     <p>
       본 개인정보 처리방침은 관련 법령 및 지침의 변경 또는 내부 정책의 변경에 따라 변경될 수 있습니다.
-      개인정보 처리방침이 변경되는 경우, 변경 사항은 서비스 공지사항을 통해 공지됩니다.
+      개인정보 처리방침이 변경되는 경우, 변경 사항은 서비스 공지사항 및 웹사이트를 통해 공지됩니다.
+    </p>
+
+    <h2>11. 개인정보보호법상 소규모 사업자 고지</h2>
+    <p>
+      감린이는 무료 교육 서비스를 제공하는 소규모 서비스로서, 개인정보보호법 제32조의2(개인정보 보호 인증)의 대상이 아닙니다.
+      다만, 사용자의 개인정보 보호를 위해 최선을 다하며, 법적 요구사항을 준수합니다.
     </p>
 
     <div class="footer">
       <p>
-        본 개인정보 처리방침은 2025년 1월 20일부터 적용됩니다.<br>
+        본 개인정보 처리방침은 2025년 12월 29일부터 적용됩니다.<br>
         © 2025 감린이. All rights reserved.
       </p>
     </div>
+
+    <button onclick="window.close()" class="btn-close">
+      닫기
+    </button>
   </div>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>개인정보 수집 및 이용 동의 - 감린이</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Noto Sans KR', sans-serif; }
-    </style>
-</head>
-<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col justify-center items-center p-4">
-
-    <div class="max-w-3xl w-full bg-white rounded-2xl shadow-xl p-8 md:p-12">
-        <header class="mb-8 border-b border-gray-200 pb-4">
-            <h1 class="text-3xl font-bold text-gray-900">개인정보 수집 및 이용 동의</h1>
-            <p class="text-gray-500 text-sm mt-2">'감린이' 서비스 이용을 위한 개인정보 수집 및 이용에 대한 안내입니다.</p>
-        </header>
-
-        <div class="space-y-8 text-sm leading-relaxed">
-            
-            <section>
-                <h2 class="text-lg font-bold text-blue-700 mb-3">1. 수집하는 개인정보의 항목</h2>
-                <p class="mb-2">서비스는 회원가입, 원활한 고객상담, 각종 서비스의 제공을 위해 아래와 같은 개인정보를 수집하고 있습니다.</p>
-                <ul class="list-disc list-outside pl-5 space-y-1 text-gray-700 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <li><strong class="text-gray-900">필수항목:</strong> 이메일 주소, 비밀번호(암호화 저장), 닉네임(이름)</li>
-                    <li><strong class="text-gray-900">선택항목:</strong> 프로필 사진(소셜 로그인 시), 상태 메시지, 소속 대학교 및 대학교 이메일(대학생 인증 시)</li>
-                    <li><strong class="text-gray-900">자동 수집/생성 정보:</strong>
-                        <ul class="list-circle list-inside pl-2 mt-1 text-gray-600">
-                            <li>- 학습 기록 (문제 풀이 내역, 점수, 오답 노트, 풀이 시간 등)</li>
-                            <li>- 서비스 이용 기록, 접속 로그, 쿠키, 접속 IP 정보</li>
-                        </ul>
-                    </li>
-                </ul>
-            </section>
-
-            <section>
-                <h2 class="text-lg font-bold text-blue-700 mb-3">2. 개인정보의 수집 및 이용 목적</h2>
-                <ul class="list-disc list-outside pl-5 space-y-2 text-gray-700">
-                    <li>
-                        <strong class="text-gray-900">회원 관리:</strong> 회원제 서비스 이용에 따른 본인확인, 개인 식별, 불량 회원의 부정 이용 방지와 비인가 사용 방지, 가입 의사 확인, 비밀번호 재설정 등
-                    </li>
-                    <li>
-                        <strong class="text-gray-900">서비스 제공:</strong>
-                        <ul class="list-disc list-outside pl-5 mt-1">
-                            <li>개인 맞춤형 학습 리포트(Deep-Learning Report) 생성 및 분석</li>
-                            <li>학습 성취도 분석(망각 곡선 알고리즘 적용 등) 및 복습 추천</li>
-                            <li>랭킹 시스템, 스터디 그룹, 고시반 등 소셜 기능 제공</li>
-                        </ul>
-                    </li>
-                    <li>
-                        <strong class="text-gray-900">신규 서비스 개발 및 마케팅:</strong> 통계학적 분석에 따른 서비스 유효성 확인, 접속 빈도 파악, 회원의 서비스 이용에 대한 통계
-                    </li>
-                </ul>
-            </section>
-
-            <section>
-                <h2 class="text-lg font-bold text-blue-700 mb-3">3. 개인정보의 보유 및 이용 기간</h2>
-                <p class="mb-2">원칙적으로 개인정보 수집 및 이용목적이 달성된 후에는 해당 정보를 지체 없이 파기합니다. 단, 다음의 정보는 아래의 이유로 명시한 기간 동안 보존합니다.</p>
-                
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-left text-xs border border-gray-300 mt-2">
-                        <thead class="bg-gray-100 border-b border-gray-300 text-gray-900">
-                            <tr>
-                                <th class="p-2 border-r border-gray-300 font-bold">보존 항목</th>
-                                <th class="p-2 border-r border-gray-300 font-bold">보존 사유</th>
-                                <th class="p-2 font-bold">보존 기간</th>
-                            </tr>
-                        </thead>
-                        <tbody class="text-gray-700">
-                            <tr class="border-b border-gray-200">
-                                <td class="p-2 border-r border-gray-200">회원 정보</td>
-                                <td class="p-2 border-r border-gray-200">부정이용 방지 및 민원 처리</td>
-                                <td class="p-2">탈퇴 후 30일</td>
-                            </tr>
-                            <tr class="border-b border-gray-200">
-                                <td class="p-2 border-r border-gray-200">계약/청약철회 기록</td>
-                                <td class="p-2 border-r border-gray-200">전자상거래 등에서의 소비자보호에 관한 법률</td>
-                                <td class="p-2">5년</td>
-                            </tr>
-                            <tr class="border-b border-gray-200">
-                                <td class="p-2 border-r border-gray-200">소비자 불만/분쟁 기록</td>
-                                <td class="p-2 border-r border-gray-200">전자상거래 등에서의 소비자보호에 관한 법률</td>
-                                <td class="p-2">3년</td>
-                            </tr>
-                            <tr>
-                                <td class="p-2 border-r border-gray-200">로그인 기록</td>
-                                <td class="p-2 border-r border-gray-200">통신비밀보호법</td>
-                                <td class="p-2">3개월</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <section>
-                <h2 class="text-lg font-bold text-blue-700 mb-3">4. 동의를 거부할 권리 및 불이익</h2>
-                <p class="text-gray-700">
-                    귀하는 개인정보 수집 및 이용에 대한 동의를 거부할 권리가 있습니다. 다만, 필수항목의 수집 및 이용에 동의하지 않을 경우 <strong class="text-red-600">회원가입 및 서비스 이용이 제한될 수 있습니다.</strong>
-                </p>
-            </section>
-
-        </div>
-
-        <div class="mt-10 text-center">
-            <button onclick="window.close()" class="px-8 py-3 bg-gray-800 text-white font-bold rounded-lg hover:bg-gray-900 transition shadow-md">
-                닫기
-            </button>
-        </div>
-    </div>
-
 </body>
 </html>
