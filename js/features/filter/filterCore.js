@@ -113,7 +113,7 @@ export function isCompactFilterEnabled() {
 }
 
 /**
- * 컴팩트 필터 적용 (q_001~q_200만 표시)
+ * 컴팩트 필터 적용 (q_001~q_202만 표시)
  * @param {Array} arr - 문제 배열
  * @returns {Array} 필터링된 문제 배열
  */
@@ -122,11 +122,11 @@ export function applyCompactFilter(arr) {
 
   return (arr || []).filter(q => {
     const id = String(q.고유ID || '').toLowerCase();
-    // q_001부터 q_200까지만 포함
+    // q_001부터 q_202까지만 포함
     const match = id.match(/^q_(\d+)/);
     if (!match) return false;
     const num = parseInt(match[1], 10);
-    return num >= 1 && num <= 200;
+    return num >= 1 && num <= 202;
   });
 }
 
