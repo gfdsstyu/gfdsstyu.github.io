@@ -446,7 +446,7 @@ export function renderKAMUI(container, apiKey, selectedModel) {
           📝 KAM 사례형 실전 훈련
         </h1>
         <p class="text-gray-600 dark:text-gray-400 no-kr-break">
-          금융감독원 모범사례 기준으로 핵심감사사항 작성 능력을 향상시키세요
+          금감원의 핵심감사사항 기재 모범사례를 이용하여 사례 작성능력을 키워보세요
         </p>
       </div>
 
