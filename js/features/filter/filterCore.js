@@ -40,7 +40,7 @@ export function buildSourceFilterUI() {
         <label class="text-sm flex items-center gap-1 text-gray-900 dark:text-gray-100"><input type="checkbox" id="source-filter-basic" name="source-filter-basic" value="basic" class="source-filter"> 기본(S/H/HS)</label>
         <label class="text-sm flex items-center gap-1 text-gray-900 dark:text-gray-100"><input type="checkbox" id="source-filter-advanced" name="source-filter-advanced" value="advanced" class="source-filter"> 심화(SS/P)</label>
         <label class="text-sm flex items-center gap-1 text-gray-900 dark:text-gray-100"><input type="checkbox" id="source-filter-other" name="source-filter-other" value="other" class="source-filter"> 기타</label>
-        <label class="text-sm flex items-center gap-1 text-gray-900 dark:text-gray-100"><input type="checkbox" id="compact-filter" name="compact-filter" value="compact"> 컴팩트</label>
+        <label class="text-sm flex items-center gap-1 text-gray-900 dark:text-gray-100"><input type="checkbox" id="compact-filter" name="compact-filter" value="compact"> 컴팩트(200제)</label>
         <button id="source-filter-all" class="ml-auto text-xs px-2 py-1 border rounded text-gray-900 dark:text-gray-100">전체</button>
         <button id="source-filter-none" class="text-xs px-2 py-1 border rounded text-gray-900 dark:text-gray-100">해제</button>
       </div>
@@ -156,8 +156,11 @@ export function detectSourceGroup(src) {
 export function applySourceFilter(arr) {
   const selected = new Set(getSelectedSourceGroups());
 
-  // 모두 선택 또는 모두 미선택 시 필터링하지 않음
-  if (selected.size === 0 || selected.size === 3) return arr;
+  // 모두 선택 시 필터링하지 않음
+  if (selected.size === 3) return arr;
+
+  // 모두 미선택 시 빈 배열 반환 (컴팩트만 선택한 경우 출처 필터도 적용되도록)
+  if (selected.size === 0) return [];
 
   return (arr || []).filter(q => {
     const g = detectSourceGroup(q.출처);
