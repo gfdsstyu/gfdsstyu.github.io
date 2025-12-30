@@ -273,7 +273,7 @@ export async function handleGrade() {
 
           const chatSession = new OpenRouterChatSession(
             groqApiKey,
-            'llama-3.3-70b-versatile', // fallback-auto는 항상 Llama 3.3 70B 사용
+            'openai/gpt-oss-120b', // fallback-auto는 항상 GPT OSS 120B 사용
             systemPrompt,
             { temperature: 0.2, max_tokens: 2048 }
           );
