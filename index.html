@@ -1343,9 +1343,9 @@
           <label for="groq-model-select" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Groq 모델 선택</label>
           <select id="groq-model-select" name="groq-model" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700" aria-label="Groq 모델 선택">
             <option value="">사용 안 함 (기본 Gemini 사용)</option>
-            <option value="llama-3.1-8b-instant">🦙 Llama 3.1 8B Instant (빠름, TPM 12K) ✅추천</option>
+            <option value="llama-3.1-8b-instant">🦙 Llama 3.1 8B Instant (빠름, TPM 12K)</option>
             <option value="llama-3.3-70b-versatile">🦙 Llama 3.3 70B Versatile (고성능, TPM 12K) ✅추천</option>
-            <option value="qwen/qwen3-32b">🎯 Qwen 3 32B (TPM 12K)</option>
+            <option value="qwen/qwen3-32b">🎯 Qwen 3 32B (TPM 12K) ✅추천</option>
             <option value="meta-llama/llama-4-maverick-17b-128e-instruct">🦙 Llama 4 Maverick 17B (실험, TPM 10K)</option>
             <option value="meta-llama/llama-4-scout-17b-16e-instruct">🦙 Llama 4 Scout 17B (실험, TPM 10K)</option>
             <option value="moonshotai/kimi-k2-instruct">🌙 Kimi K2 Instruct (TPM 10K)</option>
@@ -1354,7 +1354,7 @@
           </select>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
             <strong>TPM:</strong> Tokens Per Minute (분당 토큰 제한)<br>
-            <strong>권장:</strong> Llama 3.1 8B 또는 Llama 3.3 70B (안정적인 TPM)
+            <strong>권장:</strong> Llama 3.3 70B Versatile 또는 Qwen 3 32B (안정적인 성능과 TPM)
           </p>
 
           <form id="groq-api-key-form" class="mt-4">
