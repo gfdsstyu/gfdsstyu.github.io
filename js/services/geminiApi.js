@@ -200,6 +200,10 @@ ${userAnswer}
     }
 
     // 400/429/403/503/404 에러 시 gemma-3-27b-it으로 폴백 (quiz 채점만, exam/kam 제외)
+    // 단, fallback-auto 모드일 때는 Groq으로 넘어가므로 gemma 재시도 스킵
+    const groqModel = (typeof localStorage !== 'undefined') ? localStorage.getItem('groq_model') : '';
+    const isFallbackAutoMode = groqModel === 'fallback-auto';
+
     const errorMsg = String(err.message);
     const shouldFallbackToGemma = (
       errorMsg.includes('400') || // Bad Request (모델별 파라미터 차이 가능)
@@ -211,7 +215,7 @@ ${userAnswer}
       errorMsg.includes('모델/버전 불일치') // 모델 버전 오류
     );
 
-    if (shouldFallbackToGemma && selectedAiModel !== 'gemma-3-27b-it' && retries === 2) {
+    if (shouldFallbackToGemma && selectedAiModel !== 'gemma-3-27b-it' && retries === 2 && !isFallbackAutoMode) {
       console.warn(`⚠️ [Gemini API] ${err.message} → gemma-3-27b-it으로 폴백 시도`);
       try {
         return await callGeminiAPI(userAnswer, correctAnswer, apiKey, 'gemma-3-27b-it', 0, delay);
@@ -219,6 +223,12 @@ ${userAnswer}
         console.error(`❌ [Gemini API] gemma-3-27b-it도 실패:`, gemmaErr);
         throw err; // 원본 에러 throw
       }
+    }
+
+    // fallback-auto 모드일 때는 gemma 재시도 없이 바로 에러를 throw하여 grading.js의 Layer 2로 넘김
+    if (isFallbackAutoMode && shouldFallbackToGemma) {
+      console.log('🛡️ [Gemini API] fallback-auto 모드 - gemma 재시도 스킵, Groq으로 전환 예정');
+      throw err;
     }
 
     // 429 또는 서버 오류 시 재시도 (503 포함)
