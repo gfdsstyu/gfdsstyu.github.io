@@ -1882,6 +1882,40 @@ export class GamliniDrawer {
     // 코드 블록 (```)
     html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
 
+    // 테이블 (Markdown table)
+    html = html.replace(/(\|.+\|[\r\n]+\|[\s:|-]+\|[\r\n]+(?:\|.+\|[\r\n]*)+)/g, (match) => {
+      const lines = match.trim().split(/[\r\n]+/);
+      if (lines.length < 3) return match; // 헤더 + 구분선 + 최소 1행 필요
+
+      const headers = lines[0].split('|').map(h => h.trim()).filter(h => h);
+      const rows = lines.slice(2).map(row =>
+        row.split('|').map(cell => cell.trim()).filter(cell => cell || cell === '')
+      );
+
+      let tableHtml = '<table class="markdown-table" style="border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 0.9em;">';
+
+      // 헤더
+      tableHtml += '<thead><tr>';
+      headers.forEach(header => {
+        tableHtml += `<th style="border: 1px solid #ddd; padding: 8px; background-color: #f5f5f5; text-align: left;">${header}</th>`;
+      });
+      tableHtml += '</tr></thead>';
+
+      // 본문
+      tableHtml += '<tbody>';
+      rows.forEach(row => {
+        if (row.length === 0) return;
+        tableHtml += '<tr>';
+        row.forEach(cell => {
+          tableHtml += `<td style="border: 1px solid #ddd; padding: 8px;">${cell}</td>`;
+        });
+        tableHtml += '</tr>';
+      });
+      tableHtml += '</tbody></table>';
+
+      return tableHtml;
+    });
+
     // 인라인 코드 (`)
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
 
