@@ -3017,56 +3017,63 @@ export function checkDaySpecificAchievements() {
 }
 
 /**
- * Check time slot achievements (점심, 퇴근후, 출근전)
+ * Check time slot achievements (점심, 퇴근후, 출근전 - 연속 3일 조건)
  */
 export function checkTimeSlotAchievements() {
   try {
     const questionScores = window.questionScores || {};
 
-    let lunchCount = 0; // 12-13
-    let afterWorkCount = 0; // 18-20
-    let morningCount = 0; // 7-9
+    // 날짜별 시간대 학습 기록
+    const dawnDates = new Set(); // 5-7시
+    const morningDates = new Set(); // 7-9시
+    const lunchDates = new Set(); // 12-13시
+    const afterWorkDates = new Set(); // 18-20시
 
     Object.values(questionScores).forEach(record => {
       if (!record.solveHistory || !Array.isArray(record.solveHistory) || record.solveHistory.length === 0) {
         return;
       }
-      
+
       // 5분 윈도우 기반으로 고유 회독 추출
       const times = record.solveHistory
         .map(x => +x?.date)
         .filter(Number.isFinite)
         .sort((a, b) => a - b);
-      
+
       if (times.length === 0) return;
-      
+
       let lastTime = -Infinity;
       const uniqueReads = [];
-      
+
       for (let i = 0; i < record.solveHistory.length; i++) {
         const h = record.solveHistory[i];
         const t = +h?.date;
         if (!Number.isFinite(t)) continue;
-        
+
         if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
           uniqueReads.push(t);
           lastTime = t;
         }
       }
-      
-      // 고유 회독만 시간대별 집계
-      uniqueReads.forEach(t => {
-        const hour = new Date(t).getHours();
 
-        if (hour >= 12 && hour < 13) lunchCount++;
-        if (hour >= 18 && hour < 20) afterWorkCount++;
-        if (hour >= 7 && hour < 9) morningCount++;
+      // 고유 회독만 시간대별 날짜 집계
+      uniqueReads.forEach(t => {
+        const d = new Date(t);
+        const hour = d.getHours();
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+        if (hour >= 5 && hour < 7) dawnDates.add(dateStr);
+        if (hour >= 7 && hour < 9) morningDates.add(dateStr);
+        if (hour >= 12 && hour < 13) lunchDates.add(dateStr);
+        if (hour >= 18 && hour < 20) afterWorkDates.add(dateStr);
       });
     });
 
-    if (lunchCount >= 10) unlockAchievement('lunch_learner');
-    if (afterWorkCount >= 20) unlockAchievement('after_work_warrior');
-    if (morningCount >= 20) unlockAchievement('morning_learner');
+    // 연속 3일 체크
+    if (hasConsecutiveDays(Array.from(dawnDates), 3)) unlockAchievement('dawn_learner');
+    if (hasConsecutiveDays(Array.from(morningDates), 3)) unlockAchievement('morning_learner');
+    if (hasConsecutiveDays(Array.from(lunchDates), 3)) unlockAchievement('lunch_learner');
+    if (hasConsecutiveDays(Array.from(afterWorkDates), 3)) unlockAchievement('after_work_warrior');
   } catch {}
 }
 
