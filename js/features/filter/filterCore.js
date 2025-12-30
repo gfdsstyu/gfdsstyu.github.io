@@ -18,12 +18,12 @@ export const BASIC_TAGS = ['S', 'H', 'HS'];
 export const ADV_TAGS = ['SS', 'P'];
 
 /**
- * 범위 필터링된 데이터 가져오기 (출처 + 단원 + 컴팩트 필터 적용)
+ * 범위 필터링된 데이터 가져오기 (출처 + 단원 필터 적용)
  * @returns {Array} 필터링된 문제 배열
  */
 export function getScopeFilteredData() {
   const allData = window.allData || getAllData() || [];
-  return applyCompactFilter(filterByChapterSelection(applySourceFilter(allData)));
+  return filterByChapterSelection(applySourceFilter(allData));
 }
 
 /**
@@ -86,12 +86,13 @@ export function buildSourceFilterUI() {
 }
 
 /**
- * 선택된 출처 그룹 가져오기
- * @returns {string[]} 선택된 그룹 배열 (e.g., ['basic', 'advanced'])
+ * 선택된 출처 그룹 가져오기 (컴팩트 포함)
+ * @returns {string[]} 선택된 그룹 배열 (e.g., ['basic', 'advanced', 'compact'])
  */
 export function getSelectedSourceGroups() {
   const el = getElements();
   const boxes = el.sourceGroupFilter?.querySelectorAll('input.source-filter');
+  const compactBox = el.sourceGroupFilter?.querySelector('#compact-filter');
 
   if (!boxes || boxes.length === 0) {
     return JSON.parse(localStorage.getItem(SOURCE_LS) || '["basic","advanced","other"]');
@@ -101,6 +102,12 @@ export function getSelectedSourceGroups() {
   boxes.forEach(cb => {
     if (cb.checked) arr.push(cb.value);
   });
+
+  // 컴팩트 필터도 포함
+  if (compactBox && compactBox.checked) {
+    arr.push('compact');
+  }
+
   return arr;
 }
 
@@ -113,21 +120,16 @@ export function isCompactFilterEnabled() {
 }
 
 /**
- * 컴팩트 필터 적용 (q_001~q_202만 표시)
- * @param {Array} arr - 문제 배열
- * @returns {Array} 필터링된 문제 배열
+ * 문제가 컴팩트 범위(q_001~q_202)에 속하는지 확인
+ * @param {Object} q - 문제 객체
+ * @returns {boolean} 컴팩트 범위 여부
  */
-export function applyCompactFilter(arr) {
-  if (!isCompactFilterEnabled()) return arr;
-
-  return (arr || []).filter(q => {
-    const id = String(q.고유ID || '').toLowerCase();
-    // q_001부터 q_202까지만 포함
-    const match = id.match(/^q_(\d+)/);
-    if (!match) return false;
-    const num = parseInt(match[1], 10);
-    return num >= 1 && num <= 202;
-  });
+export function isCompactQuestion(q) {
+  const id = String(q.고유ID || '').toLowerCase();
+  const match = id.match(/^q_(\d+)/);
+  if (!match) return false;
+  const num = parseInt(match[1], 10);
+  return num >= 1 && num <= 202;
 }
 
 /**
@@ -149,20 +151,26 @@ export function detectSourceGroup(src) {
 }
 
 /**
- * 출처 필터 적용
+ * 출처 필터 적용 (컴팩트 포함 OR 조건)
  * @param {Array} arr - 문제 배열
  * @returns {Array} 필터링된 문제 배열
  */
 export function applySourceFilter(arr) {
   const selected = new Set(getSelectedSourceGroups());
 
-  // 모두 선택 시 필터링하지 않음
-  if (selected.size === 3) return arr;
+  // 모두 선택 시 필터링하지 않음 (기본 3개 + 컴팩트 1개 = 4개)
+  if (selected.size === 4) return arr;
 
-  // 모두 미선택 시 빈 배열 반환 (컴팩트만 선택한 경우 출처 필터도 적용되도록)
-  if (selected.size === 0) return [];
+  // 모두 미선택 시 필터링하지 않음
+  if (selected.size === 0) return arr;
 
   return (arr || []).filter(q => {
+    // 컴팩트 필터 체크
+    if (selected.has('compact') && isCompactQuestion(q)) {
+      return true;
+    }
+
+    // 출처 그룹 체크
     const g = detectSourceGroup(q.출처);
 
     // 기본+심화 혼합인 경우 둘 중 하나라도 선택되면 포함
@@ -209,16 +217,13 @@ export function getFilteredByUI() {
   const filter = el.filterSelect.value;
   const questionScores = getQuestionScores();
 
-  // 1. 출처 필터 적용
+  // 1. 출처 필터 적용 (컴팩트 포함)
   let list = applySourceFilter(window.allData || getAllData() || []);
 
   // 2. 단원 필터 적용
   list = filterByChapterSelection(list);
 
-  // 3. 컴팩트 필터 적용
-  list = applyCompactFilter(list);
-
-  // 4. 상태 필터 적용
+  // 3. 상태 필터 적용
   list = list.filter(q => {
     const key = normId(q.고유ID);
     const s = questionScores[key];
