@@ -3,6 +3,7 @@
   "version": "4.0.0",
   "description": "감린이 - 회계감사 학습 퀴즈 앱",
   "scripts": {
+    "build": "echo 'Static site - no build needed'",
     "build:css": "tailwindcss -i ./src/input.css -o ./styles.css --minify",
     "watch:css": "tailwindcss -i ./src/input.css -o ./styles.css --watch"
   },
