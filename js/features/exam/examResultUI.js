@@ -1099,16 +1099,24 @@ async function setupEventListeners(container, year, result, exams, metadata, use
               minSimilarity: 0.05
             });
 
-            relatedDocs = ragResults.map(doc => ({
-              고유ID: doc.metadata?.id || doc.id || '',
-              id: doc.metadata?.id || doc.id || '',
-              단원: doc.metadata?.chapter || '기타',
-              표시번호: doc.metadata?.question_number || doc.metadata?.displayNo || '',
-              problemTitle: doc.metadata?.title || '',
-              물음: doc.text || doc.metadata?.content || '',
-              정답: doc.metadata?.answer || '',
-              explanation: doc.metadata?.explanation || doc.text || ''
-            }));
+            relatedDocs = ragResults.map(doc => {
+              // 표시번호에서 "study_" 접두사 제거
+              let displayNo = doc.metadata?.question_number || doc.metadata?.displayNo || '';
+              if (displayNo.startsWith('study_')) {
+                displayNo = displayNo.replace('study_', '');
+              }
+
+              return {
+                고유ID: doc.metadata?.id || doc.id || '',
+                id: doc.metadata?.id || doc.id || '',
+                단원: doc.metadata?.chapter || '기타',
+                표시번호: displayNo,
+                problemTitle: doc.metadata?.title || '',
+                물음: doc.text || doc.metadata?.content || '',
+                정답: doc.metadata?.answer || '',
+                explanation: doc.metadata?.explanation || doc.text || ''
+              };
+            });
           }
         }
 
@@ -1130,12 +1138,19 @@ async function setupEventListeners(container, year, result, exams, metadata, use
             console.log(`[ExamResultUI] 유사 문제 검색 결과 (questions.json): ${ragResults.length}개`);
 
             relatedDocs = ragResults.map(doc => {
-              console.log(`  - ${doc.metadata?.chapter || '?'}-${doc.metadata?.question_number || '?'}: ${(doc.similarity * 100).toFixed(1)}%`);
+              // 표시번호에서 "study_" 접두사 제거
+              let displayNo = doc.metadata?.question_number || doc.metadata?.displayNo || '';
+              if (displayNo.startsWith('study_')) {
+                displayNo = displayNo.replace('study_', '');
+              }
+
+              console.log(`  - ${doc.metadata?.chapter || '?'}-${displayNo}: ${(doc.similarity * 100).toFixed(1)}%`);
+
               return {
                 고유ID: doc.metadata?.id || doc.id || '',
                 id: doc.metadata?.id || doc.id || '',
                 단원: doc.metadata?.chapter || '기타',
-                표시번호: doc.metadata?.question_number || doc.metadata?.displayNo || '',
+                표시번호: displayNo,
                 problemTitle: doc.metadata?.title || '유사 문제',
                 물음: doc.text || doc.metadata?.content || '',
                 정답: doc.metadata?.answer || '',
