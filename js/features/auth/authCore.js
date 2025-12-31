@@ -34,6 +34,7 @@ import { auth, db } from '../../app.js';
 import { syncOnLogin } from '../sync/syncCore.js';
 import { showToast } from '../../ui/domUtils.js';
 import { getMyGroups, leaveGroup } from '../group/groupCore.js';
+import { persistentStorage } from '../../core/persistentStorage.js';
 
 // ============================================
 // 상태 관리
@@ -419,6 +420,20 @@ async function ensureUserProfile(user, customDisplayName = null) {
  */
 export async function handleRedirectResult() {
   try {
+    // IndexedDB 복원 대기 (모바일에서 redirect 후 localStorage 복원 보장)
+    console.log('🔄 [Auth] Redirect 결과 처리 전 IndexedDB 복원 시작...');
+
+    // persistentStorage 초기화 및 복원 명시적으로 실행
+    try {
+      if (!persistentStorage.isInitialized) {
+        await persistentStorage.init();
+      }
+      await persistentStorage.restoreFromIndexedDB();
+      console.log('✅ [Auth] IndexedDB → localStorage 복원 완료');
+    } catch (err) {
+      console.warn('⚠️ [Auth] persistentStorage 복원 실패 (계속 진행):', err);
+    }
+
     const result = await getRedirectResult(auth);
 
     if (result) {
