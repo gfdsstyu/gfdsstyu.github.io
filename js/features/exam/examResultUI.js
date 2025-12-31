@@ -1203,10 +1203,8 @@ async function setupEventListeners(container, year, result, exams, metadata, use
                 </button>
               </div>
               <div class="hidden mt-2 text-[11px] text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 p-2 rounded rag-doc-content" data-doc-id="${docId}">
-                <div class="mb-1 font-semibold">[질문]</div>
-                <div class="mb-2 whitespace-pre-wrap">${doc.물음 || ''}</div>
-                <div class="mb-1 font-semibold">[기준서/해설]</div>
-                <div class="whitespace-pre-wrap">${doc.정답 || doc.explanation || ''}</div>
+                <div class="whitespace-pre-wrap">${doc.물음 || ''}</div>
+                ${doc.정답 ? `<div class="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600 whitespace-pre-wrap"><strong>답:</strong> ${doc.정답}</div>` : ''}
               </div>
             </div>
           `;}).join('');
