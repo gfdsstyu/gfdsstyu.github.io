@@ -302,8 +302,15 @@ async function handleGoogleLogin() {
   const result = await signInWithGoogle();
 
   if (result.success) {
-    showToast('✅ 로그인 성공!', 'success');
-    closeLoginModal();
+    if (result.pending) {
+      // 모바일 Redirect 방식 - 페이지 이동 중
+      showToast('🔄 Google 로그인 페이지로 이동 중...', 'info');
+      // 모달은 닫지 않음 (페이지가 곧 이동할 예정)
+    } else {
+      // 데스크톱 Popup 방식 - 로그인 완료
+      showToast('✅ 로그인 성공!', 'success');
+      closeLoginModal();
+    }
   } else {
     showToast(`❌ ${result.error}`, 'error');
   }

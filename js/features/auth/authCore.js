@@ -4,6 +4,8 @@
 
 import {
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -66,7 +68,14 @@ function notifyAuthStateChange(user) {
 // ============================================
 
 /**
- * Google 계정으로 로그인
+ * 모바일 기기 감지
+ */
+function isMobileDevice() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+/**
+ * Google 계정으로 로그인 (모바일: Redirect, 데스크톱: Popup)
  */
 export async function signInWithGoogle() {
   try {
@@ -75,17 +84,28 @@ export async function signInWithGoogle() {
       prompt: 'select_account'
     });
 
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
+    const isMobile = isMobileDevice();
+    console.log(`🔐 Google 로그인 시작 (${isMobile ? 'Redirect' : 'Popup'} 방식)`);
 
-    console.log('✅ Google 로그인 성공:', user.email);
+    if (isMobile) {
+      // 모바일: Redirect 방식 사용
+      await signInWithRedirect(auth, provider);
+      // Redirect는 페이지 이동 후 돌아오므로 여기서는 반환하지 않음
+      return { success: true, pending: true };
+    } else {
+      // 데스크톱: Popup 방식 사용
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
 
-    // Firestore에 사용자 프로필 생성/업데이트
-    await ensureUserProfile(user);
+      console.log('✅ Google 로그인 성공:', user.email);
 
-    // Note: 학습 데이터 동기화는 initAuthStateObserver()에서 자동 처리됨
+      // Firestore에 사용자 프로필 생성/업데이트
+      await ensureUserProfile(user);
 
-    return { success: true, user };
+      // Note: 학습 데이터 동기화는 initAuthStateObserver()에서 자동 처리됨
+
+      return { success: true, user };
+    }
   } catch (error) {
     console.error('❌ Google 로그인 실패:', error);
     console.error('   - 에러 코드:', error.code);
@@ -395,9 +415,44 @@ async function ensureUserProfile(user, customDisplayName = null) {
 // ============================================
 
 /**
+ * Redirect 결과 처리 (모바일 로그인 후 돌아왔을 때)
+ */
+export async function handleRedirectResult() {
+  try {
+    const result = await getRedirectResult(auth);
+
+    if (result) {
+      const user = result.user;
+      console.log('✅ Redirect 로그인 성공:', user.email);
+
+      // Firestore에 사용자 프로필 생성/업데이트
+      await ensureUserProfile(user);
+
+      showToast('✅ 로그인 성공!', 'success');
+      return { success: true, user };
+    }
+
+    return { success: true, noRedirect: true };
+  } catch (error) {
+    console.error('❌ Redirect 결과 처리 실패:', error);
+
+    let message = '로그인에 실패했습니다.';
+    if (error.code === 'auth/unauthorized-domain') {
+      message = '⚠️ 승인되지 않은 도메인입니다. Firebase Console에서 도메인을 추가해주세요.';
+    }
+
+    showToast(`❌ ${message}`, 'error');
+    return { success: false, error: message };
+  }
+}
+
+/**
  * Firebase 인증 상태 관찰 시작
  */
 export function initAuthStateObserver() {
+  // 앱 시작 시 Redirect 결과 확인 (모바일 로그인 후 복귀 시)
+  handleRedirectResult();
+
   onAuthStateChanged(auth, async (user) => {
     currentUser = user;
 
