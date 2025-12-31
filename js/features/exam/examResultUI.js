@@ -1184,7 +1184,7 @@ async function setupEventListeners(container, year, result, exams, metadata, use
               <div class="flex items-center justify-between cursor-pointer rag-toggle-doc" data-doc-id="${docId}">
                 <div class="flex items-center gap-2">
                   <span class="text-[11px] font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300">
-                    ${(doc.단원 || '기타')}-${doc.표시번호 || doc.고유ID || doc.id || '?'}
+                    ${(doc.단원 || '기타')}-${doc.표시번호 || '?'}
                   </span>
                   <span class="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200 truncate max-w-[180px]">
                     ${(doc.problemTitle || doc.물음 || '').slice(0, 24)}...
