@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ko" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>감린이(Gamlini) v4.0 가이드 | 구조도</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Pretendard', 'sans-serif'],
+                    },
+                    colors: {
+                        slate: { 850: '#1f2937' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* UI Guideline Styles */
+        .layout-container { border: 2px dashed #cbd5e1; border-radius: 1rem; position: relative; transition: all 0.3s; }
+        .layout-container:hover { border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.02); }
+        .layout-label {
+            position: absolute; top: -12px; left: 16px; 
+            background: #fff; padding: 0 8px; font-size: 0.75rem; font-weight: 800; 
+            color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .dark .layout-label { background: #111827; color: #94a3b8; }
+        .feature-item { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 0.875rem; }
+        .feature-icon { flex-shrink: 0; width: 1.25rem; text-align: center; }
+        
+        /* Glassmorphism */
+        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); }
+        .dark .glass { background: rgba(31, 41, 55, 0.9); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-gray-950 dark:text-slate-100 min-h-screen transition-colors duration-300">
+
+    <nav class="sticky top-0 z-50 glass border-b border-slate-200 dark:border-gray-800">
+        <div class="max-w-[1600px] mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl font-black text-blue-600">감린이 v4.0</span>
+                <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">Structure Guide</span>
+            </div>
+            <div class="flex gap-4">
+                <a href="#modals" class="text-sm font-medium hover:text-blue-600 transition">모달 시스템</a>
+                <a href="index.html" class="text-sm font-bold bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">앱 실행하기 →</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-[1600px] mx-auto px-4 py-8 space-y-8">
+        
+        <div class="text-center mb-12">
+            <h1 class="text-3xl md:text-4xl font-extrabold mb-4">화면 구조로 보는 기능 가이드</h1>
+            <p class="text-slate-500 dark:text-slate-400">실제 <code class="bg-slate-200 dark:bg-gray-800 px-2 py-1 rounded text-sm">index.html</code>의 3단 레이아웃(Left-Center-Right)을 시각화했습니다.</p>
+        </div>
+
+        <section class="layout-container p-6 border-blue-300/50">
+            <span class="layout-label text-blue-500">Fixed Header Area</span>
+            <div class="flex flex-wrap gap-8 justify-between items-start">
+                <div class="flex-1 min-w-[200px]">
+                    <h3 class="font-bold text-lg mb-2 flex items-center gap-2">🛠️ 네비게이션 & 도구</h3>
+                    <ul class="space-y-2">
+                        <li class="feature-item"><span class="feature-icon">📅</span><span><strong>D-DAY 표시:</strong> 설정된 시험일까지 남은 날짜 카운트다운</span></li>
+                        <li class="feature-item"><span class="feature-icon">📊</span><span><strong>소셜 랭킹:</strong> 전체/그룹/고시반별 실시간 경쟁 현황</span></li>
+                        <li class="feature-item"><span class="feature-icon">🤝</span><span><strong>문제 DB 참여:</strong> 구글 스프레드시트 연동 데이터 기여</span></li>
+                    </ul>
+                </div>
+                <div class="flex-1 min-w-[200px]">
+                    <h3 class="font-bold text-lg mb-2 flex items-center gap-2">🔐 인증 & 사용자 (Firebase)</h3>
+                    <ul class="space-y-2">
+                        <li class="feature-item"><span class="feature-icon">🔑</span><span><strong>로그인/회원가입:</strong> Google 계정 및 이메일 지원 (동기화 필수)</span></li>
+                        <li class="feature-item"><span class="feature-icon">👤</span><span><strong>프로필 관리:</strong> 닉네임, 상태메시지, 티어(Tier) 정보 확인</span></li>
+                        <li class="feature-item"><span class="feature-icon">🏆</span><span><strong>나의 업적:</strong> 브론즈~마스터 티어 및 뱃지 시스템</span></li>
+                    </ul>
+                </div>
+                <div class="flex-1 min-w-[200px]">
+                    <h3 class="font-bold text-lg mb-2 flex items-center gap-2">⚙️ 전역 설정</h3>
+                    <ul class="space-y-2">
+                        <li class="feature-item"><span class="feature-icon">🤖</span><span><strong>AI 모델 선택:</strong> Gemini 2.5 Flash-Lite(속도) vs Flash(품질)</span></li>
+                        <li class="feature-item"><span class="feature-icon">🎙️</span><span><strong>STT 설정:</strong> Web Speech API(무료) 또는 Google Cloud STT</span></li>
+                        <li class="feature-item"><span class="feature-icon">🌙</span><span><strong>다크 모드:</strong> 시스템/라이트/다크 테마 강제 설정</span></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 relative">
+            
+            <aside class="lg:col-span-3 space-y-4">
+                <div class="layout-container p-5 h-full bg-slate-50/50 dark:bg-gray-900/50">
+                    <span class="layout-label">Left Sidebar (Dashboard)</span>
+                    
+                    <div class="space-y-6">
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-gray-700">
+                            <h4 class="font-bold text-sm mb-2 text-slate-700 dark:text-slate-300">📅 학습 캘린더 (Heatmap)</h4>
+                            <p class="text-xs text-slate-500 mb-2">일별 풀이량에 따라 색상 변화 (Github 스타일)</p>
+                            <div class="h-20 bg-slate-100 dark:bg-gray-700 rounded flex items-center justify-center text-xs text-gray-400">[Calendar Grid]</div>
+                        </div>
+
+                        <div class="bg-blue-600 text-white p-3 rounded-xl text-center shadow-lg transform hover:scale-[1.02] transition cursor-pointer">
+                            <span class="font-bold text-sm">📊 AI 학습 리포트 생성</span>
+                            <p class="text-[10px] opacity-80 mt-1">Audit Flow Map & 취약점 분석</p>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="font-bold text-sm mb-1">📈 오늘의 통계</h4>
+                                <p class="text-xs text-slate-500">오늘 푼 문제 수, 정답률 실시간 집계</p>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm mb-1">🧠 오늘의 복습 (Review)</h4>
+                                <select class="w-full text-xs p-1 border rounded bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600">
+                                    <option>HLR 기반 (추천)</option>
+                                    <option>지능형 추천</option>
+                                    <option>점수 낮은 순</option>
+                                </select>
+                                <p class="text-[10px] text-slate-500 mt-1">망각 곡선 이론(HLR) 기반 알고리즘 적용</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="lg:col-span-6 space-y-4">
+                <div class="layout-container p-6 h-full border-blue-400 bg-white dark:bg-gray-900 shadow-xl relative overflow-hidden">
+                    <span class="layout-label text-blue-600 border-blue-400">Center Core (Learning)</span>
+                    
+                    <div class="mb-6 space-y-3">
+                        <div class="flex gap-2">
+                            <select class="flex-1 p-2 border rounded text-sm"><option>-- 전체 단원 --</option></select>
+                            <select class="flex-1 p-2 border rounded text-sm"><option>모든 문제 풀기</option><option>80점 미만</option></select>
+                        </div>
+                        <div class="flex flex-wrap gap-2 justify-center">
+                            <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">기준 모드</span>
+                            <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">사례(KAM/기출)</span>
+                            <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">플래시카드</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="hidden border-2 border-dashed border-gray-300 rounded-xl p-4 text-center">
+                            <h4 class="text-lg font-bold">🃏 플래시카드 모드</h4>
+                            <p class="text-sm text-gray-500">스페이스바로 정답 확인 / 1,2,3 키로 난이도 평가</p>
+                        </div>
+
+                        <div class="border border-gray-200 dark:border-gray-700 rounded-xl p-5 relative">
+                            <div class="absolute top-4 right-4 flex gap-2">
+                                <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded cursor-pointer">💡 힌트</span>
+                                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded cursor-pointer">📌 암기팁</span>
+                            </div>
+                            <h3 class="text-xl font-serif font-bold mb-4 text-gray-800 dark:text-gray-100">[문제 영역]</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
+                                여기에 문제가 표시됩니다. HLR 알고리즘에 의해 선별된 최적의 문제가 로드됩니다.
+                            </p>
+                            
+                            <div class="relative">
+                                <textarea class="w-full p-3 border rounded-lg h-32 font-serif text-sm bg-gray-50 dark:bg-gray-800" placeholder="답안을 입력하세요..."></textarea>
+                                <button class="absolute bottom-2 right-2 p-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700" title="음성 입력 (STT)">
+                                    🎙️
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 dark:bg-gray-800 p-5 rounded-xl border-l-4 border-blue-500">
+                            <h4 class="font-bold flex items-center gap-2">
+                                🤖 AI 채점 및 피드백
+                                <span class="text-xs font-normal bg-gray-200 px-2 py-0.5 rounded">유사도 분석</span>
+                            </h4>
+                            <div class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                Gemini AI가 사용자 답안을 분석하여 0~100점 점수를 매기고, 구체적인 보완점을 제시합니다.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <h4 class="text-xs font-bold text-gray-500 uppercase">학습 현황판</h4>
+                        <div class="flex gap-1 mt-2 flex-wrap">
+                            <span class="w-6 h-6 bg-green-500 rounded text-white text-[10px] flex items-center justify-center">1</span>
+                            <span class="w-6 h-6 bg-red-500 rounded text-white text-[10px] flex items-center justify-center">2</span>
+                            <span class="w-6 h-6 bg-gray-300 rounded text-white text-[10px] flex items-center justify-center">3</span>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <aside class="lg:col-span-3 space-y-4">
+                <div class="layout-container p-5 h-full bg-slate-50/50 dark:bg-gray-900/50">
+                    <span class="layout-label">Right Explorer</span>
+
+                    <div class="space-y-6">
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
+                            <h4 class="font-bold text-sm mb-2">📚 학습 범위 필터</h4>
+                            <div class="flex flex-wrap gap-2 text-xs">
+                                <label class="flex items-center gap-1"><input type="checkbox" checked> 기본(S/H/HS)</label>
+                                <label class="flex items-center gap-1"><input type="checkbox" checked> 심화(SS/P)</label>
+                                <label class="flex items-center gap-1"><input type="checkbox" checked> 기타</label>
+                            </div>
+                        </div>
+
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
+                            <h4 class="font-bold text-sm mb-2">📑 단원 네비게이터</h4>
+                            <ul class="text-xs space-y-1 text-gray-600 dark:text-gray-400 max-h-40 overflow-y-auto">
+                                <li class="hover:text-blue-600 cursor-pointer">Ch 1. 회계감사 기초</li>
+                                <li class="hover:text-blue-600 cursor-pointer">Ch 2. 감사계약</li>
+                                <li class="hover:text-blue-600 cursor-pointer">...</li>
+                            </ul>
+                        </div>
+
+                        <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm flex-1">
+                            <h4 class="font-bold text-sm mb-2">🔍 문제 목록</h4>
+                            <input type="text" placeholder="검색..." class="w-full text-xs p-2 border rounded mb-2">
+                            <div class="text-xs text-gray-500 max-h-60 overflow-y-auto">
+                                <div class="p-1 hover:bg-gray-100 cursor-pointer truncate">1. 고유한계 원인 (S)</div>
+                                <div class="p-1 hover:bg-gray-100 cursor-pointer truncate">2. 적시성과 비용 (H)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <section id="modals" class="layout-container p-6 border-purple-300/50">
+            <span class="layout-label text-purple-500">System Modals (Popups)</span>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition">
+                    <h4 class="font-bold text-blue-600 mb-1">📊 학습 리포트 모달</h4>
+                    <ul class="text-xs text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
+                        <li><strong>Audit Flow Map:</strong> 감사 흐름 7단계 시각화</li>
+                        <li><strong>AI 심층 분석:</strong> 오답 패턴 및 약점 진단</li>
+                        <li><strong>Action Plan:</strong> 망각 곡선 기반 복습 일정</li>
+                        <li><strong>나만의 요약서:</strong> 필터링된 인쇄용 PDF 생성</li>
+                    </ul>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition">
+                    <h4 class="font-bold text-gray-700 dark:text-gray-200 mb-1">⚙️ 설정 모달</h4>
+                    <ul class="text-xs text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
+                        <li>Gemini API 키 관리</li>
+                        <li>데이터 내보내기/가져오기 (JSON)</li>
+                        <li>암기팁 스타일 (Mild / 자극적)</li>
+                        <li>복습 기준 (HLR / 시간)</li>
+                    </ul>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition">
+                    <h4 class="font-bold text-green-600 mb-1">🏆 소셜 & 랭킹</h4>
+                    <ul class="text-xs text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
+                        <li>전체/그룹/고시반(대학) 랭킹 탭</li>
+                        <li>스터디 그룹 생성 및 검색</li>
+                        <li>대학교 이메일 인증 (@ac.kr)</li>
+                    </ul>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition">
+                    <h4 class="font-bold text-purple-600 mb-1">📚 사례 모드 선택</h4>
+                    <ul class="text-xs text-gray-600 dark:text-gray-400 space-y-1 list-disc list-inside">
+                        <li><strong>KAM 모드:</strong> 핵심감사사항 작성 실습</li>
+                        <li><strong>기출문제 모드:</strong> 90분 타이머 실전 풀이</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <footer class="text-center text-xs text-gray-400 mt-12 pb-8">
+            <p>© 2025 Gamolini Project. Based on index.html v4.0 Structure.</p>
+        </footer>
+
+    </main>
+</body>
+</html>

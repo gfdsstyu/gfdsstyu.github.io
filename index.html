@@ -2742,8 +2742,29 @@
     </div>
   </div>
 
-  <!-- Gamlini 2.0 AI Tutor -->
+  <!-- Service Worker 등록 (재방문 0초 로딩) -->
+  <script src="/js/sw-register.js"></script>
+
+  <!-- 영구 저장소 초기화 (IndexedDB 백업) -->
   <script type="module">
+    import { initPersistentStorage } from './js/core/persistentStorage.js';
+
+    // 앱 시작 시 즉시 실행 (복원 & 백업)
+    initPersistentStorage().then(() => {
+      console.log('💾 데이터 백업 시스템 활성화 (API Key, 챗봇 기록 등 안전하게 보호됨)');
+    }).catch(err => {
+      console.warn('⚠️ 백업 시스템 초기화 실패 (localStorage만 사용):', err);
+    });
+  </script>
+
+  <!-- RAG Service & Gamlini 2.0 AI Tutor (ES6 Module) -->
+  <script type="module">
+    // RAG Service 먼저 로드 (전역으로 export)
+    import { ragService } from './js/services/ragService.js';
+    window.ragService = ragService; // 전역 접근 가능하도록
+    console.log('✅ RAG Service 로드 완료');
+
+    // Gamlini Drawer 로드
     import { GamliniDrawer } from './js/features/exam/gamliniDrawer.js';
 
     // 페이지 로드 시 Gamlini Drawer 초기화

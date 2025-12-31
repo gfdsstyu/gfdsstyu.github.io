@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gamlini 2.0 - New UI Test</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    .demo-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+  <div class="max-w-4xl mx-auto">
+    <div class="demo-card">
+      <h1 class="text-3xl font-bold mb-2">🤖 Gamlini 2.0 - New UI Test</h1>
+      <p class="text-gray-600 mb-6">우측 하단의 플로팅 버튼을 눌러 채팅을 시작하세요!</p>
+
+      <!-- API Key Input -->
+      <div class="mb-6">
+        <label class="block text-sm font-semibold mb-2">Gemini API Key (테스트용)</label>
+        <input
+          type="text"
+          id="api-key-input"
+          placeholder="AIza..."
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+        />
+        <p class="text-xs text-gray-500 mt-1">실제 API 키를 입력하면 AI 응답을 받을 수 있습니다</p>
+      </div>
+
+      <!-- Test Buttons -->
+      <div class="space-y-3">
+        <button
+          id="btn-exam-mode"
+          class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all"
+        >
+          📝 시험 모드로 Gamlini 열기
+        </button>
+
+        <button
+          id="btn-kam-mode"
+          class="w-full px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all"
+        >
+          📚 KAM 기준서 모드로 Gamlini 열기
+        </button>
+
+        <button
+          id="btn-general-mode"
+          class="w-full px-6 py-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg font-semibold hover:from-gray-600 hover:to-gray-700 transition-all"
+        >
+          💬 일반 대화 모드로 Gamlini 열기
+        </button>
+      </div>
+    </div>
+
+    <!-- UI Features -->
+    <div class="demo-card">
+      <h2 class="text-xl font-bold mb-4">✨ 새로운 UI 특징</h2>
+      <div class="space-y-2 text-sm text-gray-700">
+        <div class="flex items-start gap-2">
+          <span class="text-purple-600 font-bold">✓</span>
+          <p><strong>우측 하단 플로팅 버튼:</strong> 어디서나 클릭 가능한 보라색 원형 버튼</p>
+        </div>
+        <div class="flex items-start gap-2">
+          <span class="text-purple-600 font-bold">✓</span>
+          <p><strong>하단 슬라이드 업:</strong> 화면 아래에서 부드럽게 올라오는 패널</p>
+        </div>
+        <div class="flex items-start gap-2">
+          <span class="text-purple-600 font-bold">✓</span>
+          <p><strong>배경 흐림 제거:</strong> 뒤 화면이 선명하게 보임</p>
+        </div>
+        <div class="flex items-start gap-2">
+          <span class="text-purple-600 font-bold">✓</span>
+          <p><strong>컨텍스트 자동 주입:</strong> 현재 보고있는 내용 자동 감지</p>
+        </div>
+        <div class="flex items-start gap-2">
+          <span class="text-purple-600 font-bold">✓</span>
+          <p><strong>6가지 프리셋 버튼:</strong> 빠른 질문 시작</p>
+        </div>
+        <div class="flex items-start gap-2">
+          <span class="text-purple-600 font-bold">✓</span>
+          <p><strong>대화 기록 보관:</strong> localStorage에 자동 저장</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demo Question Card (for Exam Mode) -->
+    <div class="demo-card hidden" id="demo-question-card">
+      <h3 class="text-lg font-semibold mb-2">📝 데모 문제</h3>
+      <p class="text-gray-700 mb-4">재고자산 실사의 목적은 무엇인가?</p>
+      <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 text-sm text-gray-700">
+        <p><strong>모범답안:</strong> 재고자산의 실재성과 완전성을 확인하기 위함</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gamlini Modules -->
+  <script type="module">
+    import { initializeGamliniDrawer, openGamliniDrawer, getGamliniDrawer } from './js/features/exam/gamliniDrawer.js';
+    import { getAiTutorSession } from './js/features/exam/examAiTutor.js';
+    import { ragService } from './js/services/ragService.js';
+
+    console.log('🔄 [Test] Gamlini 2.0 초기화 중...');
+
+    // RAG Service 초기화
+    await ragService.initialize();
+
+    // Gamlini Drawer 초기화
+    const drawer = initializeGamliniDrawer();
+    console.log('✅ [Test] Gamlini 2.0 초기화 완료');
+
+    // API Key 가져오기
+    function getApiKey() {
+      const input = document.getElementById('api-key-input');
+      const apiKey = input.value.trim() || 'demo-api-key';
+      localStorage.setItem('gemini_api_key', apiKey);
+      return apiKey;
+    }
+
+    // Test 1: 시험 모드로 열기
+    document.getElementById('btn-exam-mode').addEventListener('click', () => {
+      console.log('📝 [Test] 시험 모드 테스트 시작');
+
+      const apiKey = getApiKey();
+      const questionData = {
+        question: '재고자산 실사의 목적은 무엇인가?',
+        model_answer: '재고자산의 실재성과 완전성을 확인하기 위함',
+        score: 10,
+        type: 'Rule',
+        keywords: ['재고자산', '실사', '실재성', '완전성']
+      };
+
+      const examCase = {
+        topic: '재고자산 감사',
+        scenario: '재고자산 실사 절차',
+        type: 'Audit'
+      };
+
+      const session = getAiTutorSession(
+        'demo_q1',
+        questionData,
+        '실재성 확인',
+        { score: 5, feedback: '불완전한 답변입니다.' },
+        examCase
+      );
+
+      drawer.open(session, apiKey);
+      document.getElementById('demo-question-card').classList.remove('hidden');
+    });
+
+    // Test 2: KAM 기준서 모드로 열기
+    document.getElementById('btn-kam-mode').addEventListener('click', () => {
+      console.log('📚 [Test] KAM 모드 테스트 시작');
+
+      const apiKey = getApiKey();
+      const kamContext = {
+        mode: 'kam',
+        kamId: 'kam_540',
+        text: 'KAM-540: 감사인은 감사보고서에 핵심감사사항을 기술하여야 한다.',
+        title: 'KAM 기준서 질의 - KAM-540'
+      };
+
+      drawer.openWithCustomContext(kamContext, apiKey);
+    });
+
+    // Test 3: 일반 대화 모드로 열기
+    document.getElementById('btn-general-mode').addEventListener('click', () => {
+      console.log('💬 [Test] 일반 모드 테스트 시작');
+
+      const apiKey = getApiKey();
+      drawer.open(null, apiKey);
+    });
+
+    // 플로팅 버튼 테스트 안내
+    console.log('💡 [Test Tip] 우측 하단의 보라색 플로팅 버튼도 클릭해보세요!');
+  </script>
+</body>
+</html>

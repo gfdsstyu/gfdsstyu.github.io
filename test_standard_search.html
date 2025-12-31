@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>기준서 번호 검색 테스트</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2c3e50; margin-bottom: 30px; }
+        .test-case {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+        .query {
+            font-weight: bold;
+            color: #2980b9;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+        }
+        .score {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .meta {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover { background: #2980b9; }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 기준서 번호 검색 정확도 테스트</h1>
+
+        <button onclick="runAllTests()">모든 테스트 실행</button>
+        <button onclick="clearResults()">결과 초기화</button>
+
+        <div id="results"></div>
+    </div>
+
+    <script src="/js/services/ragService.js"></script>
+    <script>
+        // 테스트 케이스
+        const testCases = [
+            { query: "501-4", expect: "기준서 501, 문단 4" },
+            { query: "720-12", expect: "기준서 720, 문단 12" },
+            { query: "200-A21", expect: "기준서 200, 문단 A21" },
+            { query: "315-25", expect: "기준서 315, 문단 25" },
+            { query: "540-A50", expect: "기준서 540, 문단 A50" },
+            { query: "기준서 501-4에 따르면", expect: "기준서 501, 문단 4" },
+            { query: "감사기준 720-12", expect: "기준서 720, 문단 12" }
+        ];
+
+        async function runAllTests() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="loading">테스트 실행 중...</div>';
+
+            // RAG 서비스 초기화
+            window.ragService.vectorDataPath = './public/data/vectors.json';
+            await window.ragService.loadVectors();
+
+            resultsDiv.innerHTML = '';
+
+            for (const testCase of testCases) {
+                await runTest(testCase);
+            }
+        }
+
+        async function runTest(testCase) {
+            const resultsDiv = document.getElementById('results');
+
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test-case';
+            testDiv.innerHTML = `
+                <div class="query">질문: "${testCase.query}"</div>
+                <div class="meta">기대값: ${testCase.expect}</div>
+                <div class="result" id="result-${testCases.indexOf(testCase)}">
+                    검색 중...
+                </div>
+            `;
+            resultsDiv.appendChild(testDiv);
+
+            try {
+                // 검색 실행
+                const results = await window.ragService.search(testCase.query, 3, {
+                    types: ['audit'],
+                    minSimilarity: 0.1
+                });
+
+                const resultDiv = document.getElementById(`result-${testCases.indexOf(testCase)}`);
+
+                if (results.length === 0) {
+                    resultDiv.innerHTML = '❌ 검색 결과 없음';
+                    return;
+                }
+
+                let html = '';
+                results.forEach((r, i) => {
+                    const std = r.metadata?.standard_number || '?';
+                    const para = r.metadata?.paragraph_number || '?';
+                    const sim = (r.similarity * 100).toFixed(1);
+                    const vec = (r.vectorSimilarity * 100).toFixed(1);
+                    const kwd = (r.keywordScore * 100).toFixed(1);
+
+                    html += `
+                        <div style="margin: 10px 0; padding: 10px; background: #ecf0f1; border-radius: 4px;">
+                            <strong>[${i+1}위]</strong>
+                            <span class="score">${sim}%</span>
+                            기준서 ${std}-${para}
+                            <div class="meta">
+                                벡터: ${vec}% | 키워드: ${kwd}% |
+                                출처: ${r.metadata?.source}
+                            </div>
+                            <div style="margin-top: 5px; font-size: 0.85em; color: #555;">
+                                ${r.text.substring(0, 150)}...
+                            </div>
+                        </div>
+                    `;
+                });
+
+                resultDiv.innerHTML = html;
+
+            } catch (error) {
+                const resultDiv = document.getElementById(`result-${testCases.indexOf(testCase)}`);
+                resultDiv.innerHTML = `❌ 오류: ${error.message}`;
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

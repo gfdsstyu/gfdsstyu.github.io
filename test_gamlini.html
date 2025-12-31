@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gamlini 2.0 Test Suite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .test-section {
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .test-pass {
+      color: #10b981;
+      font-weight: bold;
+    }
+    .test-fail {
+      color: #ef4444;
+      font-weight: bold;
+    }
+    .log-output {
+      background: #1f2937;
+      color: #f3f4f6;
+      padding: 12px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 p-8">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">🤖 Gamlini 2.0 Test Suite</h1>
+
+    <!-- Test Results Summary -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <h2 class="text-xl font-bold mb-4">Test Results</h2>
+      <div id="test-summary" class="space-y-2">
+        <!-- 동적으로 채워짐 -->
+      </div>
+    </div>
+
+    <!-- Test 1: RAG Service -->
+    <div class="test-section bg-white">
+      <h3 class="text-lg font-bold mb-3">Test 1: RAG Service</h3>
+      <button id="test-rag" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+        Run RAG Service Test
+      </button>
+      <div id="rag-result" class="mt-4 hidden">
+        <div class="log-output" id="rag-log"></div>
+      </div>
+    </div>
+
+    <!-- Test 2: Chat Storage Manager -->
+    <div class="test-section bg-white">
+      <h3 class="text-lg font-bold mb-3">Test 2: Chat Storage Manager</h3>
+      <button id="test-storage" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+        Run Chat Storage Test
+      </button>
+      <div id="storage-result" class="mt-4 hidden">
+        <div class="log-output" id="storage-log"></div>
+      </div>
+    </div>
+
+    <!-- Test 3: Gamlini Drawer UI -->
+    <div class="test-section bg-white">
+      <h3 class="text-lg font-bold mb-3">Test 3: Gamlini Drawer UI</h3>
+      <button id="test-drawer" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+        Initialize Gamlini Drawer
+      </button>
+      <button id="open-drawer" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 ml-2">
+        Open Drawer (Demo)
+      </button>
+      <div id="drawer-result" class="mt-4 hidden">
+        <div class="log-output" id="drawer-log"></div>
+      </div>
+    </div>
+
+    <!-- Test 4: AI Tutor Integration -->
+    <div class="test-section bg-white">
+      <h3 class="text-lg font-bold mb-3">Test 4: AI Tutor Session</h3>
+      <button id="test-tutor" class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700">
+        Create AI Tutor Session
+      </button>
+      <div id="tutor-result" class="mt-4 hidden">
+        <div class="log-output" id="tutor-log"></div>
+      </div>
+    </div>
+
+    <!-- Console Log -->
+    <div class="bg-gray-900 rounded-lg shadow p-6 mt-6">
+      <h2 class="text-xl font-bold text-white mb-4">Console Log</h2>
+      <div class="log-output" id="console-log"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { ragService } from './js/services/ragService.js';
+    import { chatStorage } from './js/services/chatStorageManager.js';
+    import { initializeGamliniDrawer, openGamliniDrawer } from './js/features/exam/gamliniDrawer.js';
+    import { getAiTutorSession } from './js/features/exam/examAiTutor.js';
+
+    const testResults = {
+      rag: null,
+      storage: null,
+      drawer: null,
+      tutor: null
+    };
+
+    // Console log interceptor
+    const originalLog = console.log;
+    const consoleLogEl = document.getElementById('console-log');
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      const message = args.map(arg =>
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+      ).join(' ');
+      consoleLogEl.innerHTML += `<div>${message}</div>`;
+      consoleLogEl.scrollTop = consoleLogEl.scrollHeight;
+    };
+
+    function updateSummary() {
+      const summary = document.getElementById('test-summary');
+      summary.innerHTML = `
+        <div>RAG Service: ${testResults.rag === null ? '⚪ Not tested' : testResults.rag ? '✅ PASS' : '❌ FAIL'}</div>
+        <div>Chat Storage: ${testResults.storage === null ? '⚪ Not tested' : testResults.storage ? '✅ PASS' : '❌ FAIL'}</div>
+        <div>Gamlini Drawer: ${testResults.drawer === null ? '⚪ Not tested' : testResults.drawer ? '✅ PASS' : '❌ FAIL'}</div>
+        <div>AI Tutor: ${testResults.tutor === null ? '⚪ Not tested' : testResults.tutor ? '✅ PASS' : '❌ FAIL'}</div>
+      `;
+    }
+
+    // Test 1: RAG Service
+    document.getElementById('test-rag').addEventListener('click', async () => {
+      const resultEl = document.getElementById('rag-result');
+      const logEl = document.getElementById('rag-log');
+      resultEl.classList.remove('hidden');
+      logEl.innerHTML = 'Testing RAG Service...\n';
+
+      try {
+        // Initialize
+        logEl.innerHTML += '1. Initializing RAG Service...\n';
+        await ragService.initialize();
+        logEl.innerHTML += `✅ Initialized successfully\n`;
+        logEl.innerHTML += `   - kamData: ${ragService.kamData?.length || 0} items\n`;
+        logEl.innerHTML += `   - questions: ${ragService.questionsData?.length || 0} items\n`;
+        logEl.innerHTML += `   - kamStandards: ${ragService.kamStandardsData?.length || 0} items\n`;
+        logEl.innerHTML += `   - examData: ${ragService.examData?.length || 0} items\n\n`;
+
+        // Search test
+        logEl.innerHTML += '2. Testing search functionality...\n';
+        const result = await ragService.searchAll('재고자산 실사', ['재고', '실사']);
+        logEl.innerHTML += `✅ Search completed\n`;
+        logEl.innerHTML += `   - procedures: ${result.procedures.length}\n`;
+        logEl.innerHTML += `   - similarQuestions: ${result.similarQuestions.length}\n`;
+        logEl.innerHTML += `   - examQuestions: ${result.examQuestions.length}\n`;
+        logEl.innerHTML += `   - standards: ${result.standards.length}\n`;
+        logEl.innerHTML += `   - keywords: ${result.keywords.join(', ')}\n\n`;
+
+        logEl.innerHTML += '3. Context preview:\n';
+        logEl.innerHTML += result.context.substring(0, 300) + '...\n\n';
+
+        logEl.innerHTML += '✅ ALL RAG TESTS PASSED\n';
+        testResults.rag = true;
+      } catch (error) {
+        logEl.innerHTML += `❌ ERROR: ${error.message}\n`;
+        logEl.innerHTML += error.stack;
+        testResults.rag = false;
+      }
+      updateSummary();
+    });
+
+    // Test 2: Chat Storage
+    document.getElementById('test-storage').addEventListener('click', () => {
+      const resultEl = document.getElementById('storage-result');
+      const logEl = document.getElementById('storage-log');
+      resultEl.classList.remove('hidden');
+      logEl.innerHTML = 'Testing Chat Storage...\n';
+
+      try {
+        // Create chat
+        logEl.innerHTML += '1. Creating test chat...\n';
+        const chat = chatStorage.createChat(
+          'test_q_123',
+          '이 문제는 테스트 문제입니다. 재고자산 실사에 대한 내용입니다.',
+          { topic: '감사증거', type: 'Rule', keywords: ['재고자산', '실사'] }
+        );
+        logEl.innerHTML += `✅ Chat created: ${chat.id}\n`;
+        logEl.innerHTML += `   - title: ${chat.title}\n`;
+        logEl.innerHTML += `   - tags: ${chat.tags.join(', ')}\n\n`;
+
+        // Add messages
+        logEl.innerHTML += '2. Adding messages...\n';
+        chatStorage.addMessage(chat.id, 'user', '이 문제 설명해주세요');
+        chatStorage.addMessage(chat.id, 'assistant', '재고자산 실사는 감사인이 직접...');
+        chatStorage.saveChat(chat);
+        logEl.innerHTML += `✅ Messages added\n\n`;
+
+        // Load chat
+        logEl.innerHTML += '3. Loading chat...\n';
+        const loaded = chatStorage.loadChat(chat.id);
+        logEl.innerHTML += `✅ Loaded: ${loaded.messages.length} messages\n\n`;
+
+        // Search
+        logEl.innerHTML += '4. Testing search...\n';
+        const results = chatStorage.searchChats('재고자산');
+        logEl.innerHTML += `✅ Found ${results.length} chat(s)\n\n`;
+
+        // Stats
+        logEl.innerHTML += '5. Getting stats...\n';
+        const stats = chatStorage.getStats();
+        logEl.innerHTML += `✅ Stats:\n`;
+        logEl.innerHTML += `   - Total chats: ${stats.totalChats}\n`;
+        logEl.innerHTML += `   - Total messages: ${stats.totalMessages}\n\n`;
+
+        // Cleanup
+        chatStorage.deleteChat(chat.id);
+        logEl.innerHTML += '✅ Test chat deleted\n\n';
+
+        logEl.innerHTML += '✅ ALL STORAGE TESTS PASSED\n';
+        testResults.storage = true;
+      } catch (error) {
+        logEl.innerHTML += `❌ ERROR: ${error.message}\n`;
+        logEl.innerHTML += error.stack;
+        testResults.storage = false;
+      }
+      updateSummary();
+    });
+
+    // Test 3: Gamlini Drawer
+    document.getElementById('test-drawer').addEventListener('click', () => {
+      const resultEl = document.getElementById('drawer-result');
+      const logEl = document.getElementById('drawer-log');
+      resultEl.classList.remove('hidden');
+      logEl.innerHTML = 'Initializing Gamlini Drawer...\n';
+
+      try {
+        initializeGamliniDrawer();
+        logEl.innerHTML += '✅ Drawer initialized\n';
+        logEl.innerHTML += 'Check the page - drawer should be in DOM\n\n';
+
+        const drawerEl = document.getElementById('gamlini-drawer');
+        if (drawerEl) {
+          logEl.innerHTML += `✅ Drawer element found in DOM\n`;
+          logEl.innerHTML += `   - Classes: ${drawerEl.className}\n\n`;
+        } else {
+          logEl.innerHTML += `❌ Drawer element not found!\n\n`;
+          testResults.drawer = false;
+          updateSummary();
+          return;
+        }
+
+        logEl.innerHTML += '✅ DRAWER INITIALIZATION PASSED\n';
+        testResults.drawer = true;
+      } catch (error) {
+        logEl.innerHTML += `❌ ERROR: ${error.message}\n`;
+        logEl.innerHTML += error.stack;
+        testResults.drawer = false;
+      }
+      updateSummary();
+    });
+
+    // Open Drawer Demo
+    document.getElementById('open-drawer').addEventListener('click', () => {
+      const mockQuestion = {
+        id: 'demo_q1',
+        question: '재고자산 실사의 목적은 무엇인가?',
+        model_answer: '재고자산의 실재성과 완전성을 확인하기 위함',
+        score: 10,
+        type: 'Rule',
+        keywords: ['재고자산', '실사', '실재성']
+      };
+
+      const mockFeedback = {
+        score: 8,
+        feedback: '전반적으로 잘 작성하였으나 완전성 부분이 부족합니다.',
+        strengths: ['실재성 개념 이해'],
+        improvements: ['완전성 추가 필요']
+      };
+
+      const mockExamCase = {
+        topic: '감사증거',
+        type: 'Rule'
+      };
+
+      const apiKey = 'demo-api-key';
+
+      openGamliniDrawer(
+        mockQuestion.id,
+        mockQuestion,
+        '실재성 확인',
+        mockFeedback,
+        mockExamCase,
+        apiKey
+      );
+    });
+
+    // Test 4: AI Tutor
+    document.getElementById('test-tutor').addEventListener('click', () => {
+      const resultEl = document.getElementById('tutor-result');
+      const logEl = document.getElementById('tutor-log');
+      resultEl.classList.remove('hidden');
+      logEl.innerHTML = 'Creating AI Tutor Session...\n';
+
+      try {
+        const mockQuestion = {
+          question: '재고자산 실사의 목적은?',
+          model_answer: '실재성과 완전성 확인',
+          score: 10,
+          type: 'Rule'
+        };
+
+        const mockFeedback = {
+          score: 8,
+          feedback: '잘 작성함'
+        };
+
+        const mockExamCase = {
+          topic: '감사증거',
+          type: 'Rule'
+        };
+
+        const session = getAiTutorSession(
+          'test_q1',
+          mockQuestion,
+          '실재성 확인',
+          mockFeedback,
+          mockExamCase
+        );
+
+        logEl.innerHTML += `✅ Session created\n`;
+        logEl.innerHTML += `   - questionId: ${session.questionId}\n`;
+        logEl.innerHTML += `   - examCase.topic: ${session.examCase.topic}\n\n`;
+
+        // Test preset buttons
+        logEl.innerHTML += 'Testing preset buttons...\n';
+        const presets = session.getContextInjectionPresets();
+        logEl.innerHTML += `✅ Found ${presets.length} presets:\n`;
+        presets.forEach(p => {
+          logEl.innerHTML += `   - ${p.icon} ${p.label} (RAG: ${p.requiresRAG})\n`;
+        });
+
+        logEl.innerHTML += '\n✅ ALL TUTOR TESTS PASSED\n';
+        testResults.tutor = true;
+      } catch (error) {
+        logEl.innerHTML += `❌ ERROR: ${error.message}\n`;
+        logEl.innerHTML += error.stack;
+        testResults.tutor = false;
+      }
+      updateSummary();
+    });
+
+    // Initialize summary
+    updateSummary();
+  </script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ko" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>감린이(Gamlini) v4.0 가이드 | 기출 & KAM 모드 구조도</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Pretendard', 'sans-serif'],
+                        serif: ['Iropke Batang', 'serif'],
+                    },
+                    colors: {
+                        slate: { 850: '#1f2937' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* UI Guideline Styles from indexreadme.html */
+        .layout-container { border: 2px dashed #cbd5e1; border-radius: 1rem; position: relative; transition: all 0.3s; background-color: rgba(255, 255, 255, 0.5); }
+        .layout-container:hover { border-color: #8b5cf6; background-color: rgba(139, 92, 246, 0.02); }
+        .layout-label {
+            position: absolute; top: -12px; left: 16px; 
+            background: #fff; padding: 0 8px; font-size: 0.75rem; font-weight: 800; 
+            color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;
+            border: 1px solid #e2e8f0; border-radius: 4px;
+        }
+        .dark .layout-label { background: #111827; color: #94a3b8; border-color: #374151; }
+        .feature-item { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 0.875rem; }
+        .feature-icon { flex-shrink: 0; width: 1.25rem; text-align: center; }
+        
+        /* Specific Styles for Mode Visualization */
+        .split-view-mockup { display: flex; height: 200px; border: 1px solid #e5e7eb; border-radius: 0.5rem; overflow: hidden; }
+        .split-left { width: 45%; background: #f8fafc; border-right: 1px solid #e2e8f0; padding: 0.5rem; }
+        .split-right { width: 55%; background: #fff; padding: 0.5rem; }
+        
+        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); }
+        .dark .glass { background: rgba(31, 41, 55, 0.9); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-gray-950 dark:text-slate-100 min-h-screen transition-colors duration-300">
+
+    <nav class="sticky top-0 z-50 glass border-b border-slate-200 dark:border-gray-800">
+        <div class="max-w-[1600px] mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl font-black text-purple-600">감린이 Guide</span>
+                <span class="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs font-bold">Exam & KAM UI</span>
+            </div>
+            <div class="flex gap-4">
+                <a href="#exam-ui" class="text-sm font-medium hover:text-purple-600 transition">기출문제 (Exam)</a>
+                <a href="#result-ui" class="text-sm font-medium hover:text-purple-600 transition">채점결과 (Result)</a>
+                <a href="#kam-ui" class="text-sm font-medium hover:text-purple-600 transition">KAM 사례</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-[1600px] mx-auto px-4 py-8 space-y-16">
+        
+        <div class="text-center mb-12">
+            <h1 class="text-3xl md:text-4xl font-extrabold mb-4">실전 모드 기능 구조도</h1>
+            <p class="text-slate-500 dark:text-slate-400">
+                <code class="bg-purple-100 text-purple-700 px-2 py-1 rounded text-sm font-bold">examUI.js</code> (기출), 
+                <code class="bg-green-100 text-green-700 px-2 py-1 rounded text-sm font-bold">examResultUI.js</code> (결과), 
+                <code class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-sm font-bold">kamUI.js</code> (사례)의 내부 로직 시각화
+            </p>
+        </div>
+
+        <section id="exam-ui" class="space-y-6">
+            <div class="flex items-center gap-3 mb-4">
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">1. 기출문제 실전연습 (Exam UI)</h2>
+                <span class="text-xs bg-purple-600 text-white px-2 py-1 rounded">examUI.js</span>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-4 layout-container p-6 border-purple-300">
+                    <span class="layout-label text-purple-600">Entry: Year Selection</span>
+                    <h3 class="font-bold text-lg mb-3">📅 연도별 카드 그리드</h3>
+                    <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                        <li class="feature-item"><span class="feature-icon">🏆</span><span><strong>최고 점수 표시:</strong> `examService.getBestScore(year)` 호출</span></li>
+                        <li class="feature-item"><span class="feature-icon">🔄</span><span><strong>재응시 상태:</strong> '다시 풀기' / '결과 보기' 버튼 분기 처리</span></li>
+                        <li class="feature-item"><span class="feature-icon">📝</span><span><strong>오답만 다시 풀기:</strong> 80점 미만 문제 자동 필터링 (Retry Mode)</span></li>
+                    </ul>
+                    <div class="mt-4 bg-white p-3 rounded border border-gray-200 text-xs">
+                        <div class="font-bold text-purple-700 mb-1">2025년</div>
+                        <div class="flex justify-between text-gray-500">
+                            <span>제한시간 90분</span>
+                            <span class="text-green-600">최고 82.5점</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-8 layout-container p-6 border-purple-400 bg-white dark:bg-gray-900">
+                    <span class="layout-label text-purple-600 border-purple-400">In-Game: Split View Mode</span>
+                    
+                    <div class="mb-4 p-3 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-lg flex justify-between items-center shadow-sm">
+                        <span class="font-bold text-sm">2025년 기출</span>
+                        <div class="flex gap-2">
+                            <span class="bg-orange-100 text-orange-700 px-2 rounded text-xs font-mono font-bold flex items-center">⏱️ 89:30</span>
+                            <span class="bg-blue-500 text-white px-2 rounded text-xs flex items-center">💾 임시저장</span>
+                            <span class="bg-white/50 px-1 rounded text-[10px] flex items-center">👁️ 뷰 변경</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 h-64">
+                        <div class="border-r-2 border-dashed border-gray-300 p-2 overflow-y-auto bg-slate-50 rounded">
+                            <div class="sticky top-0 bg-slate-50 border-b pb-1 mb-2">
+                                <span class="text-xs font-bold text-purple-700">📄 지문 (Scenario)</span>
+                            </div>
+                            <p class="text-[10px] text-gray-600 leading-relaxed font-serif">
+                                (주)감린건설은 도급공사를 주된 영업으로...<br>
+                                <span class="text-blue-500">* ScrollIntoView로 문제와 동기화</span><br>
+                                <span class="text-blue-500">* 마크다운 테이블 HTML 변환 적용</span>
+                            </p>
+                        </div>
+                        
+                        <div class="p-2 overflow-y-auto">
+                            <div class="border-2 border-orange-400 rounded p-2 mb-2 bg-white shadow-sm">
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-xs font-bold">물음 1 (15점)</span>
+                                    <span class="text-[10px] bg-purple-100 text-purple-700 px-1 rounded">Case 1</span>
+                                </div>
+                                <p class="text-[10px] mb-2">수익인식 기준에 따라...</p>
+                                <div class="h-16 border rounded bg-gray-50 text-[10px] text-gray-400 p-1">
+                                    답안 작성 (자동 저장됨)<br>
+                                    <span class="text-xs">글자수 카운팅 작동 중...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="absolute bottom-4 right-4 bg-white p-2 rounded-xl shadow-lg border border-purple-200 w-32">
+                        <div class="text-[10px] font-bold mb-1 text-center">📌 Quick Nav</div>
+                        <div class="grid grid-cols-4 gap-1">
+                            <div class="bg-green-100 w-full h-6 rounded text-[10px] flex items-center justify-center">1</div>
+                            <div class="bg-yellow-100 w-full h-6 rounded text-[10px] flex items-center justify-center">2</div>
+                            <div class="bg-gray-100 w-full h-6 rounded text-[10px] flex items-center justify-center">3</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="result-ui" class="space-y-6">
+            <div class="flex items-center gap-3 mb-4">
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">2. AI 채점 결과 (Result UI)</h2>
+                <span class="text-xs bg-green-600 text-white px-2 py-1 rounded">examResultUI.js</span>
+            </div>
+
+            <div class="layout-container p-6 border-green-400 bg-white dark:bg-gray-900 relative">
+                <span class="layout-label text-green-600 border-green-400">Analysis & Feedback</span>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-1 space-y-4">
+                        <div class="bg-gradient-to-r from-green-100 to-emerald-100 p-6 rounded-xl text-center border border-green-200">
+                            <h3 class="text-xl font-bold text-green-800">🎉 합격 기준 충족!</h3>
+                            <div class="text-4xl font-bold text-green-700 my-2">82.5점</div>
+                            <p class="text-xs text-green-600">상위 15% (History 비교)</p>
+                        </div>
+                        <div class="bg-white border p-4 rounded-xl">
+                            <h4 class="font-bold text-sm mb-2">📊 PDF 내보내기</h4>
+                            <p class="text-xs text-gray-500 mb-2">오답 노트 및 전체 해설 생성</p>
+                            <button class="w-full bg-green-600 text-white text-xs py-2 rounded">📄 PDF Export</button>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-2 space-y-4">
+                        <div class="border-2 border-green-500 rounded-lg overflow-hidden bg-white shadow-sm">
+                            <div class="p-3 bg-green-50 border-b flex justify-between items-center">
+                                <span class="font-bold text-sm">물음 1-1 (20점)</span>
+                                <span class="font-bold text-green-600">18.0점 (✅ 정답)</span>
+                            </div>
+                            <div class="p-4 space-y-3">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="bg-blue-50 p-2 rounded">
+                                        <span class="text-[10px] font-bold text-blue-700">✍️ 내 답안</span>
+                                        <p class="text-xs mt-1 text-gray-700">매출채권 조회서는...</p>
+                                    </div>
+                                    <div class="bg-green-50 p-2 rounded">
+                                        <span class="text-[10px] font-bold text-green-700">📚 모범 답안</span>
+                                        <p class="text-xs mt-1 text-gray-700">실재성 확인을 위해...</p>
+                                    </div>
+                                </div>
+                                <div class="bg-purple-50 p-3 rounded border border-purple-100">
+                                    <span class="text-[10px] font-bold text-purple-700">🤖 AI 선생님의 총평</span>
+                                    <p class="text-xs mt-1 text-gray-700">
+                                        핵심 키워드인 '실재성'과 '권리와 의무'를 정확히 언급했습니다. 다만...
+                                    </p>
+                                </div>
+                                
+                                <div class="border-t pt-2 mt-2">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-[10px] font-bold text-indigo-600">📘 관련 기준서 (RAG)</span>
+                                        <button class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-1 rounded">복습 목록 추가</button>
+                                    </div>
+                                    <div class="mt-2 text-[10px] text-gray-500 bg-gray-50 p-2 rounded">
+                                        [기준서 505호] 외부조회: 감사인은 조회처로부터...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="kam-ui" class="space-y-6">
+            <div class="flex items-center gap-3 mb-4">
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">3. KAM 사례형 훈련 (KAM UI)</h2>
+                <span class="text-xs bg-blue-600 text-white px-2 py-1 rounded">kamUI.js</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="layout-container p-5 border-blue-300">
+                    <span class="layout-label text-blue-500">Step 1: Why (선정 이유)</span>
+                    <div class="space-y-3">
+                        <div class="bg-purple-50 p-3 rounded border border-purple-100">
+                            <span class="text-[10px] bg-purple-200 text-purple-800 px-1 rounded font-bold">Case 1</span>
+                            <h4 class="font-bold text-sm mt-1">건설업 진행기준 수익인식</h4>
+                            <p class="text-[10px] text-gray-600 mt-1 leading-tight font-serif">
+                                공사 예정 원가의 추정에 유의적인 불확실성이 존재하며...
+                            </p>
+                        </div>
+                        <div class="border-2 border-blue-200 rounded p-3">
+                            <span class="text-xs font-bold text-blue-700">💭 선정 이유 서술</span>
+                            <textarea class="w-full h-20 text-xs bg-gray-50 mt-1 border rounded p-2" placeholder="위험의 원천과 재무적 중요성을 포함하여..."></textarea>
+                            <button class="w-full mt-2 bg-blue-600 text-white text-xs py-1.5 rounded">제출 및 AI 피드백 →</button>
+                        </div>
+                        <div class="text-[10px] text-gray-400">
+                            * 단축키: <kbd class="bg-gray-100 px-1">Ctrl+Enter</kbd> (제출)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layout-container p-5 border-blue-300">
+                    <span class="layout-label text-blue-500">Step 2: How (감사 절차) & Final</span>
+                    <div class="space-y-3">
+                        <div class="bg-yellow-50 p-2 rounded border border-yellow-100">
+                            <span class="text-[10px] font-bold text-yellow-700">💡 Hint (Step 1 모범답안)</span>
+                            <p class="text-[10px] text-gray-600 mt-1">경영진의 추정에 고도의 판단이 개입되므로...</p>
+                        </div>
+                        <div class="border-2 border-blue-200 rounded p-3">
+                            <span class="text-xs font-bold text-blue-700">🔍 핵심 감사절차 서술</span>
+                            <textarea class="w-full h-20 text-xs bg-gray-50 mt-1 border rounded p-2" placeholder="1. 내부통제 테스트 수행..."></textarea>
+                        </div>
+                        
+                        <div class="bg-red-50 p-2 rounded border border-red-100">
+                            <span class="text-[10px] font-bold text-red-700">⚠️ Gap Analysis (누락된 절차)</span>
+                            <ul class="text-[10px] list-disc list-inside text-red-600 mt-1">
+                                <li>전문가 활용 여부 언급 누락</li>
+                                <li>문서 검사 절차 구체화 필요</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-600">
+            <div class="bg-white p-4 rounded-xl border shadow-sm">
+                <h4 class="font-bold text-purple-600 mb-1">🔑 State Management</h4>
+                <p>LocalStorage 및 Firestore 동기화</p>
+                <p class="mt-1 text-gray-400">saveAnswersToLocal(), syncScoreToFirestore()</p>
+            </div>
+            <div class="bg-white p-4 rounded-xl border shadow-sm">
+                <h4 class="font-bold text-green-600 mb-1">🤖 AI Evaluation Flow</h4>
+                <p>Gemini API를 통한 단계별 채점</p>
+                <p class="mt-1 text-gray-400">evaluateWhy() → evaluateHow() → calculateFinalScore()</p>
+            </div>
+            <div class="bg-white p-4 rounded-xl border shadow-sm">
+                <h4 class="font-bold text-blue-600 mb-1">📚 RAG Search Priority</h4>
+                <p>답안 > 제목 > 지문 순 가중치 검색</p>
+                <p class="mt-1 text-gray-400">searchWithPriority() (kamUI.js)</p>
+            </div>
+        </section>
+
+        <footer class="text-center text-xs text-gray-400 pb-8">
+            <p>© 2025 Gamolini Structure Guide. Based on examUI.js, examResultUI.js, kamUI.js</p>
+        </footer>
+
+    </main>
+</body>
+</html>

@@ -354,12 +354,17 @@ ${this.feedback.missingKeywords && this.feedback.missingKeywords.length > 0 ? `-
         const questionText = this.questionData.question || '';
         const keywords = this.questionData.keywords || [];
 
-        this.ragContext = await ragService.searchAll(questionText, keywords);
+        // 타입별 2개씩만 검색 (컨텍스트 길이 축소: ~20,000자 목표)
+        this.ragContext = await ragService.searchAll(questionText, keywords, 2);
 
         console.log('✅ [Gamlini 2.0] RAG Context 검색 완료:', {
-          procedures: this.ragContext.procedures.length,
-          standards: this.ragContext.standards.length,
-          examQuestions: this.ragContext.examQuestions.length
+          audit: this.ragContext.audit?.length || 0,
+          law: this.ragContext.law?.length || 0,
+          ethics: this.ragContext.ethics?.length || 0,
+          study: this.ragContext.study?.length || 0,
+          kam: this.ragContext.kam?.length || 0,
+          exam: this.ragContext.exam?.length || 0,
+          contextLength: this.ragContext.context?.length || 0
         });
       }
 

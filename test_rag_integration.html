@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG 통합 테스트 - 감린이</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css" rel="stylesheet">
+  <style>
+    body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+    .log-container { max-height: 400px; overflow-y: auto; }
+    .log-entry { padding: 8px; margin: 4px 0; border-radius: 4px; font-size: 13px; font-family: 'Courier New', monospace; }
+    .log-info { background: #e0f2fe; color: #0c4a6e; }
+    .log-success { background: #dcfce7; color: #14532d; }
+    .log-error { background: #fee2e2; color: #7f1d1d; }
+    .log-warning { background: #fef3c7; color: #78350f; }
+  </style>
+</head>
+<body class="bg-gray-50 p-8">
+  <div class="max-w-4xl mx-auto">
+    <header class="bg-white rounded-lg shadow-sm p-6 mb-6">
+      <h1 class="text-3xl font-bold text-purple-600 mb-2">🔍 RAG 통합 테스트</h1>
+      <p class="text-gray-600">ragService.searchAll() 함수 테스트 - 챗봇 통합 확인</p>
+    </header>
+
+    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+      <h2 class="text-xl font-bold mb-4">🔑 API 설정</h2>
+
+      <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Gemini API Key:</label>
+        <div class="flex gap-2">
+          <input
+            type="password"
+            id="api-key-input"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+            placeholder="API Key를 입력하세요"
+          >
+          <button
+            id="save-api-key-btn"
+            class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition"
+          >
+            저장
+          </button>
+          <button
+            id="clear-api-key-btn"
+            class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition"
+          >
+            삭제
+          </button>
+        </div>
+        <p id="api-key-status" class="text-sm mt-2 text-gray-600"></p>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+      <h2 class="text-xl font-bold mb-4">📝 테스트 쿼리</h2>
+
+      <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">질문 입력:</label>
+        <input
+          type="text"
+          id="query-input"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+          placeholder="예: 감사위험이란 무엇인가?"
+          value="감사위험이란 무엇인가?"
+        >
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">키워드 (쉼표로 구분):</label>
+        <input
+          type="text"
+          id="keywords-input"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+          placeholder="예: 중요성, 독립성, 내부통제"
+        >
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">타입별 검색 개수 (topK):</label>
+        <input
+          type="number"
+          id="topk-input"
+          class="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+          value="3"
+          min="1"
+          max="10"
+        >
+      </div>
+
+      <button
+        id="search-btn"
+        class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+      >
+        🔍 검색 실행
+      </button>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+      <h2 class="text-xl font-bold mb-4">📊 검색 결과</h2>
+
+      <div id="results-container" class="space-y-4">
+        <p class="text-gray-500 text-center py-8">검색 버튼을 눌러 테스트를 시작하세요.</p>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm p-6">
+      <h2 class="text-xl font-bold mb-4">🖥️ 콘솔 로그</h2>
+
+      <div id="log-container" class="log-container bg-gray-50 p-4 rounded-lg border border-gray-200">
+        <p class="text-gray-500 text-sm">콘솔 로그가 여기에 표시됩니다...</p>
+      </div>
+
+      <button
+        id="clear-log-btn"
+        class="mt-3 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg transition text-sm"
+      >
+        로그 지우기
+      </button>
+    </div>
+  </div>
+
+  <!-- RAG Service -->
+  <script src="./js/services/ragService.js"></script>
+
+  <script>
+    // 로그 출력 함수
+    const logContainer = document.getElementById('log-container');
+
+    function addLog(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logContainer.appendChild(entry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    function clearLog() {
+      logContainer.innerHTML = '<p class="text-gray-500 text-sm">콘솔 로그가 여기에 표시됩니다...</p>';
+    }
+
+    // 원본 console 함수 오버라이드
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      addLog(args.join(' '), 'info');
+    };
+
+    console.error = function(...args) {
+      originalError.apply(console, args);
+      addLog(args.join(' '), 'error');
+    };
+
+    console.warn = function(...args) {
+      originalWarn.apply(console, args);
+      addLog(args.join(' '), 'warning');
+    };
+
+    // 검색 실행
+    document.getElementById('search-btn').addEventListener('click', async () => {
+      const queryInput = document.getElementById('query-input');
+      const keywordsInput = document.getElementById('keywords-input');
+      const topKInput = document.getElementById('topk-input');
+      const searchBtn = document.getElementById('search-btn');
+      const resultsContainer = document.getElementById('results-container');
+
+      const query = queryInput.value.trim();
+      const keywords = keywordsInput.value.trim()
+        ? keywordsInput.value.split(',').map(k => k.trim()).filter(k => k)
+        : [];
+      const topK = parseInt(topKInput.value) || 3;
+
+      if (!query) {
+        alert('질문을 입력하세요!');
+        return;
+      }
+
+      // UI 비활성화
+      searchBtn.disabled = true;
+      searchBtn.textContent = '🔍 검색 중...';
+      resultsContainer.innerHTML = '<p class="text-gray-500 text-center py-8">검색 중...</p>';
+
+      try {
+        console.log('='.repeat(60));
+        console.log('🔍 RAG 통합 검색 테스트 시작');
+        console.log('='.repeat(60));
+
+        addLog('검색 시작...', 'info');
+        addLog(`쿼리: "${query}"`, 'info');
+        addLog(`키워드: [${keywords.join(', ')}]`, 'info');
+        addLog(`topK: ${topK}`, 'info');
+
+        const startTime = performance.now();
+        const results = await ragService.searchAll(query, keywords, topK);
+        const endTime = performance.now();
+        const duration = (endTime - startTime).toFixed(0);
+
+        addLog(`✅ 검색 완료 (${duration}ms)`, 'success');
+
+        // 결과 표시
+        let html = '';
+
+        // 통계
+        const total = results.audit.length + results.law.length + results.ethics.length +
+                     results.study.length + results.kam.length + results.auditcase.length + results.exam.length;
+
+        html += `
+          <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+            <h3 class="font-bold text-purple-900 mb-2">📊 검색 통계</h3>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+              <div><span class="font-semibold">총 문서:</span> ${total}개</div>
+              <div><span class="font-semibold">검색 시간:</span> ${duration}ms</div>
+              <div><span class="font-semibold">컨텍스트 길이:</span> ${results.context.length}자</div>
+            </div>
+          </div>
+        `;
+
+        // 타입별 결과
+        const types = [
+          { key: 'audit', label: '📘 회계감사기준', color: 'blue' },
+          { key: 'law', label: '📕 외부감사법', color: 'red' },
+          { key: 'ethics', label: '📗 윤리기준', color: 'green' },
+          { key: 'study', label: '📚 학습자료', color: 'yellow' },
+          { key: 'kam', label: '💼 KAM 사례', color: 'purple' },
+          { key: 'auditcase', label: '🚨 감리지적사례', color: 'orange' },
+          { key: 'exam', label: '📝 기출문제', color: 'indigo' }
+        ];
+
+        types.forEach(({ key, label, color }) => {
+          const docs = results[key];
+          if (docs && docs.length > 0) {
+            html += `
+              <div class="border border-${color}-200 rounded-lg p-4 mb-3">
+                <h3 class="font-bold text-${color}-900 mb-2">${label} (${docs.length}개)</h3>
+                <div class="space-y-2">
+            `;
+
+            docs.forEach((doc, idx) => {
+              const similarity = (doc.similarity * 100).toFixed(1);
+              const preview = doc.text.substring(0, 150);
+              const title = doc.metadata?.title || '제목 없음';
+
+              html += `
+                <div class="bg-${color}-50 border border-${color}-100 rounded p-3 text-sm">
+                  <div class="flex justify-between items-start mb-1">
+                    <span class="font-semibold text-${color}-900">${idx + 1}. ${title}</span>
+                    <span class="text-${color}-700 text-xs bg-${color}-100 px-2 py-1 rounded">${similarity}%</span>
+                  </div>
+                  <p class="text-gray-700 text-xs">${preview}${preview.length >= 150 ? '...' : ''}</p>
+                </div>
+              `;
+            });
+
+            html += `
+                </div>
+              </div>
+            `;
+
+            addLog(`${label}: ${docs.length}개 (최고 유사도: ${(docs[0].similarity * 100).toFixed(1)}%)`, 'success');
+          } else {
+            addLog(`${label}: 0개`, 'warning');
+          }
+        });
+
+        // 컨텍스트 미리보기
+        if (results.context) {
+          const preview = results.context.substring(0, 500);
+          const previewEscaped = preview.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const suffix = preview.length >= 500 ? '\n\n... (생략)' : '';
+
+          const contextDiv = document.createElement('div');
+          contextDiv.className = 'border border-gray-300 rounded-lg p-4';
+          contextDiv.innerHTML = `
+            <h3 class="font-bold text-gray-900 mb-2">📄 AI 컨텍스트 미리보기</h3>
+            <pre class="bg-gray-50 p-3 rounded text-xs overflow-x-auto whitespace-pre-wrap">${previewEscaped}${suffix}</pre>
+            <button
+              id="copy-context-btn"
+              class="mt-2 px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded text-xs"
+            >
+              📋 전체 컨텍스트 복사
+            </button>
+          `;
+
+          resultsContainer.innerHTML = html;
+          resultsContainer.appendChild(contextDiv);
+
+          // 복사 버튼 이벤트 리스너 추가
+          document.getElementById('copy-context-btn').addEventListener('click', () => {
+            navigator.clipboard.writeText(results.context)
+              .then(() => alert('컨텍스트가 클립보드에 복사되었습니다!'))
+              .catch(err => alert('복사 실패: ' + err));
+          });
+
+          return; // 이미 innerHTML을 설정했으므로 아래 코드 실행 안 함
+        }
+
+        resultsContainer.innerHTML = html;
+
+        console.log('='.repeat(60));
+        console.log('✅ 테스트 완료');
+        console.log('='.repeat(60));
+
+      } catch (error) {
+        console.error('❌ 검색 실패:', error);
+        addLog(`검색 실패: ${error.message}`, 'error');
+
+        resultsContainer.innerHTML = `
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h3 class="font-bold text-red-900 mb-2">❌ 오류 발생</h3>
+            <p class="text-red-700 text-sm">${error.message}</p>
+            <pre class="bg-red-100 p-3 rounded text-xs mt-2 overflow-x-auto">${error.stack}</pre>
+          </div>
+        `;
+      } finally {
+        // UI 재활성화
+        searchBtn.disabled = false;
+        searchBtn.textContent = '🔍 검색 실행';
+      }
+    });
+
+    // 로그 지우기
+    document.getElementById('clear-log-btn').addEventListener('click', clearLog);
+
+    // API 키 관리
+    const apiKeyInput = document.getElementById('api-key-input');
+    const apiKeyStatus = document.getElementById('api-key-status');
+    const saveApiKeyBtn = document.getElementById('save-api-key-btn');
+    const clearApiKeyBtn = document.getElementById('clear-api-key-btn');
+
+    // API 키 저장
+    saveApiKeyBtn.addEventListener('click', () => {
+      const apiKey = apiKeyInput.value.trim();
+      if (!apiKey) {
+        apiKeyStatus.textContent = '⚠️ API Key를 입력하세요.';
+        apiKeyStatus.className = 'text-sm mt-2 text-orange-600';
+        return;
+      }
+
+      localStorage.setItem('gemini_api_key', apiKey);
+      apiKeyStatus.textContent = `✅ API Key 저장 완료! (${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)})`;
+      apiKeyStatus.className = 'text-sm mt-2 text-green-600';
+      addLog(`API Key 저장 완료 (${apiKey.substring(0, 8)}...)`, 'success');
+    });
+
+    // API 키 삭제
+    clearApiKeyBtn.addEventListener('click', () => {
+      localStorage.removeItem('gemini_api_key');
+      apiKeyInput.value = '';
+      apiKeyStatus.textContent = '🗑️ API Key가 삭제되었습니다.';
+      apiKeyStatus.className = 'text-sm mt-2 text-gray-600';
+      addLog('API Key 삭제 완료', 'info');
+    });
+
+    // API 키 상태 확인
+    function checkApiKeyStatus() {
+      const savedKey = localStorage.getItem('gemini_api_key');
+      if (savedKey) {
+        apiKeyStatus.textContent = `✅ API Key 저장됨 (${savedKey.substring(0, 8)}...${savedKey.substring(savedKey.length - 4)})`;
+        apiKeyStatus.className = 'text-sm mt-2 text-green-600';
+        addLog(`저장된 API Key 확인 (${savedKey.substring(0, 8)}...)`, 'info');
+      } else {
+        apiKeyStatus.textContent = '⚠️ API Key가 설정되지 않았습니다. 위 입력란에 API Key를 입력하고 저장 버튼을 눌러주세요.';
+        apiKeyStatus.className = 'text-sm mt-2 text-orange-600';
+        addLog('API Key 미설정 - 검색 기능을 사용하려면 API Key를 입력해주세요', 'warning');
+      }
+    }
+
+    // 페이지 로드 시
+    window.addEventListener('load', () => {
+      addLog('✅ 페이지 로드 완료', 'success');
+      addLog('ragService 초기화 대기 중...', 'info');
+      checkApiKeyStatus();
+    });
+  </script>
+</body>
+</html>

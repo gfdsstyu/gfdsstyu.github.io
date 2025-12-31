@@ -1,0 +1,2 @@
+# 이 폴더는 벡터 인덱스 파일(vectors.json)을 저장하는 곳입니다.
+# scripts/build-vector.js를 실행하면 vectors.json이 생성됩니다.

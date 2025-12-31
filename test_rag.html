@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG 시스템 로컬 테스트</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 0.95em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.3em;
+            color: #667eea;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .api-key-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        input[type="password"] {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.95em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 10px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .search-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .option-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .option-group label {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        select, input[type="number"] {
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+
+        .results-section {
+            margin-top: 30px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            opacity: 0.9;
+        }
+
+        .result-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .result-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+
+        .result-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .result-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .badge-audit {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-law {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .badge-ethics {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-study {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-kam {
+            background: #e7e7ff;
+            color: #4a4a8a;
+        }
+
+        .badge-exam {
+            background: #ffe7d5;
+            color: #8a4a00;
+        }
+
+        .result-meta {
+            font-size: 0.85em;
+            color: #6c757d;
+            margin-bottom: 12px;
+        }
+
+        .similarity-bar {
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .similarity-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+        }
+
+        .result-content {
+            font-size: 0.95em;
+            line-height: 1.6;
+            color: #495057;
+            white-space: pre-wrap;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state img {
+            width: 150px;
+            opacity: 0.3;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .search-options {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Gamlini RAG 시스템 테스트</h1>
+            <p>벡터 검색 및 RAG 기능을 테스트합니다</p>
+        </div>
+
+        <div class="content">
+            <!-- API Key 설정 -->
+            <div class="section">
+                <div class="section-title">1. API Key 설정</div>
+                <div class="api-key-section">
+                    <div class="input-group">
+                        <input type="password" id="apiKeyInput" placeholder="Google Gemini API Key 입력">
+                        <button onclick="saveApiKey()">저장</button>
+                        <button onclick="clearApiKey()" style="background: #dc3545;">삭제</button>
+                    </div>
+                    <div id="apiKeyStatus"></div>
+                    <p style="margin-top: 10px; font-size: 0.85em; color: #6c757d;">
+                        💡 API Key는 브라우저 LocalStorage에 안전하게 저장됩니다.
+                        <a href="https://aistudio.google.com/apikey" target="_blank" style="color: #667eea;">여기서 발급</a>
+                    </p>
+                </div>
+            </div>
+
+            <!-- 시스템 상태 -->
+            <div class="section">
+                <div class="section-title">2. 시스템 상태</div>
+                <div class="stats" id="systemStats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalDocs">-</div>
+                        <div class="stat-label">전체 문서</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="auditDocs">-</div>
+                        <div class="stat-label">회계감사기준</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="lawDocs">-</div>
+                        <div class="stat-label">법령</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="ethicsDocs">-</div>
+                        <div class="stat-label">윤리기준</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="studyDocs">-</div>
+                        <div class="stat-label">암기교재</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="kamDocs">-</div>
+                        <div class="stat-label">KAM 사례</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="examDocs">-</div>
+                        <div class="stat-label">기출문제</div>
+                    </div>
+                </div>
+                <button onclick="loadVectorStats()" style="width: 100%;">벡터 데이터 로드 및 통계 확인</button>
+                <div id="loadStatus" style="margin-top: 10px;"></div>
+            </div>
+
+            <!-- 검색 테스트 -->
+            <div class="section">
+                <div class="section-title">3. 벡터 검색 테스트</div>
+                <div class="search-section">
+                    <textarea id="queryInput" placeholder="검색할 질문을 입력하세요. 예: 감사인의 독립성이란?"></textarea>
+
+                    <div class="search-options">
+                        <div class="option-group">
+                            <label>검색 결과 수 (topK)</label>
+                            <input type="number" id="topK" value="5" min="1" max="20">
+                        </div>
+                        <div class="option-group">
+                            <label>최소 유사도 (%)</label>
+                            <input type="number" id="minSimilarity" value="30" min="0" max="100" step="5">
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <label>문서 타입 필터 (선택 시 해당 타입만 검색)</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="filter_audit" value="audit">
+                                <label for="filter_audit">회계감사기준</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="filter_law" value="law">
+                                <label for="filter_law">법령</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="filter_ethics" value="ethics">
+                                <label for="filter_ethics">윤리기준</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="filter_study" value="study">
+                                <label for="filter_study">암기교재</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="filter_kam" value="kam">
+                                <label for="filter_kam">KAM 사례</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="filter_exam" value="exam">
+                                <label for="filter_exam">기출문제</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="testSearch()" style="width: 100%; margin-top: 15px;">검색 실행</button>
+                </div>
+            </div>
+
+            <!-- 검색 결과 -->
+            <div class="section results-section" id="resultsSection" style="display: none;">
+                <div class="section-title">4. 검색 결과</div>
+                <div id="searchResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RAG Service 로드 -->
+    <script src="js/services/ragService.js"></script>
+
+    <script>
+        // API Key 관리
+        function saveApiKey() {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            if (!apiKey) {
+                showStatus('apiKeyStatus', 'API Key를 입력해주세요.', 'error');
+                return;
+            }
+
+            localStorage.setItem('gemini_api_key', apiKey);
+            showStatus('apiKeyStatus', '✅ API Key가 저장되었습니다.', 'success');
+            document.getElementById('apiKeyInput').value = '';
+        }
+
+        function clearApiKey() {
+            localStorage.removeItem('gemini_api_key');
+            showStatus('apiKeyStatus', '🗑️ API Key가 삭제되었습니다.', 'info');
+        }
+
+        function checkApiKey() {
+            const apiKey = localStorage.getItem('gemini_api_key');
+            if (apiKey) {
+                showStatus('apiKeyStatus', `✅ API Key가 설정되어 있습니다 (${apiKey.substring(0, 10)}...)`, 'success');
+            } else {
+                showStatus('apiKeyStatus', '⚠️ API Key가 설정되지 않았습니다.', 'error');
+            }
+        }
+
+        // 벡터 통계 로드
+        async function loadVectorStats() {
+            const statusDiv = document.getElementById('loadStatus');
+            statusDiv.innerHTML = '<div class="loading"><div class="spinner"></div>벡터 데이터 로드 중...</div>';
+
+            try {
+                // ragService 초기화 확인
+                if (!window.ragService) {
+                    throw new Error('RAG Service가 로드되지 않았습니다. 페이지를 새로고침해주세요.');
+                }
+
+                // 테스트 페이지용 경로 설정
+                window.ragService.vectorDataPath = './public/data/vectors.json';
+
+                await window.ragService.loadVectors();
+                const stats = window.ragService.getStats();
+
+                if (!stats) {
+                    throw new Error('통계 정보를 가져올 수 없습니다.');
+                }
+
+                document.getElementById('totalDocs').textContent = stats.total.toLocaleString();
+                document.getElementById('auditDocs').textContent = (stats.byType.audit || 0).toLocaleString();
+                document.getElementById('lawDocs').textContent = (stats.byType.law || 0).toLocaleString();
+                document.getElementById('ethicsDocs').textContent = (stats.byType.ethics || 0).toLocaleString();
+                document.getElementById('studyDocs').textContent = (stats.byType.study || 0).toLocaleString();
+                document.getElementById('kamDocs').textContent = (stats.byType.kam || 0).toLocaleString();
+                document.getElementById('examDocs').textContent = (stats.byType.exam || 0).toLocaleString();
+
+                showStatus('loadStatus', `✅ 벡터 데이터 로드 완료! 총 ${stats.total.toLocaleString()}개 문서`, 'success');
+
+            } catch (error) {
+                console.error(error);
+                showStatus('loadStatus', `❌ 로드 실패: ${error.message}`, 'error');
+            }
+        }
+
+        // 검색 테스트
+        async function testSearch() {
+            const query = document.getElementById('queryInput').value.trim();
+            if (!query) {
+                alert('검색할 질문을 입력해주세요.');
+                return;
+            }
+
+            // ragService 초기화 확인
+            if (!window.ragService) {
+                alert('RAG Service가 로드되지 않았습니다. 페이지를 새로고침해주세요.');
+                return;
+            }
+
+            // 테스트 페이지용 경로 설정
+            window.ragService.vectorDataPath = './public/data/vectors.json';
+
+            const topK = parseInt(document.getElementById('topK').value);
+            const minSimilarity = parseFloat(document.getElementById('minSimilarity').value) / 100;
+
+            // 타입 필터 수집
+            const types = [];
+            ['audit', 'law', 'ethics', 'study', 'kam', 'exam'].forEach(type => {
+                if (document.getElementById(`filter_${type}`).checked) {
+                    types.push(type);
+                }
+            });
+
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsDiv = document.getElementById('searchResults');
+            resultsSection.style.display = 'block';
+            resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div>검색 중...</div>';
+
+            try {
+                const options = { minSimilarity };
+                if (types.length > 0) {
+                    options.types = types;
+                }
+
+                const results = await window.ragService.search(query, topK, options);
+
+                if (results.length === 0) {
+                    resultsDiv.innerHTML = `
+                        <div class="empty-state">
+                            <p style="font-size: 1.2em; margin-bottom: 10px;">검색 결과가 없습니다</p>
+                            <p>최소 유사도를 낮추거나 다른 키워드로 검색해보세요.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                results.forEach((result, index) => {
+                    const type = result.metadata?.type || 'unknown';
+                    const badgeClass = `badge-${type}`;
+                    const typeLabel = getTypeLabel(type);
+                    const source = result.metadata?.source || '출처 미상';
+                    const title = result.metadata?.title || '';
+                    const content = result.metadata?.content || result.text;
+                    const similarity = (result.similarity * 100).toFixed(1);
+
+                    html += `
+                        <div class="result-card">
+                            <div class="result-header">
+                                <div class="result-title">${index + 1}. ${title || source}</div>
+                                <div class="result-badge ${badgeClass}">${typeLabel}</div>
+                            </div>
+                            <div class="result-meta">
+                                📄 ${source} | 🎯 유사도 ${similarity}%
+                            </div>
+                            <div class="similarity-bar">
+                                <div class="similarity-fill" style="width: ${similarity}%"></div>
+                            </div>
+                            <div class="result-content">${content.substring(0, 500)}${content.length > 500 ? '...' : ''}</div>
+                        </div>
+                    `;
+                });
+
+                resultsDiv.innerHTML = html;
+
+            } catch (error) {
+                console.error(error);
+                resultsDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ 검색 실패: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function getTypeLabel(type) {
+            const labels = {
+                'audit': '회계감사기준',
+                'law': '법령',
+                'ethics': '윤리기준',
+                'study': '암기교재',
+                'kam': 'KAM 사례',
+                'exam': '기출문제'
+            };
+            return labels[type] || '기타';
+        }
+
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('DOMContentLoaded', () => {
+            checkApiKey();
+
+            // ragService 로드 확인
+            if (window.ragService) {
+                console.log('✅ RAG Service 로드 완료');
+            } else {
+                console.error('❌ RAG Service 로드 실패');
+                showStatus('loadStatus', '⚠️ RAG Service를 로드할 수 없습니다. 페이지를 새로고침해주세요.', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

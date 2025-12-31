@@ -7,7 +7,7 @@
 import { examService } from './examService.js';
 import { getAllData } from '../../core/stateManager.js';
 import { normId } from '../../utils/helpers.js';
-import ragSearchService from '../../services/ragSearch.js';
+import { ragService } from '../../services/ragService.js'; // ✨ 새로운 RAG 서비스 (양자화 + 백그라운드 로딩)
 import { showToast } from '../../ui/domUtils.js';
 import { getAllCustomLists, addQuestionToList, removeQuestionFromList, getQuestionLists } from '../review/customReviewLists.js';
 import { AI_MODELS } from '../../config/config.js';
@@ -1069,7 +1069,7 @@ async function setupEventListeners(container, year, result, exams, metadata, use
         return;
       }
 
-      btn.textContent = '🔍 관련 기준서 검색 중...';
+      btn.textContent = '🔍 유사 문제 검색 중...';
       btn.disabled = true;
 
       try {
@@ -1093,28 +1093,60 @@ async function setupEventListeners(container, year, result, exams, metadata, use
               explanation: relatedMeta.standardText
             }];
           } else {
-            // standardMetaMap에 없으면 RAG로 검색
-            await ragSearchService.initializeRAG();
-            relatedDocs = ragSearchService.searchByText(relatedQRaw, 1) || [];
+            // standardMetaMap에 없으면 RAG로 검색 (✨ questions.json에서 검색)
+            const ragResults = await ragService.search(relatedQRaw, 3, {
+              types: ['exam'],  // questions.json만 검색
+              minSimilarity: 0.05
+            });
+
+            relatedDocs = ragResults.map(doc => ({
+              고유ID: doc.metadata?.id || doc.id || '',
+              id: doc.metadata?.id || doc.id || '',
+              단원: doc.metadata?.chapter || '기타',
+              표시번호: doc.metadata?.question_number || doc.metadata?.displayNo || '',
+              problemTitle: doc.metadata?.title || '',
+              물음: doc.text || doc.metadata?.content || '',
+              정답: doc.metadata?.answer || '',
+              explanation: doc.metadata?.explanation || doc.text || ''
+            }));
           }
         }
 
-        // 2. related_q가 없거나 찾지 못한 경우, RAG로 검색
+        // 2. related_q가 없거나 찾지 못한 경우, RAG로 유사 문제 검색
         if (relatedDocs.length === 0) {
-          await ragSearchService.initializeRAG();
-
           const q = exams
             .flatMap(ec => ec.questions || [])
             .find(qq => qq.id === qid);
 
           const queryText = `${q?.question || ''}\n${q?.explanation || ''}`.trim();
-          relatedDocs = queryText
-            ? (ragSearchService.searchByText(queryText, 3) || [])
-            : [];
+
+          if (queryText) {
+            // ✨ questions.json (exam 타입)에서만 검색
+            const ragResults = await ragService.search(queryText, 3, {
+              types: ['exam'],  // questions.json만 검색
+              minSimilarity: 0.05
+            });
+
+            console.log(`[ExamResultUI] 유사 문제 검색 결과: ${ragResults.length}개`);
+
+            relatedDocs = ragResults.map(doc => {
+              console.log(`  - ${doc.metadata?.chapter || '?'}-${doc.metadata?.question_number || '?'}: ${(doc.similarity * 100).toFixed(1)}%`);
+              return {
+                고유ID: doc.metadata?.id || doc.id || '',
+                id: doc.metadata?.id || doc.id || '',
+                단원: doc.metadata?.chapter || '기타',
+                표시번호: doc.metadata?.question_number || doc.metadata?.displayNo || '',
+                problemTitle: doc.metadata?.title || '유사 문제',
+                물음: doc.text || doc.metadata?.content || '',
+                정답: doc.metadata?.answer || '',
+                explanation: doc.metadata?.explanation || doc.text || ''
+              };
+            });
+          }
         }
 
         if (!relatedDocs.length) {
-          resultsEl.innerHTML = '<div class="text-xs text-gray-500 dark:text-gray-400">관련 기준서 추천이 없습니다.</div>';
+          resultsEl.innerHTML = '<div class="text-xs text-gray-500 dark:text-gray-400">유사한 문제를 찾을 수 없습니다.</div>';
         } else {
           resultsEl.innerHTML = relatedDocs.map(doc => {
             const docId = doc.고유ID || doc.id || '';
@@ -1194,15 +1226,10 @@ async function setupEventListeners(container, year, result, exams, metadata, use
         });
       } catch (error) {
         console.error('❌ [ExamResultUI] RAG 검색 실패:', error);
-        resultsEl.innerHTML = '<div class="text-xs text-red-500">관련 기준서 로딩 중 오류가 발생했습니다.</div>';
+        resultsEl.innerHTML = '<div class="text-xs text-red-500">유사 문제 검색 중 오류가 발생했습니다.</div>';
         resultsEl.classList.remove('hidden');
       } finally {
-        // 버튼 텍스트 복원 (related_q 여부에 따라 다르게)
-        if (relatedQRaw && relatedQRaw.trim()) {
-          btn.textContent = '📘 관련 기준서';
-        } else {
-          btn.textContent = '📚 유사 문제 검색';
-        }
+        btn.textContent = '🔍 유사 문제';
         btn.disabled = false;
       }
     });

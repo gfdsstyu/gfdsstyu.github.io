@@ -281,10 +281,10 @@ export class GamliniDrawer {
           <!-- Preset Buttons -->
           <div class="gamlini-presets" id="gamlini-presets">
             <button class="preset-btn preset-btn-context" id="load-current-question">📝 현재 문제</button>
-            <button class="preset-btn" data-preset="original">기준서 원문</button>
-            <button class="preset-btn" data-preset="trap">함정 포인트</button>
-            <button class="preset-btn" data-preset="example">사례로 이해</button>
-            <button class="preset-btn" data-preset="opposite">반대 상황</button>
+            <button class="preset-btn" data-preset="concept">💡 개념설명</button>
+            <button class="preset-btn" data-preset="trap">⚠️ 함정 포인트</button>
+            <button class="preset-btn" data-preset="example">📋 사례로 이해</button>
+            <button class="preset-btn" data-preset="opposite">🔄 반대 상황</button>
           </div>
 
           <!-- Messages -->
@@ -1723,7 +1723,7 @@ export class GamliniDrawer {
 
     const presetPrompts = {
       // 기본 프리셋 (퀴즈/일반용)
-      original: '이 문제와 관련된 기준서의 원문을 자세히 설명해주세요.',
+      concept: '이 문제의 핵심 개념을 쉽게 설명해주세요. 초보자도 이해할 수 있도록 단계별로 알려주세요.',
       trap: '이 문제에서 놓치기 쉬운 함정 포인트와 주의사항을 알려주세요.',
       example: '이 개념을 실무 사례를 통해 쉽게 이해할 수 있도록 설명해주세요.',
       opposite: '이 개념의 반대 상황이나 비교되는 개념을 설명해주세요.',
@@ -2278,13 +2278,13 @@ export class GamliniDrawer {
     const presetsContainer = document.getElementById('gamlini-presets');
     if (!presetsContainer || !this.currentSession) return;
 
-    // 기본 버튼들 (현재 문제, 기준서 원문 등)
+    // 기본 버튼들 (현재 문제, 개념설명 등)
     const defaultButtons = `
       <button class="preset-btn preset-btn-context" id="load-current-question">📝 현재 문제</button>
-      <button class="preset-btn" data-preset="original">기준서 원문</button>
-      <button class="preset-btn" data-preset="trap">함정 포인트</button>
-      <button class="preset-btn" data-preset="example">사례로 이해</button>
-      <button class="preset-btn" data-preset="opposite">반대 상황</button>
+      <button class="preset-btn" data-preset="concept">💡 개념설명</button>
+      <button class="preset-btn" data-preset="trap">⚠️ 함정 포인트</button>
+      <button class="preset-btn" data-preset="example">📋 사례로 이해</button>
+      <button class="preset-btn" data-preset="opposite">🔄 반대 상황</button>
     `;
 
     // Exam 결과 화면인 경우 (feedback이 있는 경우)

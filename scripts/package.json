@@ -1,0 +1,28 @@
+{
+  "name": "gamlini-rag-vectorizer",
+  "version": "1.0.0",
+  "description": "벡터 인덱스 생성 스크립트 - Gamlini RAG 시스템",
+  "main": "build-vector.js",
+  "scripts": {
+    "build": "node build-vector.js",
+    "optimize": "node optimize-vectors.js",
+    "test": "node build-vector.js --test"
+  },
+  "keywords": [
+    "rag",
+    "vectorization",
+    "embedding",
+    "gemini"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
