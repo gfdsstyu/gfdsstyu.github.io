@@ -33,7 +33,7 @@ export function openCreateGroupModal() {
   document.getElementById('create-group-name').value = '';
   document.getElementById('create-group-description').value = '';
   document.getElementById('create-group-password').value = '';
-  document.getElementById('create-group-max-members').value = '50';
+  document.getElementById('create-group-max-members').value = '30';
 
   // 모달을 body의 직계 자식으로 이동 (최상위 레벨 보장)
   if (modal.parentNode !== document.body) {

@@ -61,8 +61,8 @@ export async function createGroup(groupData) {
     return { success: false, message: '비밀번호는 최소 4자 이상이어야 합니다.' };
   }
 
-  if (maxMembers < 2 || maxMembers > 100) {
-    return { success: false, message: '최대 인원은 2~100명 사이여야 합니다.' };
+  if (maxMembers < 2 || maxMembers > 30) {
+    return { success: false, message: '최대 인원은 2~30명 사이여야 합니다.' };
   }
 
   // 그룹 가입 제한 체크 (최대 3개)
@@ -86,7 +86,7 @@ export async function createGroup(groupData) {
       createdAt: serverTimestamp(),
       lastUpdatedAt: serverTimestamp(),
       memberCount: 1,
-      maxMembers: maxMembers || 50,
+      maxMembers: maxMembers || 30,
       isPublic: isPublic !== false, // 기본값 true
       tags: [], // TODO: 태그 기능
       rules: {
