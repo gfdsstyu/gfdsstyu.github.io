@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "rewrites": [
-    {
-      "source": "/((?!api|_next|public|js|css|images|fonts).*)",
-      "destination": "/index.html"
-    }
-  ],
+  "buildCommand": null,
+  "devCommand": null,
+  "installCommand": null,
+  "outputDirectory": null,
+  "cleanUrls": true,
+  "trailingSlash": false,
   "headers": [
     {
       "source": "/public/data/(.*)",
