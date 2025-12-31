@@ -1509,7 +1509,7 @@ async function handleTempSave(container, year, apiKey, selectedModel) {
 
   // API 키 확인 (조용히 처리)
   const finalApiKey = apiKey || localStorage.getItem('gemini_api_key') || '';
-  let finalModel = selectedModel || localStorage.getItem('selectedAiModel') || 'gemini-2.5-flash-lite';
+  let finalModel = selectedModel || localStorage.getItem('selectedAiModel') || 'gemini-2.5-flash';
   
   // exam에서는 2.5-flash-lite를 2.5-flash로 자동 변경 (성능 부족 방지)
   // 단, 2.5-pro나 3-pro-preview는 그대로 사용
