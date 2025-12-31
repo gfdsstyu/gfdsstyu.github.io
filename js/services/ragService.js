@@ -16,8 +16,12 @@ class RAGService {
     this.metadata = null;
     this.isInitialized = false;
     // 양자화된 버전 우선 사용 (36% 작은 파일, 99.98% 정확도)
-    // 절대 경로 사용 (Vercel 호환)
-    this.vectorDataPath = '/public/data/vectors_quantized.json';
+    // Vercel: GitHub Pages CDN 사용 (대용량 파일 문제 해결)
+    // GitHub Pages: 로컬 파일 사용
+    const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
+    this.vectorDataPath = isVercel
+      ? 'https://gfdsstyu.github.io/public/data/vectors_quantized.json'
+      : '/public/data/vectors_quantized.json';
 
     // 성능 최적화: 쿼리 결과 캐싱 (LRU)
     this.queryCache = new Map();
