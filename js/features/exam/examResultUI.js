@@ -1100,11 +1100,8 @@ async function setupEventListeners(container, year, result, exams, metadata, use
             });
 
             relatedDocs = ragResults.map(doc => {
-              // 표시번호에서 "study_" 접두사 제거
-              let displayNo = doc.metadata?.question_number || doc.metadata?.displayNo || '';
-              if (displayNo.startsWith('study_')) {
-                displayNo = displayNo.replace('study_', '');
-              }
+              // questions.json의 표시번호 (숫자)
+              const displayNo = doc.metadata?.displayNo || doc.metadata?.question_number || '';
 
               return {
                 고유ID: doc.metadata?.id || doc.id || '',
@@ -1138,11 +1135,8 @@ async function setupEventListeners(container, year, result, exams, metadata, use
             console.log(`[ExamResultUI] 유사 문제 검색 결과 (questions.json): ${ragResults.length}개`);
 
             relatedDocs = ragResults.map(doc => {
-              // 표시번호에서 "study_" 접두사 제거
-              let displayNo = doc.metadata?.question_number || doc.metadata?.displayNo || '';
-              if (displayNo.startsWith('study_')) {
-                displayNo = displayNo.replace('study_', '');
-              }
+              // questions.json의 표시번호 (숫자)
+              const displayNo = doc.metadata?.displayNo || doc.metadata?.question_number || '';
 
               console.log(`  - ${doc.metadata?.chapter || '?'}-${displayNo}: ${(doc.similarity * 100).toFixed(1)}%`);
 
@@ -1167,16 +1161,27 @@ async function setupEventListeners(container, year, result, exams, metadata, use
             const docId = doc.고유ID || doc.id || '';
             const normalizedId = normId(docId);
 
+            // 복습 플래그 상태 확인
+            const questionScores = getQuestionScores();
+            const rec = questionScores[normalizedId] || {};
+            const hasFlag = rec.userReviewFlag || false;
+
             // 사용자 지정 복습 목록 확인
             const customLists = getQuestionLists(normalizedId);
             const listCount = customLists.length;
 
+            // 버튼 텍스트 및 스타일
             let buttonText = '+복습';
             let buttonClasses = 'text-blue-500 hover:text-blue-700';
 
+            if (hasFlag) {
+              buttonText = '★';
+              buttonClasses = 'text-yellow-500';
+            }
+
             if (listCount > 0) {
-              buttonText = `✓ ${listCount}개 목록`;
-              buttonClasses = 'text-gray-400 opacity-60';
+              buttonText = `✓ ${listCount}개`;
+              buttonClasses = 'text-green-600';
             }
 
             return `
@@ -1191,7 +1196,7 @@ async function setupEventListeners(container, year, result, exams, metadata, use
                   </span>
                 </div>
                 <button
-                  class="text-[11px] ${buttonClasses} rag-add-review-btn"
+                  class="text-[11px] ${buttonClasses} rag-add-review-btn transition-colors"
                   data-id="${docId}"
                 >
                   ${buttonText}
@@ -1214,6 +1219,8 @@ async function setupEventListeners(container, year, result, exams, metadata, use
         const addReviewBtns = resultsEl.querySelectorAll('.rag-add-review-btn');
 
         addReviewBtns.forEach((addBtn) => {
+          let clickTimer = null;
+
           addBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -1223,8 +1230,46 @@ async function setupEventListeners(container, year, result, exams, metadata, use
 
             const nqid = normId(rawId);
 
-            // 사용자 지정 복습 목록 선택 모달 표시
-            showCustomListSelector(nqid, addBtn);
+            // 더블클릭 방지를 위한 타이머
+            if (clickTimer) {
+              clearTimeout(clickTimer);
+              clickTimer = null;
+              // 더블 클릭 - 사용자 복습목록 선택 모달
+              showCustomListSelector(nqid, addBtn);
+            } else {
+              // 첫 클릭 - 250ms 대기
+              clickTimer = setTimeout(() => {
+                clickTimer = null;
+                // 싱글 클릭 - 일반 복습 플래그(★) 토글
+                const questionScores = getQuestionScores();
+                const rec = questionScores[nqid] || {};
+                const currentFlag = rec.userReviewFlag || false;
+
+                // 플래그 토글
+                setFlagState(nqid, { flag: !currentFlag, exclude: false, silent: true });
+
+                // 버튼 UI 업데이트
+                const customLists = getQuestionLists(nqid);
+                const listCount = customLists.length;
+
+                if (!currentFlag) {
+                  // 플래그 추가됨
+                  addBtn.textContent = '★';
+                  addBtn.className = 'text-[11px] text-yellow-500 rag-add-review-btn transition-colors';
+                  showToast('복습 플래그 추가', 'success');
+                } else {
+                  // 플래그 제거됨
+                  if (listCount > 0) {
+                    addBtn.textContent = `✓ ${listCount}개`;
+                    addBtn.className = 'text-[11px] text-green-600 rag-add-review-btn transition-colors';
+                  } else {
+                    addBtn.textContent = '+복습';
+                    addBtn.className = 'text-[11px] text-blue-500 hover:text-blue-700 rag-add-review-btn transition-colors';
+                  }
+                  showToast('복습 플래그 제거', 'info');
+                }
+              }, 250);
+            }
           });
         });
 
