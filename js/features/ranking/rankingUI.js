@@ -10,7 +10,7 @@ import {
 import { db } from '../../app.js';
 import { getCurrentUser, getNickname } from '../auth/authCore.js';
 import { getMyRanking, getGroupRankings, getIntraGroupRankings, calculateTier } from './rankingCore.js';
-import { getMyGroups, updateGroupDescription, getGroupMembers, kickMember, deleteGroup, delegateGroupOwner } from '../group/groupCore.js';
+import { getMyGroups, updateGroupDescription, updateGroupPassword, getGroupMembers, kickMember, deleteGroup, delegateGroupOwner } from '../group/groupCore.js';
 import { handleLeaveGroup } from '../group/groupUI.js';
 import { getMyUniversity, getUniversityRankings, getIntraUniversityRankings } from '../university/universityCore.js';
 import { showToast } from '../../ui/domUtils.js';
@@ -557,24 +557,46 @@ async function renderGroupMembersManagement(groupId, isOwner, container) {
     // 3. UI 렌더링
     let html = `<div class="space-y-4 pt-2 border-t border-gray-300 dark:border-gray-600">`;
 
-    // 그룹장 전용 관리 UI (설명 수정)
+    // 그룹장 전용 관리 UI (설명 수정, 비밀번호 변경)
     if (isOwner) {
       html += `
-        <div>
-          <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">📝 그룹 설명 수정</label>
-          <div class="flex gap-2">
-              <textarea
-                id="edit-description-${groupId}"
-                class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm resize-none"
-                rows="1"
-                placeholder="그룹 설명을 입력하세요"
-              >${group.description || ''}</textarea>
-              <button
-                onclick="window.RankingUI?.handleUpdateDescription('${groupId}');"
-                class="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white font-bold text-sm rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition h-full"
-              >
-                저장
-              </button>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">📝 그룹 설명 수정</label>
+            <div class="flex gap-2">
+                <textarea
+                  id="edit-description-${groupId}"
+                  class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm resize-none"
+                  rows="1"
+                  placeholder="그룹 설명을 입력하세요"
+                >${group.description || ''}</textarea>
+                <button
+                  onclick="window.RankingUI?.handleUpdateDescription('${groupId}');"
+                  class="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white font-bold text-sm rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition h-full"
+                >
+                  저장
+                </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">🔑 그룹 비밀번호 변경</label>
+            <div class="flex gap-2">
+                <input
+                  type="password"
+                  id="edit-password-${groupId}"
+                  class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                  placeholder="새 비밀번호 (최소 4자, 빈 칸 = 제거)"
+                  value="${group.password || ''}"
+                />
+                <button
+                  onclick="window.RankingUI?.handleUpdatePassword('${groupId}');"
+                  class="px-4 py-2 bg-green-600 dark:bg-green-500 text-white font-bold text-sm rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition h-full"
+                >
+                  변경
+                </button>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">💡 비밀번호를 지우면 공개 그룹으로 변경됩니다</p>
           </div>
         </div>
       `;
@@ -1028,6 +1050,39 @@ async function handleUpdateDescription(groupId) {
   } catch (error) {
     console.error('❌ [RankingUI] 그룹 설명 업데이트 오류:', error);
     showToast('설명 수정 중 오류가 발생했습니다.', 'error');
+  }
+}
+
+/**
+ * 그룹 비밀번호 업데이트 처리
+ * @param {string} groupId - 그룹 ID
+ */
+async function handleUpdatePassword(groupId) {
+  const passwordInput = document.getElementById(`edit-password-${groupId}`);
+  if (!passwordInput) return;
+
+  const newPassword = passwordInput.value;
+
+  // 확인 메시지
+  const confirmMessage = newPassword.trim().length === 0
+    ? '비밀번호를 제거하시겠습니까?\n그룹이 공개 그룹으로 변경됩니다.'
+    : '그룹 비밀번호를 변경하시겠습니까?';
+
+  if (!confirm(confirmMessage)) return;
+
+  try {
+    const result = await updateGroupPassword(groupId, newPassword);
+
+    if (result.success) {
+      showToast(result.message, 'success');
+      // 그룹 목록 새로고침
+      await loadMyGroupsList();
+    } else {
+      showToast(result.message, 'error');
+    }
+  } catch (error) {
+    console.error('❌ [RankingUI] 그룹 비밀번호 업데이트 오류:', error);
+    showToast('비밀번호 변경 중 오류가 발생했습니다.', 'error');
   }
 }
 
@@ -2304,6 +2359,7 @@ if (typeof window !== 'undefined') {
     handleDelegateButton,
     handleSingleSelection,
     handleUpdateDescription,
+    handleUpdatePassword,
     handleDeleteGroup
   };
 }

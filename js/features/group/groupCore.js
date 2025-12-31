@@ -613,6 +613,61 @@ export async function updateGroupDescription(groupId, newDescription) {
 }
 
 /**
+ * 그룹 비밀번호 변경 (그룹장 전용)
+ * @param {string} groupId - 그룹 ID
+ * @param {string} newPassword - 새 비밀번호 (빈 문자열 = 비밀번호 제거)
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export async function updateGroupPassword(groupId, newPassword) {
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    return { success: false, message: '로그인이 필요합니다.' };
+  }
+
+  try {
+    const groupDocRef = doc(db, 'groups', groupId);
+    const groupDocSnap = await getDoc(groupDocRef);
+
+    if (!groupDocSnap.exists()) {
+      return { success: false, message: '존재하지 않는 그룹입니다.' };
+    }
+
+    const groupData = groupDocSnap.data();
+
+    // 그룹장 확인
+    if (groupData.ownerId !== currentUser.uid) {
+      return { success: false, message: '그룹장만 비밀번호를 변경할 수 있습니다.' };
+    }
+
+    // 비밀번호 유효성 검사
+    const trimmedPassword = newPassword.trim();
+    if (trimmedPassword.length > 0 && trimmedPassword.length < 4) {
+      return { success: false, message: '비밀번호는 최소 4자 이상이어야 합니다.' };
+    }
+
+    // 비밀번호 업데이트
+    await updateDoc(groupDocRef, {
+      password: trimmedPassword,
+      lastUpdatedAt: serverTimestamp()
+    });
+
+    console.log('✅ [Group] 그룹 비밀번호 변경 완료:', groupId);
+
+    const message = trimmedPassword.length === 0
+      ? '그룹 비밀번호가 제거되었습니다.'
+      : '그룹 비밀번호가 변경되었습니다.';
+
+    return { success: true, message };
+  } catch (error) {
+    console.error('❌ [Group] 그룹 비밀번호 변경 실패:', error);
+    return {
+      success: false,
+      message: `비밀번호 변경 실패: ${error.message}`
+    };
+  }
+}
+
+/**
  * 그룹 멤버 목록 조회
  * @param {string} groupId - 그룹 ID
  * @returns {Promise<Array>}

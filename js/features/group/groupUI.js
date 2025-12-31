@@ -7,7 +7,8 @@ import {
   joinGroup,
   leaveGroup,
   getMyGroups,
-  searchPublicGroups
+  searchPublicGroups,
+  updateGroupPassword
 } from './groupCore.js';
 import { showToast } from '../../ui/domUtils.js';
 
