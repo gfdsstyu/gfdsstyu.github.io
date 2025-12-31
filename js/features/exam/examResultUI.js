@@ -1093,9 +1093,9 @@ async function setupEventListeners(container, year, result, exams, metadata, use
               explanation: relatedMeta.standardText
             }];
           } else {
-            // standardMetaMap에 없으면 RAG로 검색 (✨ questions.json에서 검색)
+            // standardMetaMap에 없으면 RAG로 검색 (✨ questions.json = study 타입)
             const ragResults = await ragService.search(relatedQRaw, 3, {
-              types: ['exam'],  // questions.json만 검색
+              types: ['study'],  // questions.json (study 타입)
               minSimilarity: 0.05
             });
 
@@ -1121,13 +1121,13 @@ async function setupEventListeners(container, year, result, exams, metadata, use
           const queryText = `${q?.question || ''}\n${q?.explanation || ''}`.trim();
 
           if (queryText) {
-            // ✨ questions.json (exam 타입)에서만 검색
+            // ✨ questions.json (study 타입)에서만 검색
             const ragResults = await ragService.search(queryText, 3, {
-              types: ['exam'],  // questions.json만 검색
+              types: ['study'],  // questions.json (study 타입)
               minSimilarity: 0.05
             });
 
-            console.log(`[ExamResultUI] 유사 문제 검색 결과: ${ragResults.length}개`);
+            console.log(`[ExamResultUI] 유사 문제 검색 결과 (questions.json): ${ragResults.length}개`);
 
             relatedDocs = ragResults.map(doc => {
               console.log(`  - ${doc.metadata?.chapter || '?'}-${doc.metadata?.question_number || '?'}: ${(doc.similarity * 100).toFixed(1)}%`);
