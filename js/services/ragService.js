@@ -16,7 +16,8 @@ class RAGService {
     this.metadata = null;
     this.isInitialized = false;
     // 양자화된 버전 우선 사용 (36% 작은 파일, 99.98% 정확도)
-    this.vectorDataPath = './public/data/vectors_quantized.json';
+    // 절대 경로 사용 (Vercel 호환)
+    this.vectorDataPath = '/public/data/vectors_quantized.json';
 
     // 성능 최적화: 쿼리 결과 캐싱 (LRU)
     this.queryCache = new Map();
