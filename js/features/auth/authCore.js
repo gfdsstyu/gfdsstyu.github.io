@@ -434,10 +434,14 @@ async function ensureUserProfile(user, customDisplayName = null) {
  */
 export async function handleRedirectResult() {
   try {
-    // IndexedDB 복원 대기 (모바일에서 redirect 후 localStorage 복원 보장)
-    console.log('🔄 [Auth] Redirect 결과 처리 전 IndexedDB 복원 시작...');
+    // ⚠️ CRITICAL: Redirect 결과 처리 전 persistence 설정 필수 (모바일 Safari)
+    console.log('🔄 [Auth] Redirect 결과 처리 시작...');
 
-    // persistentStorage 초기화 및 복원 명시적으로 실행
+    // 1. Persistence 설정 먼저 (getRedirectResult 전에 필수)
+    await setPersistence(auth, browserLocalPersistence);
+    console.log('✅ [Auth] Persistence 설정 완료 (Redirect 처리)');
+
+    // 2. IndexedDB 복원 대기 (모바일에서 redirect 후 localStorage 복원 보장)
     try {
       if (!persistentStorage.isInitialized) {
         await persistentStorage.init();
@@ -447,6 +451,10 @@ export async function handleRedirectResult() {
     } catch (err) {
       console.warn('⚠️ [Auth] persistentStorage 복원 실패 (계속 진행):', err);
     }
+
+    // 3. Redirect 결과 가져오기 (Safari 안정성을 위해 약간의 지연 후)
+    // Safari는 redirect 직후 auth state가 안정화되는 데 시간이 필요할 수 있음
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     const result = await getRedirectResult(auth);
 
@@ -459,19 +467,29 @@ export async function handleRedirectResult() {
 
       showToast('✅ 로그인 성공!', 'success');
       return { success: true, user };
+    } else {
+      console.log('   - Redirect 결과 없음 (직접 접속 또는 이미 처리됨)');
     }
 
     return { success: true, noRedirect: true };
   } catch (error) {
     console.error('❌ Redirect 결과 처리 실패:', error);
+    console.error('   - 에러 코드:', error.code);
+    console.error('   - 에러 메시지:', error.message);
 
     let message = '로그인에 실패했습니다.';
     if (error.code === 'auth/unauthorized-domain') {
       message = '⚠️ 승인되지 않은 도메인입니다. Firebase Console에서 도메인을 추가해주세요.';
+    } else if (error.code === 'auth/operation-not-allowed') {
+      message = '⚠️ Google 로그인이 비활성화되어 있습니다.';
+    } else if (error.code === 'auth/network-request-failed') {
+      message = '⚠️ 네트워크 연결을 확인해주세요.';
+    } else {
+      message = `로그인 실패: ${error.code || 'UNKNOWN'}\n${error.message}`;
     }
 
     showToast(`❌ ${message}`, 'error');
-    return { success: false, error: message };
+    return { success: false, error: message, errorCode: error.code };
   }
 }
 
