@@ -11,6 +11,10 @@
   ],
   "routes": [
     {
+      "src": "/docs/privacy_policy.html",
+      "dest": "/docs/privacy_policy.html"
+    },
+    {
       "handle": "filesystem"
     },
     {
