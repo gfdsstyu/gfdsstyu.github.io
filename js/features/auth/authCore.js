@@ -14,7 +14,9 @@ import {
   sendPasswordResetEmail,
   reauthenticateWithCredential,
   EmailAuthProvider,
-  deleteUser
+  deleteUser,
+  setPersistence,
+  browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
 
 import {
@@ -80,6 +82,10 @@ function isMobileDevice() {
  */
 export async function signInWithGoogle() {
   try {
+    // 로그인 전 persistence 설정 보장
+    await setPersistence(auth, browserLocalPersistence);
+    console.log('✅ Auth Persistence 설정 완료 (Google 로그인)');
+
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({
       prompt: 'select_account'
@@ -144,6 +150,10 @@ export async function signInWithGoogle() {
  */
 export async function signInWithEmail(email, password) {
   try {
+    // 로그인 전 persistence 설정 보장
+    await setPersistence(auth, browserLocalPersistence);
+    console.log('✅ Auth Persistence 설정 완료 (이메일 로그인)');
+
     const result = await signInWithEmailAndPassword(auth, email, password);
     const user = result.user;
 
@@ -177,6 +187,10 @@ export async function signInWithEmail(email, password) {
  */
 export async function signUpWithEmail(email, password, displayName) {
   try {
+    // 회원가입 전 persistence 설정 보장
+    await setPersistence(auth, browserLocalPersistence);
+    console.log('✅ Auth Persistence 설정 완료 (회원가입)');
+
     const result = await createUserWithEmailAndPassword(auth, email, password);
     const user = result.user;
 

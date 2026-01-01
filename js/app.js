@@ -8,7 +8,7 @@
 
 // Firebase SDK 임포트 (NPM 방식이 아닌, 브라우저 CDN URL 방식입니다)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+import { getAuth, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 import { getAnalytics, isSupported } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-analytics.js";
 
@@ -26,9 +26,18 @@ const firebaseConfig = {
 // Firebase 초기화
 const app = initializeApp(firebaseConfig);
 
-// 다른 모듈(랭킹, 인증)에서 사용할 수 있도록 주요 서비스 export
-export const auth = getAuth(app); // 인증 기능
-export const db = getFirestore(app); // Firestore DB 기능
+// Firebase Auth 초기화 및 Persistence 설정
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+
+// 로그인 상태 영구 유지 (모바일 환경 안정성 개선)
+setPersistence(auth, browserLocalPersistence)
+  .then(() => {
+    console.log('✅ Firebase Auth Persistence 설정 완료 (Local)');
+  })
+  .catch((error) => {
+    console.error('❌ Firebase Auth Persistence 설정 실패:', error);
+  });
 
 // Analytics는 지원되는 환경에서만 초기화
 let analytics = null;
