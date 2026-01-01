@@ -247,7 +247,13 @@ export function setFlagState(qid, { flag = false, exclude = false, silent = fals
   if (exclude) flag = false;
   if (flag) exclude = false;
 
-  questionScores[qid] = { ...rec, userReviewFlag: !!flag, userReviewExclude: !!exclude };
+  // 플래그 변경 시간 기록 (여러 기기 병합 시 최신 데이터 우선)
+  questionScores[qid] = {
+    ...rec,
+    userReviewFlag: !!flag,
+    userReviewExclude: !!exclude,
+    flagModifiedDate: Date.now() // 플래그 변경 타임스탬프
+  };
 
   // StateManager를 통한 상태 업데이트 (중요!)
   setQuestionScores(questionScores);

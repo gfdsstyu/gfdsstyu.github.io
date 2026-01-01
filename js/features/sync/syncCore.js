@@ -156,7 +156,8 @@ export function toFirestoreFormat(localScores) {
       lastSolvedDate: data.lastSolvedDate ?? Date.now(),
       solveHistory: data.solveHistory ?? [],
       userReviewFlag: !!data.userReviewFlag,
-      userReviewExclude: !!data.userReviewExclude
+      userReviewExclude: !!data.userReviewExclude,
+      flagModifiedDate: data.flagModifiedDate || null // 플래그 변경 시간 (타임스탬프 기반 병합용)
     };
   });
 
@@ -184,6 +185,7 @@ export function toLocalStorageFormat(firestoreScores, subcollectionData = {}) {
       solveHistory: data.solveHistory ?? [],
       userReviewFlag: !!data.userReviewFlag,
       userReviewExclude: !!data.userReviewExclude,
+      flagModifiedDate: data.flagModifiedDate || null, // 플래그 변경 시간 복원
 
       // Subcollection에서 복원 (있으면 사용, 없으면 기본값)
       feedback: detailedData.feedback || '',

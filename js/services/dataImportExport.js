@@ -63,19 +63,33 @@ export function mergeQuizScores(existing, imported) {
         new Map(combinedHistory.map(h => [h.date, h])).values()
       ).sort((a, b) => a.date - b.date);
 
-      // 4. 복습 플래그 병합 로직
+      // 4. 복습 플래그 병합 로직 (타임스탬프 기반)
       // ⚠️ CRITICAL: OR 연산 사용하면 한 번 true가 되면 false로 되돌릴 수 없음!
-      // 해결: Local(existing) 우선 정책 사용
-      // - 이유: 사용자가 Local에서 변경한 것이 가장 최근 의도
-      // - 단점: 다른 기기에서 변경한 내용은 무시됨 (대부분 단일 기기 사용으로 문제 없음)
-      // - 향후 개선: flagModifiedDate 필드 추가하여 타임스탬프 기반 병합
-      let mergedReviewFlag = !!existingData.userReviewFlag;
-      let mergedReviewExclude = !!existingData.userReviewExclude;
+      // 해결: flagModifiedDate 기반으로 최신 변경사항 우선
+      // - Backward compatibility: flagModifiedDate 없으면 lastSolvedDate 사용
+      // - 여러 기기 사용 시에도 가장 최근 변경사항이 반영됨
+      const existingFlagDate = existingData.flagModifiedDate || existingData.lastSolvedDate || 0;
+      const importedFlagDate = importedData.flagModifiedDate || importedData.lastSolvedDate || 0;
+
+      let mergedReviewFlag, mergedReviewExclude;
+
+      if (existingFlagDate >= importedFlagDate) {
+        // Local이 더 최신이거나 같음 → Local 플래그 우선
+        mergedReviewFlag = !!existingData.userReviewFlag;
+        mergedReviewExclude = !!existingData.userReviewExclude;
+      } else {
+        // Imported가 더 최신 → Imported 플래그 우선
+        mergedReviewFlag = !!importedData.userReviewFlag;
+        mergedReviewExclude = !!importedData.userReviewExclude;
+      }
 
       // 상호배타 검증 (제외 우선)
       if (mergedReviewFlag && mergedReviewExclude) {
         mergedReviewFlag = false;
       }
+
+      // flagModifiedDate도 최신 값으로 병합
+      const mergedFlagModifiedDate = Math.max(existingFlagDate, importedFlagDate);
 
       result[qid] = {
         // 메타데이터는 최신 날짜 기준
@@ -85,6 +99,7 @@ export function mergeQuizScores(existing, imported) {
         lastSolvedDate: Math.max(existingData.lastSolvedDate || 0, importedData.lastSolvedDate || 0),
         userReviewFlag: mergedReviewFlag,
         userReviewExclude: mergedReviewExclude,
+        flagModifiedDate: mergedFlagModifiedDate, // 플래그 변경 시간 보존
 
         // 상세 내용은 '채워진 쪽'을 우선 (위에서 결정한 로직)
         feedback: shouldUseImportedFeedback ? importedData.feedback : existingData.feedback,
