@@ -454,21 +454,36 @@ export async function handleRedirectResult() {
 
     // 3. Redirect 결과 가져오기 (Safari 안정성을 위해 약간의 지연 후)
     // Safari는 redirect 직후 auth state가 안정화되는 데 시간이 필요할 수 있음
+    console.log('   - 100ms 대기 중 (Safari 안정화)...');
     await new Promise(resolve => setTimeout(resolve, 100));
 
+    console.log('   - getRedirectResult 호출 중...');
     const result = await getRedirectResult(auth);
+    console.log('   - getRedirectResult 결과:', result ? '있음' : '없음');
 
     if (result) {
       const user = result.user;
       console.log('✅ Redirect 로그인 성공:', user.email);
+      console.log('   - Credential:', result.credential ? '있음' : '없음');
+      console.log('   - OperationType:', result.operationType);
 
       // Firestore에 사용자 프로필 생성/업데이트
+      console.log('   - ensureUserProfile 호출 중...');
       await ensureUserProfile(user);
 
       showToast('✅ 로그인 성공!', 'success');
       return { success: true, user };
     } else {
       console.log('   - Redirect 결과 없음 (직접 접속 또는 이미 처리됨)');
+
+      // 디버깅: 현재 auth 상태 확인
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        console.log('   - ⚠️ 하지만 auth.currentUser는 존재함:', currentUser.email);
+        console.log('   - 이미 로그인된 상태일 수 있음 (onAuthStateChanged 대기)');
+      } else {
+        console.log('   - auth.currentUser도 없음 (로그인 안 됨)');
+      }
     }
 
     return { success: true, noRedirect: true };
@@ -497,16 +512,22 @@ export async function handleRedirectResult() {
  * Firebase 인증 상태 관찰 시작
  */
 export function initAuthStateObserver() {
+  console.log('🔄 [Auth] initAuthStateObserver 시작...');
+
   // 앱 시작 시 Redirect 결과 확인 (모바일 로그인 후 복귀 시)
-  handleRedirectResult();
+  handleRedirectResult().then(result => {
+    console.log('🔄 [Auth] handleRedirectResult 완료:', result);
+  });
 
   onAuthStateChanged(auth, async (user) => {
+    console.log('🔔 [Auth] onAuthStateChanged 호출됨');
     currentUser = user;
 
     if (user) {
       console.log('🔐 사용자 로그인됨:', user.email);
       console.log('   - UID:', user.uid);
       console.log('   - displayName:', user.displayName);
+      console.log('   - Provider:', user.providerData[0]?.providerId || 'unknown');
 
       // Phase 2: 학습 데이터 동기화
       console.log('🔄 학습 데이터 동기화 시작...');
@@ -522,7 +543,9 @@ export function initAuthStateObserver() {
         console.error('❌ 학습 데이터 동기화 에러:', error);
       }
     } else {
-      console.log('🔓 사용자 로그아웃됨');
+      console.log('🔓 사용자 로그아웃됨 (또는 로그인 전)');
+      console.log('   - localStorage.getItem("auditQuizScores"):', localStorage.getItem('auditQuizScores') ? '있음' : '없음');
+      console.log('   - sessionStorage에 auth 정보:', sessionStorage.length, '개 항목');
     }
 
     // 등록된 모든 리스너에 알림
