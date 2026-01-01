@@ -298,14 +298,30 @@ function switchTab(tab) {
 // 로그인/회원가입 핸들러
 // ============================================
 
-async function handleGoogleLogin() {
+async function handleGoogleLogin(e) {
+  // 버튼 비활성화 및 로딩 표시
+  const btn = e?.target?.closest('button') || document.getElementById('google-login-btn');
+  const originalHTML = btn ? btn.innerHTML : '';
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+  }
+
   const result = await signInWithGoogle();
+
+  // 버튼 복원 (Redirect 방식이 아닌 경우에만)
+  if (btn && !result.pending) {
+    btn.disabled = false;
+    btn.innerHTML = originalHTML;
+  }
 
   if (result.success) {
     if (result.pending) {
       // 모바일 Redirect 방식 - 페이지 이동 중
       showToast('🔄 Google 로그인 페이지로 이동 중...', 'info');
       // 모달은 닫지 않음 (페이지가 곧 이동할 예정)
+      // 버튼은 비활성화 상태 유지
     } else {
       // 데스크톱 Popup 방식 - 로그인 완료
       showToast('✅ 로그인 성공!', 'success');
@@ -327,7 +343,27 @@ async function handleEmailLogin(e) {
     return;
   }
 
+  // 이메일 형식 추가 검증
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showToast('❌ 올바른 이메일 형식을 입력해주세요.', 'error');
+    return;
+  }
+
+  // 폼 제출 중 버튼 비활성화
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+  }
+
   const result = await signInWithEmail(email, password);
+
+  // 버튼 복원
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '로그인';
+  }
 
   if (result.success) {
     showToast('✅ 로그인 성공!', 'success');
@@ -344,23 +380,67 @@ async function handleEmailSignup(e) {
   const email = document.getElementById('signup-email').value.trim();
   const password = document.getElementById('signup-password').value;
   const passwordConfirm = document.getElementById('signup-password-confirm').value;
+  const privacyConsent = document.getElementById('privacy-consent');
 
+  // 필수 입력 필드 검증
   if (!displayName || !email || !password || !passwordConfirm) {
     showToast('❌ 모든 필드를 입력해주세요.', 'error');
     return;
   }
 
+  // 개인정보 동의 체크박스 검증 (법적 요구사항)
+  if (!privacyConsent || !privacyConsent.checked) {
+    showToast('❌ 개인정보 수집 및 이용에 동의해주세요.', 'error');
+    // 체크박스로 포커스 이동
+    if (privacyConsent) {
+      privacyConsent.focus();
+      privacyConsent.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    return;
+  }
+
+  // 비밀번호 일치 검증
   if (password !== passwordConfirm) {
     showToast('❌ 비밀번호가 일치하지 않습니다.', 'error');
     return;
   }
 
+  // 비밀번호 강도 검증
   if (password.length < 6) {
     showToast('❌ 비밀번호는 최소 6자 이상이어야 합니다.', 'error');
     return;
   }
 
+  // 비밀번호 복잡도 검증 (권장)
+  const hasNumber = /\d/.test(password);
+  const hasLetter = /[a-zA-Z]/.test(password);
+
+  if (!hasNumber || !hasLetter) {
+    showToast('⚠️ 비밀번호는 영문자와 숫자를 포함하는 것을 권장합니다.', 'warning');
+    // 경고만 표시하고 계속 진행 (너무 엄격하지 않게)
+  }
+
+  // 이메일 형식 추가 검증
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showToast('❌ 올바른 이메일 형식을 입력해주세요.', 'error');
+    return;
+  }
+
+  // 폼 제출 중 버튼 비활성화
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+  }
+
   const result = await signUpWithEmail(email, password, displayName);
+
+  // 버튼 복원
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '회원가입';
+  }
 
   if (result.success) {
     showToast('✅ 회원가입 성공!', 'success');
