@@ -233,9 +233,19 @@ export function getFilteredByUI() {
       return !s || s.score == null || s.score === undefined;
     }
 
+    // 복습제외(➖)는 제외: userReviewExclude가 true가 아닌 문제만
+    if (filter === 'exclude-removed') {
+      return !s || !s.userReviewExclude;
+    }
+
     // 80점 미만: 점수가 없거나 80점 미만
     if (filter === '80') {
       return !s || s.score == null || s.score === undefined || +s.score < 80;
+    }
+
+    // 70점 미만: 점수가 없거나 70점 미만
+    if (filter === '70') {
+      return !s || s.score == null || s.score === undefined || +s.score < 70;
     }
 
     // 60점 미만: 점수가 없거나 60점 미만
