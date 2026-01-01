@@ -71,10 +71,20 @@ function notifyAuthStateChange(user) {
 // ============================================
 
 /**
- * 모바일 기기 감지
+ * 모바일 기기 감지 (Safari는 Popup 지원하므로 제외)
+ * Safari의 ITP (Intelligent Tracking Prevention)로 인해 redirect 방식이 문제될 수 있음
  */
 function isMobileDevice() {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const ua = navigator.userAgent;
+
+  // Safari는 Popup 방식 사용 (ITP 회피)
+  if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) {
+    console.log('   - Safari 감지: Popup 방식 사용');
+    return false; // Popup 방식 사용
+  }
+
+  // 그 외 모바일: Redirect 방식
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 }
 
 /**
