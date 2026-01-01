@@ -63,14 +63,28 @@ export function mergeQuizScores(existing, imported) {
         new Map(combinedHistory.map(h => [h.date, h])).values()
       ).sort((a, b) => a.date - b.date);
 
+      // 4. 복습 플래그 병합 로직
+      // ⚠️ CRITICAL: OR 연산 사용하면 한 번 true가 되면 false로 되돌릴 수 없음!
+      // 해결: Local(existing) 우선 정책 사용
+      // - 이유: 사용자가 Local에서 변경한 것이 가장 최근 의도
+      // - 단점: 다른 기기에서 변경한 내용은 무시됨 (대부분 단일 기기 사용으로 문제 없음)
+      // - 향후 개선: flagModifiedDate 필드 추가하여 타임스탬프 기반 병합
+      let mergedReviewFlag = !!existingData.userReviewFlag;
+      let mergedReviewExclude = !!existingData.userReviewExclude;
+
+      // 상호배타 검증 (제외 우선)
+      if (mergedReviewFlag && mergedReviewExclude) {
+        mergedReviewFlag = false;
+      }
+
       result[qid] = {
         // 메타데이터는 최신 날짜 기준
         score: useImportedMeta ? (importedData.score || 0) : (existingData.score || 0),
         hintUsed: useImportedMeta ? importedData.hintUsed : existingData.hintUsed,
         isSolved: existingData.isSolved || importedData.isSolved,
         lastSolvedDate: Math.max(existingData.lastSolvedDate || 0, importedData.lastSolvedDate || 0),
-        userReviewFlag: existingData.userReviewFlag || importedData.userReviewFlag,
-        userReviewExclude: existingData.userReviewExclude || importedData.userReviewExclude,
+        userReviewFlag: mergedReviewFlag,
+        userReviewExclude: mergedReviewExclude,
 
         // 상세 내용은 '채워진 쪽'을 우선 (위에서 결정한 로직)
         feedback: shouldUseImportedFeedback ? importedData.feedback : existingData.feedback,
