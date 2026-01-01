@@ -263,7 +263,7 @@ export function setFlagState(qid, { flag = false, exclude = false, silent = fals
   const currentUser = getCurrentUser();
   if (currentUser) {
     console.log('🔄 [FlagState] Firestore 디바운스 동기화 예약...', qid);
-    debouncedSyncToFirestore(currentUser.uid, qid, 5000); // 5초 디바운스
+    debouncedSyncToFirestore(currentUser.uid, qid, 2000); // 2초 디바운스 (빠른 반영)
   } else {
     console.log('   - ⏭️ 로그아웃 상태 - Firestore 동기화 스킵');
   }
