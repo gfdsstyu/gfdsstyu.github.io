@@ -373,9 +373,14 @@ export function registerUniqueRead(qid) {
   const questionScores = getQuestionScores();
 
   if (!rec) {
-    const hist = questionScores[qid]?.solveHistory;
-    rec = Array.isArray(hist) && hist.length
-      ? computeUniqueReadsFromHistory(hist)
+    // 현재 풀이를 제외한 이전 히스토리로 계산
+    const hist = questionScores[qid]?.solveHistory || [];
+    const previousHist = Array.isArray(hist) && hist.length > 0
+      ? hist.slice(0, -1)  // 마지막 항목(현재 풀이) 제외
+      : [];
+
+    rec = previousHist.length > 0
+      ? computeUniqueReadsFromHistory(previousHist)
       : { uniqueReads: 0, lastAt: 0 };
   }
 
