@@ -18,7 +18,6 @@ import {
 
 import { db } from '../../app.js';
 import { getCurrentUser, getNickname, addAuthStateListener } from '../auth/authCore.js';
-import { shouldCountAsNewRead } from '../../core/storageManager.js';
 
 // ============================================
 // Helper Functions
@@ -75,27 +74,10 @@ export async function updateUserStats(userId, score, qKey = null) {
     // 기존 사용자가 로그인 없이 바로 문제를 풀 경우를 대비해 여기서도 체크합니다.
     await checkAndMigrateAP(userId);
 
-    // 고유 회독수 확인 (qKey가 제공된 경우)
-    let isNewRead = true;
-    if (qKey) {
-      // registerUniqueRead는 이미 grading.js에서 호출되었을 수 있으므로,
-      // shouldCountAsNewRead로 확인
-      const questionScores = window.questionScores || {};
-      const record = questionScores[qKey];
-      if (record && Array.isArray(record.solveHistory)) {
-        // 현재 풀이를 제외한 solveHistory로 확인
-        const historyWithoutCurrent = record.solveHistory.slice(0, -1);
-        isNewRead = shouldCountAsNewRead(historyWithoutCurrent);
-      }
-    }
-
-    // 새 회독이 아닌 경우 통계 업데이트 스킵
-    if (!isNewRead) {
-      console.log(`📊 [Ranking] 통계 업데이트 스킵 (5분 이내 재풀이): ${qKey || 'unknown'}`);
-      return { success: true, message: '5분 이내 재풀이로 통계 업데이트 스킵' };
-    }
-
-    console.log(`📊 [Ranking] 사용자 통계 업데이트 시작... (userId: ${userId}, score: ${score}, 새 회독: ${isNewRead})`);
+    // 주의: grading.js에서 이미 registerUniqueRead를 통해 새 회독 여부를 검증하고,
+    // isNewRead===true일 때만 이 함수를 호출합니다.
+    // 따라서 여기서는 별도의 검증 없이 통계를 업데이트합니다.
+    console.log(`📊 [Ranking] 사용자 통계 업데이트 시작... (userId: ${userId}, score: ${score}, qKey: ${qKey || 'unknown'})`);
 
     const userDocRef = doc(db, 'users', userId);
     const userDocSnap = await getDoc(userDocRef);
