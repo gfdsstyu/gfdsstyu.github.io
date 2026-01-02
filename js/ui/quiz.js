@@ -14,8 +14,8 @@ export function mountQuiz(store) {
     if (!q) return;
     document.getElementById('v4-qpanel').innerHTML =
       '<div class="text-base leading-relaxed text-gray-800 dark:text-gray-100">'
-      + '문항 ' + escapeHtml(q["표시번호"] || q["물음번호"] || q["고유ID"])
-      + ' — ' + escapeHtml(q["물음"])
+      + '<div class="font-semibold mb-2">문항 ' + escapeHtml(q["표시번호"] || q["물음번호"] || q["고유ID"]) + '</div>'
+      + '<pre style="white-space: pre-wrap; font-family: inherit; margin: 0;">' + escapeHtml(q["물음"]) + '</pre>'
       + '</div>';
   });
 }

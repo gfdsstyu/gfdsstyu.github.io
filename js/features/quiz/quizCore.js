@@ -139,6 +139,7 @@ export function displayQuestion() {
     `;
   }
   if (el.questionText) {
+    el.questionText.style.whiteSpace = 'pre-wrap';
     el.questionText.textContent = q.물음;
   }
   if (el.questionCounter) {
