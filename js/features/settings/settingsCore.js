@@ -85,12 +85,74 @@ export function closeApiModal() {
 }
 
 /**
- * API 키 게이트 체크 (키가 없으면 모달 띄우기)
+ * API 키 게이트 체크 (앱 시작 시)
+ * - 강제 차단 없이 IndexedDB/Firestore에서 복원만 시도
+ * - API 키가 없어도 로그인 등 UI 사용 가능
+ * - 실제로 채점할 때 API 키 필요하면 그때 요청
  */
-export function ensureApiKeyGate() {
-  if (!getGeminiApiKey()) {
-    openApiModal(true);
+export async function ensureApiKeyGate() {
+  console.log('🔐 [ApiKeyGate] API 키 복원 시도...');
+
+  // 이미 API 키가 있으면 스킵
+  if (getGeminiApiKey()) {
+    console.log('🔐 [ApiKeyGate] API 키 이미 존재');
+    return;
   }
+
+  // IndexedDB에서 API 키 복원 시도 (Safari ITP 대응)
+  try {
+    const { getApiKey } = await import('../../core/persistentStorage.js');
+    const restored = await getApiKey('gemini_api_key');
+    if (restored) {
+      console.log('🔐 [ApiKeyGate] IndexedDB에서 API 키 복원됨');
+      setGeminiApiKey(restored);
+    }
+  } catch (err) {
+    console.warn('⚠️ [ApiKeyGate] IndexedDB 복원 실패:', err);
+  }
+
+  // 더 이상 강제 모달 띄우지 않음 - 채점 시점에 필요하면 요청
+}
+
+/**
+ * API 키가 필요한 작업 전에 호출 (채점 등)
+ * @returns {Promise<boolean>} API 키가 있으면 true, 없으면 모달 띄우고 false
+ */
+export async function requireApiKey() {
+  // 1. 이미 API 키가 있으면 OK
+  if (getGeminiApiKey()) {
+    return true;
+  }
+
+  // 2. IndexedDB에서 복원 시도
+  try {
+    const { getApiKey } = await import('../../core/persistentStorage.js');
+    const restored = await getApiKey('gemini_api_key');
+    if (restored) {
+      setGeminiApiKey(restored);
+      return true;
+    }
+  } catch (err) {
+    // 무시
+  }
+
+  // 3. 로그인 상태면 Firestore에서 복원 대기 (짧게)
+  try {
+    const { getCurrentUser } = await import('../auth/authCore.js');
+    if (getCurrentUser()) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      if (getGeminiApiKey()) {
+        return true;
+      }
+    }
+  } catch (err) {
+    // 무시
+  }
+
+  // 4. 여전히 없으면 모달 띄우고 false 반환
+  console.log('🔐 [ApiKeyGate] API 키 필요 - 입력 모달 표시');
+  openApiModal(false); // 취소 버튼 표시 (강제 아님)
+  return false;
 }
 
 /**
