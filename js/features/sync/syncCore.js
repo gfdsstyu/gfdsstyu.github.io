@@ -35,8 +35,52 @@ const SETTINGS_KEYS = {
   reviewMode: 'reviewMode',
   memoryTipMode: 'memoryTipMode',
   sttProvider: 'sttProvider_v1'
-  // NOTE: geminiApiKey and googleSttKey are intentionally excluded for security
+  // NOTE: API keys are stored separately with obfuscation
 };
+
+// API 키 난독화용 상수 (완벽한 암호화는 아니지만 평문 노출 방지)
+const API_KEY_SALT = 'gam1in1_s4lt_2024';
+
+/**
+ * API 키 난독화 (Base64 + XOR)
+ * @param {string} key - 원본 API 키
+ * @returns {string} 난독화된 키
+ */
+function obfuscateApiKey(key) {
+  if (!key) return '';
+  try {
+    // XOR with salt
+    let result = '';
+    for (let i = 0; i < key.length; i++) {
+      result += String.fromCharCode(key.charCodeAt(i) ^ API_KEY_SALT.charCodeAt(i % API_KEY_SALT.length));
+    }
+    // Base64 encode
+    return btoa(unescape(encodeURIComponent(result)));
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * API 키 복호화
+ * @param {string} obfuscated - 난독화된 키
+ * @returns {string} 원본 API 키
+ */
+function deobfuscateApiKey(obfuscated) {
+  if (!obfuscated) return '';
+  try {
+    // Base64 decode
+    const decoded = decodeURIComponent(escape(atob(obfuscated)));
+    // XOR with salt
+    let result = '';
+    for (let i = 0; i < decoded.length; i++) {
+      result += String.fromCharCode(decoded.charCodeAt(i) ^ API_KEY_SALT.charCodeAt(i % API_KEY_SALT.length));
+    }
+    return result;
+  } catch {
+    return '';
+  }
+}
 
 // ============================================
 // 디바운싱: 쓰기 횟수 최적화
@@ -569,6 +613,66 @@ export async function syncOnLogin(userId) {
     } else {
       console.log('✅ ReadSessions 동기화 불필요 (양쪽 모두 비어있음)');
       syncMessage += `, readSessions: 없음`;
+    }
+
+    // 2-6. API 키 동기화 (난독화하여 저장)
+    console.log('🔐 API 키 동기화 중...');
+    const cloudApiKeys = userData.apiKeys || {};
+    const localApiKeys = {
+      gemini: localStorage.getItem('gemini_api_key') || '',
+      groq: localStorage.getItem('grok_api_key') || '',
+      googleStt: localStorage.getItem('googleSttKey_v1') || ''
+    };
+
+    // Cloud에 API 키가 있고 Local에 없으면 복원
+    let apiKeyRestored = 0;
+    if (cloudApiKeys.gemini && !localApiKeys.gemini) {
+      const restored = deobfuscateApiKey(cloudApiKeys.gemini);
+      if (restored) {
+        localStorage.setItem('gemini_api_key', restored);
+        apiKeyRestored++;
+        console.log('   - ♻️ Gemini API 키 복원됨');
+      }
+    }
+    if (cloudApiKeys.groq && !localApiKeys.groq) {
+      const restored = deobfuscateApiKey(cloudApiKeys.groq);
+      if (restored) {
+        localStorage.setItem('grok_api_key', restored);
+        apiKeyRestored++;
+        console.log('   - ♻️ Groq API 키 복원됨');
+      }
+    }
+    if (cloudApiKeys.googleStt && !localApiKeys.googleStt) {
+      const restored = deobfuscateApiKey(cloudApiKeys.googleStt);
+      if (restored) {
+        localStorage.setItem('googleSttKey_v1', restored);
+        apiKeyRestored++;
+        console.log('   - ♻️ Google STT 키 복원됨');
+      }
+    }
+
+    // Local에 API 키가 있고 Cloud에 없으면 업로드
+    const keysToUpload = {};
+    if (localApiKeys.gemini && !cloudApiKeys.gemini) {
+      keysToUpload.gemini = obfuscateApiKey(localApiKeys.gemini);
+    }
+    if (localApiKeys.groq && !cloudApiKeys.groq) {
+      keysToUpload.groq = obfuscateApiKey(localApiKeys.groq);
+    }
+    if (localApiKeys.googleStt && !cloudApiKeys.googleStt) {
+      keysToUpload.googleStt = obfuscateApiKey(localApiKeys.googleStt);
+    }
+
+    if (Object.keys(keysToUpload).length > 0) {
+      await updateDoc(userDocRef, {
+        apiKeys: { ...cloudApiKeys, ...keysToUpload },
+        'profile.lastSyncAt': serverTimestamp()
+      });
+      console.log(`   - 📤 ${Object.keys(keysToUpload).length}개 API 키 업로드`);
+    }
+
+    if (apiKeyRestored > 0) {
+      syncMessage += `, apiKeys: ${apiKeyRestored}개 복원`;
     }
 
     // 동기화 완료 후 타임스탬프 저장 (다음 로그인 시 스킵 판단용)

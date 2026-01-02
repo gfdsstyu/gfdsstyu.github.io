@@ -146,3 +146,82 @@ export function computePartRanges(chapterNums) {
 
   return ranges;
 }
+
+// ============================================
+// Lazy Loading 유틸리티 (성능 최적화)
+// ============================================
+
+const loadedScripts = new Set();
+
+/**
+ * 외부 스크립트를 동적으로 로드
+ * @param {string} src - 스크립트 URL
+ * @param {string} globalVar - 로드 완료 확인용 전역 변수명 (optional)
+ * @returns {Promise<void>}
+ */
+export async function loadScript(src, globalVar = null) {
+  // 이미 로드된 경우 스킵
+  if (loadedScripts.has(src)) {
+    return Promise.resolve();
+  }
+
+  // 전역 변수가 이미 있으면 스킵 (다른 경로로 이미 로드됨)
+  if (globalVar && window[globalVar]) {
+    loadedScripts.add(src);
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    script.onload = () => {
+      loadedScripts.add(src);
+      console.log(`✅ [LazyLoad] ${src.split('/').pop()} 로드 완료`);
+      resolve();
+    };
+    script.onerror = () => {
+      console.error(`❌ [LazyLoad] ${src} 로드 실패`);
+      reject(new Error(`Failed to load ${src}`));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+/**
+ * Chart.js 및 플러그인 lazy loading
+ * @returns {Promise<void>}
+ */
+export async function loadChartJS() {
+  if (window.Chart) return;
+
+  console.log('📊 [LazyLoad] Chart.js 로딩 시작...');
+
+  // Chart.js 먼저 로드
+  await loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js', 'Chart');
+
+  // 플러그인 로드 (Chart.js 필요)
+  await Promise.all([
+    loadScript('https://cdn.jsdelivr.net/npm/hammerjs@2.0.8'),
+    loadScript('https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js')
+  ]);
+
+  console.log('📊 [LazyLoad] Chart.js 및 플러그인 로드 완료');
+}
+
+/**
+ * jsPDF 및 html2pdf lazy loading
+ * @returns {Promise<void>}
+ */
+export async function loadPdfLibraries() {
+  if (window.jspdf && window.html2pdf) return;
+
+  console.log('📄 [LazyLoad] PDF 라이브러리 로딩 시작...');
+
+  await Promise.all([
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', 'jspdf'),
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js', 'html2pdf')
+  ]);
+
+  console.log('📄 [LazyLoad] PDF 라이브러리 로드 완료');
+}

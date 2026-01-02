@@ -6,7 +6,7 @@
  */
 
 import { el, $ } from '../../ui/elements.js';
-import { normId, clamp } from '../../utils/helpers.js';
+import { normId, clamp, loadChartJS } from '../../utils/helpers.js';
 import { chapterLabelText } from '../../config/config.js';
 import { renderDailyVolumeChart, renderScoreTrendChart, renderChapterWeaknessChart, calculateMovingAverage } from './charts.js';
 import { showToast, closeDrawer } from '../../ui/domUtils.js';
@@ -342,9 +342,9 @@ function handleDateNavigation(days) {
 }
 
 /**
- * 리포트 생성
+ * 리포트 생성 (Chart.js lazy loading 적용)
  */
-export function generateReport() {
+export async function generateReport() {
   reportData.period = el.reportPeriodSelect?.value === 'all' ? 'all' : +el.reportPeriodSelect?.value || 30;
   reportData.threshold = +el.reportThresholdSelect?.value || 60;
 
@@ -353,6 +353,9 @@ export function generateReport() {
   // Clear previous charts
   Object.values(reportCharts).forEach(chart => chart?.destroy());
   reportCharts = {};
+
+  // Chart.js lazy loading (첫 리포트 열 때 로드)
+  await loadChartJS();
 
   renderDailyVolumeChart(data.dailyData, reportCharts);
   renderScoreTrendChart(data.dailyData, reportCharts, data.chartData); // 성능 최적화: 사전 계산된 데이터 전달

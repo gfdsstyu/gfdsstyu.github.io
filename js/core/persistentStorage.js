@@ -5,12 +5,14 @@
  */
 
 const DB_NAME = 'GamliniPersistentDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;  // v2: API 키 전용 스토어 추가
 const STORE_NAME = 'localStorageBackup';
 
 // 백업할 localStorage 키 목록
 const BACKUP_KEYS = [
   'gemini_api_key',                // Gemini API Key
+  'grok_api_key',                  // Groq API Key
+  'googleSttKey_v1',               // Google STT Key
   'auditQuizScores',               // 문제 풀이 기록
   'readSessions_v2',               // 읽음 상태
   'schemaVersion',                 // 스키마 버전
@@ -22,6 +24,10 @@ const BACKUP_KEYS = [
   'theme',                         // 테마 설정
   'lastSyncTime',                  // 마지막 동기화 시간
 ];
+
+// API 키 전용 상수 (Safari ITP 대응)
+const API_KEY_STORE = 'apiKeyStore';
+const API_KEYS = ['gemini_api_key', 'grok_api_key', 'googleSttKey_v1'];
 
 class PersistentStorage {
   constructor() {
@@ -58,6 +64,12 @@ class PersistentStorage {
           if (!db.objectStoreNames.contains(STORE_NAME)) {
             db.createObjectStore(STORE_NAME, { keyPath: 'key' });
             console.log('📦 IndexedDB Object Store 생성');
+          }
+
+          // v2: API 키 전용 스토어 (Safari ITP 대응)
+          if (!db.objectStoreNames.contains(API_KEY_STORE)) {
+            db.createObjectStore(API_KEY_STORE, { keyPath: 'key' });
+            console.log('🔐 IndexedDB API Key Store 생성');
           }
         };
       });
@@ -254,18 +266,21 @@ export async function initPersistentStorage() {
     // 1. IndexedDB 초기화
     await persistentStorage.init();
 
-    // 2. 복원 (localStorage에 데이터가 없으면 IndexedDB에서 복원)
+    // 2. API 키 우선 복원 (Safari ITP 대응)
+    await restoreAllApiKeys();
+
+    // 3. 복원 (localStorage에 데이터가 없으면 IndexedDB에서 복원)
     await persistentStorage.restoreFromIndexedDB();
 
-    // 3. 즉시 백업 (현재 localStorage 상태 저장)
+    // 4. 즉시 백업 (현재 localStorage 상태 저장)
     await persistentStorage.backupToIndexedDB();
 
-    // 4. 주기적 백업 (5분마다)
+    // 5. 주기적 백업 (5분마다)
     setInterval(async () => {
       await persistentStorage.backupToIndexedDB();
     }, 5 * 60 * 1000); // 5분
 
-    // 5. 페이지 종료 시 백업
+    // 6. 페이지 종료 시 백업
     window.addEventListener('beforeunload', () => {
       persistentStorage.backupToIndexedDB();
     });
@@ -316,4 +331,141 @@ export async function getBackupStatus() {
     keys: Object.keys(backups),
     details: backups
   };
+}
+
+// ============================================
+// API 키 전용 저장소 (Safari ITP 대응)
+// localStorage가 삭제되어도 IndexedDB에서 복원
+// ============================================
+
+/**
+ * API 키를 IndexedDB에 저장 (localStorage와 함께)
+ * @param {string} keyName - 키 이름 (gemini_api_key, grok_api_key, googleSttKey_v1)
+ * @param {string} value - API 키 값
+ */
+export async function saveApiKey(keyName, value) {
+  if (!API_KEYS.includes(keyName)) {
+    console.warn(`⚠️ [ApiKeyStore] 알 수 없는 키: ${keyName}`);
+    return false;
+  }
+
+  // localStorage에 저장
+  if (value) {
+    localStorage.setItem(keyName, value);
+  } else {
+    localStorage.removeItem(keyName);
+  }
+
+  // IndexedDB에 저장
+  if (!persistentStorage.isInitialized) {
+    await persistentStorage.init();
+  }
+
+  if (!persistentStorage.db) return false;
+
+  try {
+    const transaction = persistentStorage.db.transaction([API_KEY_STORE], 'readwrite');
+    const store = transaction.objectStore(API_KEY_STORE);
+
+    if (value) {
+      store.put({
+        key: keyName,
+        value: value,
+        timestamp: Date.now()
+      });
+    } else {
+      store.delete(keyName);
+    }
+
+    return new Promise((resolve) => {
+      transaction.oncomplete = () => {
+        console.log(`🔐 [ApiKeyStore] ${keyName} 저장 완료`);
+        resolve(true);
+      };
+      transaction.onerror = () => {
+        console.error(`❌ [ApiKeyStore] ${keyName} 저장 실패`);
+        resolve(false);
+      };
+    });
+  } catch (error) {
+    console.error(`❌ [ApiKeyStore] ${keyName} 저장 오류:`, error);
+    return false;
+  }
+}
+
+/**
+ * API 키를 IndexedDB에서 조회 (localStorage 없으면 복원)
+ * @param {string} keyName - 키 이름
+ * @returns {Promise<string|null>} API 키 값
+ */
+export async function getApiKey(keyName) {
+  // 먼저 localStorage 확인
+  const localValue = localStorage.getItem(keyName);
+  if (localValue) {
+    return localValue;
+  }
+
+  // localStorage에 없으면 IndexedDB에서 복원 시도
+  if (!persistentStorage.isInitialized) {
+    await persistentStorage.init();
+  }
+
+  if (!persistentStorage.db) return null;
+
+  try {
+    const transaction = persistentStorage.db.transaction([API_KEY_STORE], 'readonly');
+    const store = transaction.objectStore(API_KEY_STORE);
+    const request = store.get(keyName);
+
+    return new Promise((resolve) => {
+      request.onsuccess = () => {
+        const record = request.result;
+        if (record && record.value) {
+          // localStorage에 복원
+          localStorage.setItem(keyName, record.value);
+          console.log(`♻️ [ApiKeyStore] ${keyName} IndexedDB에서 복원됨`);
+          resolve(record.value);
+        } else {
+          resolve(null);
+        }
+      };
+      request.onerror = () => {
+        console.error(`❌ [ApiKeyStore] ${keyName} 조회 실패`);
+        resolve(null);
+      };
+    });
+  } catch (error) {
+    console.error(`❌ [ApiKeyStore] ${keyName} 조회 오류:`, error);
+    return null;
+  }
+}
+
+/**
+ * 모든 API 키를 IndexedDB에서 localStorage로 복원
+ * (앱 시작 시 호출)
+ */
+export async function restoreAllApiKeys() {
+  if (!persistentStorage.isInitialized) {
+    await persistentStorage.init();
+  }
+
+  if (!persistentStorage.db) return 0;
+
+  let restoredCount = 0;
+
+  for (const keyName of API_KEYS) {
+    const localValue = localStorage.getItem(keyName);
+    if (!localValue) {
+      const restored = await getApiKey(keyName);
+      if (restored) {
+        restoredCount++;
+      }
+    }
+  }
+
+  if (restoredCount > 0) {
+    console.log(`🔐 [ApiKeyStore] ${restoredCount}개 API 키 복원 완료`);
+  }
+
+  return restoredCount;
 }

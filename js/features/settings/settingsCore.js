@@ -24,6 +24,7 @@ import { closeReportModal } from '../report/reportCore.js';
 import { updateSummary } from '../summary/summaryCore.js';
 import { getCurrentUser, updateNickname, getNickname } from '../auth/authCore.js';
 import { syncSettingsToFirestore } from '../sync/syncCore.js';
+import { saveApiKey as saveApiKeyToIndexedDB } from '../../core/persistentStorage.js';
 
 // ============================================
 // Helper: Settings 동기화 (Phase 2.5: Option C)
@@ -179,7 +180,8 @@ export function initApiModalListeners() {
     sessionStorage.setItem('gemini_api_key', key);
 
     if (el.apiModalRemember.checked) {
-      localStorage.setItem('gemini_api_key', key);
+      // localStorage + IndexedDB에 저장 (Safari ITP 대응)
+      saveApiKeyToIndexedDB('gemini_api_key', key);
     } else {
       localStorage.removeItem('gemini_api_key');
     }
@@ -313,7 +315,8 @@ export function initSettingsModalListeners() {
       return;
     }
 
-    localStorage.setItem('grok_api_key', apiKey);
+    // localStorage + IndexedDB에 저장 (Safari ITP 대응)
+    saveApiKeyToIndexedDB('grok_api_key', apiKey);
     showToast('Groq API 키가 저장되었습니다! 🧪', 'success');
     console.log('✅ [Settings] Groq API 키 저장됨:', apiKey.substring(0, 15) + '...');
     syncSettings(); // Sync to Firestore
@@ -368,16 +371,26 @@ export function initSettingsModalListeners() {
   googleSttForm?.addEventListener('submit', (e) => {
     e.preventDefault();
     if (el.googleSttKey) {
-      setGoogleSttKey(el.googleSttKey.value);
+      const key = el.googleSttKey.value;
+      setGoogleSttKey(key);
       saveSttSettings();
+      // IndexedDB에도 저장 (Safari ITP 대응)
+      if (key) {
+        saveApiKeyToIndexedDB('googleSttKey_v1', key);
+      }
       showToast('Google STT API 키 저장 완료');
     }
   });
 
   // Google STT 키 저장 (change 이벤트)
   el.googleSttKey?.addEventListener('change', (e) => {
-    setGoogleSttKey(e.target.value);
+    const key = e.target.value;
+    setGoogleSttKey(key);
     saveSttSettings();
+    // IndexedDB에도 저장 (Safari ITP 대응)
+    if (key) {
+      saveApiKeyToIndexedDB('googleSttKey_v1', key);
+    }
   });
 
   // STT 설정 토글 버튼
