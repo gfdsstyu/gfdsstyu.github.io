@@ -372,18 +372,24 @@ export function registerUniqueRead(qid) {
   let rec = db[qid];
   const questionScores = getQuestionScores();
 
-  if (!rec) {
-    // 현재 풀이를 제외한 이전 히스토리로 계산
-    const hist = questionScores[qid]?.solveHistory || [];
-    const previousHist = Array.isArray(hist) && hist.length > 0
-      ? hist.slice(0, -1)  // 마지막 항목(현재 풀이) 제외
-      : [];
+  // solveHistory에서 현재 풀이를 제외한 직전 풀이 시간 가져오기
+  const hist = questionScores[qid]?.solveHistory || [];
+  const previousHist = Array.isArray(hist) && hist.length > 1
+    ? hist.slice(0, -1)  // 마지막 항목(현재 풀이) 제외
+    : [];
 
-    rec = previousHist.length > 0
-      ? computeUniqueReadsFromHistory(previousHist)
-      : { uniqueReads: 0, lastAt: 0 };
+  // rec이 없거나 lastAt이 0인 경우, solveHistory 기반으로 복원
+  if (!rec || !rec.lastAt) {
+    if (previousHist.length > 0) {
+      // 이전 히스토리 기반으로 uniqueReads와 lastAt 계산
+      rec = computeUniqueReadsFromHistory(previousHist);
+    } else {
+      // 첫 풀이
+      rec = { uniqueReads: 0, lastAt: 0 };
+    }
   }
 
+  // 5분 윈도우 비교: rec.lastAt (이전 회독 시점)과 현재 시간 비교
   if (t - (rec.lastAt || 0) >= UNIQUE_WINDOW_MS) {
     rec.uniqueReads = (+rec.uniqueReads || 0) + 1;
     rec.lastAt = t;
@@ -392,6 +398,7 @@ export function registerUniqueRead(qid) {
     return { increased: true, uniqueReads: rec.uniqueReads };
   }
 
+  // 5분 이내 재풀이 - lastAt만 업데이트
   rec.lastAt = t;
   db[qid] = rec;
   saveReadStore(db);

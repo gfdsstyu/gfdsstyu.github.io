@@ -24,7 +24,7 @@ import {
 } from '../../core/stateManager.js';
 import { mergeQuizScores } from '../../services/dataImportExport.js';
 import { applyDarkMode } from '../../ui/domUtils.js';
-import { updateDDayDisplay } from '../../core/storageManager.js';
+import { updateDDayDisplay, loadReadStore, saveReadStore } from '../../core/storageManager.js';
 
 // Achievement and settings management (for Option C)
 const ACHIEVEMENTS_LS_KEY = 'achievements_v1';
@@ -526,6 +526,51 @@ export async function syncOnLogin(userId) {
       syncMessage += `, featured: 다운로드`;
     }
 
+    // 2-5. ReadSessions 동기화 (고유회독수 추적용)
+    console.log('📖 ReadSessions 동기화 중...');
+    const cloudReadSessions = userData.readSessions || {};
+    const localReadSessions = loadReadStore();
+    const cloudReadCount = Object.keys(cloudReadSessions).length;
+    const localReadCount = Object.keys(localReadSessions).length;
+
+    console.log(`   - Cloud readSessions: ${cloudReadCount}개 문제`);
+    console.log(`   - Local readSessions: ${localReadCount}개 문제`);
+
+    if (cloudReadCount > 0 || localReadCount > 0) {
+      // 병합: 각 문제에 대해 더 높은 uniqueReads, 더 최신 lastAt 사용
+      const mergedReadSessions = { ...cloudReadSessions };
+
+      Object.entries(localReadSessions).forEach(([qid, localData]) => {
+        if (!mergedReadSessions[qid]) {
+          // Cloud에 없으면 Local 것 사용
+          mergedReadSessions[qid] = localData;
+        } else {
+          // 양쪽에 있으면 더 큰 값 우선
+          const cloudData = mergedReadSessions[qid];
+          mergedReadSessions[qid] = {
+            uniqueReads: Math.max(cloudData.uniqueReads || 0, localData.uniqueReads || 0),
+            lastAt: Math.max(cloudData.lastAt || 0, localData.lastAt || 0)
+          };
+        }
+      });
+
+      // Local에 병합 결과 저장
+      saveReadStore(mergedReadSessions);
+
+      // Cloud에 병합 결과 업로드 (readSessions 필드만 업데이트)
+      await updateDoc(userDocRef, {
+        readSessions: mergedReadSessions,
+        'profile.lastSyncAt': serverTimestamp()
+      });
+
+      const mergedReadCount = Object.keys(mergedReadSessions).length;
+      console.log(`✅ ${mergedReadCount}개 readSessions 병합 완료`);
+      syncMessage += `, readSessions: ${mergedReadCount}개`;
+    } else {
+      console.log('✅ ReadSessions 동기화 불필요 (양쪽 모두 비어있음)');
+      syncMessage += `, readSessions: 없음`;
+    }
+
     // 동기화 완료 후 타임스탬프 저장 (다음 로그인 시 스킵 판단용)
     localStorage.setItem('lastSyncAt', Date.now().toString());
 
@@ -572,10 +617,16 @@ export async function syncToFirestore(userId, specificQid = null) {
     if (specificQid && localScores[specificQid]) {
       // ⚡ 차분 업데이트: 특정 문제의 필드만 업데이트 (쓰기 비용 절감)
       const specificScore = toFirestoreFormat({ [specificQid]: localScores[specificQid] });
+      const localReadStore = loadReadStore();
       const updateData = {
         [`userScores.${specificQid}`]: specificScore[specificQid],
         'profile.lastSyncAt': serverTimestamp()
       };
+
+      // readSessions도 함께 업데이트 (고유회독수 동기화)
+      if (localReadStore[specificQid]) {
+        updateData[`readSessions.${specificQid}`] = localReadStore[specificQid];
+      }
 
       console.log(`   - 차분 업데이트: userScores.${specificQid}`);
       await updateDoc(userDocRef, updateData);
@@ -583,11 +634,13 @@ export async function syncToFirestore(userId, specificQid = null) {
     } else {
       // 전체 업데이트: 모든 문제 동기화 (초기 동기화, 전체 백업 등)
       const convertedScores = toFirestoreFormat(localScores);
+      const localReadStore = loadReadStore();
       const convertedCount = Object.keys(convertedScores).length;
       console.log(`   - 전체 업데이트: ${convertedCount}개 문제`);
 
       await updateDoc(userDocRef, {
         userScores: convertedScores,
+        readSessions: localReadStore,
         'profile.lastSyncAt': serverTimestamp()
       });
       console.log(`✅ [SyncCore] 전체 동기화 완료: ${convertedCount}개 문제`);
