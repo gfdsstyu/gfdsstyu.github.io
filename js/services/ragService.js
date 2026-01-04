@@ -30,10 +30,9 @@ class RAGService {
     // 성능 최적화: 타입별 인덱스
     this.indexByType = null;
 
-    // ✨ 백그라운드 로딩: 생성자에서 바로 다운로드 시작 (await 없이)
-    // 앱이 시작되자마자 백그라운드에서 다운로드를 시작합니다
-    console.log('🚀 RAG 벡터 백그라운드 다운로드 시작...');
-    this.loadingPromise = this._initBackgroundLoad();
+    // ✨ 지연 로딩: 챗봇 사용 시에만 다운로드 시작 (첫 로딩 성능 최적화)
+    // 38MB 벡터 데이터를 앱 시작 시 로드하지 않고, 챗봇 열 때 로드
+    this.loadingPromise = null;
 
     // 회계 전문용어 동의어 사전 (쿼리 확장용)
     this.synonyms = {
@@ -108,8 +107,8 @@ class RAGService {
   }
 
   /**
-   * 벡터 데이터 로드 대기 (외부 호출용)
-   * 백그라운드 로딩이 완료될 때까지 대기합니다
+   * 벡터 데이터 로드 (지연 로딩)
+   * 챗봇 사용 시 처음 호출되면 다운로드 시작
    */
   async loadVectors() {
     // 이미 로드 완료되었으면 즉시 반환
@@ -117,7 +116,13 @@ class RAGService {
       return true;
     }
 
-    // 백그라운드 로딩을 기다림 (대부분의 경우 이미 완료되어 있음)
+    // 아직 로딩이 시작되지 않았으면 시작
+    if (!this.loadingPromise) {
+      console.log('🚀 RAG 벡터 다운로드 시작 (지연 로딩)...');
+      this.loadingPromise = this._initBackgroundLoad();
+    }
+
+    // 로딩 완료 대기
     console.log('⏳ 벡터 데이터 로드 대기 중...');
     return await this.loadingPromise;
   }

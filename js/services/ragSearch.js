@@ -3,6 +3,8 @@
 // KAM 평가를 위한 회계감사기준서 검색 기능
 // ============================================
 
+import { loadFuseJS } from '../utils/helpers.js';
+
 /**
  * RAG 검색 시스템
  * - questions.json에서 관련 기준서 검색
@@ -90,9 +92,11 @@ export class RAGSearchService {
         tags: item.tags || []
       }));
 
-      // Fuse.js가 전역에 로드되어 있는지 확인
+      // Fuse.js 지연 로딩
+      await loadFuseJS();
+
       if (typeof Fuse === 'undefined') {
-        console.error('❌ Fuse.js가 로드되지 않았습니다. CDN을 확인하세요.');
+        console.error('❌ Fuse.js 로드 실패');
         return;
       }
 

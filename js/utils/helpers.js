@@ -225,3 +225,15 @@ export async function loadPdfLibraries() {
 
   console.log('📄 [LazyLoad] PDF 라이브러리 로드 완료');
 }
+
+/**
+ * Fuse.js lazy loading (검색 기능용)
+ * @returns {Promise<void>}
+ */
+export async function loadFuseJS() {
+  if (window.Fuse) return;
+
+  console.log('🔍 [LazyLoad] Fuse.js 로딩 시작...');
+  await loadScript('https://cdn.jsdelivr.net/npm/fuse.js@7.0.0', 'Fuse');
+  console.log('🔍 [LazyLoad] Fuse.js 로드 완료');
+}
