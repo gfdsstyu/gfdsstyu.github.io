@@ -175,6 +175,7 @@ class RAGService {
       audit: [],
       law: [],
       ethics: [],
+      icfr: [],  // 내부회계관리제도 설계/운영 개념체계 (준거기준)
       study: [],
       kam: [],
       auditcase: [],
@@ -192,6 +193,7 @@ class RAGService {
       audit: this.indexByType.audit.length,
       law: this.indexByType.law.length,
       ethics: this.indexByType.ethics.length,
+      icfr: this.indexByType.icfr.length,
       study: this.indexByType.study.length,
       kam: this.indexByType.kam.length,
       auditcase: this.indexByType.auditcase.length,
@@ -819,6 +821,9 @@ class RAGService {
         case 'ethics':
           typeLabel = '윤리기준';
           break;
+        case 'icfr':
+          typeLabel = '내부회계관리제도 개념체계';
+          break;
         case 'study':
           typeLabel = '암기교재';
           break;
@@ -1046,6 +1051,7 @@ class RAGService {
       'audit': '📘',
       'law': '📕',
       'ethics': '📗',
+      'icfr': '🏛️',
       'kam': '💼',
       'auditcase': '🚨',
       'exam': '📝'
@@ -1056,6 +1062,7 @@ class RAGService {
       'audit': '회계감사기준',
       'law': '외부감사법',
       'ethics': '윤리기준',
+      'icfr': '내부회계관리제도',
       'kam': 'KAM 사례',
       'auditcase': '감리지적사례',
       'exam': '기출문제'

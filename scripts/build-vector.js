@@ -40,6 +40,7 @@ const CONFIG = {
     auditStandards: '../DB/audit_standards_parsed.json',
     legalDataLaws: '../DB/legalDataLaws.json',
     legalDataEthics: '../DB/legalDataEthics.json',
+    internalControlFramework: '../DB/내부회계관리제도_설계및운영_개념체계.json',  // 내부회계관리제도 설계/운영 준거기준
     questions: '../questions.json',
     kamData: '../js/data/kamData.json',
     auditCases: '../DB/accounting_audit_cases.json',
@@ -233,6 +234,248 @@ function normalizeLegalDataEthics(data) {
     console.log(`✅ 윤리기준: ${documents.length}개 문서 추출`);
   } catch (error) {
     console.error('❌ 윤리기준 정규화 오류:', error.message);
+  }
+
+  return documents;
+}
+
+/**
+ * 3-1. 내부회계관리제도 설계 및 운영 개념체계 데이터 정규화
+ * 17개 원칙, 5개 구성요소, 핵심개념, 용어집 등을 개별 문서로 분리
+ */
+function normalizeInternalControlFramework(data) {
+  const documents = [];
+
+  try {
+    if (!data || typeof data !== 'object') {
+      console.warn('⚠️  내부회계관리제도 데이터가 올바르지 않습니다.');
+      return documents;
+    }
+
+    const docTitle = data.document_metadata?.title || '내부회계관리제도 설계 및 운영 개념체계';
+    const source = '내부회계관리제도 설계 및 운영 개념체계 (준거기준)';
+
+    // 1. 17개 원칙 (가장 중요)
+    if (data.seventeen_principles && Array.isArray(data.seventeen_principles)) {
+      data.seventeen_principles.forEach((principle, index) => {
+        const principleId = principle.principle_id || index + 1;
+        const componentId = principle.component_id || '';
+        const name = principle.name || '';
+        const description = principle.description || '';
+        const considerations = principle.key_considerations || [];
+
+        // 세부 고려사항 텍스트
+        const considerationsText = considerations.map(c =>
+          `[${c.id}] ${c.title}: ${c.content}`
+        ).join('\n');
+
+        const text = `[내부회계관리제도 개념체계] 원칙 ${principleId}: ${name}\n\n${description}\n\n세부 고려사항:\n${considerationsText}`.trim();
+
+        documents.push({
+          id: `icfr_principle_${principleId}`,
+          text: text,
+          metadata: {
+            type: 'icfr',  // Internal Control over Financial Reporting
+            source: source,
+            title: `원칙 ${principleId}: ${name}`,
+            content: text,
+            principle_id: String(principleId),
+            component_id: String(componentId),
+            category: 'principle'
+          }
+        });
+      });
+    }
+
+    // 2. 5개 구성요소
+    if (data.five_components && Array.isArray(data.five_components)) {
+      data.five_components.forEach((component, index) => {
+        const compId = component.id || index + 1;
+        const name = component.name || '';
+        const description = component.description || '';
+        const keyElements = component.key_elements || [];
+        const principles = component.principles || [];
+
+        const elementsText = keyElements.map((e, i) => `${i + 1}. ${e}`).join('\n');
+        const principlesText = principles.length > 0 ? `관련 원칙: ${principles.join(', ')}` : '';
+
+        const text = `[내부회계관리제도 개념체계] 구성요소 ${compId}: ${name}\n\n${description}\n\n핵심 요소:\n${elementsText}\n\n${principlesText}`.trim();
+
+        documents.push({
+          id: `icfr_component_${compId}`,
+          text: text,
+          metadata: {
+            type: 'icfr',
+            source: source,
+            title: `구성요소 ${compId}: ${name}`,
+            content: text,
+            component_id: String(compId),
+            category: 'component'
+          }
+        });
+      });
+    }
+
+    // 3. 핵심 개념 (key_concepts)
+    if (data.key_concepts) {
+      Object.entries(data.key_concepts).forEach(([key, concept], index) => {
+        const definition = concept.definition || '';
+        const objectives = concept.objectives || [];
+        const scope = concept.scope || [];
+        const keyPoints = concept.key_points || [];
+
+        let contentParts = [definition];
+        if (objectives.length > 0) {
+          contentParts.push('목적:\n' + objectives.map(o => `- ${o.name}: ${o.description}`).join('\n'));
+        }
+        if (scope.length > 0) {
+          contentParts.push('범위:\n' + scope.map(s => `- ${s}`).join('\n'));
+        }
+        if (keyPoints.length > 0) {
+          contentParts.push('핵심사항:\n' + keyPoints.map(p => `- ${p}`).join('\n'));
+        }
+
+        const conceptName = key.replace(/_/g, ' ');
+        const text = `[내부회계관리제도 개념체계] ${conceptName}\n\n${contentParts.join('\n\n')}`.trim();
+
+        documents.push({
+          id: `icfr_concept_${index}`,
+          text: text,
+          metadata: {
+            type: 'icfr',
+            source: source,
+            title: conceptName,
+            content: text,
+            category: 'concept'
+          }
+        });
+      });
+    }
+
+    // 4. 통제 미비점 분류 (control_deficiencies)
+    if (data.control_deficiencies) {
+      const cd = data.control_deficiencies;
+      const classifications = cd.internal_accounting_control_deficiency_classification || [];
+
+      let deficiencyText = '';
+      if (cd.control_deficiency?.definition) {
+        deficiencyText += `통제 미비점: ${cd.control_deficiency.definition}\n\n`;
+      }
+      if (cd.major_deficiency?.definition) {
+        deficiencyText += `중요한 미비점: ${cd.major_deficiency.definition}\n\n`;
+      }
+      if (classifications.length > 0) {
+        deficiencyText += '미비점 분류:\n' + classifications.map(c =>
+          `- ${c.name} (Level ${c.level}): ${c.description} [재무영향: ${c.financial_impact}]`
+        ).join('\n');
+      }
+
+      if (deficiencyText.trim()) {
+        documents.push({
+          id: 'icfr_deficiencies',
+          text: `[내부회계관리제도 개념체계] 통제 미비점\n\n${deficiencyText}`.trim(),
+          metadata: {
+            type: 'icfr',
+            source: source,
+            title: '통제 미비점 분류',
+            content: deficiencyText,
+            category: 'deficiency'
+          }
+        });
+      }
+    }
+
+    // 5. 용어집 (glossary)
+    if (data.glossary?.terms && Array.isArray(data.glossary.terms)) {
+      const termsText = data.glossary.terms.map(t =>
+        `${t.term}: ${t.definition}${t.note ? ` (참고: ${t.note})` : ''}`
+      ).join('\n\n');
+
+      documents.push({
+        id: 'icfr_glossary',
+        text: `[내부회계관리제도 개념체계] 용어집\n\n${termsText}`.trim(),
+        metadata: {
+          type: 'icfr',
+          source: source,
+          title: '내부회계관리제도 용어집',
+          content: termsText,
+          category: 'glossary'
+        }
+      });
+    }
+
+    // 6. IT 일반통제 (it_general_controls)
+    if (data.it_general_controls?.control_areas) {
+      data.it_general_controls.control_areas.forEach((area, index) => {
+        const areaName = area.area || '';
+        const description = area.description || '';
+        const elements = area.elements || [];
+
+        const elementsText = elements.map((e, i) => `${i + 1}. ${e}`).join('\n');
+        const text = `[내부회계관리제도 개념체계] IT 일반통제 - ${areaName}\n\n${description}\n\n통제 요소:\n${elementsText}`.trim();
+
+        documents.push({
+          id: `icfr_itgc_${index}`,
+          text: text,
+          metadata: {
+            type: 'icfr',
+            source: source,
+            title: `IT 일반통제: ${areaName}`,
+            content: text,
+            category: 'itgc'
+          }
+        });
+      });
+    }
+
+    // 7. 모니터링 활동 (monitoring_activities_methods)
+    if (data.monitoring_activities_methods) {
+      const monitoring = data.monitoring_activities_methods;
+
+      // 상시적인 모니터링
+      if (monitoring.ongoing_monitoring) {
+        const om = monitoring.ongoing_monitoring;
+        const chars = (om.characteristics || []).map(c => `- ${c}`).join('\n');
+        const examples = (om.examples || []).map(e => `- ${e}`).join('\n');
+        const text = `[내부회계관리제도 개념체계] ${om.name}\n\n특성:\n${chars}\n\n예시:\n${examples}`.trim();
+
+        documents.push({
+          id: 'icfr_ongoing_monitoring',
+          text: text,
+          metadata: {
+            type: 'icfr',
+            source: source,
+            title: om.name,
+            content: text,
+            category: 'monitoring'
+          }
+        });
+      }
+
+      // 독립적인 평가
+      if (monitoring.independent_evaluation) {
+        const ie = monitoring.independent_evaluation;
+        const chars = (ie.characteristics || []).map(c => `- ${c}`).join('\n');
+        const techniques = (ie.evaluation_techniques || []).map(t => `- ${t}`).join('\n');
+        const text = `[내부회계관리제도 개념체계] ${ie.name}\n\n특성:\n${chars}\n\n평가기법:\n${techniques}`.trim();
+
+        documents.push({
+          id: 'icfr_independent_evaluation',
+          text: text,
+          metadata: {
+            type: 'icfr',
+            source: source,
+            title: ie.name,
+            content: text,
+            category: 'monitoring'
+          }
+        });
+      }
+    }
+
+    console.log(`✅ 내부회계관리제도 개념체계: ${documents.length}개 문서 추출 (준거기준)`);
+  } catch (error) {
+    console.error('❌ 내부회계관리제도 개념체계 정규화 오류:', error.message);
   }
 
   return documents;
@@ -641,6 +884,7 @@ async function main() {
     const auditStandardsData = await readJsonFile(CONFIG.INPUT_FILES.auditStandards);
     const legalDataLawsData = await readJsonFile(CONFIG.INPUT_FILES.legalDataLaws);
     const legalDataEthicsData = await readJsonFile(CONFIG.INPUT_FILES.legalDataEthics);
+    const internalControlData = await readJsonFile(CONFIG.INPUT_FILES.internalControlFramework);
     const questionsData = await readJsonFile(CONFIG.INPUT_FILES.questions);
     const kamData = await readJsonFile(CONFIG.INPUT_FILES.kamData);
     const auditCasesData = await readJsonFile(CONFIG.INPUT_FILES.auditCases);
@@ -653,6 +897,7 @@ async function main() {
     const auditDocs = normalizeAuditStandards(auditStandardsData);
     const lawDocs = normalizeLegalDataLaws(legalDataLawsData);
     const ethicsDocs = normalizeLegalDataEthics(legalDataEthicsData);
+    const icfrDocs = normalizeInternalControlFramework(internalControlData);
     const studyDocs = normalizeQuestions(questionsData);
     const kamDocs = normalizeKamData(kamData);
     const auditCasesDocs = normalizeAuditCases(auditCasesData);
@@ -663,6 +908,7 @@ async function main() {
       ...auditDocs,
       ...lawDocs,
       ...ethicsDocs,
+      ...icfrDocs,
       ...studyDocs,
       ...kamDocs,
       ...auditCasesDocs,
@@ -674,6 +920,7 @@ async function main() {
     console.log(`   - 회계감사기준: ${auditDocs.length}개`);
     console.log(`   - 법령 (외부감사법, 공인회계사법): ${lawDocs.length}개`);
     console.log(`   - 윤리기준: ${ethicsDocs.length}개`);
+    console.log(`   - 내부회계관리제도 개념체계: ${icfrDocs.length}개 (준거기준)`);
     console.log(`   - 회계감사기준 암기교재: ${studyDocs.length}개 (참고용)`);
     console.log(`   - KAM 실증절차 사례: ${kamDocs.length}개 (참고용)`);
     console.log(`   - 금감원 감리지적사례: ${auditCasesDocs.length}개 (실무 참고용)`);
@@ -716,12 +963,13 @@ async function main() {
           audit: auditDocs.length,
           law: lawDocs.length,
           ethics: ethicsDocs.length,
+          icfr: icfrDocs.length,
           study: studyDocs.length,
           kam: kamDocs.length,
           auditcase: auditCasesDocs.length,
           exam: exam2025Docs.length + exam2024Docs.length
         },
-        description: '회계감사기준, 법령, 윤리기준 (클렌징), 암기교재, KAM 사례, 감리지적사례, 기출문제',
+        description: '회계감사기준, 법령, 윤리기준, 내부회계관리제도 개념체계, 암기교재, KAM 사례, 감리지적사례, 기출문제',
         notes: 'gemini-embedding-001 (MTEB Multilingual 1위, MRL 기술 적용)'
       },
       vectors: vectorizedDocs
