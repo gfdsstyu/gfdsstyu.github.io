@@ -135,6 +135,17 @@ export function openDrawer() {
   document.body.classList.add('drawer-open');
   document.body.style.top = `-${scrollY}px`;
 
+  // iOS Safari: 터치 이벤트로 배경 스크롤 방지
+  if (!window._drawerScrollPreventListener) {
+    window._drawerScrollPreventListener = (e) => {
+      // 드로어/모달 내부가 아니면 스크롤 막기
+      if (!e.target.closest('#left-dashboard, [id$="-modal"]')) {
+        e.preventDefault();
+      }
+    };
+  }
+  document.addEventListener('touchmove', window._drawerScrollPreventListener, { passive: false });
+
   el.drawerClose?.classList.remove('hidden');
 }
 
@@ -162,6 +173,11 @@ export function closeDrawer() {
   if (scrollY) {
     window.scrollTo(0, parseInt(scrollY));
     delete document.body.dataset.scrollY;
+  }
+
+  // iOS Safari: 터치 이벤트 리스너 제거
+  if (window._drawerScrollPreventListener) {
+    document.removeEventListener('touchmove', window._drawerScrollPreventListener);
   }
 }
 
