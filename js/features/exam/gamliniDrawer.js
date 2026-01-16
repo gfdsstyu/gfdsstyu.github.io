@@ -701,7 +701,7 @@ export class GamliniDrawer {
       /* 복사 버튼 스타일 */
       .copy-btn {
         position: absolute;
-        top: 8px;
+        bottom: 8px;
         right: 8px;
         background: rgba(255, 255, 255, 0.9);
         border: 1px solid #e5e7eb;
