@@ -75,11 +75,15 @@ function convertMarkdownTablesToHtml(text) {
 
     // 테이블 처리
     if (line.startsWith('|') && line.endsWith('|')) {
+      console.log('🔍 테이블 감지:', line);
       const tableData = parseTable(lines, i);
       if (tableData) {
+        console.log('✅ 테이블 파싱 성공:', tableData.headers, '행 수:', tableData.rows.length);
         result += renderTable(tableData.headers, tableData.alignments, tableData.rows);
         i = tableData.nextIndex;
         continue;
+      } else {
+        console.log('❌ 테이블 파싱 실패');
       }
     }
 
@@ -349,7 +353,10 @@ export async function handleGrade() {
   // 마크다운 표 렌더링 적용
   if (el.correctAnswer) {
     const answerText = String(q.정답 || '');
-    el.correctAnswer.innerHTML = convertMarkdownTablesToHtml(answerText);
+    console.log('📝 원본 모범답안:', answerText.substring(0, 200));
+    const rendered = convertMarkdownTablesToHtml(answerText);
+    console.log('🎨 렌더링된 HTML:', rendered.substring(0, 300));
+    el.correctAnswer.innerHTML = rendered;
   }
   if (el.modelAnswerBox) {
     el.modelAnswerBox.classList.remove('hidden');
