@@ -285,8 +285,11 @@ export function showResult(scoreVal, feedback, correctAnswer) {
 
   if (el.correctAnswer) {
     const answerText = String(correctAnswer || '');
-    el.correctAnswer.textContent = answerText;
-    console.log('✅ 모범답안 설정:', answerText.length, '글자');
+    console.log('📝 [showResult] 원본 모범답안:', answerText.substring(0, 200));
+    const rendered = convertMarkdownTablesToHtml(answerText);
+    console.log('🎨 [showResult] 렌더링된 HTML:', rendered.substring(0, 300));
+    el.correctAnswer.innerHTML = rendered;
+    console.log('✅ 모범답안 설정:', answerText.length, '글자 (마크다운 렌더링 적용)');
   } else {
     console.error('❌ el.correctAnswer 없음!');
   }
