@@ -280,6 +280,9 @@ export function checkAchievements() {
   // Check comeback achievement
   checkComeback();
 
+  // Check phoenix achievement
+  checkPhoenix();
+
   // Check perfect day
   checkPerfectDay();
 
@@ -608,6 +611,57 @@ export function checkComeback() {
         unlockAchievement('comeback');
       }
     });
+  } catch {}
+}
+
+/**
+ * Check phoenix (불사조: 30점 미만 → 95점 이상 완벽 극복 30회)
+ */
+export function checkPhoenix() {
+  try {
+    const questionScores = window.questionScores || {};
+    let phoenixCount = 0;
+
+    Object.entries(questionScores).forEach(([id, record]) => {
+      const uniqueReads = getUniqueReadCount(record?.solveHistory || []);
+      if (uniqueReads < 2) return;
+
+      // 고유 회독 기반으로 점수 확인
+      const times = (record.solveHistory || [])
+        .map(x => +x?.date)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+
+      if (times.length === 0) return;
+
+      // 고유 회독 추출
+      let lastTime = -Infinity;
+      const uniqueReadScores = [];
+
+      for (let i = 0; i < record.solveHistory.length; i++) {
+        const h = record.solveHistory[i];
+        const t = +h?.date;
+        if (!Number.isFinite(t)) continue;
+
+        if (t - lastTime >= 5 * 60 * 1000) { // UNIQUE_WINDOW_MS
+          uniqueReadScores.push(h.score);
+          lastTime = t;
+        }
+      }
+
+      const scores = uniqueReadScores.filter(s => s !== undefined);
+      const minScore = Math.min(...scores);
+      const latestScore = record.score;
+
+      // 최저 점수가 30점 미만이고, 최신 점수가 95점 이상이면 불사조 달성
+      if (minScore < 30 && latestScore >= 95) {
+        phoenixCount++;
+      }
+    });
+
+    if (phoenixCount >= 30) {
+      unlockAchievement('phoenix');
+    }
   } catch {}
 }
 

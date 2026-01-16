@@ -465,6 +465,7 @@ export const ACHIEVEMENTS = {
   lucky_777: { id: 'lucky_777', name: '잭팟', desc: '누적 풀이 문제 수 777개 달성', icon: '🎰', tier: 'hidden', points: 777 },
   weekend_warrior_hidden: { id: 'weekend_warrior_hidden', name: '주말 반납', desc: '주말 이틀 모두 30문제 이상 풀이', icon: '📅', tier: 'hidden', points: 150 },
   comeback: { id: 'comeback', name: '칠전팔기', desc: '과거 60점 미만 문제를 85점 이상으로 극복 (78회 달성)', icon: '🦅', tier: 'hidden', points: 200 },
+  phoenix: { id: 'phoenix', name: '불사조', desc: '과거 30점 미만 문제를 95점 이상으로 완벽 극복 (30회 달성)', icon: '🔥', tier: 'hidden', points: 250 },
   flagged_20: { id: 'flagged_20', name: '오답노트', desc: '복습 추가(★) 플래그 20개 이상 설정', icon: '⭐', tier: 'hidden', points: 50 },
   flagged_50: { id: 'flagged_50', name: '반성의 기록', desc: '복습 추가(★) 플래그가 50개 이상 활성화됨', icon: '📝', tier: 'hidden', points: 100 },
   perfect_straight_10: { id: 'perfect_straight_10', name: '퍼펙트 스트레이트', desc: '10개의 새로운 문제를 연속으로 100점 달성', icon: '💯', tier: 'hidden', points: 200 },
