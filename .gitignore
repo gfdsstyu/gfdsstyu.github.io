@@ -148,3 +148,7 @@ scripts/.env
 
 # Claude temporary files
 tmpclaude-*
+
+# Vector backup files
+public/data/vectors.unoptimized.json
+public/data/*.unoptimized.json

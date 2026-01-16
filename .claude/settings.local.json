@@ -33,7 +33,8 @@
       "Bash(curl:*)",
       "Bash(git stash:*)",
       "Bash(git mv:*)",
-      "Bash(git status:*)"
+      "Bash(git status:*)",
+      "Bash(du:*)"
     ],
     "deny": [],
     "ask": []

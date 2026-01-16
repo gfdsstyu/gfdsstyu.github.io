@@ -129,7 +129,11 @@ export function openDrawer() {
   }
 
   // body 스크롤 방지 (모바일에서 배경 스크롤 방지)
+  // iOS Safari 스크롤 위치 저장 (position fixed 시 스크롤 위치 유지)
+  const scrollY = window.scrollY;
+  document.body.dataset.scrollY = scrollY;
   document.body.classList.add('drawer-open');
+  document.body.style.top = `-${scrollY}px`;
 
   el.drawerClose?.classList.remove('hidden');
 }
@@ -151,8 +155,14 @@ export function closeDrawer() {
   el.leftDashboard?.classList.remove('fixed', 'inset-0', 'z-[1100]', 'p-4', 'overflow-y-auto', 'bg-white', 'dark:bg-gray-900', 'relative');
   el.drawerClose?.classList.add('hidden');
 
-  // body 스크롤 복원
+  // body 스크롤 복원 (iOS Safari 스크롤 위치 복원)
   document.body.classList.remove('drawer-open');
+  document.body.style.top = '';
+  const scrollY = document.body.dataset.scrollY;
+  if (scrollY) {
+    window.scrollTo(0, parseInt(scrollY));
+    delete document.body.dataset.scrollY;
+  }
 }
 
 // ============================================
