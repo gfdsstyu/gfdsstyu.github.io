@@ -121,6 +121,16 @@ export function openDrawer() {
   el.drawerBackdrop?.classList.remove('hidden');
   el.leftDashboard?.classList.remove('hidden');
   el.leftDashboard?.classList.add('fixed', 'inset-0', 'z-[1100]', 'p-4', 'overflow-y-auto', 'bg-white', 'dark:bg-gray-900', 'relative');
+
+  // iOS Safari 스크롤 지원
+  if (el.leftDashboard) {
+    el.leftDashboard.style.webkitOverflowScrolling = 'touch';
+    el.leftDashboard.style.overscrollBehavior = 'contain';
+  }
+
+  // body 스크롤 방지 (모바일에서 배경 스크롤 방지)
+  document.body.classList.add('drawer-open');
+
   el.drawerClose?.classList.remove('hidden');
 }
 
@@ -140,6 +150,9 @@ export function closeDrawer() {
 
   el.leftDashboard?.classList.remove('fixed', 'inset-0', 'z-[1100]', 'p-4', 'overflow-y-auto', 'bg-white', 'dark:bg-gray-900', 'relative');
   el.drawerClose?.classList.add('hidden');
+
+  // body 스크롤 복원
+  document.body.classList.remove('drawer-open');
 }
 
 // ============================================

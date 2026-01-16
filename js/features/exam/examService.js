@@ -1047,6 +1047,390 @@ ${userPrompt}
       timestamp: Date.now()
     };
   }
+
+  // ============================================
+  // 단원별 문제풀이 기능 (Chapter-based Practice)
+  // ============================================
+
+  /**
+   * 모든 연도에서 특정 단원의 문제 추출 (연도순 정렬)
+   * @param {string|number} chapter - 단원 번호 (예: "2.0", 3, "10.5")
+   * @returns {Array} 해당 단원의 문제 배열 [{year, caseId, topic, chapter, subQuestions, questions}, ...]
+   */
+  getQuestionsByChapter(chapter) {
+    const questions = [];
+    const sortedYears = Object.keys(this.examData).sort((a, b) => parseInt(a) - parseInt(b)); // 연도순
+
+    for (const year of sortedYears) {
+      const yearData = this.examData[year];
+      if (!yearData || !Array.isArray(yearData)) continue;
+
+      yearData.forEach(exam => {
+        // exam.chapter가 있는지 확인 (새 구조)
+        if (exam.chapter && parseFloat(exam.chapter) === parseFloat(chapter)) {
+          questions.push({
+            year: parseInt(year),
+            caseId: exam.id,
+            topic: exam.topic || '',
+            chapter: exam.chapter,
+            questions: exam.questions || []
+          });
+        }
+      });
+    }
+    return questions;
+  }
+
+  /**
+   * 사용 가능한 단원 목록 조회
+   * @returns {Map} chapter -> {chapter, name, questionCount, years: Set, cases: []}
+   */
+  getAvailableChapters() {
+    const { CHAPTER_LABELS } = this.getChapterLabels();
+    const chapters = new Map();
+
+    const years = Object.keys(this.examData).sort((a, b) => parseInt(a) - parseInt(b));
+
+    for (const year of years) {
+      const yearData = this.examData[year];
+      if (!yearData || !Array.isArray(yearData)) continue;
+
+      yearData.forEach(exam => {
+        if (!exam.chapter) return; // chapter가 없으면 스킵
+
+        const chapterKey = parseFloat(exam.chapter);
+        if (isNaN(chapterKey)) return;
+
+        if (!chapters.has(chapterKey)) {
+          chapters.set(chapterKey, {
+            chapter: exam.chapter,
+            chapterNum: chapterKey,
+            name: CHAPTER_LABELS[Math.floor(chapterKey)] || `단원 ${Math.floor(chapterKey)}`,
+            questionCount: 0,
+            totalScore: 0,
+            years: new Set(),
+            cases: []
+          });
+        }
+
+        const chapterData = chapters.get(chapterKey);
+        chapterData.years.add(parseInt(year));
+        chapterData.cases.push({
+          year: parseInt(year),
+          caseId: exam.id,
+          topic: exam.topic,
+          questionCount: exam.questions?.length || 0,
+          totalScore: exam.questions?.reduce((sum, q) => sum + (q.score || 0), 0) || 0
+        });
+        chapterData.questionCount += exam.questions?.length || 0;
+        chapterData.totalScore += exam.questions?.reduce((sum, q) => sum + (q.score || 0), 0) || 0;
+      });
+    }
+
+    return chapters;
+  }
+
+  /**
+   * CHAPTER_LABELS 가져오기 (동적 import 대신 직접 정의)
+   */
+  getChapterLabels() {
+    const CHAPTER_LABELS = {
+      1: "제1장 감사와 회계감사의 기본개념",
+      2: "제2장 감사인의 의무, 책임 및 자격요건",
+      3: "제3장 감사인의 독립성과 품질관리",
+      4: "제1장 감사인의 선임",
+      5: "제2장 감사계약",
+      6: "제1장 회계감사수행을 위한 기초지식",
+      7: "제2장 위험평가절차와 계획수립",
+      8: "제1장 통제테스트와 위험평가의 확정",
+      9: "제1-2장 정보시스템환경 및 외부서비스조직 이용 회사에 대한 TOC",
+      10: "제2장 실증절차의 기초",
+      11: "제3장 기초잔액과 거래유형별 실증절차",
+      12: "제4장 특정항목별 감사절차",
+      13: "제5장 테스트항목의 범위와 표본감사",
+      14: "제6장 실증절차의 마무리절차",
+      15: "제1장 미수정왜곡표시의 평가와 감사의견의 형성",
+      16: "제2장 감사보고서의 작성과 보고",
+      17: "제1장 인증업무개념체계와 특정목적재무보고체계, 제2장 그룹재무제표에 대한 감사",
+      18: "제3장 내부회계관리제도에 대한 감사와 검토",
+      19: "제4장 중간재무제표에 대한 검토",
+      20: "제5장 소규모기업 재무제표에 대한 감사"
+    };
+    return { CHAPTER_LABELS };
+  }
+
+  // ============================================
+  // 단원별 점수 저장/불러오기
+  // ============================================
+
+  /**
+   * 단원별 점수 저장
+   */
+  async saveChapterScore(chapter, score, details, type = 'normal') {
+    const key = `exam_chapter_${chapter}_scores`;
+    const existing = this.getChapterScores(chapter);
+    const attemptNumber = existing.length + 1;
+
+    const scoreData = {
+      score,
+      details,
+      timestamp: Date.now(),
+      attempt: attemptNumber,
+      type
+    };
+
+    existing.push(scoreData);
+
+    try {
+      localStorage.setItem(key, JSON.stringify(existing));
+      console.log(`📊 단원 ${chapter} 점수 저장: ${score}점 (${attemptNumber}차 응시)`);
+    } catch (error) {
+      console.error('단원별 점수 저장 실패:', error);
+    }
+  }
+
+  /**
+   * 단원별 점수 불러오기
+   */
+  getChapterScores(chapter) {
+    const key = `exam_chapter_${chapter}_scores`;
+    try {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('단원별 점수 불러오기 실패:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 단원별 최고 점수 가져오기
+   */
+  getBestChapterScore(chapter) {
+    const scores = this.getChapterScores(chapter);
+    if (scores.length === 0) return null;
+    return Math.max(...scores.map(s => s.score));
+  }
+
+  /**
+   * 단원별 답안 저장
+   */
+  saveChapterAnswer(chapter, questionId, answer) {
+    const key = `exam_chapter_${chapter}_answers`;
+    const existing = this.getChapterAnswers(chapter);
+
+    existing[questionId] = {
+      answer,
+      timestamp: Date.now()
+    };
+
+    try {
+      localStorage.setItem(key, JSON.stringify(existing));
+      console.log(`💾 단원 ${chapter} 답안 저장: ${questionId}`);
+    } catch (error) {
+      console.error('단원별 답안 저장 실패:', error);
+    }
+  }
+
+  /**
+   * 단원별 답안 불러오기
+   */
+  getChapterAnswers(chapter) {
+    const key = `exam_chapter_${chapter}_answers`;
+    try {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : {};
+    } catch (error) {
+      console.error('단원별 답안 불러오기 실패:', error);
+      return {};
+    }
+  }
+
+  /**
+   * 단원별 답안 초기화
+   */
+  clearChapterAnswers(chapter) {
+    const key = `exam_chapter_${chapter}_answers`;
+    localStorage.removeItem(key);
+    console.log(`🗑️ 단원 ${chapter} 답안 초기화 완료`);
+  }
+
+  /**
+   * 단원별 타이머 시작 시간 저장
+   */
+  saveChapterTimerStart(chapter) {
+    const key = `exam_chapter_${chapter}_timer_start`;
+    localStorage.setItem(key, Date.now().toString());
+  }
+
+  /**
+   * 단원별 타이머 시작 시간 가져오기
+   */
+  getChapterTimerStart(chapter) {
+    const key = `exam_chapter_${chapter}_timer_start`;
+    const start = localStorage.getItem(key);
+    return start ? parseInt(start, 10) : null;
+  }
+
+  /**
+   * 단원별 남은 시간 계산
+   */
+  getChapterRemainingTime(chapter, timeLimit) {
+    const start = this.getChapterTimerStart(chapter);
+    if (!start) return null;
+
+    const now = Date.now();
+    const elapsed = (now - start) / 1000 / 60; // 분 단위
+    const remaining = timeLimit - elapsed;
+
+    return Math.max(0, remaining);
+  }
+
+  /**
+   * 단원별 타이머 초기화
+   */
+  clearChapterTimer(chapter) {
+    const key = `exam_chapter_${chapter}_timer_start`;
+    localStorage.removeItem(key);
+  }
+
+  /**
+   * 단원별 제한시간 계산 (문제 수 기반: 문제당 약 5분)
+   */
+  calculateChapterTimeLimit(questionCount) {
+    // 최소 15분, 최대 90분
+    const timeLimit = Math.max(15, Math.min(90, Math.ceil(questionCount * 5)));
+    return timeLimit;
+  }
+
+  /**
+   * 사용자 설정 타이머 저장
+   */
+  saveChapterTimeLimit(chapter, timeLimit) {
+    const key = `exam_chapter_${chapter}_time_limit`;
+    localStorage.setItem(key, timeLimit.toString());
+    console.log(`⏱️ 단원 ${chapter} 타이머 설정 저장: ${timeLimit}분`);
+  }
+
+  /**
+   * 사용자 설정 타이머 불러오기
+   */
+  getChapterTimeLimit(chapter) {
+    const key = `exam_chapter_${chapter}_time_limit`;
+    const value = localStorage.getItem(key);
+    return value ? parseInt(value, 10) : null;
+  }
+
+  // ============================================
+  // 단원별 채점
+  // ============================================
+
+  /**
+   * 단원별 시험 채점
+   */
+  async gradeChapterExam(chapter, userAnswers, apiKey, model = 'gemini-2.5-flash', onProgress = null) {
+    console.log(`✅ 단원 ${chapter} 채점 시작`);
+
+    const chapterData = this.getQuestionsByChapter(chapter);
+    const results = {};
+
+    // 모든 문제를 단일 배열로 변환
+    const allQuestions = [];
+    chapterData.forEach(caseItem => {
+      caseItem.questions.forEach(q => {
+        allQuestions.push({
+          ...q,
+          year: caseItem.year,
+          caseId: caseItem.caseId,
+          topic: caseItem.topic
+        });
+      });
+    });
+
+    const totalQuestions = allQuestions.length;
+    let completedQuestions = 0;
+
+    // 동시 3개씩 처리
+    const questionTasks = allQuestions.map((question) => async () => {
+      const userAnswer = userAnswers[question.id]?.answer;
+
+      if (!userAnswer || userAnswer.trim() === '') {
+        return {
+          questionId: question.id,
+          result: {
+            score: 0,
+            feedback: '답안이 작성되지 않았습니다.',
+            strengths: [],
+            improvements: ['문제를 풀어주세요.'],
+            keywordMatch: [],
+            missingKeywords: []
+          }
+        };
+      }
+
+      try {
+        // gradeQuestion을 위한 가상의 examCase 객체 생성
+        const examCase = {
+          id: question.caseId,
+          topic: question.topic,
+          scenario: question.scenario
+        };
+
+        const result = await this.gradeQuestion(examCase, question, userAnswer, apiKey, model);
+
+        // 점수 검증
+        if (result && typeof result.score === 'number') {
+          result.score = Math.round(result.score * 100) / 100;
+          const maxScore = question.score || 0;
+          result.score = Math.max(0, Math.min(result.score, maxScore));
+          result.score = Math.round(result.score * 100) / 100;
+        } else {
+          result.score = 0;
+        }
+
+        return { questionId: question.id, result };
+      } catch (error) {
+        console.error(`채점 실패: ${question.id}`, error);
+        return {
+          questionId: question.id,
+          result: {
+            score: 0,
+            feedback: '채점 중 오류가 발생했습니다.',
+            error: error.message
+          }
+        };
+      }
+    });
+
+    // 동시 3개씩 처리
+    const gradedResults = await this.limitConcurrency(questionTasks, 3);
+
+    // 결과 저장 및 진행률 업데이트
+    gradedResults.forEach(({ questionId, result }) => {
+      results[questionId] = result;
+      completedQuestions++;
+
+      if (onProgress) {
+        onProgress({
+          current: completedQuestions,
+          total: totalQuestions,
+          percentage: Math.round((completedQuestions / totalQuestions) * 100),
+          questionId
+        });
+      }
+    });
+
+    // 총점 계산
+    const totalScore = Object.values(results).reduce((sum, r) => sum + (r.score || 0), 0);
+
+    console.log(`✅ 단원 ${chapter} 채점 완료: ${totalScore}점`);
+
+    return {
+      totalScore,
+      details: results,
+      timestamp: Date.now()
+    };
+  }
 }
 
 // 싱글톤 인스턴스

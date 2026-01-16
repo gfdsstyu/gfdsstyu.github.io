@@ -40,6 +40,7 @@ export function prioritizeTodayReview(list, predictor, sortStrategy = null) {
   if (strat === 'hlr') {
     const readStore = window.readStore || {};
     const difficultyTracker = window.difficultyTracker;
+    const now = Date.now();
 
     const scored = list.map(q => {
       const qid = normId(q.고유ID);
@@ -52,17 +53,45 @@ export function prioritizeTodayReview(list, predictor, sortStrategy = null) {
       // 1. 복습 플래그 최상위
       if (rec?.userReviewFlag && !rec?.userReviewExclude) priority -= 10000;
 
+      // 🚨 Phase 1: Short-term Loop (오늘 틀린 문제 긴급 구제)
+      // 조건: 24시간 이내 + 점수 < 60점 OR 플래그 설정
+      const lastReview = rec?.lastSolvedDate || 0;
+      const hoursSinceReview = (now - lastReview) / (3600 * 1000);
+      const lastScore = rec?.score || 100;
+
+      if (hoursSinceReview < 24 && (lastScore < 60 || rec?.userReviewFlag)) {
+        // 오늘 틀린 문제는 HLR 계산과 무관하게 최상단 노출
+        priority -= 99999;
+
+        // 점수가 낮을수록 더 높은 우선순위
+        priority += lastScore * 10; // 0점=+0, 59점=+590
+
+        return { q, priority, hlrData: { isShortTerm: true, lastScore } };
+      }
+
       // 2. HLR 회상 확률 계산
       const hlrData = calculateRecallProbability(qid, predictor);
       if (hlrData) {
-        // 회상 확률 낮을수록 우선순위 높음 (망각 임박)
-        priority += hlrData.p_current * 1000; // 0~1000
+        // 단기 기억 (1시간 미만)인 경우 낮은 우선순위
+        if (hlrData.isShortTerm) {
+          priority += 50000; // 단기 기억은 아직 복습 불필요
+          return { q, priority, hlrData };
+        }
 
-        // 반감기가 짧을수록 우선순위 높음
-        priority += hlrData.h_pred * 10;
+        // p_current가 null이 아닌 경우 (정상적인 HLR 계산)
+        if (hlrData.p_current !== null) {
+          // 회상 확률 낮을수록 우선순위 높음 (망각 임박)
+          priority += hlrData.p_current * 1000; // 0~1000
+
+          // 반감기가 짧을수록 우선순위 높음
+          priority += hlrData.h_pred * 10;
+        } else {
+          // p_current가 null (단기 기억)
+          priority += 50000;
+        }
       } else {
-        // HLR 데이터 없으면 (미풀이) 중간 우선순위
-        priority -= 500;
+        // HLR 데이터 없으면 (미풀이) 우선순위 최하위로 설정
+        priority += 99999;
       }
 
       // 3. FSRS 난이도로 보정 (부가적)

@@ -49,8 +49,32 @@ export function buildHLRDataset() {
         const delta = (date - prevDate) / (1000 * 86400); // 일 단위
         if (delta <= 0) continue; // 같은 날 연속 풀이는 skip
 
-        let p_observed = score / 100.0;
-        p_observed = Math.max(0.01, Math.min(0.99, p_observed)); // log(0) 방지
+        // 🚨 수정 3: 순환 참조 해결 - 점수를 직접 확률로 사용하지 않고 성능 지표로 사용
+        // 기존: p_observed = score / 100 (이것이 순환 참조의 원인)
+        // 새로운 방식: 실제 망각 곡선 기반으로 관찰된 회상 확률 추정
+
+        // 이전 점수와 현재 점수로 실제 학습 효과 측정
+        const prevScore = hist[i - 1]?.score || 50;
+        const scoreDecay = score / Math.max(prevScore, 1); // 점수 변화율
+
+        // 실제 회상 확률 추정 (점수 기반이 아닌 성능 기반)
+        // 80점 이상: 잘 기억함 (0.8~0.95)
+        // 60~79점: 어느 정도 기억 (0.6~0.79)
+        // 40~59점: 일부 망각 (0.4~0.59)
+        // 0~39점: 대부분 망각 (0.1~0.39)
+        let p_observed;
+        if (score >= 80) {
+          p_observed = 0.8 + (score - 80) * 0.0075; // 80점=0.8, 100점=0.95
+        } else if (score >= 60) {
+          p_observed = 0.6 + (score - 60) * 0.0095; // 60점=0.6, 79점=0.79
+        } else if (score >= 40) {
+          p_observed = 0.4 + (score - 40) * 0.01; // 40점=0.4, 59점=0.59
+        } else {
+          p_observed = 0.1 + score * 0.0075; // 0점=0.1, 39점=0.39
+        }
+
+        // 극단값 방지
+        p_observed = Math.max(0.05, Math.min(0.99, p_observed));
 
         // h 계산: p = 2^(-Δ/h) → h = -Δ / log₂(p)
         const h_true = -delta / Math.log2(p_observed);
@@ -117,17 +141,69 @@ export function exportHLRDataset() {
  */
 export class LocalHLRPredictor {
   constructor() {
-    // 초기 가중치 (경험적 기본값)
-    this.modelWeights = {
-      bias: 4.0,              // log₂(h) 기본값 ≈ h=16일
+    // 초기 가중치 (Phase 1: 현실적 기본값으로 수정)
+    // 학습된 가중치가 있으면 우선 사용 (Phase 2)
+    const learnedWeights = this.loadLearnedWeights();
+
+    this.modelWeights = learnedWeights || {
+      bias: 1.0,              // [수정] 4.0 → 1.0 (기본 반감기: 2일, 회계사 수험생 모드)
       total_reviews: 0.15,    // 리뷰 많을수록 반감기 증가
       mean_score: 0.008,      // 평균 점수 높을수록 반감기 증가
-      last_score: 0.005,      // 최근 점수 높을수록 반감기 증가
+      last_score: 0.02,       // [수정] 0.005 → 0.02 (최근 점수 영향력 강화)
       correct_count: 0.1,     // 정답 횟수 많을수록 반감기 증가
-      incorrect_count: -0.12, // 오답 횟수 많을수록 반감기 감소
+      incorrect_count: -0.8,  // [수정] -0.12 → -0.8 (오답 페널티 강화, 반감기 40~50% 감소)
       time_since_first: 0.02, // 첫 풀이부터 오래될수록 반감기 증가
       first_solve_quality: 0.5 // 첫 풀이 점수 높을수록 반감기 증가
     };
+  }
+
+  /**
+   * Phase 2: localStorage에서 학습된 가중치 로드
+   * @returns {object|null} 학습된 가중치 또는 null
+   */
+  loadLearnedWeights() {
+    try {
+      const stored = localStorage.getItem('hlr_learned_weights_v2');
+      if (!stored) return null;
+
+      const weights = JSON.parse(stored);
+
+      // 안전 장치: 학습된 가중치 검증
+      if (this.validateWeights(weights)) {
+        console.log('[HLR] 학습된 가중치 로드 성공');
+        return weights;
+      } else {
+        console.warn('[HLR] 학습된 가중치가 비정상적입니다. 기본값을 사용합니다.');
+        localStorage.removeItem('hlr_learned_weights_v2');
+        return null;
+      }
+    } catch (e) {
+      console.error('[HLR] 가중치 로드 실패:', e);
+      return null;
+    }
+  }
+
+  /**
+   * 학습된 가중치 검증 (Safety Clamp)
+   * @param {object} weights - 검증할 가중치
+   * @returns {boolean} 유효성 여부
+   */
+  validateWeights(weights) {
+    if (!weights || typeof weights !== 'object') return false;
+
+    // bias가 너무 크면 비정상
+    if (weights.bias > 5.0 || weights.bias < -2.0) return false;
+
+    // incorrect_count는 반드시 음수여야 함 (오답은 페널티)
+    if (weights.incorrect_count > 0) return false;
+
+    // 필수 키 존재 여부
+    const requiredKeys = ['bias', 'total_reviews', 'last_score', 'incorrect_count'];
+    for (const key of requiredKeys) {
+      if (!(key in weights)) return false;
+    }
+
+    return true;
   }
 
   predict(features) {
@@ -192,7 +268,7 @@ export function buildFeaturesForQID(qid) {
  * HLR 기반 회상 확률 계산
  * @param {string} qid - 문제 고유 ID
  * @param {LocalHLRPredictor} predictor - HLR 예측기 인스턴스
- * @returns {object} { h_pred, p_current, timeSinceLastReview } 또는 null
+ * @returns {object} { h_pred, p_current, timeSinceLastReview, lastScore } 또는 null
  */
 export function calculateRecallProbability(qid, predictor) {
   const questionScores = window.questionScores || {};
@@ -210,10 +286,42 @@ export function calculateRecallProbability(qid, predictor) {
   const now = Date.now();
   const timeSinceLastReview = (now - lastReview) / (1000 * 86400); // 일 단위
 
-  // 현재 회상 확률: p = 2^(-Δ/h)
-  const p_current = Math.pow(2, -timeSinceLastReview / h_pred);
+  // 🚨 수정 1: 최소 1시간 미만은 회상 확률 계산 안 함 (단기 기억 루프)
+  // 이 경우 null을 반환하여 reviewCore.js에서 별도 처리하도록 함
+  const MIN_TIME_THRESHOLD_HOURS = 1;
+  if (timeSinceLastReview < (MIN_TIME_THRESHOLD_HOURS / 24)) {
+    // 1시간 미만: 단기 기억으로 간주, 별도 처리 필요
+    return {
+      h_pred,
+      p_current: null, // null로 표시하여 단기 기억임을 알림
+      timeSinceLastReview,
+      lastScore: features.last_score,
+      isShortTerm: true // 단기 기억 플래그
+    };
+  }
 
-  return { h_pred, p_current, timeSinceLastReview };
+  // 기본 시간 기반 회상 확률: p = 2^(-Δ/h)
+  const p_time = Math.pow(2, -timeSinceLastReview / h_pred);
+
+  // 🚨 수정 2: 최근 점수를 회상 확률에 반영
+  // 점수가 낮으면 회상 확률도 낮게 조정 (방금 풀었어도 점수 나쁘면 복습 필요)
+  const lastScore = features.last_score || 0;
+
+  // 점수 가중치 계산 (0점 = 0.3배, 100점 = 1.0배)
+  // pow(0.3)을 사용하여 점수 차이를 완화 (60점도 0.83배로 유지)
+  const scoreWeight = Math.pow(lastScore / 100, 0.3);
+  const minScoreWeight = 0.3; // 최소 가중치 (0점이어도 30%는 유지)
+
+  // 최종 회상 확률 = 시간 기반 × 점수 가중치
+  const p_current = p_time * Math.max(minScoreWeight, scoreWeight);
+
+  return {
+    h_pred,
+    p_current: Math.min(0.99, Math.max(0.01, p_current)), // 0.01~0.99로 제한
+    timeSinceLastReview,
+    lastScore,
+    isShortTerm: false
+  };
 }
 
 // ============================================
@@ -228,9 +336,16 @@ export class EnhancedHLRPredictor extends LocalHLRPredictor {
     super();
 
     // 기존 HLR 가중치에 FSRS 요소 추가
-    this.modelWeights.difficulty_feature = -0.8;  // 난이도 높을수록 h 감소
-    this.modelWeights.passive_views = 0.03;       // 수동 재인 횟수
-    this.modelWeights.rated_passive = 0.05;       // 평가된 재인의 추가 효과
+    // Phase 2 학습된 가중치가 있어도 이 FSRS 요소는 추가로 적용
+    if (!this.modelWeights.difficulty_feature) {
+      this.modelWeights.difficulty_feature = -0.8;  // 난이도 높을수록 h 감소
+    }
+    if (!this.modelWeights.passive_views) {
+      this.modelWeights.passive_views = 0.03;       // 수동 재인 횟수
+    }
+    if (!this.modelWeights.rated_passive) {
+      this.modelWeights.rated_passive = 0.05;       // 평가된 재인의 추가 효과
+    }
   }
 
   /**

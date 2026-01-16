@@ -127,6 +127,7 @@ import * as HLRDataset from './features/review/hlrDataset.js';
 import * as ReviewCore from './features/review/reviewCore.js';
 import * as DifficultyTracker from './features/review/difficultyTracker.js';
 import * as CustomReviewLists from './features/review/customReviewLists.js';
+import * as TrainHLR from './features/review/trainHLR.js'; // Phase 2: ML Training
 
 // 기능 - STT (음성 인식)
 import * as GoogleSttApi from './services/googleSttApi.js';
@@ -488,6 +489,13 @@ window.ReviewCore = ReviewCore;
 window.getReviewStrategy = ReviewCore.getReviewStrategy;
 window.prioritizeTodayReview = (list) => ReviewCore.prioritizeTodayReview(list, window.hlrPredictor);
 window.initReviewListeners = ReviewCore.initReviewListeners;
+
+// 🤖 Phase 2: HLR ML Training (TensorFlow.js On-Device Learning)
+window.TrainHLR = TrainHLR;
+window.trainHLRModel = TrainHLR.trainHLRModel;
+window.trainHLRInBackground = TrainHLR.trainHLRInBackground;
+window.clearLearnedWeights = TrainHLR.clearLearnedWeights;
+window.getTrainingStatus = TrainHLR.getTrainingStatus;
 
 // Custom Review Lists (사용자 지정 복습 목록)
 window.CustomReviewLists = CustomReviewLists;

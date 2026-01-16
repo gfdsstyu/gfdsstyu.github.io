@@ -8,6 +8,142 @@ import { callGeminiAPI, callGeminiHintAPI, callGeminiTipAPI } from '../../servic
 import { showToast } from '../../ui/domUtils.js';
 import { createMemoryTipPrompt } from '../../config/config.js';
 import { getCurrentUser } from '../auth/authCore.js';
+
+// ============================================
+// 마크다운 표 렌더링 유틸리티 (examUI.js와 동일)
+// ============================================
+
+/**
+ * HTML 이스케이프
+ */
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/**
+ * 텍스트 정규화: 과도한 줄바꿈 완화
+ */
+function normalizeText(text) {
+  if (!text) return text;
+  return text.replace(/\n{3,}/g, '\n\n');
+}
+
+/**
+ * 마크다운 표를 HTML 테이블로 변환
+ */
+function convertMarkdownTablesToHtml(text) {
+  if (!text) return text;
+  text = normalizeText(text);
+
+  const lines = text.split(/\r?\n/);
+  let result = '';
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i].trim();
+
+    if (line.startsWith('|') && line.endsWith('|')) {
+      const tableData = parseTable(lines, i);
+      if (tableData) {
+        result += renderTable(tableData.headers, tableData.alignments, tableData.rows);
+        i = tableData.nextIndex;
+        continue;
+      }
+    }
+
+    result += (i > 0 ? '\n' : '') + escapeHtml(lines[i]);
+    i++;
+  }
+
+  return result;
+}
+
+/**
+ * 테이블 파싱
+ */
+function parseTable(lines, startIndex) {
+  const tableRows = [];
+  let i = startIndex;
+  let alignments = [];
+
+  const headerLine = lines[i].trim();
+  if (!headerLine.startsWith('|') || !headerLine.endsWith('|')) return null;
+
+  const headers = parseTableRow(headerLine);
+  if (headers.length < 2) return null;
+  i++;
+
+  if (i >= lines.length) return null;
+  const separatorLine = lines[i].trim();
+  if (!separatorLine.startsWith('|') || !separatorLine.endsWith('|')) return null;
+
+  alignments = parseTableRow(separatorLine).map(cell => {
+    const trimmed = cell.trim();
+    if (trimmed.startsWith(':') && trimmed.endsWith(':')) return 'center';
+    if (trimmed.endsWith(':')) return 'right';
+    if (trimmed.startsWith(':')) return 'left';
+    return 'left';
+  });
+  i++;
+
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    if (line.startsWith('|') && line.endsWith('|')) {
+      const row = parseTableRow(line);
+      if (row.length === headers.length) {
+        tableRows.push(row);
+        i++;
+        continue;
+      }
+    }
+    if (line === '') {
+      i++;
+      break;
+    }
+    break;
+  }
+
+  if (tableRows.length === 0) return null;
+  return { headers, alignments, rows: tableRows, nextIndex: i };
+}
+
+/**
+ * 테이블 행 파싱
+ */
+function parseTableRow(line) {
+  const cells = line.slice(1, -1).split('|');
+  return cells.map(cell => cell.trim());
+}
+
+/**
+ * HTML 테이블 렌더링
+ */
+function renderTable(headers, alignments, rows) {
+  let html = '<div class="markdown-table-wrapper overflow-x-auto my-4"><table class="markdown-table min-w-full border-collapse border border-gray-300 dark:border-gray-600">';
+
+  html += '<thead class="bg-gray-100 dark:bg-gray-700"><tr>';
+  headers.forEach((header, idx) => {
+    const align = alignments[idx] || 'left';
+    html += `<th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-${align} font-bold text-gray-900 dark:text-gray-100">${escapeHtml(header)}</th>`;
+  });
+  html += '</tr></thead>';
+
+  html += '<tbody>';
+  rows.forEach(row => {
+    html += '<tr class="hover:bg-gray-50 dark:hover:bg-gray-800">';
+    row.forEach((cell, idx) => {
+      const align = alignments[idx] || 'left';
+      html += `<td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-${align} text-gray-800 dark:text-gray-200">${escapeHtml(cell)}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  return html;
+}
 import { syncToFirestore } from '../sync/syncCore.js';
 import { updateUserStats, updateGroupStats } from '../ranking/rankingCore.js';
 import { getMyGroups } from '../group/groupCore.js';
@@ -173,12 +309,14 @@ export async function handleGrade() {
   const qKey = normId(q.고유ID);
 
   // ⭐ 즉시 모범답안 표시 (AI 채점 대기 필요 없음)
+  // 마크다운 표 렌더링 적용
   if (el.correctAnswer) {
-    el.correctAnswer.textContent = String(q.정답 || '');
+    const answerText = String(q.정답 || '');
+    el.correctAnswer.innerHTML = convertMarkdownTablesToHtml(answerText);
   }
   if (el.modelAnswerBox) {
     el.modelAnswerBox.classList.remove('hidden');
-    console.log('✅ 모범답안 즉시 표시 (AI 채점 전)');
+    console.log('✅ 모범답안 즉시 표시 (AI 채점 전, 마크다운 표 렌더링 적용)');
   }
 
   setGradeLoading(true);
@@ -480,6 +618,12 @@ export async function handleGrade() {
 
     // 회독 등록 (위에서 이미 확인했으므로 여기서는 토스트만 표시)
     // registerUniqueRead는 위의 랭킹 통계 업데이트 로직에서 호출됨
+
+    // 🤖 Phase 2: HLR ML Background Training Trigger
+    // 문제 풀이 후 백그라운드에서 HLR 가중치 학습 실행
+    if (typeof window.trainHLRInBackground === 'function') {
+      window.trainHLRInBackground(); // requestIdleCallback으로 비침해적 실행
+    }
 
     // UI 업데이트
     updateSummary();

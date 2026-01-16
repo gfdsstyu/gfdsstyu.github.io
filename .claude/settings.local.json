@@ -32,7 +32,8 @@
       "Bash(git lfs:*)",
       "Bash(curl:*)",
       "Bash(git stash:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(git status:*)"
     ],
     "deny": [],
     "ask": []

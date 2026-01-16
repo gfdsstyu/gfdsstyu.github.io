@@ -229,6 +229,13 @@ function setupSummaryEventDelegation(base) {
         return;
       }
 
+      // 표시번호 순서로 정렬 (학습현황판 버튼 순서와 동일하게)
+      set.sort((a, b) => {
+        const na = +(a.물음번호 || a.표시번호), nb = +(b.물음번호 || b.표시번호);
+        if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+        return String(a.표시번호 || a.물음번호).localeCompare(String(b.표시번호 || b.물음번호), 'ko');
+      });
+
       // Handle flashcard mode
       if (window.isFlashcardMode) {
         if (typeof window.jumpToFlashcard === 'function') {
