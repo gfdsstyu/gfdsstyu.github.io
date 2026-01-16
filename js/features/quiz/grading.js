@@ -24,6 +24,34 @@ function escapeHtml(text) {
 }
 
 /**
+ * 인라인 마크다운 렌더링 (볼드, HTML 태그 허용)
+ */
+function renderInlineMarkdown(text) {
+  if (!text) return '';
+
+  // 먼저 HTML 이스케이프 (XSS 방지)
+  let result = escapeHtml(text);
+
+  // 하지만 일부 안전한 HTML 태그는 허용 (위첨자, 아래첨자, 줄바꿈)
+  result = result.replace(/&lt;sup&gt;(.*?)&lt;\/sup&gt;/g, '<sup>$1</sup>');
+  result = result.replace(/&lt;sub&gt;(.*?)&lt;\/sub&gt;/g, '<sub>$1</sub>');
+  result = result.replace(/&lt;br&gt;/g, '<br>');
+  result = result.replace(/&lt;br\/&gt;/g, '<br>');
+  result = result.replace(/&lt;br \/&gt;/g, '<br>');
+
+  // 마크다운 볼드 처리: **텍스트** → <strong>텍스트</strong>
+  result = result.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+  // 마크다운 이탤릭 처리: *텍스트* → <em>텍스트</em>
+  result = result.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+  // 마크다운 코드 처리: `코드` → <code>코드</code>
+  result = result.replace(/`(.*?)`/g, '<code>$1</code>');
+
+  return result;
+}
+
+/**
  * 텍스트 정규화: 과도한 줄바꿈 완화
  */
 function normalizeText(text) {
@@ -45,6 +73,7 @@ function convertMarkdownTablesToHtml(text) {
   while (i < lines.length) {
     const line = lines[i].trim();
 
+    // 테이블 처리
     if (line.startsWith('|') && line.endsWith('|')) {
       const tableData = parseTable(lines, i);
       if (tableData) {
@@ -54,7 +83,15 @@ function convertMarkdownTablesToHtml(text) {
       }
     }
 
-    result += (i > 0 ? '\n' : '') + escapeHtml(lines[i]);
+    // 블록쿼트 처리 (> 로 시작)
+    if (line.startsWith('>')) {
+      const quoteText = line.substring(1).trim();
+      result += (i > 0 ? '\n' : '') + `<div class="blockquote border-l-4 border-blue-500 pl-4 py-2 my-2 bg-blue-50 dark:bg-blue-900/20 text-gray-700 dark:text-gray-300">${renderInlineMarkdown(quoteText)}</div>`;
+      i++;
+      continue;
+    }
+
+    result += (i > 0 ? '\n' : '') + renderInlineMarkdown(lines[i]);
     i++;
   }
 
@@ -127,7 +164,7 @@ function renderTable(headers, alignments, rows) {
   html += '<thead class="bg-gray-100 dark:bg-gray-700"><tr>';
   headers.forEach((header, idx) => {
     const align = alignments[idx] || 'left';
-    html += `<th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-${align} font-bold text-gray-900 dark:text-gray-100">${escapeHtml(header)}</th>`;
+    html += `<th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-${align} font-bold text-gray-900 dark:text-gray-100">${renderInlineMarkdown(header)}</th>`;
   });
   html += '</tr></thead>';
 
@@ -136,7 +173,7 @@ function renderTable(headers, alignments, rows) {
     html += '<tr class="hover:bg-gray-50 dark:hover:bg-gray-800">';
     row.forEach((cell, idx) => {
       const align = alignments[idx] || 'left';
-      html += `<td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-${align} text-gray-800 dark:text-gray-200">${escapeHtml(cell)}</td>`;
+      html += `<td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-${align} text-gray-800 dark:text-gray-200">${renderInlineMarkdown(cell)}</td>`;
     });
     html += '</tr>';
   });
