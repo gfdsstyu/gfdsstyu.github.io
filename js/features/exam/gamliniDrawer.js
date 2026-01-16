@@ -300,15 +300,15 @@ export class GamliniDrawer {
           <!-- Input (모델 선택 + 입력창 + 전송) -->
           <div class="gamlini-input-area">
             <div class="model-select-wrapper">
-              <span class="model-icon" id="model-icon">⚡</span>
+              <span class="model-icon" id="model-icon">🚀</span>
               <select id="gamlini-model-select" class="gamlini-model-select" title="AI 모델 선택">
                 <optgroup label="Gemini 모델 (Exam/KAM 전용)">
-                  <option value="gemini-2.5-flash" data-icon="⚡">⚡ Flash</option>
+                  <option value="gemini-3-flash-preview" data-icon="🚀" selected>🚀 3.0 Flash</option>
+                  <option value="gemini-2.5-flash" data-icon="⚡">⚡ 2.5 Flash</option>
                   <option value="gemini-2.5-flash-lite" data-icon="💨">💨 Lite</option>
                   <option value="gemini-2.5-pro" data-icon="💎">💎 Pro</option>
                   <option value="gemini-2.0-flash" data-icon="⚡">⚡ 2.0</option>
                   <option value="gemini-3-pro-preview" data-icon="🧪">🧪 3 Pro</option>
-                  <option value="gemini-3-flash-preview" data-icon="🧪">🧪 3 Flash</option>
                   <option value="gemma-3-27b-it" data-icon="🤖">🤖 Gemma 27B</option>
                 </optgroup>
               </select>
@@ -1665,7 +1665,7 @@ export class GamliniDrawer {
     const sendBtn = document.getElementById('gamlini-send');
     const modelSelect = document.getElementById('gamlini-model-select');
     const userQuestion = input.value.trim();
-    const selectedModel = modelSelect.value || 'gemini-2.5-flash';
+    const selectedModel = modelSelect.value || 'gemini-3-flash-preview';
 
     if (!userQuestion || !this.currentSession) return;
 
@@ -1779,7 +1779,7 @@ export class GamliniDrawer {
     const input = document.getElementById('gamlini-input');
     const sendBtn = document.getElementById('gamlini-send');
     const modelSelect = document.getElementById('gamlini-model-select');
-    const selectedModel = modelSelect.value || 'gemini-2.5-flash';
+    const selectedModel = modelSelect.value || 'gemini-3-flash-preview';
 
     // 입력창 비활성화
     input.disabled = true;

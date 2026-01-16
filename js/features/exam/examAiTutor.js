@@ -200,11 +200,11 @@ ${this.feedback.missingKeywords && this.feedback.missingKeywords.length > 0 ? `-
    * AI에게 질문 전송 (Chat SDK 사용) - Gamlini 2.0 Enhanced
    * @param {string} userQuestion - 사용자 질문
    * @param {string} apiKey - API 키 (Gemini 또는 OpenRouter)
-   * @param {string} model - 사용할 모델 (기본: gemini-2.5-flash)
+   * @param {string} model - 사용할 모델 (기본: gemini-3-flash-preview)
    * @param {boolean} enableRAG - RAG Context 활성화 여부 (기본: true)
    * @returns {Promise<string>} - AI 답변
    */
-  async askQuestion(userQuestion, apiKey, model = 'gemini-2.5-flash', enableRAG = true) {
+  async askQuestion(userQuestion, apiKey, model = 'gemini-3-flash-preview', enableRAG = true) {
     try {
       // 첫 질문이면 Chat 세션 초기화
       if (!this.chatSession) {
