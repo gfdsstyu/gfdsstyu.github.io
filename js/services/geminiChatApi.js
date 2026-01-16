@@ -54,7 +54,7 @@ async function loadGeminiSDK() {
  * Gemini Chat 세션 클래스 (SDK 기반)
  */
 export class GeminiChatSession {
-  constructor(apiKey, model = 'gemini-2.5-flash', systemInstruction = null, generationConfig = {}) {
+  constructor(apiKey, model = 'gemini-3-flash-preview', systemInstruction = null, generationConfig = {}) {
     this.apiKey = apiKey;
     this.modelName = model;
     this.systemInstruction = systemInstruction;

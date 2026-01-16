@@ -695,6 +695,43 @@ export class GamliniDrawer {
         color: #333;
         border: 1px solid #e5e7eb;
         border-bottom-left-radius: 4px;
+        position: relative;
+      }
+
+      /* 복사 버튼 스타일 */
+      .copy-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 6px 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6b7280;
+        opacity: 0;
+      }
+
+      .message-assistant:hover .copy-btn {
+        opacity: 1;
+      }
+
+      .copy-btn:hover {
+        background: #f3f4f6;
+        border-color: #667eea;
+        color: #667eea;
+      }
+
+      .copy-btn:active {
+        transform: scale(0.95);
+      }
+
+      .copy-btn svg {
+        display: block;
       }
 
       /* Markdown 스타일 */
@@ -1851,9 +1888,59 @@ export class GamliniDrawer {
       ? this.renderMarkdown(content)
       : this.escapeHtml(content);
 
-    messageEl.innerHTML = `
-      <div class="message-bubble">${renderedContent}</div>
-    `;
+    // AI 응답에 복사 버튼 추가
+    if (role === 'assistant') {
+      messageEl.innerHTML = `
+        <div class="message-bubble">
+          ${renderedContent}
+          <button class="copy-btn" title="복사" aria-label="메시지 복사">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+        </div>
+      `;
+
+      // 복사 버튼 이벤트 리스너 추가
+      const copyBtn = messageEl.querySelector('.copy-btn');
+      copyBtn.addEventListener('click', () => {
+        // HTML 태그 제거하여 순수 텍스트만 복사
+        const textContent = content;
+        navigator.clipboard.writeText(textContent).then(() => {
+          // 복사 성공 피드백
+          copyBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          `;
+          copyBtn.style.color = '#10b981';
+
+          // 2초 후 원래 아이콘으로 복구
+          setTimeout(() => {
+            copyBtn.innerHTML = `
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            `;
+            copyBtn.style.color = '';
+          }, 2000);
+        }).catch(err => {
+          console.error('복사 실패:', err);
+          // 복사 실패 시 선택 방식으로 폴백
+          const range = document.createRange();
+          range.selectNodeContents(messageEl.querySelector('.message-bubble'));
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+        });
+      });
+    } else {
+      messageEl.innerHTML = `
+        <div class="message-bubble">${renderedContent}</div>
+      `;
+    }
 
     messagesContainer.appendChild(messageEl);
 

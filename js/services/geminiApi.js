@@ -43,8 +43,8 @@ const API_TIMEOUT_MS = 60000; // 60초 (30초 → 60초로 증가)
  * Gemini API를 사용하여 채점
  * @returns {Promise<{score: number, feedback: string}>}
  */
-export async function callGeminiAPI(userAnswer, correctAnswer, apiKey, selectedAiModel = 'gemini-2.5-flash', retries = 2, delay = 800) {
-  const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash';
+export async function callGeminiAPI(userAnswer, correctAnswer, apiKey, selectedAiModel = 'gemini-3-flash-preview', retries = 2, delay = 800) {
+  const model = MODEL_MAP[selectedAiModel] || 'gemini-3-flash-preview';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
   // Lite 모델일 경우 엄격 모드 추가
@@ -251,7 +251,7 @@ ${userAnswer}
  * Gemini API를 사용하여 힌트 생성
  * @returns {Promise<string>} 힌트 문자열
  */
-export async function callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, selectedAiModel = 'gemini-2.5-flash', retries = 2, delay = 800) {
+export async function callGeminiHintAPI(userAnswer, correctAnswer, questionText, apiKey, selectedAiModel = 'gemini-3-flash-preview', retries = 2, delay = 800) {
   const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
@@ -435,7 +435,7 @@ ${userAnswer || '(미입력)'}
  * @param {object} generationConfigOverride - generationConfig 오버라이드 옵션
  * @returns {Promise<string>} 생성된 텍스트
  */
-export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemini-2.5-flash', retries = 3, delay = 1500, generationConfigOverride = null) {
+export async function callGeminiTextAPI(prompt, apiKey, selectedAiModel = 'gemini-3-flash-preview', retries = 3, delay = 1500, generationConfigOverride = null) {
   const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
@@ -687,7 +687,7 @@ export async function callGeminiJsonAPI(prompt, responseSchema, apiKey, selected
  * Gemini API를 사용하여 암기팁 생성 (Text 모드)
  * - [수정됨] 출력 제한 3000으로 상향 & 잘린 텍스트도 반환하도록 개선
  */
-export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini-2.5-flash', retries = 2, delay = 800) {
+export async function callGeminiTipAPI(prompt, apiKey, selectedAiModel = 'gemini-3-flash-preview', retries = 2, delay = 800) {
   const model = MODEL_MAP[selectedAiModel] || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
