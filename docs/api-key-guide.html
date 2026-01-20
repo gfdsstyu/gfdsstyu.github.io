@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google AI Studio API 키 발급 가이드 - 감린이</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.7;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    h1 {
+      color: #4F46E5;
+      font-size: 28px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 15px;
+    }
+    h2 {
+      color: #333;
+      font-size: 20px;
+      margin-top: 40px;
+      margin-bottom: 15px;
+      padding-bottom: 8px;
+      border-bottom: 3px solid #4F46E5;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h2 .step-num {
+      background: #4F46E5;
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    h3 {
+      color: #4F46E5;
+      font-size: 17px;
+      margin-top: 25px;
+      margin-bottom: 10px;
+    }
+    p {
+      color: #555;
+      margin-bottom: 15px;
+    }
+    ul, ol {
+      color: #555;
+      margin-bottom: 15px;
+      padding-left: 25px;
+    }
+    li {
+      margin-bottom: 8px;
+    }
+    .highlight {
+      background-color: #FEF3C7;
+      padding: 15px 20px;
+      border-left: 4px solid #F59E0B;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .highlight.info {
+      background-color: #EEF2FF;
+      border-left-color: #4F46E5;
+    }
+    .highlight.success {
+      background-color: #ECFDF5;
+      border-left-color: #10B981;
+    }
+    .highlight.warning {
+      background-color: #FEF2F2;
+      border-left-color: #EF4444;
+    }
+    .highlight strong {
+      color: #333;
+    }
+    .prereq-box {
+      background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+      padding: 25px;
+      border-radius: 12px;
+      margin: 25px 0;
+    }
+    .prereq-box h3 {
+      margin-top: 0;
+      color: #4F46E5;
+    }
+    .prereq-list {
+      display: grid;
+      gap: 12px;
+    }
+    .prereq-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: white;
+      padding: 12px 15px;
+      border-radius: 8px;
+    }
+    .prereq-item .icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .img-container {
+      margin: 20px 0;
+      text-align: center;
+    }
+    .img-container img {
+      max-width: 100%;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .img-container img:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    .img-caption {
+      color: #888;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #4F46E5;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+    .btn:hover {
+      background-color: #4338CA;
+      transform: translateY(-2px);
+    }
+    .btn-outline {
+      background-color: transparent;
+      border: 2px solid #4F46E5;
+      color: #4F46E5;
+    }
+    .btn-outline:hover {
+      background-color: #4F46E5;
+      color: white;
+    }
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 20px 0;
+    }
+    .external-link {
+      color: #4F46E5;
+      text-decoration: none;
+      border-bottom: 1px dashed #4F46E5;
+    }
+    .external-link:hover {
+      border-bottom-style: solid;
+    }
+    .footer {
+      margin-top: 50px;
+      padding-top: 25px;
+      border-top: 1px solid #e0e0e0;
+      text-align: center;
+    }
+    .footer p {
+      color: #999;
+      font-size: 13px;
+    }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.9);
+      cursor: pointer;
+    }
+    .modal-content {
+      display: block;
+      max-width: 95%;
+      max-height: 95%;
+      margin: auto;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: 8px;
+    }
+    .modal-close {
+      position: fixed;
+      top: 20px;
+      right: 30px;
+      color: white;
+      font-size: 40px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 1001;
+    }
+    .modal-close:hover {
+      color: #ccc;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+      .container {
+        padding: 20px 15px;
+      }
+      h1 {
+        font-size: 22px;
+      }
+      h2 {
+        font-size: 17px;
+      }
+      .btn-group {
+        flex-direction: column;
+      }
+      .btn {
+        text-align: center;
+      }
+    }
+
+    /* Table of Contents */
+    .toc {
+      background: #f8f9fa;
+      padding: 20px 25px;
+      border-radius: 10px;
+      margin: 25px 0;
+    }
+    .toc h3 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+    .toc ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .toc li {
+      margin-bottom: 6px;
+    }
+    .toc a {
+      color: #4F46E5;
+      text-decoration: none;
+    }
+    .toc a:hover {
+      text-decoration: underline;
+    }
+
+    /* Floating TOC Sidebar */
+    .floating-toc {
+      position: fixed;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      padding: 15px;
+      z-index: 100;
+      max-width: 200px;
+      transition: all 0.3s ease;
+    }
+    .floating-toc.collapsed {
+      padding: 10px;
+      max-width: 50px;
+    }
+    .floating-toc.collapsed .floating-toc-content {
+      display: none;
+    }
+    .floating-toc.collapsed .floating-toc-toggle {
+      transform: rotate(180deg);
+    }
+    .floating-toc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #EEF2FF;
+    }
+    .floating-toc.collapsed .floating-toc-header {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+      justify-content: center;
+    }
+    .floating-toc-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #4F46E5;
+      margin: 0;
+    }
+    .floating-toc.collapsed .floating-toc-title {
+      display: none;
+    }
+    .floating-toc-toggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      color: #4F46E5;
+      padding: 4px;
+      border-radius: 4px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .floating-toc-toggle:hover {
+      background: #EEF2FF;
+    }
+    .floating-toc-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .floating-toc-item {
+      margin-bottom: 6px;
+    }
+    .floating-toc-item a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: #666;
+      font-size: 12px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .floating-toc-item a:hover {
+      background: #EEF2FF;
+      color: #4F46E5;
+    }
+    .floating-toc-item a.active {
+      background: #4F46E5;
+      color: white;
+    }
+    .floating-toc-item .step-badge {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #E0E7FF;
+      color: #4F46E5;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .floating-toc-item a.active .step-badge {
+      background: white;
+      color: #4F46E5;
+    }
+    .floating-toc-item a:hover .step-badge {
+      background: #4F46E5;
+      color: white;
+    }
+    .floating-toc-progress {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid #EEF2FF;
+    }
+    .progress-bar {
+      height: 4px;
+      background: #E0E7FF;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4F46E5, #7C3AED);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+    .progress-text {
+      font-size: 10px;
+      color: #888;
+      margin-top: 4px;
+      text-align: center;
+    }
+
+    /* Hide floating TOC on mobile */
+    @media (max-width: 1100px) {
+      .floating-toc {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Floating TOC Sidebar -->
+  <nav class="floating-toc" id="floatingToc">
+    <div class="floating-toc-header">
+      <span class="floating-toc-title">단계 바로가기</span>
+      <button class="floating-toc-toggle" onclick="toggleFloatingToc()" title="접기/펼치기">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+    </div>
+    <div class="floating-toc-content">
+      <ul class="floating-toc-list">
+        <li class="floating-toc-item">
+          <a href="#step1" data-step="1">
+            <span class="step-badge">1</span>
+            <span>AI Studio 접속</span>
+          </a>
+        </li>
+        <li class="floating-toc-item">
+          <a href="#step2" data-step="2">
+            <span class="step-badge">2</span>
+            <span>프로젝트 생성</span>
+          </a>
+        </li>
+        <li class="floating-toc-item">
+          <a href="#step3" data-step="3">
+            <span class="step-badge">3</span>
+            <span>무료 체험판 등록</span>
+          </a>
+        </li>
+        <li class="floating-toc-item">
+          <a href="#step4" data-step="4">
+            <span class="step-badge">4</span>
+            <span>크레딧 확인</span>
+          </a>
+        </li>
+        <li class="floating-toc-item">
+          <a href="#step5" data-step="5">
+            <span class="step-badge">5</span>
+            <span>API 키 발급</span>
+          </a>
+        </li>
+        <li class="floating-toc-item">
+          <a href="#step6" data-step="6">
+            <span class="step-badge">6</span>
+            <span>감린이에 등록</span>
+          </a>
+        </li>
+      </ul>
+      <div class="floating-toc-progress">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">0% 완료</div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1>Google AI Studio API 키 발급 가이드</h1>
+    <p class="subtitle">감린이에서 AI 채점 기능을 사용하기 위한 API 키 발급 방법</p>
+
+    <!-- 사전 준비 -->
+    <div class="prereq-box">
+      <h3>사전 준비사항</h3>
+      <div class="prereq-list">
+        <div class="prereq-item">
+          <span class="icon">&#x1F464;</span>
+          <div><strong>Google 계정</strong> - Gmail 등 Google 계정이 필요합니다</div>
+        </div>
+        <div class="prereq-item">
+          <span class="icon">&#x1F4B3;</span>
+          <div><strong>결제 수단 (선택)</strong> - 무료 체험판 등록 시 카드 정보 필요 (자동 결제 없음)</div>
+        </div>
+        <div class="prereq-item">
+          <span class="icon">&#x1F4B0;</span>
+          <div><strong>무료 사용량</strong> - 무료 계정은 일일 약 20회(RPD)로 제한됨 <strong>(무료 체험판 등록 권장)</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 목차 -->
+    <div class="toc">
+      <h3>목차</h3>
+      <ol>
+        <li><a href="#step1">Google AI Studio 접속하기</a></li>
+        <li><a href="#step2">프로젝트 생성하기</a></li>
+        <li><a href="#step3">무료 체험판 등록하기 (선택)</a></li>
+        <li><a href="#step4">무료 크레딧 확인하기</a></li>
+        <li><a href="#step5">API 키 발급받기</a></li>
+        <li><a href="#step6">감린이에 API 키 등록하기</a></li>
+      </ol>
+    </div>
+
+    <!-- Step 1 -->
+    <h2 id="step1"><span class="step-num">1</span> Google AI Studio 접속하기</h2>
+    <p>아래 버튼을 클릭하여 Google AI Studio에 접속합니다.</p>
+
+    <div class="btn-group">
+      <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer" class="btn">
+        Google AI Studio 바로가기
+      </a>
+    </div>
+
+    <ol>
+      <li>Google AI Studio 웹사이트에 접속합니다</li>
+      <li>오른쪽 상단의 <strong>"로그인"</strong> 또는 <strong>"Sign in"</strong>을 클릭합니다</li>
+      <li>Google 계정으로 로그인합니다</li>
+    </ol>
+
+    <div class="highlight info">
+      <strong>Tip:</strong> 이미 Google 계정에 로그인되어 있다면 자동으로 로그인됩니다.
+    </div>
+
+    <!-- Step 2 -->
+    <h2 id="step2"><span class="step-num">2</span> 프로젝트 생성하기</h2>
+    <p>API 키를 발급받으려면 먼저 프로젝트를 생성해야 합니다.</p>
+
+    <ol>
+      <li>왼쪽 메뉴에서 <strong>"프로젝트"</strong>를 클릭합니다</li>
+      <li>오른쪽 상단의 <strong>"+ 새 프로젝트 만들기"</strong> 버튼을 클릭합니다</li>
+      <li>프로젝트 이름을 입력합니다 (예: "Gemini Project")</li>
+      <li><strong>"프로젝트 만들기"</strong> 버튼을 클릭합니다</li>
+    </ol>
+
+    <div class="img-container">
+      <img src="a1.png" alt="프로젝트 생성 완료 화면" onclick="openModal(this)">
+      <p class="img-caption">프로젝트가 생성되면 위와 같은 화면이 표시됩니다</p>
+    </div>
+
+    <!-- Step 3 -->
+    <h2 id="step3"><span class="step-num">3</span> 무료 체험판 등록하기 (선택)</h2>
+    <p>무료 체험판에 등록하면 <strong>$300 (약 43만원)</strong>의 무료 크레딧을 받을 수 있습니다.</p>
+
+    <div class="highlight success">
+      <strong>안심하세요!</strong> 무료 체험 중에는 자동 결제가 진행되지 않습니다.
+      일반 계정을 직접 활성화하거나 선불 결제를 선택하는 경우에만 요금이 청구됩니다.
+    </div>
+
+    <h3>3-1. 결제 정보 확인 (1단계)</h3>
+    <p>Google Cloud Platform 서비스 약관에 동의합니다.</p>
+
+    <div class="img-container">
+      <img src="a2.png" alt="결제 정보 확인 1단계" onclick="openModal(this)">
+      <p class="img-caption">서비스 약관 동의 화면</p>
+    </div>
+
+    <h3>3-2. 고객 정보 입력 (2단계)</h3>
+    <p>계좌 유형, 세금 정보, 주소를 입력합니다.</p>
+    <ul>
+      <li><strong>계좌 유형:</strong> "개인" 선택</li>
+      <li><strong>세금 정보:</strong> "사업자 유형: 개인" 확인</li>
+      <li><strong>주소:</strong> 본인 주소 입력</li>
+    </ul>
+
+    <div class="img-container">
+      <img src="a3.png" alt="고객 정보 입력 화면" onclick="openModal(this)">
+      <p class="img-caption">고객 정보 입력 화면</p>
+    </div>
+
+    <h3>3-3. 결제 수단 등록</h3>
+    <p>카드 번호를 입력하고 <strong>"무료로 시작하기"</strong> 버튼을 클릭합니다.</p>
+
+    <div class="img-container">
+      <img src="a4.png" alt="결제 수단 입력 화면" onclick="openModal(this)">
+      <p class="img-caption">카드 정보 입력 후 "무료로 시작하기" 클릭</p>
+    </div>
+
+    <div class="highlight warning">
+      <strong>주의:</strong> 카드 정보는 본인 확인 용도로만 사용됩니다.
+      무료 체험 기간 동안 자동으로 요금이 청구되지 않으니 안심하세요.
+    </div>
+
+    <!-- Step 4 -->
+    <h2 id="step4"><span class="step-num">4</span> 무료 크레딧 확인하기</h2>
+    <p>등록이 완료되면 $300 (약 43만원)의 무료 크레딧이 지급됩니다.</p>
+
+    <div class="img-container">
+      <img src="a5.png" alt="무료 크레딧 확인 화면" onclick="openModal(this)">
+      <p class="img-caption">Free Trial 크레딧 확인 - 90일간 사용 가능</p>
+    </div>
+
+    <ul>
+      <li><strong>크레딧 금액:</strong> $300 (약 &#8361;430,298)</li>
+      <li><strong>사용 기간:</strong> 90일</li>
+      <li><strong>자동 청구:</strong> 없음 (직접 활성화 전까지)</li>
+    </ul>
+
+    <!-- Step 5 -->
+    <h2 id="step5"><span class="step-num">5</span> API 키 발급받기</h2>
+    <p>이제 감린이에서 사용할 API 키를 발급받습니다.</p>
+
+    <ol>
+      <li>왼쪽 메뉴에서 <strong>"API 키"</strong> 또는 <strong>"Get API key"</strong>를 클릭합니다</li>
+      <li>오른쪽 상단의 <strong>"API 키 만들기"</strong> 버튼을 클릭합니다</li>
+      <li>프로젝트를 선택합니다 (앞서 생성한 프로젝트)</li>
+      <li>생성된 API 키를 <strong>복사</strong>합니다</li>
+    </ol>
+
+    <div class="img-container">
+      <img src="a6.png" alt="API 키 발급 화면" onclick="openModal(this)">
+      <p class="img-caption">API 키가 생성된 화면 - 키 옆의 복사 버튼을 클릭하세요</p>
+    </div>
+
+    <div class="highlight warning">
+      <strong>중요!</strong> API 키는 비밀번호처럼 안전하게 보관하세요.
+      타인에게 공유하거나 공개된 곳에 올리지 마세요.
+    </div>
+
+    <!-- Step 6 -->
+    <h2 id="step6"><span class="step-num">6</span> 감린이에 API 키 등록하기</h2>
+    <p>복사한 API 키를 감린이에 등록합니다.</p>
+
+    <ol>
+      <li>감린이 앱에서 <strong>설정</strong> 메뉴로 이동합니다</li>
+      <li><strong>"AI 채점 API 키"</strong> 입력란을 찾습니다</li>
+      <li>복사한 API 키를 붙여넣기 합니다</li>
+      <li><strong>"저장"</strong> 버튼을 클릭합니다</li>
+    </ol>
+
+    <div class="highlight success">
+      <strong>완료!</strong> 이제 감린이에서 AI 채점 기능을 사용할 수 있습니다.
+    </div>
+
+    <!-- FAQ -->
+    <h2>자주 묻는 질문</h2>
+
+    <h3>Q. API 키를 잃어버렸어요</h3>
+    <p>Google AI Studio의 "API 키" 메뉴에서 기존 키를 확인하거나 새 키를 발급받을 수 있습니다.</p>
+
+    <h3>Q. 무료 한도를 초과하면 어떻게 되나요?</h3>
+    <p>일일 무료 한도(RPD)를 초과하면 당일은 AI 채점을 사용할 수 없습니다.
+    다음 날 자정(UTC 기준)에 한도가 초기화됩니다.</p>
+
+    <h3>Q. 결제 정보를 등록하지 않아도 되나요?</h3>
+    <p>결제 정보 없이도 API를 사용할 수 있지만, <strong>일일 약 20회(RPD)</strong>로 매우 제한적입니다.
+    감린이를 원활하게 사용하려면 무료 체험판 등록을 권장합니다. $300 무료 크레딧으로 충분히 사용할 수 있습니다.</p>
+
+    <h3>Q. API 키가 작동하지 않아요</h3>
+    <p>API 키를 복사할 때 앞뒤 공백이 포함되지 않았는지 확인하세요.
+    문제가 지속되면 새 API 키를 발급받아 다시 시도해보세요.</p>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="btn-group" style="justify-content: center;">
+        <a href="../index.html" class="btn btn-outline">감린이 홈으로 돌아가기</a>
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" class="btn">
+          Google AI Studio API 키 페이지
+        </a>
+      </div>
+      <p style="margin-top: 25px;">
+        이 가이드는 2025년 1월 기준으로 작성되었습니다.<br>
+        Google AI Studio 화면은 업데이트에 따라 달라질 수 있습니다.
+      </p>
+    </div>
+  </div>
+
+  <!-- Image Modal -->
+  <div id="imageModal" class="modal" onclick="closeModal()">
+    <span class="modal-close">&times;</span>
+    <img class="modal-content" id="modalImage" alt="확대 이미지">
+  </div>
+
+  <script>
+    // Image Modal
+    function openModal(img) {
+      const modal = document.getElementById('imageModal');
+      const modalImg = document.getElementById('modalImage');
+      modal.style.display = 'block';
+      modalImg.src = img.src;
+      modalImg.alt = img.alt;
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('imageModal');
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    });
+
+    // Floating TOC Toggle
+    function toggleFloatingToc() {
+      const toc = document.getElementById('floatingToc');
+      toc.classList.toggle('collapsed');
+      localStorage.setItem('floatingTocCollapsed', toc.classList.contains('collapsed'));
+    }
+
+    // Restore TOC state
+    if (localStorage.getItem('floatingTocCollapsed') === 'true') {
+      document.getElementById('floatingToc').classList.add('collapsed');
+    }
+
+    // Scroll spy for floating TOC
+    const stepSections = document.querySelectorAll('h2[id^="step"]');
+    const tocLinks = document.querySelectorAll('.floating-toc-item a');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+
+    function updateActiveStep() {
+      const scrollPos = window.scrollY + 150;
+      let currentStep = 0;
+
+      stepSections.forEach((section, index) => {
+        if (section.offsetTop <= scrollPos) {
+          currentStep = index + 1;
+        }
+      });
+
+      // Update active link
+      tocLinks.forEach((link, index) => {
+        if (index + 1 === currentStep) {
+          link.classList.add('active');
+        } else {
+          link.classList.remove('active');
+        }
+      });
+
+      // Update progress
+      const progress = Math.round((currentStep / stepSections.length) * 100);
+      progressFill.style.width = progress + '%';
+      progressText.textContent = progress + '% 완료';
+    }
+
+    // Smooth scroll for TOC links
+    tocLinks.forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('href');
+        const targetEl = document.querySelector(targetId);
+        if (targetEl) {
+          window.scrollTo({
+            top: targetEl.offsetTop - 80,
+            behavior: 'smooth'
+          });
+        }
+      });
+    });
+
+    // Throttle scroll event
+    let ticking = false;
+    window.addEventListener('scroll', function() {
+      if (!ticking) {
+        window.requestAnimationFrame(function() {
+          updateActiveStep();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    });
+
+    // Initial update
+    updateActiveStep();
+  </script>
+</body>
+</html>
