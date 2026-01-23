@@ -582,6 +582,27 @@ ${feedback?.feedback ? escapeHtml(normalizeText(feedback.feedback)) : '<span cla
                       </button>
                     </div>
 
+                    <!-- 메모(필기) 섹션 -->
+                    <div class="mt-4 memo-section" data-question-id="${question.id}">
+                      <div class="p-3 sm:p-4 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-300 dark:border-yellow-700 rounded-lg">
+                        <div class="flex items-center justify-between mb-2">
+                          <h6 class="font-bold text-sm sm:text-base text-yellow-700 dark:text-yellow-400 flex items-center gap-2">
+                            <span>📝</span> 나의 메모
+                          </h6>
+                          <button class="memo-save-btn text-xs px-2 py-1 rounded font-bold" style="background-color: #ca8a04; color: white;" data-question-id="${question.id}">
+                            저장
+                          </button>
+                        </div>
+                        <textarea
+                          class="memo-textarea w-full p-3 border border-yellow-300 dark:border-yellow-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 resize-y"
+                          data-question-id="${question.id}"
+                          placeholder="이 문제에 대한 메모를 남겨보세요... (연도별/단원별 공통)"
+                          rows="3"
+                        >${examService.getQuestionMemo(question.id)?.memo || ''}</textarea>
+                        <p class="text-xs text-yellow-600 dark:text-yellow-500 mt-1">💡 메모는 문제 ID 기준으로 저장되어 연도별/단원별 모두에서 공유됩니다.</p>
+                      </div>
+                    </div>
+
                     </div>
                   </div>
                 `;
@@ -624,6 +645,10 @@ ${feedback?.feedback ? escapeHtml(normalizeText(feedback.feedback)) : '<span cla
           <label class="flex items-center gap-3 cursor-pointer">
             <input type="checkbox" id="pdf-option-feedback" class="w-5 h-5 text-purple-600 rounded" checked />
             <span class="text-sm text-gray-700 dark:text-gray-300">AI 채점평 포함</span>
+          </label>
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" id="pdf-option-memo" class="w-5 h-5 text-yellow-500 rounded" checked />
+            <span class="text-sm text-gray-700 dark:text-gray-300">📝 나의 메모 포함</span>
           </label>
         </div>
         <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
@@ -700,57 +725,52 @@ function setupFloatingControlsResult(exams, year, result, container) {
   // 헤더 높이 계산 (헤더는 약 80-100px, 여유 공간 포함하여 120px로 설정)
   const header = container.querySelector('header');
   const headerHeight = header ? header.offsetHeight : 100;
-  floatingControls.className = `${isDesktop ? 'flex' : 'hidden'} fixed right-4 lg:right-6 flex-col gap-3 transition-all duration-300 w-[180px] lg:w-[200px]`;
-  floatingControls.style.top = `${headerHeight + 20}px`; // 헤더 아래 20px 여유 공간
-  floatingControls.style.zIndex = '9999'; // 명시적으로 높은 z-index 설정
-  
+  floatingControls.className = `${isDesktop ? 'flex' : 'hidden'} fixed right-4 lg:right-6 flex-col gap-3 transition-all duration-300`;
+  floatingControls.style.top = `${headerHeight + 20}px`;
+  floatingControls.style.zIndex = '9999';
+
   floatingControls.innerHTML = `
-    <!-- Quick Navigation - Collapsible -->
     <div id="nav-panel" class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-purple-500 dark:border-purple-600 overflow-hidden">
-      <button id="toggle-nav" class="w-full px-3 py-2 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 flex items-center justify-between text-xs font-semibold text-purple-700 dark:text-purple-300 transition-colors">
-        <span>📌 문제 바로가기</span>
-        <span id="nav-arrow" class="transform transition-transform">▼</span>
+      <button id="toggle-nav" class="w-full px-2 py-1.5 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 flex items-center justify-between text-xs font-semibold text-purple-700 dark:text-purple-300 transition-colors">
+        <span>📌</span>
+        <span id="nav-arrow" class="transform transition-transform text-[10px]">▼</span>
       </button>
-      <div id="nav-grid" class="p-2 grid grid-cols-4 gap-1.5">
+      <div id="nav-grid" class="p-2 flex flex-col gap-1 max-h-64 overflow-y-auto">
         ${exams.map((exam, idx) => {
-          // 각 케이스의 평균 점수 계산
           const caseQuestions = exam.questions;
           let totalScore = 0;
           let totalPossible = 0;
-          
+
           caseQuestions.forEach(q => {
             const feedback = result.details[q.id];
             const score = feedback?.score || 0;
             totalScore += score;
             totalPossible += q.score;
           });
-          
+
           const avgPercent = totalPossible > 0 ? (totalScore / totalPossible) * 100 : 0;
-          
-          // 점수에 따른 색상 결정 (90점 이상: 녹색, 50점 이상: 노랑, 미만: 빨강)
-          let bgClass, textClass, ringClass;
+
+          let bgClass, textClass, borderClass;
           if (avgPercent >= 90) {
             bgClass = 'bg-green-100 dark:bg-green-900/50';
             textClass = 'text-green-700 dark:text-green-300';
-            ringClass = 'ring-2 ring-green-500';
+            borderClass = 'border-l-4 border-green-500';
           } else if (avgPercent >= 50) {
             bgClass = 'bg-yellow-100 dark:bg-yellow-900/50';
             textClass = 'text-yellow-700 dark:text-yellow-300';
-            ringClass = 'ring-2 ring-yellow-500';
+            borderClass = 'border-l-4 border-yellow-500';
           } else {
             bgClass = 'bg-red-100 dark:bg-red-900/50';
             textClass = 'text-red-700 dark:text-red-300';
-            ringClass = 'ring-2 ring-red-500';
+            borderClass = 'border-l-4 border-red-500';
           }
 
           return `
             <button
-              class="result-nav-btn aspect-square flex items-center justify-center ${bgClass} ${textClass} ${ringClass} hover:bg-purple-500 hover:text-white dark:hover:bg-purple-600 rounded-lg text-xs font-bold transition-all hover:scale-110"
+              class="result-nav-btn w-full h-7 flex items-center px-2 ${bgClass} ${textClass} ${borderClass} hover:bg-purple-500 hover:text-white dark:hover:bg-purple-600 rounded text-xs font-bold transition-all"
               data-case-idx="${idx}"
-              title="문제 ${idx + 1} (${avgPercent.toFixed(0)}점)"
-            >
-              ${idx + 1}
-            </button>
+              title="문제 ${idx + 1} (${avgPercent.toFixed(0)}%)"
+            >${idx + 1}</button>
           `;
         }).join('')}
       </div>
@@ -772,7 +792,7 @@ function setupFloatingControlsResult(exams, year, result, container) {
         navGrid.style.display = 'none';
         navArrow.textContent = '▶';
       } else {
-        navGrid.style.display = 'grid';
+        navGrid.style.display = 'flex';
         navArrow.textContent = '▼';
       }
     });
@@ -1294,6 +1314,36 @@ async function setupEventListeners(container, year, result, exams, metadata, use
   });
 
   // ============================================
+  // 메모 저장 이벤트 리스너
+  // ============================================
+  container.querySelectorAll('.memo-save-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const questionId = btn.dataset.questionId;
+      const textarea = container.querySelector(`.memo-textarea[data-question-id="${questionId}"]`);
+      if (textarea) {
+        const memo = textarea.value.trim();
+        if (memo) {
+          examService.saveQuestionMemo(questionId, memo);
+          btn.textContent = '저장됨 ✓';
+          btn.style.backgroundColor = '#16a34a';
+          setTimeout(() => {
+            btn.textContent = '저장';
+            btn.style.backgroundColor = '#ca8a04';
+          }, 1500);
+        } else {
+          examService.deleteQuestionMemo(questionId);
+          btn.textContent = '삭제됨';
+          btn.style.backgroundColor = '#dc2626';
+          setTimeout(() => {
+            btn.textContent = '저장';
+            btn.style.backgroundColor = '#ca8a04';
+          }, 1500);
+        }
+      }
+    });
+  });
+
+  // ============================================
   // Gamlini 2.0 이벤트 리스너
   // ============================================
   setupGamliniListeners(container, exams, userAnswers, result, apiKey);
@@ -1550,5 +1600,332 @@ function setupGamliniListeners(container, exams, userAnswers, result, apiKey) {
       const arrow = container.querySelector(`.ai-tutor-arrow[data-question-id="${questionId}"]`);
       if (arrow) arrow.textContent = '▼';
     }
+  });
+}
+
+// ============================================
+// 단원별 채점 결과 화면 (Chapter-based Result)
+// ============================================
+
+export async function renderChapterResultMode(container, chapter, result) {
+  console.log('🎨 renderChapterResultMode 시작 - chapter:', chapter);
+
+  try {
+    if (!window.__gamliniInitialized) {
+      initializeGamliniDrawer();
+      window.__gamliniInitialized = true;
+    }
+
+    container.className = 'fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden';
+    document.body.style.overflow = 'hidden';
+
+    const chapterData = examService.getQuestionsByChapter(chapter);
+    const { CHAPTER_LABELS } = examService.getChapterLabels();
+    const chapterName = CHAPTER_LABELS[Math.floor(parseFloat(chapter))] || '단원 ' + chapter;
+
+    const totalPossibleScore = chapterData.reduce((sum, c) => sum + c.questions.reduce((s, q) => s + q.score, 0), 0);
+    const percentage = totalPossibleScore > 0 ? ((result.totalScore / totalPossibleScore) * 100).toFixed(1) : 0;
+    const isPassing = parseFloat(percentage) >= 60;
+
+    const userAnswers = examService.getChapterAnswers(chapter);
+    const scoreHistory = examService.getChapterScores(chapter);
+    const bestScore = examService.getBestChapterScore(chapter);
+
+    container.innerHTML = `
+      <header class="flex-none bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-700 dark:to-cyan-700 px-4 sm:px-6 py-4 shadow-lg">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">${chapterName} 채점 결과</h2>
+          <div class="flex items-center gap-2 sm:gap-3">
+            <span class="px-3 sm:px-4 py-1.5 sm:py-2 bg-white dark:bg-gray-800 rounded-lg font-bold text-sm sm:text-base">
+              ${result.totalScore.toFixed(1)} / ${totalPossibleScore}점
+            </span>
+            <button id="btn-exit-chapter-results" style="background-color: #4b5563; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: bold;">
+              ✕ 종료
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main class="flex-1 overflow-y-auto">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+          <section class="bg-gradient-to-r ${isPassing ? 'from-green-100 to-emerald-100 dark:from-green-800 dark:to-emerald-800' : 'from-red-100 to-rose-100 dark:from-red-800 dark:to-rose-800'} rounded-xl p-6 sm:p-8">
+            <div class="text-center">
+              <h3 class="text-xl sm:text-2xl font-bold mb-3 text-gray-800 dark:text-white">
+                ${isPassing ? '🎉 잘했어요!' : '💪 조금만 더 노력하면 됩니다!'}
+              </h3>
+              <p class="text-lg sm:text-xl text-gray-700 dark:text-gray-200 mb-2">
+                총점: <span class="font-bold">${result.totalScore.toFixed(1)}점</span> / ${totalPossibleScore}점
+              </p>
+              <p class="text-base sm:text-lg text-gray-600 dark:text-gray-300">(${percentage}%)</p>
+              ${bestScore !== null && bestScore !== result.totalScore ? `
+                <p class="text-sm text-gray-600 dark:text-gray-300 mt-3">최고 점수: ${bestScore.toFixed(1)}점</p>
+              ` : ''}
+            </div>
+          </section>
+
+          ${scoreHistory.length > 0 ? `
+            <section class="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow">
+              <h4 class="text-base sm:text-lg font-bold mb-4 text-gray-800 dark:text-white">
+                📊 점수 히스토리 (${scoreHistory.length}번째 응시)
+              </h4>
+              <div class="flex gap-3 sm:gap-4 overflow-x-auto pb-2">
+                ${scoreHistory.map((s, idx) => `
+                  <div class="flex flex-col items-center min-w-[70px] sm:min-w-[80px]">
+                    <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2">${idx + 1}회</div>
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full ${parseFloat(((s.score / totalPossibleScore) * 100).toFixed(1)) >= 60 ? 'bg-green-500 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200'} flex items-center justify-center font-bold text-sm sm:text-base">
+                      ${s.score.toFixed(1)}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </section>
+          ` : ''}
+
+          ${chapterData.map((caseItem) => `
+            <section class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+              <div class="bg-blue-700 dark:bg-blue-800 text-white px-4 sm:px-6 py-3 sm:py-4">
+                <h3 class="text-lg sm:text-xl font-bold">${caseItem.year}년 - ${caseItem.topic}</h3>
+              </div>
+              <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                ${caseItem.questions.map((question, qIdx) => {
+                  const feedback = result.details[question.id];
+                  const userAnswer = userAnswers[question.id]?.answer || '';
+                  const score = feedback?.score || 0;
+                  const scorePercent = question.score > 0 ? ((score / question.score) * 100) : 0;
+
+                  const borderColor = scorePercent >= 90 ? 'border-green-500' : scorePercent >= 50 ? 'border-yellow-500' : 'border-red-500';
+                  const scoreColor = scorePercent >= 90 ? 'text-green-600 dark:text-green-400' : scorePercent >= 50 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400';
+
+                  const currentScenario = question.scenario || '';
+                  const previousQ = qIdx > 0 ? caseItem.questions[qIdx - 1] : null;
+                  const previousScenario = previousQ ? (previousQ.scenario || '') : null;
+                  const isSameScenario = previousScenario && currentScenario === previousScenario;
+                  const isFirstQuestion = qIdx === 0;
+
+                  const questionHistory = examService.getQuestionHistory(question.id);
+
+                  return `
+                    <div class="border-2 ${borderColor} rounded-lg overflow-hidden">
+                      ${currentScenario ? `
+                        <div class="scenario-section ${isSameScenario ? 'bg-green-50 dark:bg-green-900/20' : 'bg-orange-50 dark:bg-orange-900/20'} border-b-2 ${isSameScenario ? 'border-green-200 dark:border-green-700' : 'border-orange-200 dark:border-orange-700'}">
+                          <button class="scenario-toggle w-full px-4 py-3 text-left flex items-center justify-between hover:bg-opacity-80 transition-colors" data-question-id="${question.id}" data-expanded="${!isSameScenario}">
+                            <div class="flex items-center gap-2 flex-wrap">
+                              <span class="px-3 py-1 ${isSameScenario ? 'bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-200' : 'bg-orange-200 dark:bg-orange-700 text-orange-800 dark:text-orange-200'} text-xs font-bold rounded-full">📄 지문</span>
+                              ${!isFirstQuestion && !isSameScenario ? '<span class="px-2 py-1 bg-orange-500 text-white text-xs font-bold rounded animate-pulse">⚠️ 상황 변경</span>' : ''}
+                              ${isSameScenario ? '<span class="text-xs text-green-700 dark:text-green-300 font-semibold">(이전과 동일)</span>' : ''}
+                            </div>
+                            <span class="text-gray-600 dark:text-gray-400 text-sm scenario-arrow" data-question-id="${question.id}">${isSameScenario ? '▶' : '▼'}</span>
+                          </button>
+                          <div class="scenario-content px-4 pb-4 ${isSameScenario ? 'hidden' : ''}" data-question-id="${question.id}">
+                            <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line" style="font-family: 'Iropke Batang', serif;">${convertMarkdownTablesToHtml(currentScenario)}</div>
+                          </div>
+                        </div>
+                      ` : ''}
+
+                      <div class="p-4 sm:p-5 space-y-4">
+                        <div class="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
+                          <h5 class="font-bold text-base sm:text-lg text-gray-800 dark:text-white">
+                            물음 ${extractQuestionNumber(question.id)} (${question.score}점)
+                          </h5>
+                          <span class="text-lg sm:text-xl font-bold ${scoreColor}">${score.toFixed(2)}점</span>
+                        </div>
+
+                        <div class="mb-4 space-y-3">
+                          <div class="flex items-center gap-2">
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">정답여부:</span>
+                            ${scorePercent >= 90 ? '<span class="text-green-600 dark:text-green-400 font-bold">✅ 정답</span>' :
+                              scorePercent >= 50 ? '<span class="text-yellow-600 dark:text-yellow-400 font-bold">⚠️ 부분정답</span>' :
+                              '<span class="text-red-600 dark:text-red-400 font-bold">❌ 오답</span>'}
+                          </div>
+                          ${questionHistory.length > 0 ? `
+                            <div class="flex items-center gap-2 flex-wrap">
+                              <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">점수 히스토리:</span>
+                              <div class="flex gap-1 flex-wrap">
+                                ${questionHistory.slice(-5).map((h, idx) => {
+                                  const hPercent = h.maxScore > 0 ? ((h.score / h.maxScore) * 100) : 0;
+                                  const hColor = hPercent >= 90 ? 'bg-green-500' : hPercent >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                                  const isLast = idx === questionHistory.slice(-5).length - 1;
+                                  return '<div class="w-8 h-8 ' + hColor + (isLast ? ' ring-2 ring-blue-500' : '') + ' rounded-full flex items-center justify-center text-white font-bold text-xs" title="' + (idx + 1) + '회: ' + h.score.toFixed(1) + '/' + h.maxScore + '">' + h.score.toFixed(1) + '</div>';
+                                }).join('')}
+                              </div>
+                            </div>
+                          ` : ''}
+                        </div>
+
+                        <div class="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded">
+                          <h6 class="font-bold mb-2 text-sm sm:text-base text-gray-800 dark:text-white">📝 문제</h6>
+                          <div class="text-sm sm:text-base break-words text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">${convertMarkdownTablesToHtml(question.question)}</div>
+                        </div>
+
+                        <div class="p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded">
+                          <h6 class="font-bold mb-2 text-sm sm:text-base text-blue-700 dark:text-blue-400">✍️ 내 답안</h6>
+                          <p class="text-sm sm:text-base break-words text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">${userAnswer ? escapeHtml(userAnswer) : '<em class="text-gray-500 dark:text-gray-400">작성하지 않음</em>'}</p>
+                        </div>
+
+                        <div class="p-3 sm:p-4 bg-green-50 dark:bg-green-900/20 rounded">
+                          <h6 class="font-bold mb-2 text-sm sm:text-base text-green-700 dark:text-green-400">📚 모범 답안</h6>
+                          <p class="text-sm sm:text-base break-words text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">${escapeHtml(question.model_answer || question.answer || '')}</p>
+                        </div>
+
+                        <div class="p-3 sm:p-4 bg-purple-50 dark:bg-purple-900/20 rounded">
+                          <h6 class="font-bold mb-2 text-sm sm:text-base text-purple-700 dark:text-purple-400">🤖 AI 피드백</h6>
+                          <p class="text-sm sm:text-base text-gray-700 dark:text-gray-100 whitespace-pre-line leading-relaxed mb-3">${feedback?.feedback ? escapeHtml(feedback.feedback) : '<span class="text-gray-500 dark:text-gray-400">채점 정보 없음</span>'}</p>
+                          ${feedback?.strengths && feedback.strengths.length > 0 ? `
+                            <div class="mt-3 pt-3 border-t border-purple-200 dark:border-purple-700">
+                              <div class="font-semibold text-sm text-green-700 dark:text-green-400 mb-2">✅ 잘한 점</div>
+                              <ul class="text-sm text-gray-700 dark:text-gray-200 list-disc list-inside space-y-1">
+                                ${feedback.strengths.map(s => '<li>' + escapeHtml(s) + '</li>').join('')}
+                              </ul>
+                            </div>
+                          ` : ''}
+                          ${feedback?.improvements && feedback.improvements.length > 0 ? `
+                            <div class="mt-3 pt-3 border-t border-purple-200 dark:border-purple-700">
+                              <div class="font-semibold text-sm text-yellow-700 dark:text-yellow-400 mb-2">💡 개선할 점</div>
+                              <ul class="text-sm text-gray-700 dark:text-gray-200 list-disc list-inside space-y-1">
+                                ${feedback.improvements.map(i => '<li>' + escapeHtml(i) + '</li>').join('')}
+                              </ul>
+                            </div>
+                          ` : ''}
+                        </div>
+
+                        <!-- 메모(필기) 섹션 -->
+                        <div class="mt-4 memo-section" data-question-id="${question.id}">
+                          <div class="p-3 sm:p-4 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-300 dark:border-yellow-700 rounded-lg">
+                            <div class="flex items-center justify-between mb-2">
+                              <h6 class="font-bold text-sm sm:text-base text-yellow-700 dark:text-yellow-400 flex items-center gap-2">
+                                <span>📝</span> 나의 메모
+                              </h6>
+                              <button class="memo-save-btn text-xs px-2 py-1 rounded font-bold" style="background-color: #ca8a04; color: white;" data-question-id="${question.id}">
+                                저장
+                              </button>
+                            </div>
+                            <textarea
+                              class="memo-textarea w-full p-3 border border-yellow-300 dark:border-yellow-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 resize-y"
+                              data-question-id="${question.id}"
+                              placeholder="이 문제에 대한 메모를 남겨보세요... (연도별/단원별 공통)"
+                              rows="3"
+                            >${examService.getQuestionMemo(question.id)?.memo || ''}</textarea>
+                            <p class="text-xs text-yellow-600 dark:text-yellow-500 mt-1">💡 메모는 문제 ID 기준으로 저장되어 연도별/단원별 모두에서 공유됩니다.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </section>
+          `).join('')}
+
+          <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center pb-6 sm:pb-8 pt-4">
+            <button id="retry-chapter-btn" style="background-color: #1d4ed8; color: white; padding: 0.75rem 2rem; border-radius: 0.75rem; font-weight: bold; font-size: 1.125rem;">
+              🔄 다시 풀기
+            </button>
+            <button id="exit-chapter-btn" style="background-color: #374151; color: white; padding: 0.75rem 2rem; border-radius: 0.75rem; font-weight: bold; font-size: 1.125rem;">
+              ✕ 단원 선택으로
+            </button>
+          </div>
+
+        </div>
+      </main>
+    `;
+
+    setupChapterResultEventListeners(container, chapter);
+
+  } catch (error) {
+    console.error('renderChapterResultMode 에러:', error);
+    container.innerHTML = `
+      <div class="fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
+        <header class="flex-none bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-700 dark:to-cyan-700 px-4 sm:px-6 py-4 shadow-lg">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">채점 결과</h2>
+            <button id="btn-exit-chapter-results" style="background-color: #4b5563; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: bold;">✕ 종료</button>
+          </div>
+        </header>
+        <main class="flex-1 overflow-y-auto flex items-center justify-center">
+          <div class="text-center p-8">
+            <p class="text-red-600 dark:text-red-400 text-lg mb-4">채점 결과를 불러오는 중 오류가 발생했습니다.</p>
+            <p class="text-gray-600 dark:text-gray-400 text-sm mb-4">${error.message}</p>
+            <button onclick="location.reload()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">페이지 새로고침</button>
+          </div>
+        </main>
+      </div>
+    `;
+    container.querySelector('#btn-exit-chapter-results')?.addEventListener('click', async () => {
+      document.body.style.overflow = '';
+      const { renderChapterSelection } = await import('./examUI.js');
+      renderChapterSelection(container);
+    });
+  }
+}
+
+async function setupChapterResultEventListeners(container, chapter) {
+  container.querySelector('#btn-exit-chapter-results')?.addEventListener('click', async () => {
+    document.body.style.overflow = '';
+    const { renderChapterSelection } = await import('./examUI.js');
+    renderChapterSelection(container);
+  });
+
+  container.querySelector('#retry-chapter-btn')?.addEventListener('click', async () => {
+    examService.clearChapterAnswers(chapter);
+    examService.clearChapterTimer(chapter);
+    document.body.style.overflow = '';
+    const { renderChapterSelection } = await import('./examUI.js');
+    renderChapterSelection(container);
+  });
+
+  container.querySelector('#exit-chapter-btn')?.addEventListener('click', async () => {
+    document.body.style.overflow = '';
+    const { renderChapterSelection } = await import('./examUI.js');
+    renderChapterSelection(container);
+  });
+
+  container.querySelectorAll('.scenario-toggle').forEach(toggle => {
+    toggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      const questionId = toggle.dataset.questionId;
+      const scenarioContent = container.querySelector(`.scenario-content[data-question-id="${questionId}"]`);
+      const arrow = container.querySelector(`.scenario-arrow[data-question-id="${questionId}"]`);
+      if (scenarioContent && arrow) {
+        const isExpanded = toggle.dataset.expanded === 'true';
+        if (isExpanded) {
+          scenarioContent.classList.add('hidden');
+          arrow.textContent = '▶';
+          toggle.dataset.expanded = 'false';
+        } else {
+          scenarioContent.classList.remove('hidden');
+          arrow.textContent = '▼';
+          toggle.dataset.expanded = 'true';
+        }
+      }
+    });
+  });
+
+  // 메모 저장 이벤트 리스너
+  container.querySelectorAll('.memo-save-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const questionId = btn.dataset.questionId;
+      const textarea = container.querySelector(`.memo-textarea[data-question-id="${questionId}"]`);
+      if (textarea) {
+        const memo = textarea.value.trim();
+        if (memo) {
+          examService.saveQuestionMemo(questionId, memo);
+          btn.textContent = '저장됨 ✓';
+          btn.style.backgroundColor = '#16a34a';
+          setTimeout(() => {
+            btn.textContent = '저장';
+            btn.style.backgroundColor = '#ca8a04';
+          }, 1500);
+        } else {
+          examService.deleteQuestionMemo(questionId);
+          btn.textContent = '삭제됨';
+          btn.style.backgroundColor = '#dc2626';
+          setTimeout(() => {
+            btn.textContent = '저장';
+            btn.style.backgroundColor = '#ca8a04';
+          }, 1500);
+        }
+      }
+    });
   });
 }
