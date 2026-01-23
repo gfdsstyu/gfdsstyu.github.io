@@ -391,9 +391,14 @@ function renderYearSelection(container) {
           <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-200">
             📝 기출문제 실전연습
           </h2>
-          <a id="btn-clear-exam-history" href="#" class="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 underline cursor-pointer">
-            시험기록 초기화
-          </a>
+          <div class="flex items-center gap-4">
+            <button id="btn-chapter-mode" style="background-color: #2563eb; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: bold;">
+              📚 단원별 풀이
+            </button>
+            <a id="btn-clear-exam-history" href="#" class="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 underline cursor-pointer">
+              시험기록 초기화
+            </a>
+          </div>
         </div>
         <p class="text-gray-600 dark:text-gray-400">
           실제 시험처럼 90분 제한 시간 안에 문제를 풀어보세요.
@@ -437,21 +442,21 @@ function renderYearSelection(container) {
                 ` : ''}
               </div>
 
-              <div class="mt-4 flex flex-col gap-2">
+              <div class="mt-4">
                 <div class="flex gap-2">
-                  <button class="start-exam-btn flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors">
-                    ${latestAttempt > 0 ? '다시 풀기' : '시작하기'} →
+                  <button class="start-exam-btn flex-1" style="background-color: #7c3aed; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: bold; font-size: 0.875rem;">
+                    ${latestAttempt > 0 ? '다시풀기' : '시작하기'} →
                   </button>
                   ${latestAttempt > 0 ? `
-                    <button class="view-result-btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors" data-year="${year}">
-                      📊 결과보기
+                    <button class="view-result-btn" style="background-color: #2563eb; color: white; padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-weight: bold; font-size: 0.875rem;" data-year="${year}">
+                      📊
                     </button>
                   ` : ''}
                 </div>
                 ${latestAttempt > 0 ? `
-                  <button class="retry-wrong-btn hidden w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition-colors" data-year="${year}">
+                  <a href="#" class="retry-wrong-btn hidden block mt-2 text-center text-xs text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 underline" data-year="${year}">
                     📝 오답만 다시 풀기
-                  </button>
+                  </a>
                 ` : ''}
               </div>
             </div>
@@ -473,6 +478,14 @@ function renderYearSelection(container) {
   `;
 
   // 이벤트 리스너
+  // 단원별 풀이 버튼
+  const chapterModeBtn = container.querySelector('#btn-chapter-mode');
+  if (chapterModeBtn) {
+    chapterModeBtn.addEventListener('click', () => {
+      renderChapterSelection(container);
+    });
+  }
+
   // 시험기록 초기화 링크
   const clearHistoryLink = container.querySelector('#btn-clear-exam-history');
   if (clearHistoryLink) {
@@ -544,6 +557,7 @@ function renderYearSelection(container) {
       btn.textContent = `📝 오답만 다시 풀기 (${wrongQuestionIds.length}문제)`;
 
       btn.addEventListener('click', async (e) => {
+        e.preventDefault();
         e.stopPropagation();
 
         try {
@@ -1188,52 +1202,44 @@ function setupFloatingControls(exams, year) {
   // 헤더 높이 계산
   const header = document.querySelector('#exam-header');
   const headerHeight = header ? header.offsetHeight : 100;
-  floatingControls.className = `${isDesktop ? 'flex' : 'hidden'} fixed right-4 lg:right-6 flex-col gap-3 transition-all duration-300 w-[180px] lg:w-[200px]`;
-  floatingControls.style.top = `${headerHeight + 20}px`; // 헤더 아래 20px 여유 공간
-  floatingControls.style.zIndex = '9999'; // 명시적으로 높은 z-index 설정
+  floatingControls.className = `${isDesktop ? 'flex' : 'hidden'} fixed right-4 lg:right-6 flex-col gap-3 transition-all duration-300`;
+  floatingControls.style.top = `${headerHeight + 20}px`;
+  floatingControls.style.zIndex = '9999';
   floatingControls.innerHTML = `
-    <!-- Quick Navigation - Collapsible -->
     <div id="nav-panel" class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-purple-500 dark:border-purple-600 overflow-hidden">
-      <button id="toggle-nav" class="w-full px-3 py-2 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 flex items-center justify-between text-xs font-semibold text-purple-700 dark:text-purple-300 transition-colors">
-        <span>📌 바로가기</span>
-        <span id="nav-arrow" class="transform transition-transform">▼</span>
+      <button id="toggle-nav" class="w-full px-2 py-1.5 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 flex items-center justify-between text-xs font-semibold text-purple-700 dark:text-purple-300 transition-colors">
+        <span>📌</span>
+        <span id="nav-arrow" class="transform transition-transform text-[10px]">▼</span>
       </button>
-      <div id="nav-grid" class="p-2 grid grid-cols-4 gap-1.5">
+      <div id="nav-grid" class="p-2 flex flex-col gap-1 max-h-64 overflow-y-auto">
         ${sortedExams.map((exam, idx) => {
-          // 이 케이스의 답안 상태 확인
           const answeredCount = exam.questions.filter(q => {
             const answer = examUIState.answers[q.id]?.answer;
             return answer && answer.trim() !== '';
           }).length;
           const totalCount = exam.questions.length;
 
-          // 모두 채움(녹색), 일부만 채움(노랑), 하나도 안 채움(회색)
-          let bgClass, textClass, ringClass, statusText;
+          let bgClass, textClass, borderClass;
           if (answeredCount === totalCount) {
             bgClass = 'bg-green-100 dark:bg-green-900/50';
             textClass = 'text-green-700 dark:text-green-300';
-            ringClass = 'ring-2 ring-green-500';
-            statusText = '완료';
+            borderClass = 'border-l-4 border-green-500';
           } else if (answeredCount > 0) {
             bgClass = 'bg-yellow-100 dark:bg-yellow-900/50';
             textClass = 'text-yellow-700 dark:text-yellow-300';
-            ringClass = 'ring-2 ring-yellow-500';
-            statusText = `${answeredCount}/${totalCount}`;
+            borderClass = 'border-l-4 border-yellow-500';
           } else {
             bgClass = 'bg-gray-100 dark:bg-gray-700';
             textClass = 'text-gray-700 dark:text-gray-300';
-            ringClass = '';
-            statusText = '';
+            borderClass = 'border-l-4 border-gray-300 dark:border-gray-600';
           }
 
           return `
             <button
-              class="aspect-square flex items-center justify-center ${bgClass} ${textClass} ${ringClass} hover:bg-purple-500 hover:text-white dark:hover:bg-purple-600 rounded-lg text-xs font-bold transition-all hover:scale-110"
-              title="문제 ${idx + 1} ${statusText ? `(${statusText})` : ''}"
+              class="w-full h-7 flex items-center px-2 ${bgClass} ${textClass} ${borderClass} hover:bg-purple-500 hover:text-white dark:hover:bg-purple-600 rounded text-xs font-bold transition-all"
+              title="문제 ${idx + 1}"
               data-case-idx="${idx}"
-            >
-              ${idx + 1}
-            </button>
+            >${idx + 1}</button>
           `;
         }).join('')}
       </div>
@@ -1253,7 +1259,7 @@ function setupFloatingControls(exams, year) {
     toggleNavBtn.addEventListener('click', () => {
       navExpanded = !navExpanded;
       if (navExpanded) {
-        navGrid.style.display = 'grid';
+        navGrid.style.display = 'flex';
         navArrow.style.transform = 'rotate(0deg)';
       } else {
         navGrid.style.display = 'none';
@@ -1700,3 +1706,613 @@ function renderModelAnswersPreview(year) {
  * renderExamPaper와 renderYearSelection을 export하여 examResultUI.js에서 사용 가능하도록
  */
 export { renderExamPaper, renderYearSelection };
+
+// ============================================
+// 단원별 문제풀이 UI (Chapter-based Practice)
+// ============================================
+
+const chapterUIState = {
+  currentChapter: null,
+  timerInterval: null,
+  answers: {},
+  timeLimit: null,
+  reset() {
+    this.currentChapter = null;
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
+    this.answers = {};
+    this.timeLimit = null;
+  }
+};
+
+/**
+ * 단원별 선택 화면 렌더링
+ */
+export async function renderChapterSelection(container) {
+  const currentUser = getCurrentUser();
+  if (!currentUser) {
+    container.innerHTML = `
+      <div class="exam-selection-container max-w-5xl mx-auto p-6">
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-300 dark:border-yellow-700 rounded-xl p-8 text-center">
+          <div class="text-6xl mb-4">🔒</div>
+          <h2 class="text-2xl font-bold text-yellow-800 dark:text-yellow-300 mb-4">로그인이 필요합니다</h2>
+          <p class="text-gray-600 dark:text-gray-400 mb-6">단원별 문제풀이를 사용하려면 로그인이 필요합니다.</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  chapterUIState.reset();
+
+  // 레이아웃 복원
+  container.className = '';
+  const leftDashboard = document.getElementById('left-dashboard');
+  const rightDashboard = document.getElementById('right-explorer');
+  const fixedHeader = document.getElementById('fixed-header');
+
+  if (leftDashboard && leftDashboard.dataset.hiddenByExam === 'true') {
+    leftDashboard.style.display = '';
+    delete leftDashboard.dataset.hiddenByExam;
+  }
+  if (rightDashboard && rightDashboard.dataset.hiddenByExam === 'true') {
+    rightDashboard.style.display = '';
+    delete rightDashboard.dataset.hiddenByExam;
+  }
+  if (fixedHeader && fixedHeader.dataset.hiddenByExam === 'true') {
+    fixedHeader.style.display = '';
+    delete fixedHeader.dataset.hiddenByExam;
+  }
+
+  const chapters = examService.getAvailableChapters();
+  const sortedChapters = Array.from(chapters.values()).sort((a, b) => a.chapterNum - b.chapterNum);
+
+  container.innerHTML = `
+    <div class="exam-selection-container max-w-5xl mx-auto p-6">
+      <div class="mb-6">
+        <div class="flex items-center justify-between flex-wrap gap-4 mb-2">
+          <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-200">📚 단원별 문제풀이</h2>
+          <button id="btn-back-to-year" style="background-color: #4b5563; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: bold;">
+            ← 연도별 풀이
+          </button>
+        </div>
+        <p class="text-gray-600 dark:text-gray-400">단원별로 기출문제를 풀어보세요.</p>
+      </div>
+
+      <div class="chapter-cards grid grid-cols-1 md:grid-cols-2 gap-4">
+        ${sortedChapters.map(ch => {
+          const scores = examService.getChapterScores(ch.chapter);
+          const bestScore = examService.getBestChapterScore(ch.chapter);
+          const attemptCount = scores.length;
+          const chapterQuestions = examService.getQuestionsByChapter(ch.chapter);
+          const allQuestionIds = chapterQuestions.flatMap(c => c.questions.map(q => q.id));
+          const scoreSummary = examService.getQuestionsScoreSummary(allQuestionIds);
+
+          return `
+            <div class="chapter-card bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-xl p-5 hover:border-blue-500 dark:hover:border-blue-400 transition-all cursor-pointer shadow-sm hover:shadow-lg"
+                 data-chapter="${ch.chapter}">
+              <div class="flex items-start justify-between mb-3">
+                <div class="flex-1">
+                  <h3 class="text-lg font-bold text-blue-700 dark:text-blue-400">${ch.name}</h3>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    ${ch.questionCount}문제 · ${ch.totalScore}점 · ${Array.from(ch.years).join(', ')}년
+                  </p>
+                </div>
+                ${bestScore !== null ? `
+                  <span class="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-bold rounded-full">
+                    최고 ${bestScore.toFixed(1)}점
+                  </span>
+                ` : ''}
+              </div>
+
+              <!-- 문제별 점수 미리보기 -->
+              <div class="mb-3">
+                <div class="flex flex-wrap gap-1">
+                  ${allQuestionIds.slice(0, 10).map((qId, idx) => {
+                    const summary = scoreSummary[qId];
+                    if (!summary) {
+                      return '<div class="w-6 h-6 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] text-gray-500">' + (idx + 1) + '</div>';
+                    }
+                    const percent = summary.maxScore > 0 ? (summary.score / summary.maxScore) * 100 : 0;
+                    const bgColor = percent >= 90 ? 'bg-green-500' : percent >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                    return '<div class="w-6 h-6 rounded ' + bgColor + ' flex items-center justify-center text-[10px] text-white font-bold" title="Q' + (idx + 1) + ': ' + summary.score.toFixed(1) + '/' + summary.maxScore + '">' + (idx + 1) + '</div>';
+                  }).join('')}
+                  ${allQuestionIds.length > 10 ? '<span class="text-xs text-gray-500 dark:text-gray-400 self-center ml-1">+' + (allQuestionIds.length - 10) + '</span>' : ''}
+                </div>
+              </div>
+
+              <div class="flex gap-2">
+                <button class="start-chapter-btn flex-1" style="background-color: #2563eb; color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: bold;">
+                  ${attemptCount > 0 ? '다시 풀기' : '시작하기'} →
+                </button>
+                ${attemptCount > 0 ? `
+                  <button class="view-chapter-result-btn" style="background-color: #059669; color: white; padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-weight: bold;" data-chapter="${ch.chapter}">
+                    📊 결과
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+
+  // 이벤트 리스너
+  container.querySelector('#btn-back-to-year')?.addEventListener('click', () => {
+    renderYearSelection(container);
+  });
+
+  container.querySelectorAll('.start-chapter-btn').forEach((btn, idx) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const chapter = sortedChapters[idx].chapter;
+      startChapterExam(container, chapter);
+    });
+  });
+
+  container.querySelectorAll('.view-chapter-result-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const chapter = btn.dataset.chapter;
+      const scores = examService.getChapterScores(chapter);
+      if (scores.length === 0) {
+        alert('채점 이력이 없습니다.');
+        return;
+      }
+      const latestScore = scores[scores.length - 1];
+      const result = {
+        totalScore: latestScore.score,
+        details: latestScore.details || {}
+      };
+      const { renderChapterResultMode } = await import('./examResultUI.js');
+      await renderChapterResultMode(container, chapter, result);
+    });
+  });
+}
+
+async function startChapterExam(container, chapter) {
+  const apiKey = getGeminiApiKey();
+  const selectedModel = getSelectedAiModel();
+
+  chapterUIState.currentChapter = chapter;
+
+  const existingAnswers = examService.getChapterAnswers(chapter);
+  const hasExistingAnswers = Object.keys(existingAnswers).length > 0;
+
+  if (hasExistingAnswers) {
+    if (confirm('이전에 작성하던 답안이 있습니다.\n\n[확인] 이어서 풀기\n[취소] 처음부터 다시 풀기')) {
+      chapterUIState.answers = existingAnswers;
+    } else {
+      examService.clearChapterAnswers(chapter);
+      examService.clearChapterTimer(chapter);
+      chapterUIState.answers = {};
+    }
+  }
+
+  const chapterData = examService.getQuestionsByChapter(chapter);
+  const totalQuestions = chapterData.reduce((sum, c) => sum + c.questions.length, 0);
+  const defaultTimeLimit = examService.calculateChapterTimeLimit(totalQuestions);
+  const savedTimeLimit = examService.getChapterTimeLimit(chapter);
+  chapterUIState.timeLimit = savedTimeLimit || defaultTimeLimit;
+
+  if (!examService.getChapterTimerStart(chapter)) {
+    examService.saveChapterTimerStart(chapter);
+  }
+
+  container.className = 'fixed inset-0 z-50 bg-white dark:bg-gray-900 flex flex-col h-screen';
+
+  const leftDashboard = document.getElementById('left-dashboard');
+  const rightDashboard = document.getElementById('right-explorer');
+  const fixedHeader = document.getElementById('fixed-header');
+
+  if (leftDashboard) {
+    leftDashboard.style.display = 'none';
+    leftDashboard.dataset.hiddenByExam = 'true';
+  }
+  if (rightDashboard) {
+    rightDashboard.style.display = 'none';
+    rightDashboard.dataset.hiddenByExam = 'true';
+  }
+  if (fixedHeader) {
+    fixedHeader.style.display = 'none';
+    fixedHeader.dataset.hiddenByExam = 'true';
+  }
+
+  await renderChapterExamPaper(container, chapter, apiKey, selectedModel);
+}
+
+async function renderChapterExamPaper(container, chapter, apiKey, selectedModel) {
+  if (!apiKey) apiKey = getGeminiApiKey();
+  if (!selectedModel) selectedModel = getSelectedAiModel();
+
+  const chapterData = examService.getQuestionsByChapter(chapter);
+  const { CHAPTER_LABELS } = examService.getChapterLabels();
+  const chapterName = CHAPTER_LABELS[Math.floor(parseFloat(chapter))] || '단원 ' + chapter;
+  const totalScore = chapterData.reduce((sum, c) => sum + c.questions.reduce((s, q) => s + q.score, 0), 0);
+
+  container.innerHTML = `
+    <div id="chapter-exam-header" class="flex-none bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-700 dark:to-cyan-700 text-gray-800 dark:text-white shadow-lg z-50">
+      <div class="w-full px-4 sm:px-6 lg:px-8 py-3">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <div class="flex items-center gap-3">
+            <h3 class="text-lg sm:text-xl font-bold">${chapterName}</h3>
+            <span class="text-xs sm:text-sm px-2 sm:px-3 py-1 bg-blue-200 dark:bg-white/30 rounded-full font-semibold">총 ${totalScore}점</span>
+          </div>
+          <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <div class="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/50 px-3 py-1.5 rounded-lg border-2 border-orange-400 dark:border-orange-600">
+              <span class="text-xs font-semibold text-orange-700 dark:text-orange-300">⏱️</span>
+              <div id="chapter-timer-display" class="text-lg font-mono font-bold text-orange-600 dark:text-orange-400">--:--</div>
+            </div>
+            <button id="btn-submit-chapter" style="background-color: #16a34a; color: white; padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-weight: bold; display: flex; align-items: center; gap: 0.25rem;">
+              <span>📝</span><span class="hidden sm:inline">최종 제출</span>
+            </button>
+            <button id="btn-exit-chapter" style="background-color: #4b5563; color: white; padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-weight: bold; display: flex; align-items: center; gap: 0.25rem;">
+              <span>✕</span><span class="hidden sm:inline">나가기</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="chapter-scroll-area" class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scroll-smooth">
+      <div class="w-full px-4 sm:px-6 lg:px-8 py-6 pb-32">
+        <div class="max-w-4xl mx-auto space-y-8">
+          ${chapterData.map((caseItem) => `
+            <div class="case-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-visible">
+              <div class="bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-700 dark:to-cyan-700 px-6 py-3 shadow-md rounded-t-xl">
+                <div class="flex items-center justify-between">
+                  <h4 class="text-lg font-bold text-gray-800 dark:text-white">${caseItem.year}년 - ${caseItem.topic}</h4>
+                  <span class="text-sm bg-blue-200 dark:bg-white/30 px-3 py-1 rounded-full font-semibold text-gray-800 dark:text-white">
+                    ${caseItem.questions.reduce((sum, q) => sum + q.score, 0)}점
+                  </span>
+                </div>
+              </div>
+              <div class="p-4 sm:p-6 space-y-6">
+                ${caseItem.questions.map((q, qIdx) => {
+                  const currentScenario = q.scenario || '';
+                  const previousQ = qIdx > 0 ? caseItem.questions[qIdx - 1] : null;
+                  const previousScenario = previousQ ? (previousQ.scenario || '') : null;
+                  const isSameScenario = previousScenario && currentScenario === previousScenario;
+                  const isFirstQuestion = qIdx === 0;
+
+                  return `
+                    <div id="question-${q.id}" class="question-item border-2 ${isSameScenario ? 'border-gray-200 dark:border-gray-600' : 'border-orange-400 dark:border-orange-600'} rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-lg">
+                      ${currentScenario ? `
+                        <div class="scenario-section ${isSameScenario ? 'bg-green-50 dark:bg-green-900/20' : 'bg-orange-50 dark:bg-orange-900/20'} border-b-2 ${isSameScenario ? 'border-green-200 dark:border-green-700' : 'border-orange-200 dark:border-orange-700'}">
+                          <button class="scenario-toggle w-full px-4 py-3 text-left flex items-center justify-between hover:bg-opacity-80 transition-colors" data-question-id="${q.id}" data-expanded="${!isSameScenario}">
+                            <div class="flex items-center gap-2 flex-wrap">
+                              <span class="px-3 py-1 ${isSameScenario ? 'bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-200' : 'bg-orange-200 dark:bg-orange-700 text-orange-800 dark:text-orange-200'} text-xs font-bold rounded-full">📄 지문</span>
+                              ${!isFirstQuestion && !isSameScenario ? '<span class="px-2 py-1 bg-orange-500 text-white text-xs font-bold rounded animate-pulse">⚠️ 상황 변경</span>' : ''}
+                              ${isSameScenario ? '<span class="text-xs text-green-700 dark:text-green-300 font-semibold">(이전과 동일)</span>' : ''}
+                            </div>
+                            <span class="text-gray-600 dark:text-gray-400 text-sm scenario-arrow" data-question-id="${q.id}">${isSameScenario ? '▶' : '▼'}</span>
+                          </button>
+                          <div class="scenario-content px-4 pb-4 ${isSameScenario ? 'hidden' : ''}" data-question-id="${q.id}">
+                            <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line" style="font-family: 'Iropke Batang', serif;">${convertMarkdownTablesToHtml(currentScenario)}</div>
+                          </div>
+                        </div>
+                      ` : ''}
+                      <div class="p-5">
+                        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                          <div class="flex items-center gap-2">
+                            <span class="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-bold rounded-full">
+                              물음 ${extractQuestionNumber(q.id)}
+                            </span>
+                            <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded">
+                              ${q.score}점
+                            </span>
+                          </div>
+                        </div>
+                        <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                          <div class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-line" style="font-family: 'Iropke Batang', serif;">${convertMarkdownTablesToHtml(q.question)}</div>
+                        </div>
+                        <div>
+                          <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">✍️ 답안 작성</label>
+                          <textarea
+                            id="chapter-answer-${q.id}"
+                            class="w-full h-40 p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-200 resize-y text-sm"
+                            placeholder="답안을 입력하세요..."
+                            data-question-id="${q.id}"
+                            style="min-height: 120px;"
+                          >${chapterUIState.answers[q.id]?.answer || ''}</textarea>
+                          <div class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
+                            <span>💾 자동 저장됨</span>
+                            <span id="chapter-char-count-${q.id}">0자</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+
+  startChapterTimer(chapter, chapterUIState.timeLimit);
+  setupChapterAutoSave(chapter);
+  setupChapterFloatingControls(chapterData);
+
+  container.querySelectorAll('.scenario-toggle').forEach(toggle => {
+    toggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      const questionId = toggle.dataset.questionId;
+      const scenarioContent = container.querySelector(`.scenario-content[data-question-id="${questionId}"]`);
+      const arrow = container.querySelector(`.scenario-arrow[data-question-id="${questionId}"]`);
+      if (scenarioContent && arrow) {
+        const isExpanded = toggle.dataset.expanded === 'true';
+        if (isExpanded) {
+          scenarioContent.classList.add('hidden');
+          arrow.textContent = '▶';
+          toggle.dataset.expanded = 'false';
+        } else {
+          scenarioContent.classList.remove('hidden');
+          arrow.textContent = '▼';
+          toggle.dataset.expanded = 'true';
+        }
+      }
+    });
+  });
+
+  container.querySelector('#btn-exit-chapter')?.addEventListener('click', () => {
+    if (confirm('단원별 문제풀이를 종료하시겠습니까?')) {
+      if (chapterUIState.timerInterval) {
+        clearInterval(chapterUIState.timerInterval);
+        chapterUIState.timerInterval = null;
+      }
+      // 플로팅 컨트롤 제거
+      const floatingChapter = document.getElementById('floating-controls-chapter');
+      if (floatingChapter) floatingChapter.remove();
+      if (chapterUIState.resizeHandler) {
+        window.removeEventListener('resize', chapterUIState.resizeHandler);
+        chapterUIState.resizeHandler = null;
+      }
+      renderChapterSelection(container);
+    }
+  });
+
+  container.querySelector('#btn-submit-chapter')?.addEventListener('click', () => {
+    submitChapterExam(container, chapter, apiKey, selectedModel);
+  });
+
+  container.querySelectorAll('textarea[data-question-id]').forEach(textarea => {
+    const questionId = textarea.dataset.questionId;
+    const charCount = container.querySelector(`#chapter-char-count-${questionId}`);
+    if (charCount) {
+      charCount.textContent = `${textarea.value.length}자`;
+    }
+  });
+}
+
+function startChapterTimer(chapter, timeLimit) {
+  const timerDisplay = document.getElementById('chapter-timer-display');
+  if (!timerDisplay) return;
+
+  const updateTimer = () => {
+    const remaining = examService.getChapterRemainingTime(chapter, timeLimit);
+    if (remaining === null) return;
+    const minutes = Math.floor(remaining);
+    const seconds = Math.round((remaining - minutes) * 60);
+    timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    if (remaining <= 10 && remaining > 0) {
+      timerDisplay.classList.add('text-red-400', 'animate-pulse');
+    }
+    if (remaining <= 0) {
+      clearInterval(chapterUIState.timerInterval);
+      chapterUIState.timerInterval = null;
+      timerDisplay.textContent = '00:00';
+      alert('⏰ 시간이 종료되었습니다.\n자동으로 제출합니다.');
+      const submitBtn = document.getElementById('btn-submit-chapter');
+      if (submitBtn) submitBtn.click();
+    }
+  };
+  updateTimer();
+  chapterUIState.timerInterval = setInterval(updateTimer, 1000);
+}
+
+function setupChapterAutoSave(chapter) {
+  const textareas = document.querySelectorAll('textarea[data-question-id]');
+  textareas.forEach(textarea => {
+    textarea.addEventListener('input', (e) => {
+      const questionId = e.target.dataset.questionId;
+      const answer = e.target.value;
+      chapterUIState.answers[questionId] = { answer };
+      examService.saveChapterAnswer(chapter, questionId, answer);
+      const charCount = document.getElementById(`chapter-char-count-${questionId}`);
+      if (charCount) {
+        charCount.textContent = `${answer.length}자`;
+      }
+    });
+  });
+}
+
+/**
+ * 단원별 문제풀이 플로팅 컨트롤 설정
+ */
+function setupChapterFloatingControls(chapterData) {
+  // 기존 플로팅 컨트롤 제거
+  const existingControls = document.getElementById('floating-controls-chapter');
+  if (existingControls) existingControls.remove();
+
+  // 모든 문제를 평탄화 (연도-문제 형태로)
+  const allQuestions = [];
+  chapterData.forEach((caseItem, caseIdx) => {
+    caseItem.questions.forEach((q, qIdx) => {
+      allQuestions.push({
+        id: q.id,
+        year: caseItem.year,
+        caseIdx,
+        qIdx,
+        score: q.score
+      });
+    });
+  });
+
+  const floatingControls = document.createElement('div');
+  floatingControls.id = 'floating-controls-chapter';
+
+  const isDesktop = window.innerWidth >= 768;
+  const header = document.querySelector('#chapter-exam-header');
+  const headerHeight = header ? header.offsetHeight : 100;
+  floatingControls.className = `${isDesktop ? 'flex' : 'hidden'} fixed right-4 lg:right-6 flex-col gap-3 transition-all duration-300`;
+  floatingControls.style.top = `${headerHeight + 20}px`;
+  floatingControls.style.zIndex = '9999';
+
+  floatingControls.innerHTML = `
+    <div id="chapter-nav-panel" class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-2 border-blue-500 dark:border-blue-600 overflow-hidden">
+      <button id="toggle-chapter-nav" class="w-full px-2 py-1.5 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 flex items-center justify-between text-xs font-semibold text-blue-700 dark:text-blue-300 transition-colors">
+        <span>📌</span>
+        <span id="chapter-nav-arrow" class="transform transition-transform text-[10px]">▼</span>
+      </button>
+      <div id="chapter-nav-grid" class="p-2 flex flex-col gap-1 max-h-64 overflow-y-auto">
+        ${allQuestions.map((q, idx) => {
+          const answer = chapterUIState.answers[q.id]?.answer;
+          const hasAnswer = answer && answer.trim() !== '';
+
+          let bgClass, textClass, borderClass;
+          if (hasAnswer) {
+            bgClass = 'bg-green-100 dark:bg-green-900/50';
+            textClass = 'text-green-700 dark:text-green-300';
+            borderClass = 'border-l-4 border-green-500';
+          } else {
+            bgClass = 'bg-gray-100 dark:bg-gray-700';
+            textClass = 'text-gray-700 dark:text-gray-300';
+            borderClass = 'border-l-4 border-gray-300 dark:border-gray-600';
+          }
+
+          return `
+            <button
+              class="chapter-nav-btn w-full h-7 flex items-center px-2 ${bgClass} ${textClass} ${borderClass} hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600 rounded text-xs font-bold transition-all"
+              data-question-id="${q.id}"
+              title="물음 ${extractQuestionNumber(q.id)} (${q.score}점)"
+            >${idx + 1}</button>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(floatingControls);
+
+  // 토글 이벤트
+  const toggleNavBtn = floatingControls.querySelector('#toggle-chapter-nav');
+  const navGrid = floatingControls.querySelector('#chapter-nav-grid');
+  const navArrow = floatingControls.querySelector('#chapter-nav-arrow');
+  let navExpanded = true;
+
+  if (toggleNavBtn && navGrid && navArrow) {
+    toggleNavBtn.addEventListener('click', () => {
+      navExpanded = !navExpanded;
+      if (navExpanded) {
+        navGrid.style.display = 'flex';
+        navArrow.style.transform = 'rotate(0deg)';
+      } else {
+        navGrid.style.display = 'none';
+        navArrow.style.transform = 'rotate(-90deg)';
+      }
+    });
+  }
+
+  // 바로가기 버튼 클릭
+  floatingControls.querySelectorAll('.chapter-nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const questionId = btn.dataset.questionId;
+      if (questionId) {
+        const questionEl = document.getElementById(`question-${questionId}`);
+        if (questionEl) {
+          questionEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    });
+  });
+
+  // 리사이즈 핸들러 (모바일/데스크탑 전환)
+  const handleResize = () => {
+    const isDesktopNow = window.innerWidth >= 768;
+    floatingControls.className = `${isDesktopNow ? 'flex' : 'hidden'} fixed right-4 lg:right-6 flex-col gap-3 transition-all duration-300 w-[180px] lg:w-[200px]`;
+  };
+  window.addEventListener('resize', handleResize);
+  chapterUIState.resizeHandler = handleResize;
+}
+
+async function submitChapterExam(container, chapter, apiKey, selectedModel) {
+  if (!confirm('정말 제출하시겠습니까?\n제출 후에는 답안을 수정할 수 없습니다.')) {
+    return;
+  }
+  if (chapterUIState.timerInterval) {
+    clearInterval(chapterUIState.timerInterval);
+    chapterUIState.timerInterval = null;
+  }
+  // 플로팅 컨트롤 제거
+  const floatingChapter = document.getElementById('floating-controls-chapter');
+  if (floatingChapter) floatingChapter.remove();
+  if (chapterUIState.resizeHandler) {
+    window.removeEventListener('resize', chapterUIState.resizeHandler);
+    chapterUIState.resizeHandler = null;
+  }
+  await gradeChapterAndShowResults(container, chapter, apiKey, selectedModel);
+}
+
+async function gradeChapterAndShowResults(container, chapter, apiKey, selectedModel) {
+  const userAnswers = examService.getChapterAnswers(chapter);
+  const chapterData = examService.getQuestionsByChapter(chapter);
+  const { CHAPTER_LABELS } = examService.getChapterLabels();
+  const chapterName = CHAPTER_LABELS[Math.floor(parseFloat(chapter))] || '단원 ' + chapter;
+
+  container.innerHTML = `
+    <div class="flex flex-col items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+      <div class="max-w-2xl mx-auto p-8 text-center space-y-6">
+        <div class="loader mx-auto mb-4"></div>
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">📝 AI가 채점하고 있습니다...</h2>
+        <p class="text-gray-600 dark:text-gray-400">${chapterName} 문제를 채점 중입니다.</p>
+        <div class="w-full max-w-md mx-auto">
+          <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <span id="chapter-progress-text">준비 중...</span>
+            <span id="chapter-progress-percentage">0%</span>
+          </div>
+          <div class="w-full bg-gray-300 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
+            <div id="chapter-progress-bar" class="bg-gradient-to-r from-blue-500 to-cyan-500 h-full transition-all duration-500 ease-out" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  try {
+    const onProgress = ({ current, total, percentage }) => {
+      const progressBar = document.getElementById('chapter-progress-bar');
+      const progressText = document.getElementById('chapter-progress-text');
+      const progressPercentage = document.getElementById('chapter-progress-percentage');
+      if (progressBar && progressText && progressPercentage) {
+        progressBar.style.width = `${percentage}%`;
+        progressText.textContent = `${current}/${total} 문제 완료`;
+        progressPercentage.textContent = `${percentage}%`;
+      }
+    };
+
+    const result = await examService.gradeChapterExam(chapter, userAnswers, apiKey, selectedModel, onProgress);
+    await examService.saveChapterScore(chapter, result.totalScore, result.details);
+
+    const questionsMap = {};
+    chapterData.forEach(caseItem => {
+      caseItem.questions.forEach(q => {
+        questionsMap[q.id] = q;
+      });
+    });
+    examService.saveGradingResultToHistory(result, userAnswers, questionsMap, 'chapter', chapter);
+    examService.clearChapterTimer(chapter);
+
+    const { renderChapterResultMode } = await import('./examResultUI.js');
+    await renderChapterResultMode(container, chapter, result);
+  } catch (error) {
+    console.error('채점 실패:', error);
+    alert('채점 중 오류가 발생했습니다. 다시 시도해주세요.');
+    renderChapterSelection(container);
+  }
+}

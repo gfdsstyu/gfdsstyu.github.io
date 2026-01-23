@@ -728,6 +728,20 @@ function generateCaseSection(examCase, caseIdx, result, userAnswers, questionSco
                 </ul>
               </div>
             ` : ''}
+
+            ${(() => {
+              // 메모 가져오기
+              const memo = examService.getQuestionMemo(question.id);
+              if (memo && memo.memo && memo.memo.trim()) {
+                return `
+                  <div class="content-box" style="background: #FFFBEB; border-left-color: #F59E0B; margin-top: 2mm;">
+                    <div class="content-label">📝 나의 메모</div>
+                    <div class="content-text">${escapeHtml(memo.memo)}</div>
+                  </div>
+                `;
+              }
+              return '';
+            })()}
           </div>
         `;
       }).join('')}

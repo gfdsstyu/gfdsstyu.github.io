@@ -1322,6 +1322,150 @@ ${userPrompt}
   }
 
   // ============================================
+  // 문제별 히스토리 저장/조회 (회독 기능)
+  // ============================================
+
+  /**
+   * 문제별 풀이 히스토리 저장
+   * @param {string} questionId - 문제 ID
+   * @param {Object} record - 풀이 기록
+   * @param {string} record.mode - "year" | "chapter"
+   * @param {string} record.context - 연도 또는 단원 번호
+   * @param {string} record.userAnswer - 사용자 답안
+   * @param {number} record.score - 획득 점수
+   * @param {number} record.maxScore - 배점
+   * @param {string} record.feedback - AI 피드백
+   */
+  saveQuestionHistory(questionId, record) {
+    const key = `exam_question_history_${questionId}`;
+    const existing = this.getQuestionHistory(questionId);
+
+    const historyRecord = {
+      timestamp: Date.now(),
+      mode: record.mode,
+      context: record.context,
+      userAnswer: record.userAnswer || '',
+      score: record.score || 0,
+      maxScore: record.maxScore || 0,
+      feedback: record.feedback || ''
+    };
+
+    existing.push(historyRecord);
+
+    // 최대 20개까지만 저장 (오래된 것 삭제)
+    if (existing.length > 20) {
+      existing.shift();
+    }
+
+    try {
+      localStorage.setItem(key, JSON.stringify(existing));
+      console.log(`📚 문제 ${questionId} 히스토리 저장 (${existing.length}회차)`);
+    } catch (error) {
+      console.error('문제별 히스토리 저장 실패:', error);
+    }
+  }
+
+  /**
+   * 문제별 풀이 히스토리 조회
+   * @param {string} questionId - 문제 ID
+   * @returns {Array} 풀이 기록 배열
+   */
+  getQuestionHistory(questionId) {
+    const key = `exam_question_history_${questionId}`;
+    try {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('문제별 히스토리 조회 실패:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 문제별 최근 점수 조회
+   * @param {string} questionId - 문제 ID
+   * @returns {Object|null} {score, maxScore, timestamp} 또는 null
+   */
+  getQuestionLastScore(questionId) {
+    const history = this.getQuestionHistory(questionId);
+    if (history.length === 0) return null;
+
+    const last = history[history.length - 1];
+    return {
+      score: last.score,
+      maxScore: last.maxScore,
+      timestamp: last.timestamp
+    };
+  }
+
+  /**
+   * 문제별 최고 점수 조회
+   * @param {string} questionId - 문제 ID
+   * @returns {number|null} 최고 점수 또는 null
+   */
+  getQuestionBestScore(questionId) {
+    const history = this.getQuestionHistory(questionId);
+    if (history.length === 0) return null;
+
+    return Math.max(...history.map(h => h.score));
+  }
+
+  /**
+   * 여러 문제의 최근 점수 일괄 조회 (단원별 카드용)
+   * @param {Array<string>} questionIds - 문제 ID 배열
+   * @returns {Object} {questionId: {score, maxScore, attemptCount}, ...}
+   */
+  getQuestionsScoreSummary(questionIds) {
+    const summary = {};
+
+    questionIds.forEach(qId => {
+      const history = this.getQuestionHistory(qId);
+      if (history.length > 0) {
+        const last = history[history.length - 1];
+        summary[qId] = {
+          score: last.score,
+          maxScore: last.maxScore,
+          attemptCount: history.length,
+          bestScore: Math.max(...history.map(h => h.score))
+        };
+      } else {
+        summary[qId] = null;
+      }
+    });
+
+    return summary;
+  }
+
+  /**
+   * 채점 결과를 문제별 히스토리에 일괄 저장
+   * @param {Object} result - 채점 결과 {details: {questionId: {score, feedback}, ...}}
+   * @param {Object} userAnswers - 사용자 답안 {questionId: {answer}, ...}
+   * @param {Object} questionsMap - 문제 정보 {questionId: {score: maxScore}, ...}
+   * @param {string} mode - "year" | "chapter"
+   * @param {string} context - 연도 또는 단원 번호
+   */
+  saveGradingResultToHistory(result, userAnswers, questionsMap, mode, context) {
+    if (!result || !result.details) return;
+
+    Object.keys(result.details).forEach(questionId => {
+      const detail = result.details[questionId];
+      const question = questionsMap[questionId];
+      const userAnswer = userAnswers[questionId]?.answer || '';
+
+      this.saveQuestionHistory(questionId, {
+        mode,
+        context: String(context),
+        userAnswer,
+        score: detail.score || 0,
+        maxScore: question?.score || 0,
+        feedback: detail.feedback || ''
+      });
+    });
+
+    console.log(`📚 채점 결과 히스토리 저장 완료 (${Object.keys(result.details).length}문제)`);
+  }
+
+  // ============================================
   // 단원별 채점
   // ============================================
 
@@ -1430,6 +1574,71 @@ ${userPrompt}
       details: results,
       timestamp: Date.now()
     };
+  }
+
+  // ============================================
+  // 문제별 메모(필기) 기능
+  // ============================================
+
+  /**
+   * 문제별 메모 저장
+   * @param {string} questionId - 문제 ID
+   * @param {string} memo - 메모 내용
+   */
+  saveQuestionMemo(questionId, memo) {
+    const key = `exam_memo_${questionId}`;
+    try {
+      const data = {
+        memo: memo,
+        updatedAt: Date.now()
+      };
+      localStorage.setItem(key, JSON.stringify(data));
+      console.log(`📝 메모 저장: ${questionId}`);
+    } catch (error) {
+      console.error('메모 저장 실패:', error);
+    }
+  }
+
+  /**
+   * 문제별 메모 불러오기
+   * @param {string} questionId - 문제 ID
+   * @returns {Object|null} {memo, updatedAt} 또는 null
+   */
+  getQuestionMemo(questionId) {
+    const key = `exam_memo_${questionId}`;
+    try {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      console.error('메모 불러오기 실패:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 문제별 메모 삭제
+   * @param {string} questionId - 문제 ID
+   */
+  deleteQuestionMemo(questionId) {
+    const key = `exam_memo_${questionId}`;
+    localStorage.removeItem(key);
+    console.log(`🗑️ 메모 삭제: ${questionId}`);
+  }
+
+  /**
+   * 여러 문제의 메모 일괄 조회
+   * @param {Array<string>} questionIds - 문제 ID 배열
+   * @returns {Object} {questionId: {memo, updatedAt}, ...}
+   */
+  getQuestionsMemos(questionIds) {
+    const memos = {};
+    questionIds.forEach(qId => {
+      const memo = this.getQuestionMemo(qId);
+      if (memo) {
+        memos[qId] = memo;
+      }
+    });
+    return memos;
   }
 }
 
