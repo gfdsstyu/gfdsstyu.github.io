@@ -926,3 +926,354 @@ function convertMarkdownTablesToHtml(text) {
   return result;
 }
 
+// ============================================
+// 단원별 PDF 내보내기 기능
+// ============================================
+
+/**
+ * 단원별 채점 결과 PDF 내보내기 모달 표시
+ * @param {string} chapterName - 단원명
+ * @param {Array} chapterData - 단원별 문제 데이터 배열
+ * @param {Object} userAnswers - 사용자 답안 객체
+ * @param {Object} result - 채점 결과 { totalScore, details }
+ */
+export async function showChapterPdfExportModal(chapterName, chapterData, userAnswers, result) {
+  // 기존 모달 제거
+  const existingModal = document.getElementById('chapter-pdf-export-modal');
+  if (existingModal) existingModal.remove();
+
+  const totalPossibleScore = chapterData.reduce((sum, c) => sum + c.questions.reduce((s, q) => s + q.score, 0), 0);
+  const percentage = totalPossibleScore > 0 ? ((result.totalScore / totalPossibleScore) * 100).toFixed(1) : 0;
+
+  const modal = document.createElement('div');
+  modal.id = 'chapter-pdf-export-modal';
+  modal.className = 'fixed inset-0 z-[9999] flex items-center justify-center bg-black/50';
+  modal.innerHTML = `
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-gray-800 dark:text-white">📄 PDF 내보내기</h3>
+        <button id="close-chapter-pdf-modal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-xl">&times;</button>
+      </div>
+
+      <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+        <p class="text-sm text-blue-800 dark:text-blue-200">
+          <strong>${chapterName}</strong> 채점 결과<br>
+          ${result.totalScore.toFixed(1)}점 / ${totalPossibleScore}점 (${percentage}%)
+        </p>
+      </div>
+
+      <div class="space-y-3 mb-6">
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" id="chapter-pdf-option-scenario" class="w-5 h-5 text-blue-500 rounded" checked />
+          <span class="text-sm text-gray-700 dark:text-gray-300">📄 지문 포함</span>
+        </label>
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" id="chapter-pdf-option-question" class="w-5 h-5 text-blue-500 rounded" checked />
+          <span class="text-sm text-gray-700 dark:text-gray-300">❓ 문제 포함</span>
+        </label>
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" id="chapter-pdf-option-feedback" class="w-5 h-5 text-blue-500 rounded" checked />
+          <span class="text-sm text-gray-700 dark:text-gray-300">🤖 AI 피드백 포함</span>
+        </label>
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" id="chapter-pdf-option-memo" class="w-5 h-5 text-yellow-500 rounded" checked />
+          <span class="text-sm text-gray-700 dark:text-gray-300">📝 나의 메모 포함</span>
+        </label>
+      </div>
+
+      <div class="flex gap-3">
+        <button id="export-chapter-pdf-confirm" class="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors">
+          📄 PDF 다운로드
+        </button>
+        <button id="cancel-chapter-pdf-modal" class="flex-1 py-3 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-white font-bold rounded-lg transition-colors">
+          취소
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // 모달 닫기 이벤트
+  const closeModal = () => modal.remove();
+  modal.querySelector('#close-chapter-pdf-modal').addEventListener('click', closeModal);
+  modal.querySelector('#cancel-chapter-pdf-modal').addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  // PDF 내보내기 실행
+  modal.querySelector('#export-chapter-pdf-confirm').addEventListener('click', async () => {
+    const options = {
+      includeScenario: modal.querySelector('#chapter-pdf-option-scenario').checked,
+      includeQuestion: modal.querySelector('#chapter-pdf-option-question').checked,
+      includeFeedback: modal.querySelector('#chapter-pdf-option-feedback').checked,
+      includeMemo: modal.querySelector('#chapter-pdf-option-memo').checked
+    };
+
+    closeModal();
+    await exportChapterResultsToPdf(chapterName, chapterData, userAnswers, result, options);
+  });
+}
+
+/**
+ * 단원별 채점 결과 PDF 생성 및 다운로드
+ */
+async function exportChapterResultsToPdf(chapterName, chapterData, userAnswers, result, options = {}) {
+  try {
+    const safeOptions = {
+      includeScenario: options.includeScenario !== false,
+      includeQuestion: options.includeQuestion !== false,
+      includeFeedback: options.includeFeedback !== false,
+      includeMemo: options.includeMemo !== false
+    };
+
+    const totalPossibleScore = chapterData.reduce((sum, c) => sum + c.questions.reduce((s, q) => s + q.score, 0), 0);
+    const percentage = totalPossibleScore > 0 ? ((result.totalScore / totalPossibleScore) * 100).toFixed(1) : 0;
+    const isPassing = parseFloat(percentage) >= 60;
+
+    // HTML 생성
+    const pdfHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>${chapterName} 채점 결과</title>
+        <style>
+          @page { margin: 15mm; size: A4; }
+          body { font-family: 'Malgun Gothic', sans-serif; font-size: 11pt; line-height: 1.6; color: #333; }
+          .header { text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 3px solid #2563eb; }
+          .header h1 { font-size: 18pt; color: #2563eb; margin-bottom: 10px; }
+          .score-box { display: inline-block; padding: 10px 20px; background: ${isPassing ? '#16a34a' : '#dc2626'}; color: white; border-radius: 8px; font-size: 14pt; font-weight: bold; }
+          .case-section { margin-bottom: 15px; page-break-inside: avoid; }
+          .case-header { background: #2563eb; color: white; padding: 8px 12px; font-weight: bold; font-size: 12pt; border-radius: 6px 6px 0 0; }
+          .question-card { border: 1px solid #e5e7eb; border-top: none; padding: 12px; margin-bottom: 8px; }
+          .question-title { font-weight: bold; color: #4338ca; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+          .score-badge { padding: 2px 8px; border-radius: 4px; font-size: 10pt; }
+          .score-high { background: #dcfce7; color: #16a34a; }
+          .score-mid { background: #fef3c7; color: #d97706; }
+          .score-low { background: #fee2e2; color: #dc2626; }
+          .content-box { background: #f9fafb; padding: 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #6366f1; }
+          .content-label { font-weight: bold; font-size: 10pt; color: #4b5563; margin-bottom: 4px; }
+          .content-text { font-size: 10pt; white-space: pre-wrap; }
+          .feedback-box { background: #f3e8ff; border-left-color: #8b5cf6; }
+          .memo-box { background: #FFFBEB; border-left-color: #F59E0B; }
+          table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 9pt; }
+          th, td { border: 1px solid #d1d5db; padding: 6px 8px; text-align: left; }
+          th { background: #f3f4f6; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>📚 ${escapeHtml(chapterName)}</h1>
+          <p>채점 결과 보고서</p>
+          <div class="score-box">${result.totalScore.toFixed(1)}점 / ${totalPossibleScore}점 (${percentage}%)</div>
+          <p style="margin-top: 10px; font-size: 10pt; color: #666;">생성일: ${new Date().toLocaleDateString('ko-KR')}</p>
+        </div>
+
+        ${chapterData.map(caseItem => `
+          <div class="case-section">
+            <div class="case-header">${caseItem.year}년 - ${escapeHtml(caseItem.topic)}</div>
+            ${caseItem.questions.map(question => {
+              const feedback = result.details[question.id];
+              const userAnswer = userAnswers[question.id]?.answer || '';
+              const score = feedback?.score || 0;
+              const scorePercent = question.score > 0 ? ((score / question.score) * 100) : 0;
+              const scoreClass = scorePercent >= 90 ? 'score-high' : scorePercent >= 50 ? 'score-mid' : 'score-low';
+
+              return `
+                <div class="question-card">
+                  <div class="question-title">
+                    <span>물음 ${extractQuestionNumber(question.id)} (${question.score}점)</span>
+                    <span class="score-badge ${scoreClass}">${score.toFixed(2)}점</span>
+                  </div>
+
+                  ${safeOptions.includeScenario && question.scenario ? `
+                    <div class="content-box">
+                      <div class="content-label">📄 지문</div>
+                      <div class="content-text">${convertMarkdownTablesToHtmlForPdf(question.scenario)}</div>
+                    </div>
+                  ` : ''}
+
+                  ${safeOptions.includeQuestion ? `
+                    <div class="content-box">
+                      <div class="content-label">❓ 문제</div>
+                      <div class="content-text">${convertMarkdownTablesToHtmlForPdf(question.question)}</div>
+                    </div>
+                  ` : ''}
+
+                  <div class="content-box">
+                    <div class="content-label">✍️ 내 답안</div>
+                    <div class="content-text">${userAnswer ? escapeHtml(userAnswer) : '<em style="color: #9ca3af;">작성하지 않음</em>'}</div>
+                  </div>
+
+                  <div class="content-box">
+                    <div class="content-label">📚 모범 답안</div>
+                    <div class="content-text">${escapeHtml(question.model_answer || question.answer || '')}</div>
+                  </div>
+
+                  ${safeOptions.includeFeedback && feedback?.feedback ? `
+                    <div class="content-box feedback-box">
+                      <div class="content-label">🤖 AI 피드백</div>
+                      <div class="content-text">${escapeHtml(feedback.feedback)}</div>
+                    </div>
+                  ` : ''}
+
+                  ${safeOptions.includeMemo ? (() => {
+                    const memo = examService.getQuestionMemo(question.id);
+                    if (memo && memo.memo && memo.memo.trim()) {
+                      return `
+                        <div class="content-box memo-box">
+                          <div class="content-label">📝 나의 메모</div>
+                          <div class="content-text">${escapeHtml(memo.memo)}</div>
+                        </div>
+                      `;
+                    }
+                    return '';
+                  })() : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `).join('')}
+
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 9pt;">
+          Generated by 감린이 (Gamlini) - 회계감사 학습 플랫폼
+        </div>
+      </body>
+      </html>
+    `;
+
+    // window.print() 방식으로 PDF 생성
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) {
+      alert('팝업이 차단되었습니다. 팝업 차단을 해제하고 다시 시도해주세요.');
+      return;
+    }
+
+    printWindow.document.write(pdfHtml);
+    printWindow.document.close();
+
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 500);
+    };
+
+  } catch (error) {
+    console.error('PDF 내보내기 오류:', error);
+    alert('PDF 내보내기 중 오류가 발생했습니다.');
+  }
+}
+
+/**
+ * 문제 ID에서 번호 추출 (단원별용 - 여기서 재정의)
+ */
+function extractQuestionNumber(id) {
+  if (!id) return '';
+  const match = id.match(/Q(\d+)(?:_(\d+))?/);
+  if (match) {
+    return match[2] ? `${match[1]}-${match[2]}` : match[1];
+  }
+  return id;
+}
+
+/**
+ * 마크다운 표를 HTML 테이블로 변환 (PDF용)
+ */
+function convertMarkdownTablesToHtmlForPdf(text) {
+  if (!text) return '';
+
+  // 3개 이상의 연속된 줄바꿈을 2개로 축소
+  text = text.replace(/\n{3,}/g, '\n\n');
+
+  const lines = text.split(/\r?\n/);
+  let result = '';
+  let i = 0;
+  let lastWasTable = false;
+
+  while (i < lines.length) {
+    const line = lines[i].trim();
+
+    if (line.startsWith('|') && line.endsWith('|')) {
+      const tableData = parseTableForChapterPdf(lines, i);
+      if (tableData) {
+        if (result && !result.endsWith('<br>') && !result.endsWith('</table>')) {
+          result += '<br>';
+        }
+        result += renderTableForChapterPdf(tableData.headers, tableData.alignments, tableData.rows);
+        i = tableData.nextIndex;
+        lastWasTable = true;
+        continue;
+      }
+    }
+
+    if (i > 0) {
+      if (lastWasTable) {
+        result += '<br>';
+        lastWasTable = false;
+      } else if (result && !result.endsWith('<br>')) {
+        result += '<br>';
+      }
+    }
+    result += escapeHtml(lines[i]);
+    i++;
+  }
+
+  return result;
+}
+
+function parseTableForChapterPdf(lines, startIndex) {
+  let i = startIndex;
+  const headerLine = lines[i].trim();
+  if (!headerLine.startsWith('|') || !headerLine.endsWith('|')) return null;
+
+  const headers = headerLine.split('|').slice(1, -1).map(cell => cell.trim());
+  if (headers.length < 2) return null;
+
+  i++;
+  if (i >= lines.length) return null;
+
+  const separatorLine = lines[i].trim();
+  if (!separatorLine.startsWith('|') || !separatorLine.endsWith('|')) return null;
+
+  const alignments = separatorLine.split('|').slice(1, -1).map(cell => {
+    const trimmed = cell.trim();
+    if (trimmed.startsWith(':') && trimmed.endsWith(':')) return 'center';
+    if (trimmed.endsWith(':')) return 'right';
+    return 'left';
+  });
+
+  i++;
+  const rows = [];
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    if (!line.startsWith('|') || !line.endsWith('|')) break;
+    const cells = line.split('|').slice(1, -1).map(cell => cell.trim());
+    rows.push(cells);
+    i++;
+  }
+
+  return { headers, alignments, rows, nextIndex: i };
+}
+
+function renderTableForChapterPdf(headers, alignments, rows) {
+  let html = '<table><thead><tr>';
+  headers.forEach((h, idx) => {
+    const align = alignments[idx] || 'left';
+    html += `<th style="text-align: ${align};">${escapeHtml(h)}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+  rows.forEach(row => {
+    html += '<tr>';
+    row.forEach((cell, idx) => {
+      const align = alignments[idx] || 'left';
+      html += `<td style="text-align: ${align};">${escapeHtml(cell)}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+

@@ -1295,11 +1295,12 @@ ${userPrompt}
   }
 
   /**
-   * 단원별 제한시간 계산 (문제 수 기반: 문제당 약 5분)
+   * 단원별 제한시간 계산 (배점 기반: 배점 × 1분, 최소 5분)
+   * @param {number} totalScore - 총 배점
    */
-  calculateChapterTimeLimit(questionCount) {
-    // 최소 15분, 최대 90분
-    const timeLimit = Math.max(15, Math.min(90, Math.ceil(questionCount * 5)));
+  calculateChapterTimeLimit(totalScore) {
+    // 최소 5분, 배점 × 1분
+    const timeLimit = Math.max(5, Math.ceil(totalScore * 1));
     return timeLimit;
   }
 

@@ -1716,6 +1716,8 @@ const chapterUIState = {
   timerInterval: null,
   answers: {},
   timeLimit: null,
+  viewMode: 'auto', // 'split', 'vertical', 'auto' (연도별과 동일)
+  resizeHandler: null,
   reset() {
     this.currentChapter = null;
     if (this.timerInterval) {
@@ -1724,6 +1726,16 @@ const chapterUIState = {
     }
     this.answers = {};
     this.timeLimit = null;
+    // viewMode는 초기화하지 않음 (사용자 선택 유지)
+  },
+  /**
+   * 현재 화면 크기에 따라 적절한 뷰 모드 반환 (연도별과 동일)
+   */
+  getActiveViewMode() {
+    if (this.viewMode === 'auto') {
+      return window.innerWidth >= 1024 ? 'split' : 'vertical';
+    }
+    return this.viewMode;
   }
 };
 
@@ -1894,7 +1906,8 @@ async function startChapterExam(container, chapter) {
 
   const chapterData = examService.getQuestionsByChapter(chapter);
   const totalQuestions = chapterData.reduce((sum, c) => sum + c.questions.length, 0);
-  const defaultTimeLimit = examService.calculateChapterTimeLimit(totalQuestions);
+  const totalScore = chapterData.reduce((sum, c) => sum + c.questions.reduce((s, q) => s + q.score, 0), 0);
+  const defaultTimeLimit = examService.calculateChapterTimeLimit(totalScore);
   const savedTimeLimit = examService.getChapterTimeLimit(chapter);
   chapterUIState.timeLimit = savedTimeLimit || defaultTimeLimit;
 
@@ -1933,6 +1946,23 @@ async function renderChapterExamPaper(container, chapter, apiKey, selectedModel)
   const chapterName = CHAPTER_LABELS[Math.floor(parseFloat(chapter))] || '단원 ' + chapter;
   const totalScore = chapterData.reduce((sum, c) => sum + c.questions.reduce((s, q) => s + q.score, 0), 0);
 
+  // 연도별과 동일한 뷰 모드 지원
+  const activeViewMode = chapterUIState.getActiveViewMode();
+
+  // 모든 문제를 평탄화 (Split View에서 첫 지문 표시용)
+  const allQuestions = [];
+  chapterData.forEach(caseItem => {
+    caseItem.questions.forEach(q => {
+      allQuestions.push({
+        ...q,
+        year: caseItem.year,
+        topic: caseItem.topic,
+        caseScenario: caseItem.scenario
+      });
+    });
+  });
+  const firstScenario = allQuestions[0]?.scenario || allQuestions[0]?.caseScenario || '지문을 불러오는 중...';
+
   container.innerHTML = `
     <div id="chapter-exam-header" class="flex-none bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-700 dark:to-cyan-700 text-gray-800 dark:text-white shadow-lg z-50">
       <div class="w-full px-4 sm:px-6 lg:px-8 py-3">
@@ -1945,10 +1975,32 @@ async function renderChapterExamPaper(container, chapter, apiKey, selectedModel)
             <div class="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/50 px-3 py-1.5 rounded-lg border-2 border-orange-400 dark:border-orange-600">
               <span class="text-xs font-semibold text-orange-700 dark:text-orange-300">⏱️</span>
               <div id="chapter-timer-display" class="text-lg font-mono font-bold text-orange-600 dark:text-orange-400">--:--</div>
+              <button id="btn-edit-chapter-timer" class="text-xs text-orange-700 dark:text-orange-300 hover:text-orange-900 dark:hover:text-orange-100 ml-1" title="시간 설정">
+                ⚙️
+              </button>
             </div>
             <button id="btn-submit-chapter" style="background-color: #16a34a; color: white; padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-weight: bold; display: flex; align-items: center; gap: 0.25rem;">
               <span>📝</span><span class="hidden sm:inline">최종 제출</span>
             </button>
+
+            <!-- View Mode Toggle (연도별과 동일) -->
+            <div class="flex bg-white/50 dark:bg-gray-800/50 rounded-lg p-1 gap-1">
+              <button
+                id="btn-chapter-view-split"
+                class="px-2 py-1.5 rounded text-xs font-semibold transition-all ${activeViewMode === 'split' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'hover:bg-white/50 dark:hover:bg-gray-700/50'}"
+                title="시험장 모드 (좌측 지문 고정)"
+              >
+                🖥️ <span class="hidden md:inline">시험장</span>
+              </button>
+              <button
+                id="btn-chapter-view-vertical"
+                class="px-2 py-1.5 rounded text-xs font-semibold transition-all ${activeViewMode === 'vertical' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'hover:bg-white/50 dark:hover:bg-gray-700/50'}"
+                title="모바일 모드 (카드형)"
+              >
+                📱 <span class="hidden md:inline">모바일</span>
+              </button>
+            </div>
+
             <button id="btn-exit-chapter" style="background-color: #4b5563; color: white; padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-weight: bold; display: flex; align-items: center; gap: 0.25rem;">
               <span>✕</span><span class="hidden sm:inline">나가기</span>
             </button>
@@ -1957,11 +2009,31 @@ async function renderChapterExamPaper(container, chapter, apiKey, selectedModel)
       </div>
     </div>
 
-    <div id="chapter-scroll-area" class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scroll-smooth">
-      <div class="w-full px-4 sm:px-6 lg:px-8 py-6 pb-32">
-        <div class="max-w-4xl mx-auto space-y-8">
+    <div id="chapter-scroll-area" class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scroll-smooth relative" data-view-mode="${activeViewMode}">
+      ${activeViewMode === 'split' ? `
+        <!-- Split View: 좌측 지문 + 우측 문제 (고정 비율 4.5:5.5) -->
+        <div class="flex h-full" style="padding-left: 64px; padding-right: 320px;">
+          <!-- Left Panel: Scenario (고정 45% 너비) -->
+          <div class="flex-none border-r-2 border-gray-300 dark:border-gray-700 overflow-y-auto bg-white dark:bg-gray-800 p-6" style="width: 45%;">
+            <div class="sticky top-0 bg-white dark:bg-gray-800 pb-4 border-b-2 border-gray-200 dark:border-gray-700 mb-4">
+              <h4 class="text-lg font-bold text-blue-700 dark:text-blue-300">📄 지문</h4>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">현재 보고 있는 문제의 지문이 표시됩니다</p>
+            </div>
+            <div id="chapter-split-scenario-display" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">
+              ${convertMarkdownTablesToHtml(firstScenario)}
+            </div>
+          </div>
+
+          <!-- Right Panel: Questions (고정 55% 너비) -->
+          <div class="flex-none overflow-y-auto p-6" style="width: 55%;">
+            <div class="space-y-8">
+      ` : `
+        <!-- Vertical View: 기존 카드형 레이아웃 -->
+        <div class="w-full px-4 sm:px-6 lg:pl-8 lg:pr-[240px] py-6 pb-32">
+          <div class="max-w-6xl mx-auto space-y-12">
+      `}
           ${chapterData.map((caseItem) => `
-            <div class="case-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-visible">
+            <div class="case-card bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-visible scroll-mt-4">
               <div class="bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-700 dark:to-cyan-700 px-6 py-3 shadow-md rounded-t-xl">
                 <div class="flex items-center justify-between">
                   <h4 class="text-lg font-bold text-gray-800 dark:text-white">${caseItem.year}년 - ${caseItem.topic}</h4>
@@ -1979,22 +2051,23 @@ async function renderChapterExamPaper(container, chapter, apiKey, selectedModel)
                   const isFirstQuestion = qIdx === 0;
 
                   return `
-                    <div id="question-${q.id}" class="question-item border-2 ${isSameScenario ? 'border-gray-200 dark:border-gray-600' : 'border-orange-400 dark:border-orange-600'} rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-lg">
-                      ${currentScenario ? `
-                        <div class="scenario-section ${isSameScenario ? 'bg-green-50 dark:bg-green-900/20' : 'bg-orange-50 dark:bg-orange-900/20'} border-b-2 ${isSameScenario ? 'border-green-200 dark:border-green-700' : 'border-orange-200 dark:border-orange-700'}">
-                          <button class="scenario-toggle w-full px-4 py-3 text-left flex items-center justify-between hover:bg-opacity-80 transition-colors" data-question-id="${q.id}" data-expanded="${!isSameScenario}">
-                            <div class="flex items-center gap-2 flex-wrap">
-                              <span class="px-3 py-1 ${isSameScenario ? 'bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-200' : 'bg-orange-200 dark:bg-orange-700 text-orange-800 dark:text-orange-200'} text-xs font-bold rounded-full">📄 지문</span>
-                              ${!isFirstQuestion && !isSameScenario ? '<span class="px-2 py-1 bg-orange-500 text-white text-xs font-bold rounded animate-pulse">⚠️ 상황 변경</span>' : ''}
-                              ${isSameScenario ? '<span class="text-xs text-green-700 dark:text-green-300 font-semibold">(이전과 동일)</span>' : ''}
-                            </div>
-                            <span class="text-gray-600 dark:text-gray-400 text-sm scenario-arrow" data-question-id="${q.id}">${isSameScenario ? '▶' : '▼'}</span>
-                          </button>
-                          <div class="scenario-content px-4 pb-4 ${isSameScenario ? 'hidden' : ''}" data-question-id="${q.id}">
-                            <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line" style="font-family: 'Iropke Batang', serif;">${convertMarkdownTablesToHtml(currentScenario)}</div>
+                    <div id="question-${q.id}" class="question-item ${isSameScenario ? '' : 'scenario-changed'} border-2 ${isSameScenario ? 'border-gray-200 dark:border-gray-600' : 'border-orange-400 dark:border-orange-600'} rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-lg transition-all duration-300" data-scenario="${currentScenario.replace(/"/g, '&quot;')}">
+
+                      <!-- Scenario Section (Vertical View only) -->
+                      <div class="scenario-section ${activeViewMode === 'split' ? 'hidden' : ''} ${isSameScenario ? 'bg-green-50 dark:bg-green-900/20' : 'bg-orange-50 dark:bg-orange-900/20'} border-b-2 ${isSameScenario ? 'border-green-200 dark:border-green-700' : 'border-orange-200 dark:border-orange-700'}">
+                        <button class="scenario-toggle w-full px-4 py-3 text-left flex items-center justify-between hover:bg-opacity-80 transition-colors" data-question-id="${q.id}" data-expanded="${!isSameScenario}">
+                          <div class="flex items-center gap-2 flex-wrap">
+                            <span class="px-3 py-1 ${isSameScenario ? 'bg-green-200 dark:bg-green-700' : 'bg-orange-200 dark:bg-orange-700'} ${isSameScenario ? 'text-green-800 dark:text-green-200' : 'text-orange-800 dark:text-orange-200'} text-xs font-bold rounded-full">📄 지문</span>
+                            ${!isFirstQuestion && !isSameScenario ? '<span class="px-2 py-1 bg-orange-500 text-white text-xs font-bold rounded animate-pulse">⚠️ 상황 변경</span>' : ''}
+                            ${isSameScenario ? '<span class="text-xs text-green-700 dark:text-green-300 font-semibold">(이전과 동일)</span>' : ''}
                           </div>
+                          <span class="text-gray-600 dark:text-gray-400 text-sm scenario-arrow" data-question-id="${q.id}">${isSameScenario ? '▶' : '▼'}</span>
+                        </button>
+                        <div class="scenario-content px-4 pb-4 ${isSameScenario ? 'hidden' : ''}" data-question-id="${q.id}">
+                          <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${convertMarkdownTablesToHtml(currentScenario)}</div>
                         </div>
-                      ` : ''}
+                      </div>
+
                       <div class="p-5">
                         <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
                           <div class="flex items-center gap-2">
@@ -2004,10 +2077,23 @@ async function renderChapterExamPaper(container, chapter, apiKey, selectedModel)
                             <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded">
                               ${q.score}점
                             </span>
+                            ${q.type ? `<span class="px-2 py-1 bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-purple-200 text-xs font-bold rounded">${q.type === 'Rule' ? '기준서' : '사례'}</span>` : ''}
                           </div>
+                          ${(() => {
+                            const qHistory = examService.getQuestionHistory(q.id);
+                            if (qHistory.length === 0) return '';
+                            const recentScores = qHistory.slice(-3);
+                            const trend = recentScores.map((h, idx, arr) => {
+                              const percent = h.maxScore > 0 ? (h.score / h.maxScore) * 100 : 0;
+                              const color = percent >= 90 ? 'text-green-600 dark:text-green-400' : percent >= 50 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400';
+                              const arrow = idx > 0 ? (h.score > arr[idx-1].score ? '<span class="text-green-500">↑</span>' : h.score < arr[idx-1].score ? '<span class="text-red-500">↓</span>' : '<span class="text-gray-400">→</span>') : '';
+                              return arrow + '<span class="' + color + ' font-bold">' + h.score.toFixed(1) + '</span>';
+                            }).join(' ');
+                            return '<div class="flex items-center gap-1 text-xs" title="최근 ' + recentScores.length + '회 점수 추이"><span class="text-gray-500 dark:text-gray-400">📊</span>' + trend + '</div>';
+                          })()}
                         </div>
                         <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                          <div class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-line" style="font-family: 'Iropke Batang', serif;">${convertMarkdownTablesToHtml(q.question)}</div>
+                          <div class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap" style="font-family: 'Iropke Batang', serif;">${convertMarkdownTablesToHtml(q.question)}</div>
                         </div>
                         <div>
                           <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">✍️ 답안 작성</label>
@@ -2032,6 +2118,13 @@ async function renderChapterExamPaper(container, chapter, apiKey, selectedModel)
           `).join('')}
         </div>
       </div>
+    ${activeViewMode === 'split' ? `
+          </div>
+        </div>
+      </div>
+    ` : `
+      </div>
+    `}
     </div>
   `;
 
@@ -2080,6 +2173,74 @@ async function renderChapterExamPaper(container, chapter, apiKey, selectedModel)
   container.querySelector('#btn-submit-chapter')?.addEventListener('click', () => {
     submitChapterExam(container, chapter, apiKey, selectedModel);
   });
+
+  // 타이머 시간 설정 버튼
+  container.querySelector('#btn-edit-chapter-timer')?.addEventListener('click', () => {
+    showChapterTimerSettingModal(container, chapter, apiKey, selectedModel);
+  });
+
+  // View Mode Toggle 버튼 (연도별과 동일)
+  const btnChapterViewSplit = container.querySelector('#btn-chapter-view-split');
+  const btnChapterViewVertical = container.querySelector('#btn-chapter-view-vertical');
+
+  if (btnChapterViewSplit) {
+    btnChapterViewSplit.addEventListener('click', () => {
+      chapterUIState.viewMode = 'split';
+      renderChapterExamPaper(container, chapter, apiKey, selectedModel);
+    });
+  }
+
+  if (btnChapterViewVertical) {
+    btnChapterViewVertical.addEventListener('click', () => {
+      chapterUIState.viewMode = 'vertical';
+      renderChapterExamPaper(container, chapter, apiKey, selectedModel);
+    });
+  }
+
+  // Split View: Question 카드 클릭/포커스 시 좌측 지문 업데이트
+  if (activeViewMode === 'split') {
+    const questionCards = container.querySelectorAll('.question-item');
+    const scenarioDisplay = container.querySelector('#chapter-split-scenario-display');
+
+    questionCards.forEach(card => {
+      const textarea = card.querySelector('textarea');
+      if (textarea && scenarioDisplay) {
+        textarea.addEventListener('focus', () => {
+          const scenario = card.dataset.scenario;
+          if (scenario) {
+            const decodedScenario = scenario.replace(/&quot;/g, '"');
+            scenarioDisplay.innerHTML = convertMarkdownTablesToHtml(decodedScenario);
+          }
+        });
+      }
+
+      card.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'TEXTAREA' && scenarioDisplay) {
+          const scenario = card.dataset.scenario;
+          if (scenario) {
+            const decodedScenario = scenario.replace(/&quot;/g, '"');
+            scenarioDisplay.innerHTML = convertMarkdownTablesToHtml(decodedScenario);
+          }
+        }
+      });
+    });
+  }
+
+  // Responsive: Window resize 감지 (auto 모드일 때만)
+  const handleChapterResize = () => {
+    if (chapterUIState.viewMode === 'auto') {
+      const newViewMode = chapterUIState.getActiveViewMode();
+      if (newViewMode !== activeViewMode) {
+        renderChapterExamPaper(container, chapter, apiKey, selectedModel);
+      }
+    }
+  };
+
+  if (chapterUIState.resizeHandler) {
+    window.removeEventListener('resize', chapterUIState.resizeHandler);
+  }
+  chapterUIState.resizeHandler = handleChapterResize;
+  window.addEventListener('resize', handleChapterResize);
 
   container.querySelectorAll('textarea[data-question-id]').forEach(textarea => {
     const questionId = textarea.dataset.questionId;
@@ -2315,4 +2476,126 @@ async function gradeChapterAndShowResults(container, chapter, apiKey, selectedMo
     alert('채점 중 오류가 발생했습니다. 다시 시도해주세요.');
     renderChapterSelection(container);
   }
+}
+
+/**
+ * 단원별 시험 타이머 시간 설정 모달
+ */
+function showChapterTimerSettingModal(container, chapter, apiKey, selectedModel) {
+  // 기존 모달이 있으면 제거
+  const existingModal = document.getElementById('chapter-timer-modal');
+  if (existingModal) existingModal.remove();
+
+  const chapterData = examService.getQuestionsByChapter(chapter);
+  const totalQuestions = chapterData.reduce((sum, c) => sum + c.questions.length, 0);
+  const totalScore = chapterData.reduce((sum, c) => sum + c.questions.reduce((s, q) => s + q.score, 0), 0);
+  const defaultTimeLimit = examService.calculateChapterTimeLimit(totalScore);
+  const currentTimeLimit = chapterUIState.timeLimit || defaultTimeLimit;
+
+  const modal = document.createElement('div');
+  modal.id = 'chapter-timer-modal';
+  modal.className = 'fixed inset-0 z-[100] flex items-center justify-center bg-black/50';
+  modal.innerHTML = `
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-5 max-w-xs mx-4">
+      <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+        ⏱️ 제한 시간 설정
+      </h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            제한 시간 (분)
+          </label>
+          <input
+            type="number"
+            id="chapter-timer-input"
+            value="${currentTimeLimit}"
+            min="5"
+            max="180"
+            class="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200 text-lg font-mono"
+          />
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            기본값: ${defaultTimeLimit}분 (${totalScore}점 × 1분)
+          </p>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button
+            id="btn-timer-reset"
+            class="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-semibold text-sm"
+          >
+            기본값으로
+          </button>
+          <button
+            id="btn-timer-save"
+            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-sm"
+          >
+            저장
+          </button>
+        </div>
+        <button
+          id="btn-timer-cancel"
+          class="w-full px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm"
+        >
+          취소
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const timerInput = modal.querySelector('#chapter-timer-input');
+  const btnSave = modal.querySelector('#btn-timer-save');
+  const btnReset = modal.querySelector('#btn-timer-reset');
+  const btnCancel = modal.querySelector('#btn-timer-cancel');
+
+  // 모달 바깥 클릭 시 닫기
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+
+  // 취소 버튼
+  btnCancel.addEventListener('click', () => {
+    modal.remove();
+  });
+
+  // 기본값으로 리셋
+  btnReset.addEventListener('click', () => {
+    timerInput.value = defaultTimeLimit;
+  });
+
+  // 저장 버튼
+  btnSave.addEventListener('click', () => {
+    const newTimeLimit = parseInt(timerInput.value, 10);
+    if (isNaN(newTimeLimit) || newTimeLimit < 5 || newTimeLimit > 180) {
+      alert('5분 ~ 180분 사이의 값을 입력해주세요.');
+      return;
+    }
+
+    // 저장
+    examService.saveChapterTimeLimit(chapter, newTimeLimit);
+    chapterUIState.timeLimit = newTimeLimit;
+
+    // 타이머 재시작 (기존 경과 시간 유지)
+    if (chapterUIState.timerInterval) {
+      clearInterval(chapterUIState.timerInterval);
+      chapterUIState.timerInterval = null;
+    }
+    startChapterTimer(chapter, newTimeLimit);
+
+    modal.remove();
+    alert(`제한 시간이 ${newTimeLimit}분으로 변경되었습니다.`);
+  });
+
+  // Enter 키로 저장
+  timerInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      btnSave.click();
+    }
+  });
+
+  // 포커스
+  timerInput.focus();
+  timerInput.select();
 }
